@@ -1,3 +1,6 @@
+# Local docs, not committed
+*.docx
+
 # Logs
 logs
 *.log
