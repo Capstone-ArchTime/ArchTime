@@ -6,6 +6,7 @@ import HomePage from "@/pages/HomePage"
 import Dashboard from "@/pages/user/Dashboard"
 import Projects from "@/pages/user/Projects"
 import ArchitectureHistory from "@/pages/user/ArchitectureHistory"
+import Compare from "@/pages/user/Compare"
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/history" element={<ArchitectureHistory />} />
+          <Route path="/compare" element={<Compare />} />
         </Routes>
       </BrowserRouter>
     </ConfigProvider>
