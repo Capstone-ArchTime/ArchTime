@@ -1,10 +1,17 @@
 import { ConfigProvider, theme } from "antd"
-import HomePage from "@/pages/HomePage"
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import AuthPage from "@/pages/Auth"
 
 function App() {
   return (
     <ConfigProvider theme={{ algorithm: theme.darkAlgorithm }}>
-      <HomePage />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/login" element={<AuthPage />} />
+          <Route path="/register" element={<AuthPage />} />
+        </Routes>
+      </BrowserRouter>
     </ConfigProvider>
   )
 }
