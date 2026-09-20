@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, CheckCircle2, Search, Zap, Server, ChevronRight } from 'lucide-react';
+import { Mail, Lock, CheckCircle2, ChevronRight } from 'lucide-react';
 import { Icon } from '@iconify/react';
 import { Checkbox } from 'antd';
 

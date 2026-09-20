@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 
 const AuthPage: React.FC = () => {
   const location = useLocation();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const navigate = useNavigate();
   const isRegister = location.pathname === '/register';
 
