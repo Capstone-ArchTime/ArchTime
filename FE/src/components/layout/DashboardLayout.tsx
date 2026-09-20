@@ -84,12 +84,26 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           <div>
             <h3 className="text-[10px] font-mono font-semibold text-[#566575] uppercase tracking-wider px-3 mb-3">Recent Projects</h3>
             <div className="space-y-0.5">
-              {['E-Commerce Platform', 'Payment Platform', 'Healthcare Connect'].map((proj, i) => (
-                <button key={i} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#8A98A8] hover:text-[#F4F7FA] hover:bg-[#0B1017] rounded-md transition-colors group">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#566575] group-hover:bg-[#1687FF] transition-colors"></div>
-                  <span className="truncate">{proj}</span>
-                </button>
-              ))}
+              {['E-Commerce Platform', 'Payment Platform', 'Healthcare Connect'].map((proj, i) => {
+                if (proj === 'E-Commerce Platform') {
+                  return (
+                    <Link
+                      key={i}
+                      to="/project"
+                      className="flex items-center gap-3 px-3 py-2 text-sm text-[#8A98A8] hover:text-[#F4F7FA] hover:bg-[#1A2A37]/50 rounded-lg transition-colors group"
+                    >
+                      <div className="w-2 h-2 rounded-full bg-[#FFB020] opacity-70 group-hover:opacity-100 transition-opacity"></div>
+                      <span className="truncate">{proj}</span>
+                    </Link>
+                  );
+                }
+                return (
+                  <button key={i} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[#8A98A8] hover:text-[#F4F7FA] hover:bg-[#0B1017] rounded-md transition-colors group">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#566575] group-hover:bg-[#1687FF] transition-colors"></div>
+                    <span className="truncate">{proj}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

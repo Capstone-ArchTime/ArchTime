@@ -8,6 +8,9 @@ import Projects from "@/pages/user/Projects"
 import ArchitectureHistory from "@/pages/user/ArchitectureHistory"
 import Compare from "@/pages/user/Compare"
 import Evidence from "@/pages/user/Evidence"
+import Insights from "@/pages/user/Insights"
+import Reports from "@/pages/user/Reports"
+import ProjectDetail from "@/pages/user/ProjectDetail"
 
 function App() {
   return (
@@ -22,6 +25,9 @@ function App() {
           <Route path="/history" element={<ArchitectureHistory />} />
           <Route path="/compare" element={<Compare />} />
           <Route path="/evidence" element={<Evidence />} />
+          <Route path="/insights" element={<Insights />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/project" element={<ProjectDetail />} />
         </Routes>
       </BrowserRouter>
     </ConfigProvider>
