@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import AuthPage from "@/pages/Auth"
 
 import HomePage from "@/pages/HomePage"
-import Dashboard from "@/pages/Dashboard"
+import Dashboard from "@/pages/user/Dashboard"
 
 function App() {
   return (
