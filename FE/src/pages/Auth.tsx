@@ -65,7 +65,7 @@ const AuthPage: React.FC = () => {
     <div className="h-screen bg-[#080C12] text-[#F5F7FA] font-sans flex flex-col md:flex-row overflow-hidden selection:bg-[#00D9FF]/20 selection:text-[#00D9FF]">
       
       {/* Left Panel - Authentication */}
-      <div className="w-full md:w-[30%] flex flex-col relative z-10 bg-[#0B1017] border-b md:border-b-0 md:border-r border-[#1A2A38] shadow-2xl h-screen overflow-hidden">
+      <div className="w-full md:w-[40%] flex flex-col relative z-10 bg-[#0B1017] border-b md:border-b-0 md:border-r border-[#1A2A38] shadow-2xl h-screen overflow-hidden">
         
         <div className="flex-1 flex flex-col p-6 lg:p-10 xl:px-12 xl:py-8 max-w-xl w-full mx-auto justify-between">
           
@@ -417,12 +417,12 @@ const AuthPage: React.FC = () => {
                   </g>
 
                   {/* Floating Badges (AST, Commit) */}
-                  <g transform="translate(600, 20)">
+                  <g transform="translate(550, 20)">
                     <rect x="0" y="0" width="130" height="24" rx="4" fill="#00D9FF" fillOpacity="0.05" stroke="#00D9FF" strokeOpacity="0.3" />
                     <circle cx="12" cy="12" r="3.5" fill="#00D9FF" />
                     <text x="22" y="16" fill="#00D9FF" fontSize="10" fontFamily="monospace">AST Dependency Graph</text>
                   </g>
-                  <g transform="translate(760, 20)">
+                  <g transform="translate(810, 20)">
                     <rect x="0" y="0" width="120" height="24" rx="4" fill="#101722" stroke="#1A2A38" />
                     <circle cx="12" cy="12" r="3.5" fill="#1687FF" />
                     <text x="22" y="16" fill="#8A9AAA" fontSize="10" fontFamily="monospace">commit #4f82a9d</text>
