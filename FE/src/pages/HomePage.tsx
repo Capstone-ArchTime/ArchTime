@@ -1,5 +1,5 @@
 import { Icon } from "@iconify/react";
-import { motion, type Variants } from "motion/react";
+import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const particles = [
@@ -9,15 +9,6 @@ const particles = [
   { left: "83%", size: 2.5, duration: 4.2, delay: 0.7 },
   { left: "58%", size: 2, duration: 4.9, delay: 3.1 },
 ];
-
-const fadeInUp: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as const },
-  },
-};
 
 const fontFamily = {
   sans: '"Space Grotesk", sans-serif',
@@ -111,16 +102,9 @@ function RevealSection({
   children: React.ReactNode;
 }) {
   return (
-    <motion.section
-      id={id}
-      className={className}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-40px" }}
-      variants={fadeInUp}
-    >
+    <section id={id} className={className}>
       {children}
-    </motion.section>
+    </section>
   );
 }
 
