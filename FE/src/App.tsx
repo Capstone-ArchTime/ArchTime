@@ -5,6 +5,7 @@ import AuthPage from "@/pages/Auth"
 import HomePage from "@/pages/HomePage"
 import Dashboard from "@/pages/user/Dashboard"
 import Projects from "@/pages/user/Projects"
+import ArchitectureHistory from "@/pages/user/ArchitectureHistory"
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
           <Route path="/register" element={<AuthPage />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/projects" element={<Projects />} />
+          <Route path="/history" element={<ArchitectureHistory />} />
         </Routes>
       </BrowserRouter>
     </ConfigProvider>
