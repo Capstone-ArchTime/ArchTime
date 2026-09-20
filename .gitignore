@@ -1,6 +1,20 @@
 # Local docs, not committed
 *.docx
 
+# Claude Code local tool cache (skills, agent config)
+.claude/
+.agents/
+skills-lock.json
+
+# Playwright MCP screenshots/console logs
+.playwright-mcp/
+
+# Local scratch / unclassified
+.ua/
+
+# Design reference files (downloaded via getdesign, not project source)
+.design-refs/
+
 # Logs
 logs
 *.log
