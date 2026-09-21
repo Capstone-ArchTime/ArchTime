@@ -11,6 +11,7 @@ import Evidence from "@/pages/developer-analyst/Evidence"
 import Insights from "@/pages/developer-analyst/Insights"
 import Reports from "@/pages/developer-analyst/Reports"
 import ProjectDetail from "@/pages/developer-analyst/ProjectDetail"
+import ProjectMaintainerDashboard from "@/pages/project-maintainer/Dashboard"
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route path="/insights" element={<Insights />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/project" element={<ProjectDetail />} />
+          <Route path="/project-maintainer" element={<ProjectMaintainerDashboard />} />
         </Routes>
       </BrowserRouter>
     </ConfigProvider>
