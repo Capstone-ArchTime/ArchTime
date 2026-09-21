@@ -1,17 +1,23 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  FolderKanban, 
-  History, 
-  GitCompare, 
-  FileSearch, 
-  Sparkles, 
+import {
+  LayoutDashboard,
+  FolderKanban,
+  History,
+  GitCompare,
+  FileSearch,
+  Sparkles,
   FileBarChart,
   User,
   Settings,
   Search,
-  Bell
+  Bell,
+  ShieldCheck,
+  GitPullRequest,
+  Users,
+  Users2,
+  SlidersHorizontal,
+  ScrollText,
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -23,11 +29,8 @@ const fontFamily = {
   mono: '"JetBrains Mono", monospace',
 };
 
-const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
-  const location = useLocation();
-  const currentPath = location.pathname;
-
-  const navItems = [
+const navItemsByRole = {
+  'developer-analyst': [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/projects', label: 'Projects', icon: FolderKanban },
     { path: '/history', label: 'Architecture History', icon: History },
@@ -35,7 +38,32 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     { path: '/evidence', label: 'Changes & Evidence', icon: FileSearch },
     { path: '/insights', label: 'AI Insights', icon: Sparkles },
     { path: '/reports', label: 'Reports', icon: FileBarChart },
-  ];
+  ],
+  'project-maintainer': [
+    { path: '/project-maintainer', label: 'Overview', icon: ShieldCheck },
+    { path: '/project-maintainer/approvals', label: 'Approval Queue', icon: GitPullRequest },
+    { path: '/project-maintainer/team', label: 'Team', icon: Users },
+  ],
+  'system-administrator': [
+    { path: '/system-administrator', label: 'Overview', icon: LayoutDashboard },
+    { path: '/system-administrator/users', label: 'User Management', icon: Users2 },
+    { path: '/system-administrator/settings', label: 'System Settings', icon: SlidersHorizontal },
+    { path: '/system-administrator/audit-log', label: 'Audit Log', icon: ScrollText },
+  ],
+} as const;
+
+function resolveRole(pathname: string): keyof typeof navItemsByRole {
+  if (pathname.startsWith('/project-maintainer')) return 'project-maintainer';
+  if (pathname.startsWith('/system-administrator')) return 'system-administrator';
+  return 'developer-analyst';
+}
+
+const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
+  const location = useLocation();
+  const currentPath = location.pathname;
+  const role = resolveRole(currentPath);
+  const navItems = navItemsByRole[role];
+  const homePath = navItems[0].path;
 
   return (
     <div
@@ -71,7 +99,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             <nav className="space-y-0.5">
               {navItems.map((item) => {
                 const IconComp = item.icon;
-                const isActive = currentPath.startsWith(item.path);
+                const isActive = item.path === homePath
+                  ? currentPath === item.path
+                  : currentPath.startsWith(item.path);
                 return (
                   <Link
                     key={item.path}
@@ -146,10 +176,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           <div className="flex items-center text-sm font-mono text-[#5f636b]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
             <span className="hover:text-[#f4f4f6] cursor-pointer transition-colors">ArchTime</span>
-            <span className="mx-2">/</span>
-            <span className="text-[#f4f4f6] capitalize">
-              {currentPath.replace('/', '') || 'Dashboard'}
-            </span>
+            {currentPath.split('/').filter(Boolean).map((segment, i, arr) => (
+              <React.Fragment key={i}>
+                <span className="mx-2">/</span>
+                <span className={i === arr.length - 1 ? "text-[#f4f4f6] capitalize" : "capitalize"}>
+                  {segment.replace(/-/g, ' ')}
+                </span>
+              </React.Fragment>
+            ))}
+            {currentPath === '/' && (
+              <>
+                <span className="mx-2">/</span>
+                <span className="text-[#f4f4f6] capitalize">Dashboard</span>
+              </>
+            )}
           </div>
 
           {/* Right Actions */}
