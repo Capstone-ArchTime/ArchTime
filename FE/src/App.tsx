@@ -12,6 +12,8 @@ import Insights from "@/pages/developer-analyst/Insights"
 import Reports from "@/pages/developer-analyst/Reports"
 import ProjectDetail from "@/pages/developer-analyst/ProjectDetail"
 import ProjectMaintainerDashboard from "@/pages/project-maintainer/Dashboard"
+import ApprovalQueue from "@/pages/project-maintainer/ApprovalQueue"
+import Team from "@/pages/project-maintainer/Team"
 import SystemAdministratorDashboard from "@/pages/system-administrator/Dashboard"
 import UserManagement from "@/pages/system-administrator/UserManagement"
 import SystemSettings from "@/pages/system-administrator/SystemSettings"
@@ -34,6 +36,8 @@ function App() {
           <Route path="/reports" element={<Reports />} />
           <Route path="/project" element={<ProjectDetail />} />
           <Route path="/project-maintainer" element={<ProjectMaintainerDashboard />} />
+          <Route path="/project-maintainer/approvals" element={<ApprovalQueue />} />
+          <Route path="/project-maintainer/team" element={<Team />} />
           <Route path="/system-administrator" element={<SystemAdministratorDashboard />} />
           <Route path="/system-administrator/users" element={<UserManagement />} />
           <Route path="/system-administrator/settings" element={<SystemSettings />} />
