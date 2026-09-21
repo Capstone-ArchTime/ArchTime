@@ -3,14 +3,14 @@ import { BrowserRouter, Routes, Route } from "react-router-dom"
 import AuthPage from "@/pages/Login"
 
 import HomePage from "@/pages/HomePage"
-import Dashboard from "@/pages/user/Dashboard"
-import Projects from "@/pages/user/Projects"
-import ArchitectureHistory from "@/pages/user/ArchitectureHistory"
-import Compare from "@/pages/user/Compare"
-import Evidence from "@/pages/user/Evidence"
-import Insights from "@/pages/user/Insights"
-import Reports from "@/pages/user/Reports"
-import ProjectDetail from "@/pages/user/ProjectDetail"
+import Dashboard from "@/pages/developer-analyst/Dashboard"
+import Projects from "@/pages/developer-analyst/Projects"
+import ArchitectureHistory from "@/pages/developer-analyst/ArchitectureHistory"
+import Compare from "@/pages/developer-analyst/Compare"
+import Evidence from "@/pages/developer-analyst/Evidence"
+import Insights from "@/pages/developer-analyst/Insights"
+import Reports from "@/pages/developer-analyst/Reports"
+import ProjectDetail from "@/pages/developer-analyst/ProjectDetail"
 
 function App() {
   return (
