@@ -1,67 +1,54 @@
 import React from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
-  ShieldCheck,
-  UserPlus,
+  FileText,
+  Download,
+  PenLine,
+  FolderKanban,
+  ArrowRight,
   CheckCircle2,
-  XCircle,
-  Clock,
-  Mail,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const fontFamily = {
   mono: '"JetBrains Mono", monospace',
 };
 
-const mockProjectHealth = [
-  { name: 'E-Commerce Platform', repos: 4, health: 91, changes: 12, healthColor: '#22c55e' },
-  { name: 'Payment Platform', repos: 2, health: 76, changes: 21, healthColor: '#ffb03a' },
-  { name: 'Healthcare Connect', repos: 3, health: 64, changes: 38, healthColor: '#ef4444' },
+const mockStats = [
+  { label: 'Documented Changes', value: '38', caption: 'Across all maintained projects', color: '#38bdf8' },
+  { label: 'Reports Exported', value: '12', caption: 'This quarter', color: '#ffb03a' },
+  { label: 'Pending Annotation', value: '05', caption: 'Changes awaiting a written note', color: '#ef4444' },
 ];
 
-const mockApprovalFeed = [
+const mockRecentChanges = [
   {
-    status: 'pending' as const,
     title: 'Extract notification-service from core-monolith',
     repo: 'ecomm-core',
-    requestedBy: 'j.tran',
+    commit: 'd82f91a',
     ago: '2 hours ago',
+    annotated: true,
   },
   {
-    status: 'pending' as const,
     title: 'Reverse dependency: catalog-svc → pricing-svc',
     repo: 'catalog-service',
-    requestedBy: 'm.nguyen',
+    commit: '8af31c2',
     ago: 'Yesterday',
+    annotated: false,
   },
   {
-    status: 'approved' as const,
     title: 'Split payment-gateway into auth and settlement modules',
     repo: 'payment-service',
-    requestedBy: 'k.pham',
+    commit: 'c4199be',
     ago: '2 days ago',
-  },
-  {
-    status: 'rejected' as const,
-    title: 'Merge legacy-job into settlement-core',
-    repo: 'settlement-core',
-    requestedBy: 'k.pham',
-    ago: '3 days ago',
+    annotated: true,
   },
 ];
 
-const mockTeamRoster = [
-  { name: 'j.tran', role: 'Developer / Analyst', projects: 3, active: true },
-  { name: 'm.nguyen', role: 'Developer / Analyst', projects: 2, active: true },
-  { name: 'k.pham', role: 'Developer / Analyst', projects: 4, active: false },
-  { name: 'a.le', role: 'Developer / Analyst', projects: 1, active: true },
+const mockProjects = [
+  { name: 'E-Commerce Platform', repos: 4, documentedChanges: 18 },
+  { name: 'Payment Platform', repos: 2, documentedChanges: 11 },
+  { name: 'Healthcare Connect', repos: 3, documentedChanges: 9 },
 ];
-
-const statusMeta = {
-  pending: { label: 'PENDING', color: '#ffb03a', icon: Clock },
-  approved: { label: 'APPROVED', color: '#22c55e', icon: CheckCircle2 },
-  rejected: { label: 'REJECTED', color: '#ef4444', icon: XCircle },
-};
 
 const ProjectMaintainerDashboard: React.FC = () => {
   return (
@@ -82,136 +69,109 @@ const ProjectMaintainerDashboard: React.FC = () => {
 
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Project &amp; architecture overview</h2>
+              <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Architectural documentation</h2>
               <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
-                Track architecture health, review pending changes, and manage teams across all projects you maintain.
+                Annotate architectural changes and export evolution reports for maintenance and developer onboarding.
               </p>
             </div>
-            <button className="shrink-0 h-10 px-5 bg-[#161d24] hover:bg-[#222c37] border border-[#222c37] text-[#f4f4f6] font-medium text-xs transition-colors flex items-center gap-2">
-              <UserPlus size={16} className="text-[#38bdf8]" />
-              INVITE TEAM MEMBER
-            </button>
+            <Link
+              to="/project-maintainer/reports"
+              className="shrink-0 h-10 px-5 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2"
+              style={{ fontFamily: fontFamily.mono }}
+            >
+              <Download size={16} />
+              EXPORT EVOLUTION REPORT
+            </Link>
           </div>
           <div className="h-[1px] w-full bg-gradient-to-r from-[#222c37] to-transparent mt-8"></div>
         </div>
 
-        {/* PROJECT HEALTH — horizontal progress strip */}
-        <section>
-          <div className="mb-6 flex items-center gap-2">
-            <ShieldCheck size={18} className="text-[#38bdf8]" />
-            <h3 className="text-xl font-bold text-[#f4f4f6] tracking-tight">Project Health</h3>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {mockProjectHealth.map((project) => (
-              <div key={project.name} className="bg-[#161d24] border border-[#222c37] p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-bold text-[#f4f4f6]">{project.name}</h4>
-                  <span className="text-lg font-bold" style={{ fontFamily: fontFamily.mono, color: project.healthColor }}>
-                    {project.health}%
-                  </span>
-                </div>
-                <div className="h-1.5 w-full bg-[#0b0f14] overflow-hidden mb-3">
-                  <div
-                    className="h-full transition-all"
-                    style={{ width: `${project.health}%`, backgroundColor: project.healthColor }}
-                  ></div>
-                </div>
-                <div className="flex items-center gap-3 text-[10px] text-[#5f636b] uppercase tracking-wider" style={{ fontFamily: fontFamily.mono }}>
-                  <span>{project.repos} repos</span>
-                  <span>&middot;</span>
-                  <span>{project.changes} changes</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+        {/* STATS */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {mockStats.map((stat) => (
+            <div key={stat.label} className="bg-[#161d24] border border-[#222c37] p-5">
+              <h4 className="text-[10px] font-semibold text-[#94a3b8] tracking-widest uppercase mb-4" style={{ fontFamily: fontFamily.mono }}>
+                {stat.label}
+              </h4>
+              <div className="text-4xl font-bold mb-1" style={{ fontFamily: fontFamily.mono, color: stat.color }}>{stat.value}</div>
+              <p className="text-xs text-[#5f636b]">{stat.caption}</p>
+            </div>
+          ))}
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
 
-          {/* APPROVAL FEED — vertical timeline */}
+          {/* RECENT CHANGES TO ANNOTATE */}
           <section className="lg:col-span-3">
             <div className="mb-6">
-              <h3 className="text-xl font-bold text-[#f4f4f6] tracking-tight">Approval Activity</h3>
-              <p className="text-sm text-[#94a3b8] mt-1">Recent architectural change requests across your projects.</p>
+              <h3 className="text-xl font-bold text-[#f4f4f6] tracking-tight">Recent Architectural Changes</h3>
+              <p className="text-sm text-[#94a3b8] mt-1">Add a written note explaining why each change happened.</p>
             </div>
 
-            <div className="relative pl-6 space-y-6">
-              <div className="absolute left-[3px] top-1 bottom-1 w-px bg-[#222c37]"></div>
-              {mockApprovalFeed.map((item) => {
-                const meta = statusMeta[item.status];
-                const StatusIcon = meta.icon;
-                return (
-                  <div key={item.title} className="relative">
-                    <div
-                      className="absolute -left-6 top-1 w-[7px] h-[7px] rounded-full"
-                      style={{ backgroundColor: meta.color, boxShadow: `0 0 6px ${meta.color}` }}
-                    ></div>
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span
-                            className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest"
-                            style={{ fontFamily: fontFamily.mono, color: meta.color }}
-                          >
-                            <StatusIcon size={11} />
-                            {meta.label}
-                          </span>
-                          <span className="text-[10px] text-[#5f636b]" style={{ fontFamily: fontFamily.mono }}>{item.ago}</span>
-                        </div>
-                        <h4 className="text-[#f4f4f6] text-sm font-bold mb-1">{item.title}</h4>
-                        <div className="text-xs text-[#5f636b]" style={{ fontFamily: fontFamily.mono }}>
-                          {item.repo} &middot; requested by {item.requestedBy}
-                        </div>
-                      </div>
-                      {item.status === 'pending' && (
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button className="h-7 px-2.5 bg-[#161d24] border border-[#222c37] hover:border-[#ef4444]/50 text-[#ef4444] text-[10px] font-bold transition-colors" style={{ fontFamily: fontFamily.mono }}>
-                            REJECT
-                          </button>
-                          <button className="h-7 px-2.5 bg-[#22c55e]/10 border border-[#22c55e]/30 hover:border-[#22c55e] text-[#22c55e] text-[10px] font-bold transition-colors" style={{ fontFamily: fontFamily.mono }}>
-                            APPROVE
-                          </button>
-                        </div>
-                      )}
+            <div className="space-y-3">
+              {mockRecentChanges.map((item) => (
+                <div key={item.commit} className="bg-[#11161b] border border-[#222c37] p-5 flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <h4 className="text-[#f4f4f6] font-bold text-sm mb-2">{item.title}</h4>
+                    <div className="flex items-center gap-3 text-xs" style={{ fontFamily: fontFamily.mono }}>
+                      <span className="text-[#94a3b8]">{item.repo}</span>
+                      <span className="text-[#5f636b]">&middot;</span>
+                      <span className="text-[#5f636b]">{item.commit}</span>
+                      <span className="text-[#5f636b]">&middot;</span>
+                      <span className="text-[#5f636b]">{item.ago}</span>
                     </div>
                   </div>
-                );
-              })}
+                  {item.annotated ? (
+                    <span className="shrink-0 inline-flex items-center gap-1.5 text-[10px] font-bold text-[#22c55e]" style={{ fontFamily: fontFamily.mono }}>
+                      <CheckCircle2 size={14} />
+                      ANNOTATED
+                    </span>
+                  ) : (
+                    <button className="shrink-0 h-8 px-3 bg-[#161d24] border border-[#38bdf8]/30 hover:border-[#38bdf8] text-[#38bdf8] text-[10px] font-bold transition-colors flex items-center gap-1.5" style={{ fontFamily: fontFamily.mono }}>
+                      <PenLine size={12} />
+                      ADD NOTE
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           </section>
 
-          {/* TEAM ROSTER — grid of cards */}
+          {/* PROJECTS SUMMARY */}
           <section className="lg:col-span-2">
             <div className="mb-6">
-              <h3 className="text-xl font-bold text-[#f4f4f6] tracking-tight">Team Roster</h3>
-              <p className="text-sm text-[#94a3b8] mt-1">Members across projects you maintain.</p>
+              <h3 className="text-xl font-bold text-[#f4f4f6] tracking-tight">Documentation Coverage</h3>
+              <p className="text-sm text-[#94a3b8] mt-1">Documented changes per project.</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              {mockTeamRoster.map((member) => (
-                <div key={member.name} className="bg-[#11161b] border border-[#222c37] p-4 flex flex-col items-center text-center gap-2">
-                  <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-[#161d24] border border-[#222c37] flex items-center justify-center text-sm font-bold text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>
-                      {member.name.slice(0, 2).toUpperCase()}
+            <div className="space-y-3">
+              {mockProjects.map((project) => (
+                <div key={project.name} className="bg-[#11161b] border border-[#222c37] p-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <FolderKanban size={16} className="text-[#38bdf8] shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-sm text-[#f4f4f6] font-medium truncate">{project.name}</div>
+                      <div className="text-[10px] text-[#5f636b]" style={{ fontFamily: fontFamily.mono }}>{project.repos} repos</div>
                     </div>
-                    <div
-                      className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#11161b]"
-                      style={{ backgroundColor: member.active ? '#22c55e' : '#5f636b' }}
-                    ></div>
                   </div>
-                  <div className="min-w-0 w-full">
-                    <h4 className="text-[#f4f4f6] text-xs font-bold truncate" style={{ fontFamily: fontFamily.mono }}>{member.name}</h4>
-                    <p className="text-[10px] text-[#5f636b] truncate">{member.role}</p>
-                    <p className="text-[10px] text-[#38bdf8] mt-1" style={{ fontFamily: fontFamily.mono }}>{member.projects} projects</p>
+                  <div className="text-right shrink-0">
+                    <div className="text-sm font-bold text-[#38bdf8]" style={{ fontFamily: fontFamily.mono }}>{project.documentedChanges}</div>
+                    <div className="text-[9px] text-[#5f636b] uppercase tracking-widest" style={{ fontFamily: fontFamily.mono }}>documented</div>
                   </div>
                 </div>
               ))}
-              <button className="border border-dashed border-[#222c37] hover:border-[#38bdf8]/50 p-4 flex flex-col items-center justify-center gap-2 text-[#5f636b] hover:text-[#38bdf8] transition-colors">
-                <Mail size={18} />
-                <span className="text-[10px] uppercase tracking-widest" style={{ fontFamily: fontFamily.mono }}>Invite</span>
-              </button>
             </div>
+
+            <Link
+              to="/project-maintainer/reports"
+              className="mt-4 flex items-center justify-between px-4 py-3 bg-[#161d24] border border-dashed border-[#222c37] hover:border-[#38bdf8]/50 transition-colors group"
+            >
+              <span className="flex items-center gap-2 text-xs text-[#94a3b8] group-hover:text-[#f4f4f6] transition-colors">
+                <FileText size={14} />
+                View all evolution reports
+              </span>
+              <ArrowRight size={14} className="text-[#5f636b] group-hover:text-[#38bdf8] transition-colors" />
+            </Link>
           </section>
         </div>
 
