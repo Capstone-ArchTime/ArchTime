@@ -18,17 +18,17 @@ const SystemSettings: React.FC = () => {
 
         {/* HEADER */}
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">System Settings</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Repository &amp; Extraction Config</h2>
           <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
-            Configure platform-wide integrations, resource limits, and API credentials.
+            Manage repository authorization and configure extraction parameters for the analysis pipeline.
           </p>
           <div className="h-[1px] w-full bg-gradient-to-r from-[#222c37] to-transparent mt-8"></div>
         </div>
 
-        {/* SOURCE INTEGRATIONS */}
+        {/* REPOSITORY AUTHORIZATION */}
         <section>
-          <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-1" style={{ fontFamily: fontFamily.mono }}>Source Integrations</h3>
-          <p className="text-xs text-[#5f636b] mb-4">Connect repository providers for analysis mining.</p>
+          <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-1" style={{ fontFamily: fontFamily.mono }}>Repository Authorization</h3>
+          <p className="text-xs text-[#5f636b] mb-4">Authorize which source providers the mining pipeline can access.</p>
 
           <div className="bg-[#161d24] border border-[#222c37] divide-y divide-[#222c37]">
             <div className="flex items-center justify-between p-5">
@@ -84,10 +84,10 @@ const SystemSettings: React.FC = () => {
           </div>
         </section>
 
-        {/* RESOURCE LIMITS */}
+        {/* EXTRACTION PARAMETERS */}
         <section>
-          <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-1" style={{ fontFamily: fontFamily.mono }}>Resource Limits</h3>
-          <p className="text-xs text-[#5f636b] mb-4">Control how much the analysis pipeline can consume.</p>
+          <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-1" style={{ fontFamily: fontFamily.mono }}>Extraction Parameters</h3>
+          <p className="text-xs text-[#5f636b] mb-4">Control how the mining pipeline extracts and processes repositories.</p>
 
           <div className="bg-[#161d24] border border-[#222c37] divide-y divide-[#222c37]">
             <div className="p-5">

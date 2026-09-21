@@ -12,12 +12,9 @@ import {
   Settings,
   Search,
   Bell,
-  ShieldCheck,
-  GitPullRequest,
-  Users,
-  Users2,
-  SlidersHorizontal,
-  ScrollText,
+  FileText,
+  KeyRound,
+  Activity,
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -40,15 +37,13 @@ const navItemsByRole = {
     { path: '/reports', label: 'Reports', icon: FileBarChart },
   ],
   'project-maintainer': [
-    { path: '/project-maintainer', label: 'Overview', icon: ShieldCheck },
-    { path: '/project-maintainer/approvals', label: 'Approval Queue', icon: GitPullRequest },
-    { path: '/project-maintainer/team', label: 'Team', icon: Users },
+    { path: '/project-maintainer', label: 'Documentation', icon: LayoutDashboard },
+    { path: '/project-maintainer/reports', label: 'Evolution Reports', icon: FileText },
   ],
   'system-administrator': [
-    { path: '/system-administrator', label: 'Overview', icon: LayoutDashboard },
-    { path: '/system-administrator/users', label: 'User Management', icon: Users2 },
-    { path: '/system-administrator/settings', label: 'System Settings', icon: SlidersHorizontal },
-    { path: '/system-administrator/audit-log', label: 'Audit Log', icon: ScrollText },
+    { path: '/system-administrator', label: 'Platform Health', icon: LayoutDashboard },
+    { path: '/system-administrator/settings', label: 'Repository & Extraction Config', icon: KeyRound },
+    { path: '/system-administrator/mining-jobs', label: 'Mining Jobs Monitor', icon: Activity },
   ],
 } as const;
 
