@@ -1,6 +1,6 @@
 import { ConfigProvider, theme } from "antd"
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
-import AuthPage from "@/pages/Auth"
+import AuthPage from "@/pages/Login"
 
 import HomePage from "@/pages/HomePage"
 

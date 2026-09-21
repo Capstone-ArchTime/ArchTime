@@ -1,6 +1,7 @@
 import { Icon } from "@iconify/react";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Logo } from "@/components/Logo";
 
 const particles = [
   { left: "14%", size: 3, duration: 4.5, delay: 0 },
@@ -185,21 +186,7 @@ export default function HomePage() {
         transition={{ duration: 0.3 }}
       >
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6">
-          <a
-            href="#"
-            className="flex items-center gap-3 text-base font-bold tracking-wider text-white"
-            style={{ fontFamily: fontFamily.mono }}
-          >
-            <span className="relative flex h-2 w-2">
-              <motion.span
-                className="absolute inline-flex h-full w-full rounded-full bg-[#00f0ff]"
-                animate={{ scale: [1, 2], opacity: [0.75, 0] }}
-                transition={{ duration: 1.2, repeat: Infinity, ease: "easeOut" }}
-              />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-[#00f0ff]" />
-            </span>
-            ARCHTIME
-          </a>
+          <Logo />
 
           <div
             className="hidden items-center gap-8 text-xs uppercase tracking-widest text-slate-400 md:flex"
@@ -390,7 +377,7 @@ export default function HomePage() {
                     archtime_pipeline.sh
                   </span>
                 </div>
-                <span className="text-[10px] text-slate-600" style={{ fontFamily: fontFamily.mono }}>
+                <span className="text-[10px] text-slate-500" style={{ fontFamily: fontFamily.mono }}>
                   TTY // 1
                 </span>
               </div>
@@ -447,7 +434,7 @@ export default function HomePage() {
                   <div className="flex h-12 w-12 items-center justify-center border border-[#38bdf8]/20 bg-[#38bdf8]/10 text-xl text-[#38bdf8]">
                     <Icon icon="ph:cube-light" />
                   </div>
-                  <span className="text-xs text-slate-600" style={{ fontFamily: fontFamily.mono }}>
+                  <span className="text-xs text-slate-500" style={{ fontFamily: fontFamily.mono }}>
                     01 / CHANGE
                   </span>
                 </div>
@@ -472,7 +459,7 @@ export default function HomePage() {
                   <div className="flex h-12 w-12 items-center justify-center border border-[#ffb03a]/20 bg-[#ffb03a]/10 text-xl text-[#ffb03a]">
                     <Icon icon="ph:sliders-horizontal-light" />
                   </div>
-                  <span className="text-xs text-slate-600" style={{ fontFamily: fontFamily.mono }}>
+                  <span className="text-xs text-slate-500" style={{ fontFamily: fontFamily.mono }}>
                     02 / CHANGE
                   </span>
                 </div>
@@ -497,7 +484,7 @@ export default function HomePage() {
                   <div className="flex h-12 w-12 items-center justify-center border border-[#00f0ff]/20 bg-[#00f0ff]/10 text-xl text-[#00f0ff]">
                     <Icon icon="ph:command-light" />
                   </div>
-                  <span className="text-xs text-slate-600" style={{ fontFamily: fontFamily.mono }}>
+                  <span className="text-xs text-slate-500" style={{ fontFamily: fontFamily.mono }}>
                     03 / CHANGE
                   </span>
                 </div>
@@ -604,9 +591,7 @@ export default function HomePage() {
         <footer className="relative overflow-hidden border-t border-[#222c37]/40 bg-[#11161b] px-6 pb-12 pt-20">
           <div className="mx-auto mb-16 grid max-w-7xl items-start gap-16 lg:grid-cols-12">
             <div className="space-y-6 lg:col-span-5">
-              <a href="#" className="text-lg font-bold tracking-wider text-white" style={{ fontFamily: fontFamily.mono }}>
-                ARCHTIME
-              </a>
+              <Logo />
               <p className="max-w-sm text-sm font-light leading-relaxed text-slate-500">
                 Evidence-based software architecture evolution reconstruction, built on Git history and AST analysis.
               </p>
@@ -634,11 +619,11 @@ export default function HomePage() {
                 >
                   Scope
                 </h4>
-                <ul className="space-y-4 text-xs text-slate-400" style={{ fontFamily: fontFamily.mono }}>
-                  <li><a href="#" className="transition-colors hover:text-white">Java / Spring Boot</a></li>
-                  <li><a href="#" className="transition-colors hover:text-white">Git History Analysis</a></li>
-                  <li><a href="#" className="transition-colors hover:text-white">Knowledge Graph</a></li>
-                  <li><a href="#" className="transition-colors hover:text-white">Benchmarks</a></li>
+                <ul className="space-y-4 text-xs text-slate-500" style={{ fontFamily: fontFamily.mono }}>
+                  <li>Java / Spring Boot</li>
+                  <li>Git History Analysis</li>
+                  <li>Knowledge Graph</li>
+                  <li>Benchmarks</li>
                 </ul>
               </div>
               <div className="col-span-2 md:col-span-1">
@@ -648,36 +633,30 @@ export default function HomePage() {
                 >
                   Project
                 </h4>
-                <div className="flex gap-4 text-xl text-slate-500">
-                  <a href="#" className="transition-colors hover:text-white">
+                <div className="flex gap-4 text-xl text-slate-600" aria-label="Links coming soon">
+                  <span className="cursor-not-allowed opacity-60" aria-disabled="true" title="Coming soon">
                     <Icon icon="ph:github-logo-light" />
-                  </a>
-                  <a href="#" className="transition-colors hover:text-white">
+                  </span>
+                  <span className="cursor-not-allowed opacity-60" aria-disabled="true" title="Coming soon">
                     <Icon icon="ph:terminal-light" />
-                  </a>
-                  <a href="#" className="transition-colors hover:text-white">
+                  </span>
+                  <span className="cursor-not-allowed opacity-60" aria-disabled="true" title="Coming soon">
                     <Icon icon="ph:cpu-light" />
-                  </a>
+                  </span>
                 </div>
               </div>
             </div>
           </div>
 
           <div
-            className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-[#222c37]/40 pt-8 text-[10px] uppercase tracking-widest text-slate-600 sm:flex-row"
+            className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-[#222c37]/40 pt-8 text-[10px] uppercase tracking-widest text-slate-500 sm:flex-row"
             style={{ fontFamily: fontFamily.mono }}
           >
             <p>&copy; 2026 ArchTime. Capstone Project.</p>
-            <div className="flex gap-8">
-              <a href="#" className="transition-colors hover:text-white">
-                FACT
-              </a>
-              <a href="#" className="transition-colors hover:text-white">
-                INFERENCE
-              </a>
-              <a href="#" className="transition-colors hover:text-white">
-                UNKNOWN
-              </a>
+            <div className="flex gap-8" aria-label="Evidence classification legend">
+              <span>FACT</span>
+              <span>INFERENCE</span>
+              <span>UNKNOWN</span>
             </div>
           </div>
         </footer>
