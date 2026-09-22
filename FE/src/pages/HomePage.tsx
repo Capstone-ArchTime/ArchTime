@@ -1,6 +1,7 @@
 import { Icon } from "@iconify/react";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Mascot } from "page-mascot";
 import { Logo } from "@/components/Logo";
 
 const particles = [
@@ -134,6 +135,13 @@ export default function HomePage() {
       className="min-h-screen overflow-x-hidden bg-[#080b0e] text-slate-200 antialiased selection:bg-[#f59e0b] selection:text-[#080b0e]"
       style={{ fontFamily: fontFamily.sans }}
     >
+      <div className="fixed bottom-6 right-6 z-[60]">
+        <Mascot
+          directions="/mascots/bald-directions.webp"
+          reactions="/mascots/bald-reactions.webp"
+        />
+      </div>
+
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
         <div
           className="absolute inset-0"
