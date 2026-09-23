@@ -111,3 +111,58 @@ npx shadcn@2.10.0 add <component>
 ```
 
 Pinned to `2.10.0` — newer versions of the shadcn CLI generate components against a different import convention (`radix-ui`/`cn` unified packages) that doesn't match this project's classic setup (`@radix-ui/react-*` + `@/lib/utils`). If you add a component and see imports like `from "cn"` or `from "radix-ui"`, fix them to use `@/lib/utils` and the matching `@radix-ui/react-*` package instead.
+
+## Backend
+
+Node.js backend for ArchTime focusing on authentication, architectural graph processing, and system management.
+
+### Stack
+
+- **Node.js** + **Express** + **TypeScript**
+- **MongoDB** + **Mongoose** — document database for storing users, OTPs, and future architectural metadata.
+- **JWT (JSON Web Tokens)** — secure stateless authentication.
+- **Nodemailer** — email service for verification codes and password resets.
+- **Swagger / OpenAPI** — API documentation UI.
+- **Domain-Driven Design (Clean Architecture)** — strict separation of concerns into Domain, Application, Infrastructure, and Presentation layers.
+
+### Getting started
+
+```bash
+cd BE
+npm install
+npm run dev
+```
+
+You must have MongoDB running (either locally or via Atlas) and a `.env` file configured. The server will start on port `4000`.
+
+### Scripts
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the backend development server using `tsx watch` |
+| `npm run build` | Compile TypeScript into the `dist/` directory |
+| `npm start` | Run the compiled production server |
+| `npm run lint` | Run ESLint |
+
+### Backend structure
+
+```text
+BE/src/
+  application/
+    use-cases/                # Business logic workflows (e.g., RegisterUserUseCase, LoginUseCase)
+  domain/
+    entities/                 # Core domain models
+    interfaces/               # Abstractions (e.g., IUserRepository, IEmailService)
+  infrastructure/
+    database/                 # MongoDB connection logic
+    repositories/             # Mongoose implementations of IRepositories
+    services/                 # External service implementations (Nodemailer, Bcrypt, JWT)
+  presentation/
+    controllers/              # Express route handlers
+    middlewares/              # Auth, validation, error handlers
+    routes/                   # Express router definitions and Swagger tags
+  container.ts                # Dependency Injection setup
+  server.ts                   # Application entry point
+```
+
+The Backend enforces strict Dependency Inversion — the `presentation` layer can only call `application` Use Cases, and the `application` layer only depends on `domain` interfaces. Concrete implementations (Mongoose, Nodemailer) are isolated inside `infrastructure` and injected via `container.ts`.
