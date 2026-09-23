@@ -190,7 +190,7 @@ const SystemAdministratorDashboard: React.FC = () => {
                   system.log &middot; live tail
                 </span>
               </div>
-              <div className="p-4 space-y-2 text-xs max-h-[340px] overflow-y-auto" style={{ fontFamily: fontFamily.mono }}>
+              <div role="log" aria-live="polite" aria-label="System event log" className="p-4 space-y-2 text-xs max-h-[340px] overflow-y-auto" style={{ fontFamily: fontFamily.mono }}>
                 {mockLogStream.map((entry, i) => (
                   <div key={i} className="flex items-start gap-3">
                     <span className="text-[#5f636b] shrink-0">{entry.ts}</span>

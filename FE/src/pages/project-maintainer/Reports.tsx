@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { FileText, Download, Calendar, FolderKanban, ChevronDown } from 'lucide-react';
+import { useComingSoon } from '@/hooks/useComingSoon';
 
 const fontFamily = {
   mono: '"JetBrains Mono", monospace',
@@ -16,6 +17,7 @@ const mockExportedReports = [
 
 const Reports: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState(mockProjects[0]);
+  const notifyComingSoon = useComingSoon();
 
   return (
     <DashboardLayout>
@@ -36,10 +38,11 @@ const Reports: React.FC = () => {
 
           <div className="bg-[#161d24] border border-[#222c37] p-6 space-y-5">
             <div>
-              <label className="text-[10px] text-[#94a3b8] uppercase tracking-widest block mb-2" style={{ fontFamily: fontFamily.mono }}>Project</label>
+              <label htmlFor="export-project" className="text-[10px] text-[#94a3b8] uppercase tracking-widest block mb-2" style={{ fontFamily: fontFamily.mono }}>Project</label>
               <div className="relative">
                 <FolderKanban size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5f636b]" />
                 <select
+                  id="export-project"
                   value={selectedProject}
                   onChange={(e) => setSelectedProject(e.target.value)}
                   className="w-full h-10 bg-[#11161b] border border-[#222c37] pl-9 pr-9 text-sm text-[#f4f4f6] focus:outline-none focus:border-[#38bdf8]/50 transition-colors appearance-none"
@@ -54,10 +57,11 @@ const Reports: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-[10px] text-[#94a3b8] uppercase tracking-widest block mb-2" style={{ fontFamily: fontFamily.mono }}>From Revision</label>
+                <label htmlFor="from-revision" className="text-[10px] text-[#94a3b8] uppercase tracking-widest block mb-2" style={{ fontFamily: fontFamily.mono }}>From Revision</label>
                 <div className="relative">
                   <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5f636b]" />
                   <input
+                    id="from-revision"
                     type="text"
                     defaultValue="v1.0.0"
                     className="w-full h-10 bg-[#11161b] border border-[#222c37] pl-9 pr-4 text-sm text-[#f4f4f6] focus:outline-none focus:border-[#38bdf8]/50 transition-colors"
@@ -66,10 +70,11 @@ const Reports: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className="text-[10px] text-[#94a3b8] uppercase tracking-widest block mb-2" style={{ fontFamily: fontFamily.mono }}>To Revision</label>
+                <label htmlFor="to-revision" className="text-[10px] text-[#94a3b8] uppercase tracking-widest block mb-2" style={{ fontFamily: fontFamily.mono }}>To Revision</label>
                 <div className="relative">
                   <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5f636b]" />
                   <input
+                    id="to-revision"
                     type="text"
                     defaultValue="HEAD"
                     className="w-full h-10 bg-[#11161b] border border-[#222c37] pl-9 pr-4 text-sm text-[#f4f4f6] focus:outline-none focus:border-[#38bdf8]/50 transition-colors"
@@ -80,11 +85,15 @@ const Reports: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-3 pt-2">
-              <button className="h-10 px-5 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2" style={{ fontFamily: fontFamily.mono }}>
+              <button
+                onClick={() => notifyComingSoon("PDF generation")}
+                className="h-10 px-5 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2" style={{ fontFamily: fontFamily.mono }}>
                 <Download size={14} />
                 GENERATE PDF
               </button>
-              <button className="h-10 px-5 bg-[#161d24] border border-[#222c37] hover:border-[#5f636b] text-[#94a3b8] hover:text-[#f4f4f6] font-bold text-xs transition-colors flex items-center gap-2" style={{ fontFamily: fontFamily.mono }}>
+              <button
+                onClick={() => notifyComingSoon("Report preview")}
+                className="h-10 px-5 bg-[#161d24] border border-[#222c37] hover:border-[#5f636b] text-[#94a3b8] hover:text-[#f4f4f6] font-bold text-xs transition-colors flex items-center gap-2" style={{ fontFamily: fontFamily.mono }}>
                 <FileText size={14} />
                 PREVIEW
               </button>
@@ -120,7 +129,9 @@ const Reports: React.FC = () => {
                     <td className="px-5 py-4 text-[#94a3b8] text-xs" style={{ fontFamily: fontFamily.mono }}>{report.range}</td>
                     <td className="px-5 py-4 text-[#5f636b] text-xs" style={{ fontFamily: fontFamily.mono }}>{report.exportedAgo} &middot; {report.size}</td>
                     <td className="px-5 py-4 text-right">
-                      <button className="text-[#38bdf8] hover:text-[#00f0ff] text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity" style={{ fontFamily: fontFamily.mono }}>
+                      <button
+                        onClick={() => notifyComingSoon(`Download of ${report.name}`)}
+                        className="text-[#38bdf8] hover:text-[#00f0ff] text-xs font-semibold opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity" style={{ fontFamily: fontFamily.mono }}>
                         Download &rarr;
                       </button>
                     </td>

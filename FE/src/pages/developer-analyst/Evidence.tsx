@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { 
   Search,
@@ -19,6 +19,8 @@ import {
   Network
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useComingSoon } from '@/hooks/useComingSoon';
 
 // Mock Data
 const evidenceData = [
@@ -86,6 +88,9 @@ public void runSettlement() { ... }`,
 
 const Evidence: React.FC = () => {
   const [selectedChange, setSelectedChange] = useState<typeof evidenceData[0] | null>(null);
+  const closeDrawer = useCallback(() => setSelectedChange(null), []);
+  const drawerRef = useFocusTrap(selectedChange !== null, closeDrawer);
+  const notifyComingSoon = useComingSoon();
 
   return (
     <DashboardLayout>
@@ -111,35 +116,48 @@ const Evidence: React.FC = () => {
           <div className="flex flex-wrap items-center gap-3 bg-[#11161b] p-3 border border-[#222c37]">
             <div className="flex-1 relative min-w-[200px]">
                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5f636b]" />
-               <input 
-                 type="text" 
-                 placeholder="Search changes..." 
+               <input
+                 type="text"
+                 aria-label="Search changes"
+                 placeholder="Search changes..."
                  className="w-full bg-[#080b0e] border border-[#222c37] h-9 pl-9 pr-4 text-sm text-[#f4f4f6] placeholder-[#5f636b] focus:outline-none focus:border-[#38bdf8]/50 transition-colors"
                />
             </div>
             
-            <button className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
+            <button
+              onClick={() => notifyComingSoon("Project filter")}
+              aria-haspopup="listbox"
+              className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
               <span className="text-[10px] font-mono text-[#5f636b] uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Project</span>
               <span className="text-xs font-bold text-[#f4f4f6]">All Projects</span>
               <ChevronDown size={14} className="text-[#5f636b] group-hover:text-[#f4f4f6]" />
             </button>
-            
-            <button className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
+
+            <button
+              onClick={() => notifyComingSoon("Type filter")}
+              aria-haspopup="listbox"
+              className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
               <span className="text-[10px] font-mono text-[#5f636b] uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Type</span>
               <span className="text-xs font-bold text-[#f4f4f6]">All Changes</span>
               <ChevronDown size={14} className="text-[#5f636b] group-hover:text-[#f4f4f6]" />
             </button>
 
-            <button className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
+            <button
+              onClick={() => notifyComingSoon("Date filter")}
+              aria-haspopup="listbox"
+              className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
               <span className="text-[10px] font-mono text-[#5f636b] uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Date</span>
               <span className="text-xs font-bold text-[#f4f4f6]">All Time</span>
               <ChevronDown size={14} className="text-[#5f636b] group-hover:text-[#f4f4f6]" />
             </button>
 
-            <button className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
+            <button
+              onClick={() => notifyComingSoon("Repository filter")}
+              aria-haspopup="listbox"
+              className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
               <span className="text-[10px] font-mono text-[#5f636b] uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository</span>
               <span className="text-xs font-bold text-[#f4f4f6]">All Repositories</span>
@@ -194,7 +212,13 @@ const Evidence: React.FC = () => {
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>{item.files} files</td>
                     <td className="p-4 text-xs text-[#94a3b8]">{item.date}</td>
                     <td className="p-4 text-right">
-                       <button className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-[#5f636b] group-hover:text-[#38bdf8] transition-colors uppercase"
+                       <button
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           setSelectedChange(item);
+                         }}
+                         aria-label={`View evidence for ${item.changeTitle}`}
+                         className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-[#5f636b] group-hover:text-[#38bdf8] transition-colors uppercase focus:outline-none focus-visible:text-[#38bdf8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                           View <ArrowRight size={14} />
                        </button>
@@ -211,16 +235,20 @@ const Evidence: React.FC = () => {
           {selectedChange && (
             <>
               {/* BACKDROP */}
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="absolute inset-0 bg-[#080b0e]/50 backdrop-blur-sm z-40"
-                onClick={() => setSelectedChange(null)}
+                onClick={closeDrawer}
               />
 
               {/* DRAWER PANEL */}
-              <motion.div 
+              <motion.div
+                ref={drawerRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="evidence-detail-title"
                 initial={{ x: '100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
@@ -235,10 +263,11 @@ const Evidence: React.FC = () => {
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                         {selectedChange.type}
                       </span>
-                      <h3 className="text-2xl font-bold text-[#f4f4f6] uppercase tracking-wide">{selectedChange.changeTitle.toUpperCase()}</h3>
+                      <h3 id="evidence-detail-title" className="text-2xl font-bold text-[#f4f4f6] uppercase tracking-wide">{selectedChange.changeTitle.toUpperCase()}</h3>
                     </div>
-                    <button 
-                      onClick={() => setSelectedChange(null)}
+                    <button
+                      onClick={closeDrawer}
+                      aria-label="Close evidence detail"
                       className="w-8 h-8 bg-[#222c37] hover:bg-[#5f636b] text-[#f4f4f6] flex items-center justify-center transition-colors shrink-0"
                     >
                       <X size={18} />

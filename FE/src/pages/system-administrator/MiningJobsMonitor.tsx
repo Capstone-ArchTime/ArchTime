@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Activity, Filter, XCircle, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { useComingSoon } from '@/hooks/useComingSoon';
 
 const fontFamily = {
   mono: '"JetBrains Mono", monospace',
@@ -33,6 +34,7 @@ const filterOptions: { key: 'all' | JobStatus; label: string }[] = [
 
 const MiningJobsMonitor: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState<'all' | JobStatus>('all');
+  const notifyComingSoon = useComingSoon();
 
   const filtered = mockJobs.filter((j) => activeFilter === 'all' || j.status === activeFilter);
   const runningCount = mockJobs.filter((j) => j.status === 'running').length;
@@ -54,11 +56,13 @@ const MiningJobsMonitor: React.FC = () => {
         </div>
 
         {/* FILTERS */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div role="radiogroup" aria-label="Filter jobs by status" className="flex items-center gap-2 flex-wrap">
           <Filter size={14} className="text-[#5f636b] mr-1" />
           {filterOptions.map((opt) => (
             <button
               key={opt.key}
+              role="radio"
+              aria-checked={activeFilter === opt.key}
               onClick={() => setActiveFilter(opt.key)}
               className={`h-8 px-3 text-[10px] font-bold uppercase tracking-widest border transition-colors ${
                 activeFilter === opt.key
@@ -86,7 +90,7 @@ const MiningJobsMonitor: React.FC = () => {
                         className="inline-flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest px-2 py-1 border"
                         style={{ fontFamily: fontFamily.mono, color: meta.color, borderColor: `${meta.color}33`, backgroundColor: `${meta.color}1A` }}
                       >
-                        <StatusIcon size={11} className={job.status === 'running' ? 'animate-spin' : ''} />
+                        <StatusIcon size={11} className={job.status === 'running' ? 'animate-spin motion-reduce:animate-none' : ''} />
                         {meta.label}
                       </span>
                       <span className="text-[10px] text-[#5f636b]" style={{ fontFamily: fontFamily.mono }}>{job.id}</span>
@@ -97,7 +101,9 @@ const MiningJobsMonitor: React.FC = () => {
                     </div>
                   </div>
                   {job.status === 'queued' && (
-                    <button className="shrink-0 h-8 px-3 bg-[#161d24] border border-[#222c37] hover:border-[#ef4444]/50 text-[#ef4444] text-[10px] font-bold transition-colors flex items-center gap-1.5" style={{ fontFamily: fontFamily.mono }}>
+                    <button
+                      onClick={() => notifyComingSoon(`Cancelling ${job.id}`)}
+                      className="shrink-0 h-8 px-3 bg-[#161d24] border border-[#222c37] hover:border-[#ef4444]/50 text-[#ef4444] text-[10px] font-bold transition-colors flex items-center gap-1.5" style={{ fontFamily: fontFamily.mono }}>
                       <XCircle size={12} />
                       CANCEL
                     </button>

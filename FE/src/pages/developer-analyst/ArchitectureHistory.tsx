@@ -190,7 +190,7 @@ const ArchitectureHistory: React.FC = () => {
               {/* Overlay Indicators */}
               <div className="absolute top-4 left-4 flex gap-2 z-10">
                 <div className="px-2 py-1 bg-[#161d24]/80 backdrop-blur-sm border border-[#222c37] flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#38bdf8] animate-pulse"></div>
+                  <div className="w-2 h-2 rounded-full bg-[#38bdf8] animate-pulse motion-reduce:animate-none"></div>
                   <span className="text-[10px] font-mono text-[#38bdf8] uppercase tracking-wider font-bold"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Active Modules</span>
                 </div>
@@ -207,7 +207,7 @@ const ArchitectureHistory: React.FC = () => {
               <div className="flex-1 relative w-full h-full">
                 <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#F5F7FA 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
                 
-                <svg viewBox="0 0 800 500" className="w-full h-full absolute inset-0" preserveAspectRatio="xMidYMid meet">
+                <svg viewBox="0 0 800 560" className="w-full h-full absolute inset-0" preserveAspectRatio="xMidYMid meet">
                   <defs>
                     <filter id="glow-amber" x="-20%" y="-20%" width="140%" height="140%">
                       <feGaussianBlur stdDeviation="5" result="blur" />
@@ -218,6 +218,9 @@ const ArchitectureHistory: React.FC = () => {
                       <feComposite in="SourceGraphic" in2="blur" operator="over" />
                     </filter>
                   </defs>
+
+                  {/* Entire graph shifted down to clear the legend overlay in the top-left corner */}
+                  <g transform="translate(0, 60)">
 
                   {/* LINES */}
                   <g fill="none" strokeWidth="2" opacity="0.6">
@@ -345,10 +348,11 @@ const ArchitectureHistory: React.FC = () => {
                       </motion.g>
                     )}
                   </g>
+                  </g>
                 </svg>
               </div>
             </div>
-            
+
           </div>
 
           {/* RIGHT: REVISION DETAILS (30%) */}

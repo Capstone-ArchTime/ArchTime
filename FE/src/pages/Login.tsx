@@ -187,8 +187,8 @@ const AuthPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        tabIndex={-1}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors focus:outline-none"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors focus:outline-none focus-visible:text-[#38bdf8]"
                       >
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
@@ -242,7 +242,7 @@ const AuthPage: React.FC = () => {
                     style={{ fontFamily: fontFamily.mono }}
                   >
                     {isLoading ? (
-                      <Loader2 size={16} className="animate-spin" />
+                      <Loader2 size={16} className="animate-spin motion-reduce:animate-none" />
                     ) : (
                       isRegister ? 'Create account' : 'Sign in'
                     )}

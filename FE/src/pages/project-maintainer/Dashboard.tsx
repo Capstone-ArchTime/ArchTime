@@ -9,6 +9,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useComingSoon } from '@/hooks/useComingSoon';
 
 const fontFamily = {
   mono: '"JetBrains Mono", monospace',
@@ -51,6 +52,7 @@ const mockProjects = [
 ];
 
 const ProjectMaintainerDashboard: React.FC = () => {
+  const notifyComingSoon = useComingSoon();
   return (
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-10">
@@ -127,7 +129,9 @@ const ProjectMaintainerDashboard: React.FC = () => {
                       ANNOTATED
                     </span>
                   ) : (
-                    <button className="shrink-0 h-8 px-3 bg-[#161d24] border border-[#38bdf8]/30 hover:border-[#38bdf8] text-[#38bdf8] text-[10px] font-bold transition-colors flex items-center gap-1.5" style={{ fontFamily: fontFamily.mono }}>
+                    <button
+                      onClick={() => notifyComingSoon("Change annotation")}
+                      className="shrink-0 h-8 px-3 bg-[#161d24] border border-[#38bdf8]/30 hover:border-[#38bdf8] text-[#38bdf8] text-[10px] font-bold transition-colors flex items-center gap-1.5" style={{ fontFamily: fontFamily.mono }}>
                       <PenLine size={12} />
                       ADD NOTE
                     </button>

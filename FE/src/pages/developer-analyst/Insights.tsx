@@ -17,11 +17,14 @@ import {
   Box
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Link } from 'react-router-dom';
+import { useComingSoon } from '@/hooks/useComingSoon';
 
 const Insights: React.FC = () => {
   const [askInput, setAskInput] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [mockAnswer, setMockAnswer] = useState<string | null>(null);
+  const notifyComingSoon = useComingSoon();
 
   const handleAsk = (query: string) => {
     if (!query.trim()) return;
@@ -157,9 +160,11 @@ const Insights: React.FC = () => {
                      <span className="text-[#22c55e] mt-0.5">✓</span> PaymentService.java introduced
                    </li>
                 </ul>
-                <button className="mt-5 w-full h-8 bg-[#161d24] border border-[#222c37] hover:border-[#38bdf8]/50 text-[#38bdf8] font-bold text-[10px] transition-colors uppercase tracking-wider">
+                <Link
+                  to="/evidence"
+                  className="mt-5 flex items-center justify-center w-full h-8 bg-[#161d24] border border-[#222c37] hover:border-[#38bdf8]/50 text-[#38bdf8] font-bold text-[10px] transition-colors uppercase tracking-wider">
                   View Evidence
-                </button>
+                </Link>
               </div>
 
               {/* Analysis Basis */}
@@ -208,7 +213,9 @@ const Insights: React.FC = () => {
                    <span className="text-[9px] font-mono text-[#5f636b]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Sep 18, 2026</span>
                  </div>
-                 <button className="text-[10px] font-bold font-mono text-[#5f636b] group-hover:text-[#38bdf8] uppercase tracking-wider transition-colors flex items-center gap-1"
+                 <button
+                   onClick={() => notifyComingSoon("Insight detail view")}
+                   className="text-[10px] font-bold font-mono text-[#5f636b] group-hover:text-[#38bdf8] uppercase tracking-wider transition-colors flex items-center gap-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                    View Insight <ArrowRight size={12} />
                  </button>
@@ -226,7 +233,9 @@ const Insights: React.FC = () => {
                    <span className="text-[9px] font-mono text-[#5f636b]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Sep 12, 2026</span>
                  </div>
-                 <button className="text-[10px] font-bold font-mono text-[#5f636b] group-hover:text-[#38bdf8] uppercase tracking-wider transition-colors flex items-center gap-1"
+                 <button
+                   onClick={() => notifyComingSoon("Insight detail view")}
+                   className="text-[10px] font-bold font-mono text-[#5f636b] group-hover:text-[#38bdf8] uppercase tracking-wider transition-colors flex items-center gap-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                    View Insight <ArrowRight size={12} />
                  </button>
@@ -244,7 +253,9 @@ const Insights: React.FC = () => {
                    <span className="text-[9px] font-mono text-[#5f636b]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Sep 05, 2026</span>
                  </div>
-                 <button className="text-[10px] font-bold font-mono text-[#5f636b] group-hover:text-[#38bdf8] uppercase tracking-wider transition-colors flex items-center gap-1"
+                 <button
+                   onClick={() => notifyComingSoon("Insight detail view")}
+                   className="text-[10px] font-bold font-mono text-[#5f636b] group-hover:text-[#38bdf8] uppercase tracking-wider transition-colors flex items-center gap-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                    View Insight <ArrowRight size={12} />
                  </button>
@@ -264,11 +275,12 @@ const Insights: React.FC = () => {
              <div className="relative flex items-center">
                 <div className="absolute left-4 text-[#38bdf8] font-mono font-bold"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>{'>'}</div>
-                <input 
-                   type="text" 
+                <input
+                   type="text"
                    value={askInput}
                    onChange={(e) => setAskInput(e.target.value)}
                    onKeyDown={(e) => e.key === 'Enter' && handleAsk(askInput)}
+                   aria-label="Ask about your architecture"
                    placeholder="Why did the architecture change here?"
                    className="w-full h-12 bg-[#080b0e] border border-[#222c37] pl-10 pr-32 text-sm font-mono text-[#f4f4f6] placeholder-[#5f636b] focus:outline-none focus:border-[#38bdf8]/50 transition-colors"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}
@@ -303,36 +315,38 @@ const Insights: React.FC = () => {
              </div>
 
              {/* Output Area */}
-             <AnimatePresence mode="wait">
-               {isAnalyzing && (
-                 <motion.div 
-                   key="loading"
-                   initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                   className="mt-6 p-4 bg-[#080b0e] border border-[#222c37] flex items-center gap-3"
-                 >
-                   <Loader2 size={16} className="text-[#38bdf8] animate-spin" />
-                   <span className="text-xs font-mono text-[#5f636b] animate-pulse"
+             <div role="status" aria-live="polite">
+               <AnimatePresence mode="wait">
+                 {isAnalyzing && (
+                   <motion.div
+                     key="loading"
+                     initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                     className="mt-6 p-4 bg-[#080b0e] border border-[#222c37] flex items-center gap-3"
+                   >
+                     <Loader2 size={16} className="text-[#38bdf8] animate-spin motion-reduce:animate-none" />
+                     <span className="text-xs font-mono text-[#5f636b] animate-pulse motion-reduce:animate-none"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Analyzing repository evidence and structural topologies...</span>
-                 </motion.div>
-               )}
-               
-               {mockAnswer && !isAnalyzing && (
-                 <motion.div 
-                   key="answer"
-                   initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                   className="mt-6 p-5 bg-[#080b0e] border border-[#222c37] border-l-2 border-l-[#38bdf8]"
-                 >
-                   <div className="flex items-center gap-2 mb-3">
-                     <Sparkles size={14} className="text-[#38bdf8]" />
-                     <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#38bdf8]"
+                   </motion.div>
+                 )}
+
+                 {mockAnswer && !isAnalyzing && (
+                   <motion.div
+                     key="answer"
+                     initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                     className="mt-6 p-5 bg-[#080b0e] border border-[#222c37] border-l-2 border-l-[#38bdf8]"
+                   >
+                     <div className="flex items-center gap-2 mb-3">
+                       <Sparkles size={14} className="text-[#38bdf8]" />
+                       <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#38bdf8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Evidence-Grounded Response</span>
-                   </div>
-                   <p className="text-sm text-[#f4f4f6] leading-relaxed">
-                     {mockAnswer}
-                   </p>
-                 </motion.div>
-               )}
-             </AnimatePresence>
+                     </div>
+                     <p className="text-sm text-[#f4f4f6] leading-relaxed">
+                       {mockAnswer}
+                     </p>
+                   </motion.div>
+                 )}
+               </AnimatePresence>
+             </div>
 
           </div>
         </div>
