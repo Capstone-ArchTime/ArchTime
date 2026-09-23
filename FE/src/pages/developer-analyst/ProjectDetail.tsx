@@ -199,7 +199,7 @@ const ProjectDetail: React.FC = () => {
                          <g transform="translate(320, 250)">
                            <rect width="160" height="40" rx="4" fill="#161d24" stroke="#38bdf8" strokeOpacity="0.5" />
                            <circle cx="20" cy="20" r="4" fill="#38bdf8" />
-                           <text x="35" y="24" fill="#f4f4f6" fontSize="13" fontFamily="monospace" fontWeight="bold">INVENTORY_SERVICE</text>
+                           <text x="35" y="24" fill="#f4f4f6" fontSize="11" fontFamily="monospace" fontWeight="bold">INVENTORY_SERVICE</text>
                          </g>
 
                          {/* PAYMENT MODULE */}

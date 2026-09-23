@@ -197,7 +197,7 @@ const Compare: React.FC = () => {
           <div className="flex-1 flex flex-col bg-[#080b0e] border border-[#222c37] overflow-hidden shadow-2xl relative">
             <div className="p-4 border-b border-[#222c37] bg-[#080b0e] flex items-center justify-between z-10">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[#38bdf8] animate-pulse shadow-[0_0_8px_#38bdf8]"></div>
+                <div className="w-2 h-2 rounded-full bg-[#38bdf8] animate-pulse motion-reduce:animate-none shadow-[0_0_8px_#38bdf8]"></div>
                 <span className="text-xs font-bold text-[#f4f4f6] tracking-wide uppercase">After</span>
               </div>
               <div className="text-[10px] font-mono text-[#94a3b8]"
@@ -207,7 +207,7 @@ const Compare: React.FC = () => {
             <div className="flex-1 relative w-full h-full">
                <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#F5F7FA 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
                
-               <svg viewBox="0 0 500 400" className="w-full h-full absolute inset-0" preserveAspectRatio="xMidYMid meet">
+               <svg viewBox="0 0 500 440" className="w-full h-full absolute inset-0" preserveAspectRatio="xMidYMid meet">
                   <defs>
                     <filter id="glow-amber-compare" x="-20%" y="-20%" width="140%" height="140%">
                       <feGaussianBlur stdDeviation="4" result="blur" />
@@ -219,15 +219,18 @@ const Compare: React.FC = () => {
                     </filter>
                   </defs>
 
+                  {/* Entire graph shifted down so the "+ EXTRACTED" badge above PAYMENT_SERVICE never clips the top edge */}
+                  <g transform="translate(0, 25)">
+
                   {/* LINES */}
                   <g fill="none" strokeWidth="2" opacity="0.6">
                      {/* Order -> User */}
                      <path d="M 250 150 C 150 150, 150 200, 150 250" stroke="#38bdf8" />
-                     
+
                      {/* Order -> Payment (New dep) */}
-                     <motion.path 
+                     <motion.path
                        initial={{ opacity: 0 }} animate={{ opacity: 0.8 }}
-                       d="M 250 150 C 350 150, 350 200, 350 250" 
+                       d="M 250 150 C 350 150, 350 200, 350 250"
                        stroke="#38bdf8" filter="url(#glow-cyan-compare)" strokeWidth="2.5"
                      />
                   </g>
@@ -249,7 +252,7 @@ const Compare: React.FC = () => {
                     </g>
 
                     {/* NEW PAYMENT MODULE */}
-                    <motion.g 
+                    <motion.g
                       initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
                       transform="translate(270, 250)"
                     >
@@ -257,13 +260,14 @@ const Compare: React.FC = () => {
                       <rect width="160" height="40" rx="4" fill="#161d24" stroke="#ffb03a" strokeWidth="2" />
                       <circle cx="20" cy="20" r="4" fill="#ffb03a" />
                       <text x="35" y="24" fill="#ffb03a" fontSize="13" fontFamily="monospace" fontWeight="bold">PAYMENT_SERVICE</text>
-                      
+
                       {/* Highlight Badge */}
                       <g transform="translate(120, -15)">
                         <rect width="80" height="18" rx="2" fill="#ffb03a" fillOpacity="0.1" stroke="#ffb03a" />
                         <text x="40" y="12" fill="#ffb03a" fontSize="9" fontFamily="monospace" fontWeight="bold" textAnchor="middle">+ EXTRACTED</text>
                       </g>
                     </motion.g>
+                  </g>
                   </g>
                </svg>
             </div>

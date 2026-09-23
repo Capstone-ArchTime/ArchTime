@@ -193,8 +193,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             {/* Search */}
             <div className="hidden lg:flex items-center relative group">
               <Search size={14} className="absolute left-3 text-[#5f636b] group-focus-within:text-[#38bdf8] transition-colors" />
-              <input 
-                type="text" 
+              <input
+                type="text"
+                aria-label="Search projects, commits, insights"
                 placeholder="Search projects, commits, insights..."
                 className="w-64 h-8 bg-[#11161b] border border-[#222c37] pl-9 pr-14 text-xs text-[#f4f4f6] placeholder:text-[#5f636b] focus:outline-none focus:border-[#38bdf8]/50 focus:ring-1 focus:ring-[#38bdf8]/20 transition-all"
               />
@@ -206,7 +207,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
               </div>
             </div>
 
-            <button className="text-[#5f636b] hover:text-[#f4f4f6] transition-colors relative">
+            <button aria-label="Notifications" className="text-[#5f636b] hover:text-[#f4f4f6] transition-colors relative">
               <Bell size={18} />
               <div className="absolute top-0 right-0 w-2 h-2 bg-[#38bdf8] rounded-full border border-[#080b0e]"></div>
             </button>

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { 
-  FolderKanban, 
+import {
+  FolderKanban,
   Activity,
   GitPullRequest,
   Plus,
@@ -12,9 +12,12 @@ import {
   FolderGit2
 } from 'lucide-react';
 import { Icon } from '@iconify/react';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 const Projects: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const closeModal = useCallback(() => setIsModalOpen(false), []);
+  const modalRef = useFocusTrap(isModalOpen, closeModal);
   
   // Hardcoded projects data based on user spec
   const projects = [
@@ -258,16 +261,20 @@ const Projects: React.FC = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
             
             {/* Backdrop */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setIsModalOpen(false)}
+              onClick={closeModal}
               className="absolute inset-0 bg-[#080b0e]/80 backdrop-blur-sm"
             ></motion.div>
-            
+
             {/* Modal Dialog */}
-            <motion.div 
+            <motion.div
+              ref={modalRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="create-project-title"
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -276,40 +283,43 @@ const Projects: React.FC = () => {
               <div className="p-6 border-b border-[#222c37] flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] shadow-[0_0_5px_#38bdf8]"></div>
-                  <h2 className="text-[#f4f4f6] font-bold tracking-tight uppercase text-sm font-mono tracking-widest"
+                  <h2 id="create-project-title" className="text-[#f4f4f6] font-bold tracking-tight uppercase text-sm font-mono tracking-widest"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Create Project</h2>
                 </div>
-                <button 
-                  onClick={() => setIsModalOpen(false)}
+                <button
+                  onClick={closeModal}
+                  aria-label="Close dialog"
                   className="text-[#5f636b] hover:text-[#f4f4f6] transition-colors"
                 >
                   <X size={20} />
                 </button>
               </div>
-              
+
               <div className="p-6 space-y-6">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
+                  <label htmlFor="project-name" className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Project Name</label>
-                  <input 
-                    type="text" 
+                  <input
+                    id="project-name"
+                    type="text"
                     placeholder="e.g. Identity Service"
                     className="w-full h-10 bg-[#161d24] border border-[#222c37] px-3 text-sm text-[#f4f4f6] placeholder:text-[#5f636b] focus:outline-none focus:border-[#38bdf8]/50 focus:ring-1 focus:ring-[#38bdf8]/20 transition-all"
                   />
                 </div>
-                
+
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
+                  <label htmlFor="project-description" className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Description <span className="text-[#5f636b]">(Optional)</span></label>
-                  <textarea 
+                  <textarea
+                    id="project-description"
                     placeholder="Brief architectural context..."
                     className="w-full h-20 bg-[#161d24] border border-[#222c37] px-3 py-2 text-sm text-[#f4f4f6] placeholder:text-[#5f636b] focus:outline-none focus:border-[#38bdf8]/50 focus:ring-1 focus:ring-[#38bdf8]/20 transition-all resize-none"
                   ></textarea>
                 </div>
-                
+
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository Provider</label>
+                  <span className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository Provider</span>
                   <div className="grid grid-cols-2 gap-3">
                     <label className="flex items-center justify-center gap-2 h-10 bg-[#161d24] border border-[#222c37] cursor-pointer hover:border-[#94a3b8] transition-colors has-[:checked]:border-[#38bdf8] has-[:checked]:bg-[#38bdf8]/5 group">
                       <input type="radio" name="provider" className="sr-only" defaultChecked />
@@ -325,20 +335,21 @@ const Projects: React.FC = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
+                  <label htmlFor="repository-url" className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository URL</label>
-                  <input 
-                    type="text" 
+                  <input
+                    id="repository-url"
+                    type="text"
                     placeholder="https://github.com/organization/repo"
                     className="w-full h-10 bg-[#161d24] border border-[#222c37] px-3 text-sm font-mono text-[#f4f4f6] placeholder:text-[#5f636b] focus:outline-none focus:border-[#38bdf8]/50 focus:ring-1 focus:ring-[#38bdf8]/20 transition-all"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}
                   />
                 </div>
               </div>
-              
+
               <div className="p-6 pt-0">
-                <button 
-                  onClick={() => setIsModalOpen(false)}
+                <button
+                  onClick={closeModal}
                   className="w-full h-10 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)]"
                 >
                   <FolderGit2 size={16} />
