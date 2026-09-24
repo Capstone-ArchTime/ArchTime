@@ -1,13 +1,9 @@
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { 
+import {
   GitCommit,
   GitBranch,
   ChevronDown,
-  ArrowRight,
-  Database,
-  Cpu,
-  Box,
   FileText,
   User,
   Calendar,

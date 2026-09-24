@@ -1,20 +1,10 @@
 import React from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { 
+import {
   GitCommit,
   ArrowRight,
-  Database,
-  Cpu,
-  Box,
-  FileText,
-  User,
-  Calendar,
-  Layers,
-  GitMerge,
   ArrowRightLeft,
   ChevronDown,
-  ChevronRight,
-  SplitSquareHorizontal,
   FileDiff,
   Download
 } from 'lucide-react';
