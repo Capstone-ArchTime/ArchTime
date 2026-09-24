@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { 
+import {
   FolderGit2,
   Box,
   GitCommit,
@@ -9,14 +9,12 @@ import {
   ScanSearch,
   Download,
   CheckCircle2,
-  AlertCircle,
   ExternalLink,
   ArrowRight,
   Sparkles,
   SearchCode
 } from 'lucide-react';
 import { Icon } from '@iconify/react';
-import { motion } from 'motion/react';
 
 const ProjectDetail: React.FC = () => {
   return (

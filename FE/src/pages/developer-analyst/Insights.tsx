@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { 
+import {
   Sparkles,
   GitCommit,
   CheckCircle2,
-  Database,
-  Cpu,
   FileCode,
   Network,
   TerminalSquare,

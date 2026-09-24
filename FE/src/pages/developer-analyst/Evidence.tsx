@@ -1,16 +1,11 @@
 import React, { useState, useCallback } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { 
+import {
   Search,
   ChevronDown,
   ArrowRight,
-  Database,
   Box,
-  FileText,
-  User,
-  Calendar,
   Layers,
-  GitMerge,
   GitCommit,
   X,
   Link,

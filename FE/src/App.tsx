@@ -1,4 +1,5 @@
 import { App as AntApp, ConfigProvider, theme } from "antd"
+import { StyleProvider } from "@ant-design/cssinjs"
 import { BrowserRouter, Routes, Route } from "react-router-dom"
 import AuthPage from "@/pages/Login"
 
@@ -19,30 +20,32 @@ import MiningJobsMonitor from "@/pages/system-administrator/MiningJobsMonitor"
 
 function App() {
   return (
-    <ConfigProvider theme={{ algorithm: theme.darkAlgorithm }}>
-      <AntApp>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<AuthPage />} />
-            <Route path="/register" element={<AuthPage />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/projects" element={<Projects />} />
-            <Route path="/history" element={<ArchitectureHistory />} />
-            <Route path="/compare" element={<Compare />} />
-            <Route path="/evidence" element={<Evidence />} />
-            <Route path="/insights" element={<Insights />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/project" element={<ProjectDetail />} />
-            <Route path="/project-maintainer" element={<ProjectMaintainerDashboard />} />
-            <Route path="/project-maintainer/reports" element={<ProjectMaintainerReports />} />
-            <Route path="/system-administrator" element={<SystemAdministratorDashboard />} />
-            <Route path="/system-administrator/settings" element={<SystemSettings />} />
-            <Route path="/system-administrator/mining-jobs" element={<MiningJobsMonitor />} />
-          </Routes>
-        </BrowserRouter>
-      </AntApp>
-    </ConfigProvider>
+    <StyleProvider layer>
+      <ConfigProvider theme={{ algorithm: theme.darkAlgorithm }}>
+        <AntApp>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/login" element={<AuthPage />} />
+              <Route path="/register" element={<AuthPage />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/projects" element={<Projects />} />
+              <Route path="/history" element={<ArchitectureHistory />} />
+              <Route path="/compare" element={<Compare />} />
+              <Route path="/evidence" element={<Evidence />} />
+              <Route path="/insights" element={<Insights />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/project" element={<ProjectDetail />} />
+              <Route path="/project-maintainer" element={<ProjectMaintainerDashboard />} />
+              <Route path="/project-maintainer/reports" element={<ProjectMaintainerReports />} />
+              <Route path="/system-administrator" element={<SystemAdministratorDashboard />} />
+              <Route path="/system-administrator/settings" element={<SystemSettings />} />
+              <Route path="/system-administrator/mining-jobs" element={<MiningJobsMonitor />} />
+            </Routes>
+          </BrowserRouter>
+        </AntApp>
+      </ConfigProvider>
+    </StyleProvider>
   )
 }
 

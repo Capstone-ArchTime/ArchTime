@@ -3,7 +3,6 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   FileText,
   ChevronDown,
-  ArrowRight,
   Download,
   Share2,
   ArrowLeft,
@@ -11,8 +10,6 @@ import {
   Sparkles,
   GitCommit,
   Clock,
-  CheckCircle2,
-  AlertCircle,
   Box
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';

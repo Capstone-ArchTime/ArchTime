@@ -2,6 +2,7 @@ import { Icon } from "@iconify/react";
 import { App } from "antd";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Mascot } from "page-mascot";
 import { Logo } from "@/components/Logo";
 import { useComingSoon } from "@/hooks/useComingSoon";
@@ -236,13 +237,20 @@ export default function HomePage() {
             >
               EVIDENCE // VERIFIED
             </span>
-            <button
-              onClick={() => notifyComingSoon("Repository analysis")}
-              className="hidden border border-[#38bdf8]/30 bg-[#11161b] px-5 py-2.5 text-xs uppercase tracking-widest transition-all hover:border-[#00f0ff] hover:text-white md:inline-block"
+            <Link
+              to="/login"
+              className="hidden text-xs uppercase tracking-widest text-slate-300 transition-colors hover:text-white md:inline-block"
               style={{ fontFamily: fontFamily.mono }}
             >
-              Analyze Repository
-            </button>
+              Log In
+            </Link>
+            <Link
+              to="/register"
+              className="hidden border border-[#38bdf8]/30 bg-[#11161b] px-5 py-2.5 text-xs uppercase tracking-widest text-white transition-all hover:border-[#00f0ff] hover:text-[#00f0ff] md:inline-block"
+              style={{ fontFamily: fontFamily.mono }}
+            >
+              Sign Up
+            </Link>
             <button
               onClick={() => setMobileMenuOpen((v) => !v)}
               aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
@@ -293,16 +301,30 @@ export default function HomePage() {
                 <a
                   href="#hardware"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="py-3 transition-colors hover:text-[#00f0ff]"
+                  className="border-b border-[#222c37]/60 py-3 transition-colors hover:text-[#00f0ff]"
                 >
                   Evidence
                 </a>
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-3 transition-colors hover:text-[#00f0ff]"
+                >
+                  Log In
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="mt-2 border border-[#38bdf8]/30 bg-[#11161b] px-5 py-2.5 text-center text-white transition-all hover:border-[#00f0ff] hover:text-[#00f0ff]"
+                >
+                  Sign Up
+                </Link>
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
                     notifyComingSoon("Repository analysis");
                   }}
-                  className="mt-2 border border-[#38bdf8]/30 bg-[#11161b] px-5 py-2.5 text-center transition-all hover:border-[#00f0ff] hover:text-white"
+                  className="mt-2 border border-[#222c37] bg-transparent px-5 py-2.5 text-center text-slate-400 transition-all hover:border-slate-400 hover:text-white"
                 >
                   Analyze Repository
                 </button>
