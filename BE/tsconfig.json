@@ -16,5 +16,6 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src"],
+  "typeRoots": ["./node_modules/@types", "./src/shared/types"]
 }

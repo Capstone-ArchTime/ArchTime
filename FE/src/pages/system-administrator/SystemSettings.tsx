@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Key, Cpu, Save, Eye, EyeOff } from 'lucide-react';
 import { Icon } from '@iconify/react';
+import { useComingSoon } from '@/hooks/useComingSoon';
 
 const fontFamily = {
   mono: '"JetBrains Mono", monospace',
@@ -11,6 +12,7 @@ const SystemSettings: React.FC = () => {
   const [showApiKey, setShowApiKey] = useState(false);
   const [maxConcurrentJobs, setMaxConcurrentJobs] = useState(4);
   const [maxRepoSizeGb, setMaxRepoSizeGb] = useState(10);
+  const notifyComingSoon = useComingSoon();
 
   return (
     <DashboardLayout>
@@ -18,17 +20,17 @@ const SystemSettings: React.FC = () => {
 
         {/* HEADER */}
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">System Settings</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Repository &amp; Extraction Config</h2>
           <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
-            Configure platform-wide integrations, resource limits, and API credentials.
+            Manage repository authorization and configure extraction parameters for the analysis pipeline.
           </p>
           <div className="h-[1px] w-full bg-gradient-to-r from-[#222c37] to-transparent mt-8"></div>
         </div>
 
-        {/* SOURCE INTEGRATIONS */}
+        {/* REPOSITORY AUTHORIZATION */}
         <section>
-          <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-1" style={{ fontFamily: fontFamily.mono }}>Source Integrations</h3>
-          <p className="text-xs text-[#5f636b] mb-4">Connect repository providers for analysis mining.</p>
+          <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-1" style={{ fontFamily: fontFamily.mono }}>Repository Authorization</h3>
+          <p className="text-xs text-[#5f636b] mb-4">Authorize which source providers the mining pipeline can access.</p>
 
           <div className="bg-[#161d24] border border-[#222c37] divide-y divide-[#222c37]">
             <div className="flex items-center justify-between p-5">
@@ -49,7 +51,9 @@ const SystemSettings: React.FC = () => {
                   <div className="text-xs text-[#5f636b]">Not connected</div>
                 </div>
               </div>
-              <button className="h-8 px-4 bg-[#11161b] border border-[#222c37] hover:border-[#38bdf8]/50 text-[#38bdf8] text-[10px] font-bold transition-colors" style={{ fontFamily: fontFamily.mono }}>
+              <button
+                onClick={() => notifyComingSoon("GitLab connection")}
+                className="h-8 px-4 bg-[#11161b] border border-[#222c37] hover:border-[#38bdf8]/50 text-[#38bdf8] text-[10px] font-bold transition-colors" style={{ fontFamily: fontFamily.mono }}>
                 CONNECT
               </button>
             </div>
@@ -75,6 +79,7 @@ const SystemSettings: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowApiKey((v) => !v)}
+                aria-label={showApiKey ? "Hide API key" : "Show API key"}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5f636b] hover:text-[#f4f4f6] transition-colors"
               >
                 {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -84,43 +89,47 @@ const SystemSettings: React.FC = () => {
           </div>
         </section>
 
-        {/* RESOURCE LIMITS */}
+        {/* EXTRACTION PARAMETERS */}
         <section>
-          <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-1" style={{ fontFamily: fontFamily.mono }}>Resource Limits</h3>
-          <p className="text-xs text-[#5f636b] mb-4">Control how much the analysis pipeline can consume.</p>
+          <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-1" style={{ fontFamily: fontFamily.mono }}>Extraction Parameters</h3>
+          <p className="text-xs text-[#5f636b] mb-4">Control how the mining pipeline extracts and processes repositories.</p>
 
           <div className="bg-[#161d24] border border-[#222c37] divide-y divide-[#222c37]">
             <div className="p-5">
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm text-[#f4f4f6] font-medium flex items-center gap-2">
+                <label htmlFor="max-concurrent-jobs" className="text-sm text-[#f4f4f6] font-medium flex items-center gap-2">
                   <Cpu size={14} className="text-[#38bdf8]" />
                   Max Concurrent Analysis Jobs
                 </label>
                 <span className="text-sm font-bold text-[#38bdf8]" style={{ fontFamily: fontFamily.mono }}>{maxConcurrentJobs}</span>
               </div>
               <input
+                id="max-concurrent-jobs"
                 type="range"
                 min={1}
                 max={16}
                 value={maxConcurrentJobs}
                 onChange={(e) => setMaxConcurrentJobs(Number(e.target.value))}
+                aria-valuetext={`${maxConcurrentJobs} concurrent jobs`}
                 className="w-full accent-[#38bdf8]"
               />
             </div>
             <div className="p-5">
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm text-[#f4f4f6] font-medium flex items-center gap-2">
+                <label htmlFor="max-repo-size" className="text-sm text-[#f4f4f6] font-medium flex items-center gap-2">
                   <Key size={14} className="text-[#ffb03a]" />
                   Max Repository Size (GB)
                 </label>
                 <span className="text-sm font-bold text-[#ffb03a]" style={{ fontFamily: fontFamily.mono }}>{maxRepoSizeGb}</span>
               </div>
               <input
+                id="max-repo-size"
                 type="range"
                 min={1}
                 max={50}
                 value={maxRepoSizeGb}
                 onChange={(e) => setMaxRepoSizeGb(Number(e.target.value))}
+                aria-valuetext={`${maxRepoSizeGb} gigabytes`}
                 className="w-full accent-[#ffb03a]"
               />
             </div>
@@ -128,7 +137,9 @@ const SystemSettings: React.FC = () => {
         </section>
 
         <div className="flex justify-end">
-          <button className="h-10 px-6 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2" style={{ fontFamily: fontFamily.mono }}>
+          <button
+            onClick={() => notifyComingSoon("Saving configuration changes")}
+            className="h-10 px-6 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2" style={{ fontFamily: fontFamily.mono }}>
             <Save size={14} />
             SAVE CHANGES
           </button>

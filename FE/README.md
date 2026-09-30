@@ -22,7 +22,7 @@ The home page, login and registration are public. All workspace routes require a
 | `project-maintainer` | Overview, Approval Queue, Team, Component Diagram, Architecture Rules, Design Decisions, Evolution Reports |
 | `system-administrator` | Overview, User Management, System Settings, Audit Log, Mining Jobs Monitor |
 
-The current feature branch contains only the backend health endpoint. Real login, registration, and session restore require merging or running the backend authentication implementation exposing `/auth/login`, `/auth/register`, `/auth/me`, and `/auth/refresh`. Frontend unit tests mock these endpoints; they do not verify a live backend.
+The backend authentication implementation is included from Develop and exposes `/auth/login`, `/auth/register`, `/auth/me`, and `/auth/refresh`. Run the backend with its database and email configuration for real login and registration. Frontend unit tests mock these endpoints; they do not verify a live backend.
 
 The FE obtains identity from `GET /auth/me`; it does not trust role values in localStorage or URL prefixes. A 401 triggers one `POST /auth/refresh` attempt and a new identity check. Unsupported roles and revoked sessions fail closed. Network failures show a retry screen. Sessions are rechecked on window focus and every minute, and token changes/sign-out synchronize between tabs. Login returns to an authorized requested route or the role's home. Direct access to another workspace shows 403.
 

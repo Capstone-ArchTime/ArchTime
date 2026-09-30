@@ -1,6 +1,13 @@
-import { App } from 'antd';
+import { App } from "antd";
+import { useCallback } from "react";
 
 export function useComingSoon() {
   const { message } = App.useApp();
-  return (feature: string) => { void message.info(`${feature} is coming soon.`); };
+
+  return useCallback(
+    (feature: string) => {
+      message.info(`${feature} is coming soon.`);
+    },
+    [message]
+  );
 }

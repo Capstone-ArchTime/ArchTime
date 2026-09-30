@@ -316,7 +316,7 @@ const Dashboard: React.FC = () => {
                       <td className="px-5 py-4 text-[#5f636b] font-mono text-xs"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>2m 14s</td>
                       <td className="px-5 py-4 text-right">
-                        <button className="text-[#38bdf8] hover:text-[#38bdf8]/80 font-mono text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity"
+                        <button className="text-[#38bdf8] hover:text-[#38bdf8]/80 font-mono text-xs font-semibold opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                           Details &rarr;
                         </button>
@@ -334,14 +334,14 @@ const Dashboard: React.FC = () => {
                       <td className="px-5 py-4">
                         <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-[#38bdf8]/10 border border-[#38bdf8]/20 text-[10px] font-mono text-[#38bdf8] font-bold"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                          <div className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse"></div>
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse motion-reduce:animate-none"></div>
                           RUNNING
                         </div>
                       </td>
                       <td className="px-5 py-4 text-[#5f636b] font-mono text-xs"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>3m 37s</td>
                       <td className="px-5 py-4 text-right">
-                        <button className="text-[#38bdf8] hover:text-[#38bdf8]/80 font-mono text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity"
+                        <button className="text-[#38bdf8] hover:text-[#38bdf8]/80 font-mono text-xs font-semibold opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                           Details &rarr;
                         </button>
@@ -366,7 +366,7 @@ const Dashboard: React.FC = () => {
                       <td className="px-5 py-4 text-[#5f636b] font-mono text-xs"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>1m 45s</td>
                       <td className="px-5 py-4 text-right">
-                        <button className="text-[#38bdf8] hover:text-[#38bdf8]/80 font-mono text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity"
+                        <button className="text-[#38bdf8] hover:text-[#38bdf8]/80 font-mono text-xs font-semibold opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                           Details &rarr;
                         </button>
