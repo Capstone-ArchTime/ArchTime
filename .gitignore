@@ -4,10 +4,34 @@
 # Claude Code local tool cache (skills, agent config)
 .claude/
 .agents/
+.codex/
 skills-lock.json
+
+# Project-local agent skill installer, documentation and download manifest
+/tools/skills/
 
 # Playwright MCP screenshots/console logs
 .playwright-mcp/
+
+# Generated browser test reports and local authenticated browser state
+playwright-report/
+test-results/
+blob-report/
+**/playwright/.auth/
+
+# Python environments and caches used by local testing helpers
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local OS and IDE files
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+*.suo
 
 # Local scratch / unclassified
 .ua/
