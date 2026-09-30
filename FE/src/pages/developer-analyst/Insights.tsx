@@ -4,8 +4,6 @@ import {
   Sparkles,
   GitCommit,
   CheckCircle2,
-  Database,
-  Cpu,
   FileCode,
   Network,
   TerminalSquare,

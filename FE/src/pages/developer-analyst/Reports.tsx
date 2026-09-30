@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { 
+import {
   FileText,
   ChevronDown,
-  ArrowRight,
   Download,
   Share2,
   ArrowLeft,
@@ -11,10 +10,12 @@ import {
   Sparkles,
   GitCommit,
   Clock,
-  CheckCircle2,
-  AlertCircle
+  Box
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useComingSoon } from '@/hooks/useComingSoon';
+import { usePagination } from '@/hooks/usePagination';
+import PaginationBar from '@/components/PaginationBar';
 
 // Mock Data
 const reportsData = [
@@ -47,6 +48,8 @@ const reportsData = [
 const Reports: React.FC = () => {
   const [viewState, setViewState] = useState<'list' | 'preview'>('list');
   const [activeReport, setActiveReport] = useState<typeof reportsData[0] | null>(null);
+  const notifyComingSoon = useComingSoon();
+  const pagination = usePagination(reportsData);
 
   const handleViewReport = (report: typeof reportsData[0]) => {
     setActiveReport(report);
@@ -89,7 +92,9 @@ const Reports: React.FC = () => {
                       Generate and review evidence-backed reports of architectural evolution.
                     </p>
                   </div>
-                  <button className="shrink-0 h-10 px-5 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)] uppercase">
+                  <button
+                    onClick={() => notifyComingSoon("Report generation")}
+                    className="shrink-0 h-10 px-5 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)] uppercase">
                     + GENERATE REPORT
                   </button>
                 </div>
@@ -99,28 +104,40 @@ const Reports: React.FC = () => {
                   <div className="flex items-center gap-2 text-[10px] font-mono text-[#5f636b] uppercase px-2"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Filters:</div>
                   
-                  <button className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
+                  <button
+                    onClick={() => notifyComingSoon("Project filter")}
+                    aria-haspopup="listbox"
+                    className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
                     <span className="text-[10px] font-mono text-[#5f636b] uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Project</span>
                     <span className="text-xs font-bold text-[#f4f4f6]">E-Commerce Platform</span>
                     <ChevronDown size={14} className="text-[#5f636b] group-hover:text-[#f4f4f6]" />
                   </button>
-                  
-                  <button className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
+
+                  <button
+                    onClick={() => notifyComingSoon("Repository filter")}
+                    aria-haspopup="listbox"
+                    className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
                     <span className="text-[10px] font-mono text-[#5f636b] uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository</span>
                     <span className="text-xs font-bold text-[#f4f4f6]">order-service</span>
                     <ChevronDown size={14} className="text-[#5f636b] group-hover:text-[#f4f4f6]" />
                   </button>
 
-                  <button className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
+                  <button
+                    onClick={() => notifyComingSoon("Revision range filter")}
+                    aria-haspopup="listbox"
+                    className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
                     <span className="text-[10px] font-mono text-[#5f636b] uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Revision Range</span>
                     <span className="text-xs font-bold text-[#f4f4f6]">v1.0 → HEAD</span>
                     <ChevronDown size={14} className="text-[#5f636b] group-hover:text-[#f4f4f6]" />
                   </button>
 
-                  <button className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
+                  <button
+                    onClick={() => notifyComingSoon("Report type filter")}
+                    aria-haspopup="listbox"
+                    className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
                     <span className="text-[10px] font-mono text-[#5f636b] uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Report Type</span>
                     <span className="text-xs font-bold text-[#f4f4f6]">Architecture Evolution</span>
@@ -150,7 +167,7 @@ const Reports: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#222c37]">
-                      {reportsData.map((report) => (
+                      {pagination.items.map((report) => (
                         <tr key={report.id} className="group hover:bg-[#222c37]/30 transition-colors">
                           <td className="p-4 text-sm font-bold text-[#f4f4f6] flex items-center gap-2">
                              <FileText size={16} className="text-[#38bdf8]" />
@@ -176,7 +193,9 @@ const Reports: React.FC = () => {
                              >
                                 View
                              </button>
-                             <button className="inline-flex h-8 px-3 items-center justify-center gap-1 text-[10px] font-mono font-bold text-[#38bdf8] border border-[#38bdf8]/30 hover:border-[#38bdf8] hover:bg-[#38bdf8]/10 transition-colors uppercase"
+                             <button
+                               onClick={() => notifyComingSoon("Report export")}
+                               className="inline-flex h-8 px-3 items-center justify-center gap-1 text-[10px] font-mono font-bold text-[#38bdf8] border border-[#38bdf8]/30 hover:border-[#38bdf8] hover:bg-[#38bdf8]/10 transition-colors uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                                 Export
                              </button>
@@ -185,6 +204,7 @@ const Reports: React.FC = () => {
                       ))}
                     </tbody>
                   </table>
+                  <PaginationBar {...pagination} />
                 </div>
               </div>
 
@@ -213,13 +233,19 @@ const Reports: React.FC = () => {
                  </button>
                  
                  <div className="flex items-center gap-3">
-                    <button className="h-9 px-4 bg-transparent border border-[#222c37] hover:border-[#5f636b] text-[#94a3b8] hover:text-[#f4f4f6] font-bold text-[10px] transition-colors flex items-center gap-2 uppercase tracking-wider">
+                    <button
+                      onClick={() => notifyComingSoon("Report sharing")}
+                      className="h-9 px-4 bg-transparent border border-[#222c37] hover:border-[#5f636b] text-[#94a3b8] hover:text-[#f4f4f6] font-bold text-[10px] transition-colors flex items-center gap-2 uppercase tracking-wider">
                        <Share2 size={14} /> Share Report
                     </button>
-                    <button className="h-9 px-4 bg-transparent border border-[#222c37] hover:border-[#5f636b] text-[#94a3b8] hover:text-[#f4f4f6] font-bold text-[10px] transition-colors flex items-center gap-2 uppercase tracking-wider">
+                    <button
+                      onClick={() => notifyComingSoon("JSON export")}
+                      className="h-9 px-4 bg-transparent border border-[#222c37] hover:border-[#5f636b] text-[#94a3b8] hover:text-[#f4f4f6] font-bold text-[10px] transition-colors flex items-center gap-2 uppercase tracking-wider">
                        <FileJson size={14} /> Export JSON
                     </button>
-                    <button className="h-9 px-4 bg-[#38bdf8]/10 border border-[#38bdf8]/30 hover:bg-[#38bdf8]/20 text-[#38bdf8] font-bold text-[10px] transition-colors flex items-center gap-2 uppercase tracking-wider">
+                    <button
+                      onClick={() => notifyComingSoon("PDF export")}
+                      className="h-9 px-4 bg-[#38bdf8]/10 border border-[#38bdf8]/30 hover:bg-[#38bdf8]/20 text-[#38bdf8] font-bold text-[10px] transition-colors flex items-center gap-2 uppercase tracking-wider">
                        <Download size={14} /> Export PDF
                     </button>
                  </div>

@@ -4,10 +4,6 @@ import {
   GitCommit,
   GitBranch,
   ChevronDown,
-  ArrowRight,
-  Database,
-  Cpu,
-  Box,
   FileText,
   User,
   Calendar,
@@ -16,6 +12,8 @@ import {
   GitCompare
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { usePagination } from '@/hooks/usePagination';
+import PaginationBar from '@/components/PaginationBar';
 
 // Mock Commit Data
 const commits = [
@@ -66,6 +64,7 @@ const commits = [
 ];
 
 const ArchitectureHistory: React.FC = () => {
+  const pagination = usePagination(commits, '', 5);
   const [activeCommit, setActiveCommit] = useState(commits[1].hash); // Default to d82f91a
   
   const currentCommit = commits.find(c => c.hash === activeCommit) || commits[1];
@@ -143,10 +142,10 @@ const ArchitectureHistory: React.FC = () => {
               <div className="absolute top-[45px] left-12 right-12 h-[2px] bg-[#222c37]"></div>
               
               <div className="flex items-center justify-between relative z-10 px-6">
-                {commits.map((commit, i) => {
+                {pagination.items.map((commit, i) => {
                   const isActive = activeCommit === commit.hash;
                   // Connecting line progress
-                  const isPast = commits.findIndex(c => c.hash === activeCommit) >= i;
+                  const isPast = commits.findIndex(c => c.hash === activeCommit) >= (pagination.current - 1) * pagination.pageSize + i;
                   
                   return (
                     <div 
@@ -184,6 +183,7 @@ const ArchitectureHistory: React.FC = () => {
               </div>
             </div>
 
+            <PaginationBar {...pagination} />
             {/* ARCHITECTURE SVG SNAPSHOT */}
             <div className="flex-1 bg-[#080b0e] border border-[#222c37] overflow-hidden relative shadow-2xl flex flex-col">
               

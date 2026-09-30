@@ -1,7 +1,9 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   ShieldCheck,
+  ArrowRight,
   UserPlus,
   CheckCircle2,
   XCircle,
@@ -84,7 +86,7 @@ const ProjectMaintainerDashboard: React.FC = () => {
             <div>
               <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Project &amp; architecture overview</h2>
               <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
-                Track architecture health, review pending changes, and manage teams across all projects you maintain.
+                Track architecture health, review changes, manage teams, and document diagrams, rules, and design decisions.
               </p>
             </div>
             <button className="shrink-0 h-10 px-5 bg-[#161d24] hover:bg-[#222c37] border border-[#222c37] text-[#f4f4f6] font-medium text-xs transition-colors flex items-center gap-2">
@@ -95,6 +97,13 @@ const ProjectMaintainerDashboard: React.FC = () => {
           <div className="h-[1px] w-full bg-gradient-to-r from-[#222c37] to-transparent mt-8"></div>
         </div>
 
+        <section aria-label="Architecture maintenance" className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {[
+            { path: 'component-diagram', title: 'Confirm & edit component diagram', description: 'Refine components and dependencies, then confirm the reviewed model.' },
+            { path: 'architecture-rules', title: 'Define architecture rules', description: 'Set dependency constraints and check the saved diagram for violations.' },
+            { path: 'design-decisions', title: 'Record design decisions', description: 'Capture context, alternatives, and the consequences of each decision.' },
+          ].map(item => <Link key={item.path} to={`/project-maintainer/${item.path}`} className="group border border-[#222c37] bg-[#11161b] p-5 hover:border-[#38bdf8] focus-visible:outline focus-visible:outline-[#38bdf8] transition-colors"><div className="flex justify-between gap-3"><h3 className="font-semibold text-sm group-hover:text-[#38bdf8]">{item.title}</h3><ArrowRight size={16} className="text-[#38bdf8] shrink-0" /></div><p className="text-xs text-[#94a3b8] leading-relaxed mt-3">{item.description}</p></Link>)}
+        </section>
         {/* PROJECT HEALTH — horizontal progress strip */}
         <section>
           <div className="mb-6 flex items-center gap-2">

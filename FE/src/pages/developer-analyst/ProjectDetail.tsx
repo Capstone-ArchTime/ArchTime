@@ -9,14 +9,12 @@ import {
   ScanSearch,
   Download,
   CheckCircle2,
-  AlertCircle,
   ExternalLink,
   ArrowRight,
   Sparkles,
   SearchCode
 } from 'lucide-react';
 import { Icon } from '@iconify/react';
-import { motion } from 'motion/react';
 
 const ProjectDetail: React.FC = () => {
   return (
