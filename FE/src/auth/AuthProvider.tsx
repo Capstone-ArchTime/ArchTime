@@ -31,16 +31,16 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       } catch { clearTokens(); throw new Error('Browser storage is unavailable. Enable it to sign in.'); }
       setUser(verified.user); setError(null); setLoading(false);
       return verified.user;
-    } finally { signingIn.current = false; }
+    } finally { if (active.current === controller) signingIn.current = false; }
   }
 
   useEffect(() => {
-    let running = false;
+    let running: AbortController | null = null;
     let disposed = false;
     async function restore() {
-      if (running || disposed || signingIn.current) return;
-      running = true;
+      if ((running && !running.signal.aborted) || disposed || signingIn.current) return;
       const controller = new AbortController();
+      running = controller;
       active.current?.abort(); active.current = controller;
       try {
         const accessToken = localStorage.getItem('accessToken');
@@ -56,7 +56,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         if (cause instanceof InvalidSessionError) { clearTokens(); setError(null); }
         else setError(cause instanceof Error ? cause.message : 'Unable to verify your session.');
       } finally {
-        running = false;
+        if (running === controller) running = null;
         if (!disposed && !controller.signal.aborted) setLoading(false);
       }
     }
@@ -65,7 +65,12 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     const onFocus = () => { void restore(); };
     const onStorage = (event: StorageEvent) => {
       if (event.key === null || event.key === 'accessToken' || event.key === 'refreshToken') {
-        active.current?.abort(); running = false; setUser(null); setLoading(true); void restore();
+        active.current?.abort();
+        signingIn.current = false;
+        // Access-token refreshes in another tab must not unmount an edited form.
+        // Account changes and sign-out still hide the previous identity immediately.
+        if (event.key !== 'accessToken' || !event.newValue) { setUser(null); setLoading(true); }
+        void restore();
       }
     };
     window.addEventListener('focus', onFocus);

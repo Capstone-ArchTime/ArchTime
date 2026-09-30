@@ -6,6 +6,7 @@
 npm install
 npm run dev
 npm run build
+npm run check:bundle
 npm run lint
 npm test
 ```
@@ -14,7 +15,7 @@ Tests use the Node.js test runner with native TypeScript stripping (Node 22.18+ 
 
 ## Access control
 
-The home page, login and registration are public. All workspace routes require a server-verified session. Each role has its own workspace; administrator access does not implicitly grant project-maintainer or analyst permissions.
+The home page, login, registration and email verification (`/verify-email`) are public. Registration continues to OTP entry; existing unverified users can open verification from the login page. All workspace routes require a server-verified session. Each role has its own workspace; administrator access does not implicitly grant project-maintainer or analyst permissions.
 
 | Role from API | Workspace |
 | --- | --- |
@@ -32,9 +33,23 @@ Maintainer local workspaces use `archtime:maintainer:v2:<userId>:<project>`. Ear
 
 ## Pagination
 
-`usePagination` and `PaginationBar` provide client-side paging for Projects, Architecture History, Evidence, analyst Reports, maintainer Reports, Architecture Rules, Design Decisions, and Mining Jobs. The default page size is 10 (5 for the timeline); users can select 5, 10, 20, or 50. Filtering happens before paging. Changing an active filter or page size resets the current page; removing the last item on a page clamps to the last available page. Empty lists display `0–0 of 0`.
+`usePagination` and `PaginationBar` provide client-side paging for Projects, Architecture History, Evidence, analyst Reports, maintainer Reports, Architecture Rules, Design Decisions, User Management, and Mining Jobs. The default page size is 10 (5 for the timeline); users can select 5, 10, 20, or 50. Filtering happens before paging. Changing an active filter or page size resets the current page; removing the last item on a page clamps to the last available page. Empty lists display `0–0 of 0`.
+
+Projects supports text search. Evidence supports text, change-type and repository filters. Reports supports name and project filters. Workspace navigation is searchable with `Ctrl+K` / `Cmd+K`, with a drawer on narrow screens.
+
+Routes are lazy-loaded through a data router. Saved workspace data survives page reloads; unsaved diagram edits are guarded on in-app navigation (including browser Back) and reload. Signing out shows an explicit warning about unsaved changes. Shared error and loading screens handle page-load failures. Sample-only screens identify themselves; unavailable server actions are disabled or report that the feature is not implemented.
+
+The additional layout tests server-render React components to check landmarks, navigation and authorization together. They do not replace browser interaction, responsive screenshot, or live API tests. See `FRONTEND_AUDIT.md` for fixes and remaining checks.
 
 These lists currently contain local/sample data. This pagination does not request paged backend results. Dashboard summaries and diagram canvases intentionally retain their complete overview.
+
+## Bundle budgets
+
+Production builds emit `dist/.vite/manifest.json`. React, React DOM and scheduler share a `react-runtime` chunk, with React Router in a separate `router` chunk. Ant Design and other UI modules keep automatic splitting so route-only controls stay lazy. The normal Vite 500 KB warning threshold remains unchanged.
+
+After building, `npm run check:bundle` checks the real emitted files: each JavaScript chunk must be at most 500 KB, the initial static dependency graph at most 700 KB, and the entry plus landing-page graph at most 900 KB. It also checks for missing/circular static imports and accidental eager loading of page modules. Sizes use decimal KB before compression; gzip totals are reported separately. No source maps or extra dependencies are needed.
+
+The latest largest chunk is approximately 269 KB, down from the previous 581 KB combined shared chunk. Initial JavaScript remains approximately 641 KB across multiple files; splitting improves caching and avoids the oversized file, rather than removing half the application's code.
 
 ## Manual smoke checks
 

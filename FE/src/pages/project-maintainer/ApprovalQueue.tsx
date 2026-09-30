@@ -1,3 +1,4 @@
+import SampleDataNotice from '@/components/SampleDataNotice';
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { CheckCircle2, XCircle, Clock, Filter, GitCommit } from 'lucide-react';
@@ -98,6 +99,7 @@ const ApprovalQueue: React.FC = () => {
   return (
     <DashboardLayout>
       <div className="max-w-[1100px] mx-auto space-y-8">
+        <SampleDataNotice />
 
         {/* HEADER */}
         <div>
@@ -113,7 +115,7 @@ const ApprovalQueue: React.FC = () => {
 
         {/* FILTERS */}
         <div className="flex items-center gap-2 flex-wrap">
-          <Filter size={14} className="text-[#5f636b] mr-1" />
+          <Filter size={14} className="text-[#94a3b8] mr-1" />
           {filterOptions.map((opt) => (
             <button
               key={opt.key}
@@ -147,10 +149,10 @@ const ApprovalQueue: React.FC = () => {
                         <StatusIcon size={11} />
                         {meta.label}
                       </span>
-                      <span className="text-[10px] text-[#5f636b]" style={{ fontFamily: fontFamily.mono }}>{item.ago}</span>
+                      <span className="text-[10px] text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>{item.ago}</span>
                     </div>
                     <h4 className="text-[#f4f4f6] font-bold text-sm mb-2">{item.title}</h4>
-                    <div className="flex items-center gap-2 text-xs text-[#5f636b]" style={{ fontFamily: fontFamily.mono }}>
+                    <div className="flex items-center gap-2 text-xs text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>
                       <GitCommit size={12} />
                       <span>{item.repo}</span>
                       <span>&middot;</span>
@@ -161,10 +163,10 @@ const ApprovalQueue: React.FC = () => {
                   </div>
                   {item.status === 'pending' && (
                     <div className="flex items-center gap-2 shrink-0">
-                      <button className="h-8 px-3 bg-[#161d24] border border-[#222c37] hover:border-[#ef4444]/50 text-[#ef4444] text-[10px] font-bold transition-colors" style={{ fontFamily: fontFamily.mono }}>
+                      <button disabled title="Not available yet: this view uses sample data" aria-label="REJECT" className="h-8 px-3 bg-[#161d24] border border-[#222c37] hover:border-[#ef4444]/50 text-[#ef4444] text-[10px] font-bold transition-colors" style={{ fontFamily: fontFamily.mono }}>
                         REJECT
                       </button>
-                      <button className="h-8 px-3 bg-[#22c55e]/10 border border-[#22c55e]/30 hover:border-[#22c55e] text-[#22c55e] text-[10px] font-bold transition-colors" style={{ fontFamily: fontFamily.mono }}>
+                      <button disabled title="Not available yet: this view uses sample data" aria-label="APPROVE" className="h-8 px-3 bg-[#22c55e]/10 border border-[#22c55e]/30 hover:border-[#22c55e] text-[#22c55e] text-[10px] font-bold transition-colors" style={{ fontFamily: fontFamily.mono }}>
                         APPROVE
                       </button>
                     </div>
@@ -181,7 +183,7 @@ const ApprovalQueue: React.FC = () => {
             );
           })}
           {filtered.length === 0 && (
-            <p className="text-sm text-[#5f636b]">No changes match this filter.</p>
+            <p className="text-sm text-[#94a3b8]">No changes match this filter.</p>
           )}
         </div>
 

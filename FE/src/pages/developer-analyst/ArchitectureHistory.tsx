@@ -1,3 +1,5 @@
+import SampleDataNotice from '@/components/SampleDataNotice';
+import { Link } from 'react-router-dom';
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
@@ -74,7 +76,8 @@ const ArchitectureHistory: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <div className="max-w-[1400px] mx-auto space-y-6 flex flex-col h-[calc(100vh-140px)]">
+      <div className="max-w-[1400px] mx-auto space-y-6 flex flex-col min-h-[calc(100dvh-140px)]">
+        <SampleDataNotice />
         
         {/* HEADER & TOP CONTROLS */}
         <div className="shrink-0 space-y-6">
@@ -90,58 +93,58 @@ const ArchitectureHistory: React.FC = () => {
                 Reconstruct how the system architecture evolved across repository revisions.
               </p>
             </div>
-            <button className="shrink-0 h-10 px-5 bg-[#11161b] hover:bg-[#222c37] border border-[#222c37] text-[#38bdf8] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.05)]">
+            <Link to="/compare" className="shrink-0 h-10 px-5 bg-[#11161b] hover:bg-[#222c37] border border-[#222c37] text-[#38bdf8] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.05)]">
               <GitCompare size={16} />
               COMPARE REVISIONS
-            </button>
+            </Link>
           </div>
 
           {/* PROJECT SELECTOR FILTERS */}
           <div className="flex flex-wrap items-center gap-3 bg-[#11161b] p-3 border border-[#222c37]">
-            <div className="flex items-center gap-2 text-[10px] font-mono text-[#5f636b] uppercase px-2"
+            <div className="flex items-center gap-2 text-[10px] font-mono text-[#94a3b8] uppercase px-2"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Filters:</div>
             
-            <button className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
-              <span className="text-[10px] font-mono text-[#5f636b] uppercase"
+            <button disabled title="Not available yet: this view uses sample data" aria-label="PROJECT E-COMMERCE PLATFORM" className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
+              <span className="text-[10px] font-mono text-[#94a3b8] uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Project</span>
               <span className="text-xs font-bold text-[#f4f4f6]">E-Commerce Platform</span>
-              <ChevronDown size={14} className="text-[#5f636b] group-hover:text-[#f4f4f6]" />
+              <ChevronDown size={14} className="text-[#94a3b8] group-hover:text-[#f4f4f6]" />
             </button>
             
-            <button className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
-              <span className="text-[10px] font-mono text-[#5f636b] uppercase"
+            <button disabled title="Not available yet: this view uses sample data" aria-label="REPOSITORY ORDER-SERVICE" className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
+              <span className="text-[10px] font-mono text-[#94a3b8] uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository</span>
               <span className="text-xs font-bold text-[#f4f4f6]">order-service</span>
-              <ChevronDown size={14} className="text-[#5f636b] group-hover:text-[#f4f4f6]" />
+              <ChevronDown size={14} className="text-[#94a3b8] group-hover:text-[#f4f4f6]" />
             </button>
 
-            <button className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
-              <span className="text-[10px] font-mono text-[#5f636b] uppercase"
+            <button disabled title="Not available yet: this view uses sample data" aria-label="BRANCH MAIN" className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
+              <span className="text-[10px] font-mono text-[#94a3b8] uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Branch</span>
               <span className="text-xs font-bold text-[#f4f4f6] flex items-center gap-1.5"><GitBranch size={12} className="text-[#38bdf8]" /> main</span>
-              <ChevronDown size={14} className="text-[#5f636b] group-hover:text-[#f4f4f6]" />
+              <ChevronDown size={14} className="text-[#94a3b8] group-hover:text-[#f4f4f6]" />
             </button>
 
-            <button className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group ml-auto">
-              <span className="text-[10px] font-mono text-[#5f636b] uppercase"
+            <button disabled title="Not available yet: this view uses sample data" aria-label="TIME RANGE ALL TIME" className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group ml-auto">
+              <span className="text-[10px] font-mono text-[#94a3b8] uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Time Range</span>
               <span className="text-xs font-bold text-[#f4f4f6]">ALL TIME</span>
-              <ChevronDown size={14} className="text-[#5f636b] group-hover:text-[#f4f4f6]" />
+              <ChevronDown size={14} className="text-[#94a3b8] group-hover:text-[#f4f4f6]" />
             </button>
           </div>
         </div>
 
         {/* MAIN CONTENT SPLIT */}
-        <div className="flex-1 flex gap-6 min-h-0">
+        <div className="flex-1 flex flex-col xl:flex-row gap-6 min-h-0">
           
           {/* LEFT: TIMELINE & GRAPH (70%) */}
           <div className="flex-1 flex flex-col gap-6 min-w-0">
             
             {/* HORIZONTAL TIMELINE */}
-            <div className="bg-[#11161b] border border-[#222c37] p-6 relative shrink-0">
+            <div className="bg-[#11161b] border border-[#222c37] p-6 relative shrink-0 overflow-x-auto">
               <div className="absolute top-[45px] left-12 right-12 h-[2px] bg-[#222c37]"></div>
               
-              <div className="flex items-center justify-between relative z-10 px-6">
+              <div className="flex min-w-[580px] items-center justify-between relative z-10 px-6">
                 {pagination.items.map((commit, i) => {
                   const isActive = activeCommit === commit.hash;
                   // Connecting line progress
@@ -151,12 +154,17 @@ const ArchitectureHistory: React.FC = () => {
                     <div 
                       key={commit.hash}
                       className="flex flex-col items-center gap-3 cursor-pointer group relative"
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={isActive}
+                      aria-label={`View revision ${commit.version}`}
+                      onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setActiveCommit(commit.hash); } }}
                       onClick={() => setActiveCommit(commit.hash)}
                     >
-                      <div className="text-[10px] font-mono text-[#5f636b] font-bold group-hover:text-[#f4f4f6] transition-colors"
+                      <div className="text-[10px] font-mono text-[#94a3b8] font-bold group-hover:text-[#f4f4f6] transition-colors"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>{commit.version}</div>
                       
-                      <div className={`w-4 h-4 rounded-full border-4 transition-all duration-300 flex items-center justify-center ${
+                      <div className={`w-4 h-4 rounded-full border-4 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 flex items-center justify-center ${
                         isActive 
                           ? 'bg-[#38bdf8] border-[#080b0e] scale-125 shadow-[0_0_12px_#38bdf8]' 
                           : isPast 
@@ -204,7 +212,7 @@ const ArchitectureHistory: React.FC = () => {
               </div>
 
               {/* The SVG Graph */}
-              <div className="flex-1 relative w-full h-full">
+              <div className="relative w-full h-[420px]">
                 <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#F5F7FA 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
                 
                 <svg viewBox="0 0 800 560" className="w-full h-full absolute inset-0" preserveAspectRatio="xMidYMid meet">
@@ -356,12 +364,12 @@ const ArchitectureHistory: React.FC = () => {
           </div>
 
           {/* RIGHT: REVISION DETAILS (30%) */}
-          <div className="w-80 shrink-0 flex flex-col gap-6">
+          <div className="w-full xl:w-80 shrink-0 flex flex-col gap-6">
             
             <div className="bg-[#11161b] border border-[#222c37] overflow-hidden flex flex-col h-full">
               {/* Header */}
               <div className="p-5 border-b border-[#222c37] bg-[#161d24]">
-                <div className="text-[10px] font-mono text-[#5f636b] uppercase tracking-wider mb-2"
+                <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider mb-2"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Selected Revision</div>
                 <div className="flex items-center gap-2 mb-3">
                   <GitCommit size={18} className="text-[#38bdf8]" />
@@ -379,14 +387,14 @@ const ArchitectureHistory: React.FC = () => {
                 {/* Meta */}
                 <div className="space-y-4">
                   <div>
-                    <div className="text-[10px] font-mono text-[#5f636b] uppercase tracking-wider flex items-center gap-1.5 mb-1"
+                    <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider flex items-center gap-1.5 mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       <User size={12} /> Author
                     </div>
                     <div className="text-xs text-[#f4f4f6]">{currentCommit.author}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] font-mono text-[#5f636b] uppercase tracking-wider flex items-center gap-1.5 mb-1"
+                    <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider flex items-center gap-1.5 mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       <Calendar size={12} /> Date
                     </div>
@@ -399,7 +407,7 @@ const ArchitectureHistory: React.FC = () => {
 
                 {/* Change Indicators */}
                 <div>
-                  <div className="text-[10px] font-mono text-[#5f636b] uppercase tracking-wider flex items-center gap-1.5 mb-4"
+                  <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider flex items-center gap-1.5 mb-4"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                     <Layers size={12} /> Architectural Changes
                   </div>
@@ -417,13 +425,13 @@ const ArchitectureHistory: React.FC = () => {
                       
                       <div className="grid grid-cols-2 gap-3">
                         <div className="bg-[#161d24] border border-[#222c37] p-3">
-                          <div className="text-[10px] font-mono text-[#5f636b] mb-1"
+                          <div className="text-[10px] font-mono text-[#94a3b8] mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Dependencies</div>
                           <div className="text-sm font-mono text-[#22c55e] font-bold"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>+{currentCommit.depAdded}</div>
                         </div>
                         <div className="bg-[#161d24] border border-[#222c37] p-3">
-                          <div className="text-[10px] font-mono text-[#5f636b] mb-1"
+                          <div className="text-[10px] font-mono text-[#94a3b8] mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Removed</div>
                           <div className="text-sm font-mono text-[#ef4444] font-bold"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>-{currentCommit.depRemoved}</div>
@@ -442,7 +450,7 @@ const ArchitectureHistory: React.FC = () => {
 
                 {/* File metrics */}
                 <div>
-                  <div className="text-[10px] font-mono text-[#5f636b] uppercase tracking-wider flex items-center gap-1.5 mb-2"
+                  <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider flex items-center gap-1.5 mb-2"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                     <FileText size={12} /> Files Changed
                   </div>
@@ -454,10 +462,10 @@ const ArchitectureHistory: React.FC = () => {
 
               {/* Action Button */}
               <div className="p-5 border-t border-[#222c37] bg-[#080b0e]">
-                <button className="w-full h-10 bg-[#ffb03a]/10 hover:bg-[#ffb03a]/20 border border-[#ffb03a]/50 text-[#ffb03a] font-bold text-xs transition-colors flex items-center justify-center gap-2">
+                <Link to="/evidence" className="w-full h-10 bg-[#ffb03a]/10 hover:bg-[#ffb03a]/20 border border-[#ffb03a]/50 text-[#ffb03a] font-bold text-xs transition-colors flex items-center justify-center gap-2">
                   <GitMerge size={16} />
                   VIEW EVIDENCE
-                </button>
+                </Link>
               </div>
             </div>
 

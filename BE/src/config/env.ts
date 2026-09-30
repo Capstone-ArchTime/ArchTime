@@ -15,7 +15,7 @@ export const env = {
 
   // JWT
   jwtSecret: required("JWT_SECRET"),
-  jwtExpiresIn: required("JWT_EXPIRES_IN", "15m"),
+  jwtExpiresIn: required("JWT_EXPIRES_IN", "60m"),
   jwtRefreshExpiresIn: required("JWT_REFRESH_EXPIRES_IN", "7d"),
 
   // Email (Gmail SMTP)

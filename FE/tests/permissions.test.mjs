@@ -15,6 +15,8 @@ test('every workspace route is restricted to its assigned role', () => {
 });
 test('unknown roles, external URLs, and route-prefix lookalikes are denied', () => {
   assert.equal(canAccess('unknown', '/dashboard'), false);
+  assert.equal(canAccess('__proto__', '/dashboard'), false);
+  assert.equal(canAccess('constructor', '/dashboard'), false);
   for (const path of ['https://example.com', '//example.com', '/project-maintainer-admin', '/project-maintainer/unknown', '/dashboard/../system-administrator']) {
     assert.equal(canAccess('project-maintainer', path), false);
   }
@@ -31,5 +33,5 @@ test('login restores only authorized destinations, including query and fragment'
 test('unsupported and malformed server identities are rejected', () => {
   const user = { id: '1', name: 'Test', email: 'test@example.com', role: 'project-maintainer' };
   assert.equal(isAuthUser(user), true);
-  for (const value of [null, {}, { ...user, id: undefined }, { ...user, role: 'admin' }]) assert.equal(isAuthUser(value), false);
+  for (const value of [null, {}, { ...user, id: undefined }, { ...user, id: '' }, { ...user, role: 'admin' }]) assert.equal(isAuthUser(value), false);
 });

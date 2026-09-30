@@ -1,3 +1,4 @@
+import SampleDataNotice from '@/components/SampleDataNotice';
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
@@ -40,6 +41,7 @@ const Insights: React.FC = () => {
   return (
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-8 flex flex-col min-h-0 pb-12">
+        <SampleDataNotice />
         
         {/* HEADER */}
         <div className="shrink-0 space-y-6">
@@ -61,7 +63,7 @@ const Insights: React.FC = () => {
           <div className="bg-[#11161b] border border-[#222c37] p-5 flex flex-col justify-between">
             <div className="flex items-center gap-2 mb-2">
                <Bot size={14} className="text-[#38bdf8]" />
-               <h4 className="text-[10px] font-mono font-semibold text-[#5f636b] tracking-widest uppercase"
+               <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Insights Generated</h4>
             </div>
             <div className="text-3xl font-bold font-mono text-[#f4f4f6]"
@@ -71,7 +73,7 @@ const Insights: React.FC = () => {
           <div className="bg-[#11161b] border border-[#222c37] p-5 flex flex-col justify-between">
             <div className="flex items-center gap-2 mb-2">
                <SearchCode size={14} className="text-[#ffb03a]" />
-               <h4 className="text-[10px] font-mono font-semibold text-[#5f636b] tracking-widest uppercase"
+               <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Changes Analyzed</h4>
             </div>
             <div className="text-3xl font-bold font-mono text-[#f4f4f6]"
@@ -81,7 +83,7 @@ const Insights: React.FC = () => {
           <div className="bg-[#11161b] border border-[#222c37] p-5 flex flex-col justify-between">
             <div className="flex items-center gap-2 mb-2">
                <LineChart size={14} className="text-[#22c55e]" />
-               <h4 className="text-[10px] font-mono font-semibold text-[#5f636b] tracking-widest uppercase"
+               <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Evidence Links</h4>
             </div>
             <div className="text-3xl font-bold font-mono text-[#f4f4f6]"
@@ -96,7 +98,7 @@ const Insights: React.FC = () => {
                 <Sparkles size={12} className="text-[#38bdf8]" />
              </div>
              <span className="text-xs font-bold text-[#f4f4f6] tracking-wide uppercase">ArchTime AI</span>
-             <span className="text-xs font-mono text-[#5f636b]"
+             <span className="text-xs font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>|</span>
              <span className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-widest"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Latest Architectural Insight</span>
@@ -167,7 +169,7 @@ const Insights: React.FC = () => {
 
               {/* Analysis Basis */}
               <div className="p-6">
-                <h4 className="text-[10px] font-mono font-semibold text-[#5f636b] tracking-widest uppercase mb-4"
+                <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-4"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                   Analysis Basis
                 </h4>
@@ -208,12 +210,12 @@ const Insights: React.FC = () => {
                  <div className="flex flex-col">
                    <span className="text-[10px] font-mono text-[#38bdf8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}><GitCommit size={10} className="inline mr-1" />d82f91a</span>
-                   <span className="text-[9px] font-mono text-[#5f636b]"
+                   <span className="text-[9px] font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Sep 18, 2026</span>
                  </div>
                  <button
                    onClick={() => notifyComingSoon("Insight detail view")}
-                   className="text-[10px] font-bold font-mono text-[#5f636b] group-hover:text-[#38bdf8] uppercase tracking-wider transition-colors flex items-center gap-1"
+                   className="text-[10px] font-bold font-mono text-[#94a3b8] group-hover:text-[#38bdf8] uppercase tracking-wider transition-colors flex items-center gap-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                    View Insight <ArrowRight size={12} />
                  </button>
@@ -228,12 +230,12 @@ const Insights: React.FC = () => {
                  <div className="flex flex-col">
                    <span className="text-[10px] font-mono text-[#38bdf8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}><GitCommit size={10} className="inline mr-1" />8af31c2</span>
-                   <span className="text-[9px] font-mono text-[#5f636b]"
+                   <span className="text-[9px] font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Sep 12, 2026</span>
                  </div>
                  <button
                    onClick={() => notifyComingSoon("Insight detail view")}
-                   className="text-[10px] font-bold font-mono text-[#5f636b] group-hover:text-[#38bdf8] uppercase tracking-wider transition-colors flex items-center gap-1"
+                   className="text-[10px] font-bold font-mono text-[#94a3b8] group-hover:text-[#38bdf8] uppercase tracking-wider transition-colors flex items-center gap-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                    View Insight <ArrowRight size={12} />
                  </button>
@@ -248,12 +250,12 @@ const Insights: React.FC = () => {
                  <div className="flex flex-col">
                    <span className="text-[10px] font-mono text-[#38bdf8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}><GitCommit size={10} className="inline mr-1" />c4199be</span>
-                   <span className="text-[9px] font-mono text-[#5f636b]"
+                   <span className="text-[9px] font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Sep 05, 2026</span>
                  </div>
                  <button
                    onClick={() => notifyComingSoon("Insight detail view")}
-                   className="text-[10px] font-bold font-mono text-[#5f636b] group-hover:text-[#38bdf8] uppercase tracking-wider transition-colors flex items-center gap-1"
+                   className="text-[10px] font-bold font-mono text-[#94a3b8] group-hover:text-[#38bdf8] uppercase tracking-wider transition-colors flex items-center gap-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                    View Insight <ArrowRight size={12} />
                  </button>
@@ -322,7 +324,7 @@ const Insights: React.FC = () => {
                      className="mt-6 p-4 bg-[#080b0e] border border-[#222c37] flex items-center gap-3"
                    >
                      <Loader2 size={16} className="text-[#38bdf8] animate-spin motion-reduce:animate-none" />
-                     <span className="text-xs font-mono text-[#5f636b] animate-pulse motion-reduce:animate-none"
+                     <span className="text-xs font-mono text-[#94a3b8] animate-pulse motion-reduce:animate-none"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Analyzing repository evidence and structural topologies...</span>
                    </motion.div>
                  )}

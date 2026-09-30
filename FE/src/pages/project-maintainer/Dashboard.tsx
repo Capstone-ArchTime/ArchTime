@@ -1,3 +1,4 @@
+import SampleDataNotice from '@/components/SampleDataNotice';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -69,6 +70,7 @@ const ProjectMaintainerDashboard: React.FC = () => {
   return (
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-10">
+        <SampleDataNotice />
 
         {/* HEADER */}
         <div>
@@ -89,7 +91,7 @@ const ProjectMaintainerDashboard: React.FC = () => {
                 Track architecture health, review changes, manage teams, and document diagrams, rules, and design decisions.
               </p>
             </div>
-            <button className="shrink-0 h-10 px-5 bg-[#161d24] hover:bg-[#222c37] border border-[#222c37] text-[#f4f4f6] font-medium text-xs transition-colors flex items-center gap-2">
+            <button disabled title="Not available yet: this view uses sample data" aria-label="INVITE TEAM MEMBER" className="shrink-0 h-10 px-5 bg-[#161d24] hover:bg-[#222c37] border border-[#222c37] text-[#f4f4f6] font-medium text-xs transition-colors flex items-center gap-2">
               <UserPlus size={16} className="text-[#38bdf8]" />
               INVITE TEAM MEMBER
             </button>
@@ -122,11 +124,11 @@ const ProjectMaintainerDashboard: React.FC = () => {
                 </div>
                 <div className="h-1.5 w-full bg-[#0b0f14] overflow-hidden mb-3">
                   <div
-                    className="h-full transition-all"
+                    className="h-full transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                     style={{ width: `${project.health}%`, backgroundColor: project.healthColor }}
                   ></div>
                 </div>
-                <div className="flex items-center gap-3 text-[10px] text-[#5f636b] uppercase tracking-wider" style={{ fontFamily: fontFamily.mono }}>
+                <div className="flex items-center gap-3 text-[10px] text-[#94a3b8] uppercase tracking-wider" style={{ fontFamily: fontFamily.mono }}>
                   <span>{project.repos} repos</span>
                   <span>&middot;</span>
                   <span>{project.changes} changes</span>
@@ -166,19 +168,19 @@ const ProjectMaintainerDashboard: React.FC = () => {
                             <StatusIcon size={11} />
                             {meta.label}
                           </span>
-                          <span className="text-[10px] text-[#5f636b]" style={{ fontFamily: fontFamily.mono }}>{item.ago}</span>
+                          <span className="text-[10px] text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>{item.ago}</span>
                         </div>
                         <h4 className="text-[#f4f4f6] text-sm font-bold mb-1">{item.title}</h4>
-                        <div className="text-xs text-[#5f636b]" style={{ fontFamily: fontFamily.mono }}>
+                        <div className="text-xs text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>
                           {item.repo} &middot; requested by {item.requestedBy}
                         </div>
                       </div>
                       {item.status === 'pending' && (
                         <div className="flex items-center gap-2 shrink-0">
-                          <button className="h-7 px-2.5 bg-[#161d24] border border-[#222c37] hover:border-[#ef4444]/50 text-[#ef4444] text-[10px] font-bold transition-colors" style={{ fontFamily: fontFamily.mono }}>
+                          <button disabled title="Not available yet: this view uses sample data" aria-label="REJECT" className="h-7 px-2.5 bg-[#161d24] border border-[#222c37] hover:border-[#ef4444]/50 text-[#ef4444] text-[10px] font-bold transition-colors" style={{ fontFamily: fontFamily.mono }}>
                             REJECT
                           </button>
-                          <button className="h-7 px-2.5 bg-[#22c55e]/10 border border-[#22c55e]/30 hover:border-[#22c55e] text-[#22c55e] text-[10px] font-bold transition-colors" style={{ fontFamily: fontFamily.mono }}>
+                          <button disabled title="Not available yet: this view uses sample data" aria-label="APPROVE" className="h-7 px-2.5 bg-[#22c55e]/10 border border-[#22c55e]/30 hover:border-[#22c55e] text-[#22c55e] text-[10px] font-bold transition-colors" style={{ fontFamily: fontFamily.mono }}>
                             APPROVE
                           </button>
                         </div>
@@ -211,12 +213,12 @@ const ProjectMaintainerDashboard: React.FC = () => {
                   </div>
                   <div className="min-w-0 w-full">
                     <h4 className="text-[#f4f4f6] text-xs font-bold truncate" style={{ fontFamily: fontFamily.mono }}>{member.name}</h4>
-                    <p className="text-[10px] text-[#5f636b] truncate">{member.role}</p>
+                    <p className="text-[10px] text-[#94a3b8] truncate">{member.role}</p>
                     <p className="text-[10px] text-[#38bdf8] mt-1" style={{ fontFamily: fontFamily.mono }}>{member.projects} projects</p>
                   </div>
                 </div>
               ))}
-              <button className="border border-dashed border-[#222c37] hover:border-[#38bdf8]/50 p-4 flex flex-col items-center justify-center gap-2 text-[#5f636b] hover:text-[#38bdf8] transition-colors">
+              <button disabled title="Not available yet: this view uses sample data" aria-label="INVITE" className="border border-dashed border-[#222c37] hover:border-[#38bdf8]/50 p-4 flex flex-col items-center justify-center gap-2 text-[#94a3b8] hover:text-[#38bdf8] transition-colors">
                 <Mail size={18} />
                 <span className="text-[10px] uppercase tracking-widest" style={{ fontFamily: fontFamily.mono }}>Invite</span>
               </button>

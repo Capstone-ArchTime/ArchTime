@@ -1,3 +1,4 @@
+import SampleDataNotice from '@/components/SampleDataNotice';
 import React from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { UserPlus, Mail, FolderKanban, ShieldCheck } from 'lucide-react';
@@ -19,6 +20,7 @@ const Team: React.FC = () => {
   return (
     <DashboardLayout>
       <div className="max-w-[1100px] mx-auto space-y-8">
+        <SampleDataNotice />
 
         {/* HEADER */}
         <div>
@@ -29,7 +31,7 @@ const Team: React.FC = () => {
                 Members contributing to the projects you maintain.
               </p>
             </div>
-            <button className="shrink-0 h-10 px-5 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2" style={{ fontFamily: fontFamily.mono }}>
+            <button disabled title="Not available yet: this view uses sample data" aria-label="INVITE MEMBER" className="shrink-0 h-10 px-5 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2" style={{ fontFamily: fontFamily.mono }}>
               <UserPlus size={16} />
               INVITE MEMBER
             </button>
@@ -58,7 +60,7 @@ const Team: React.FC = () => {
                       {member.role}
                     </span>
                   </div>
-                  <div className="text-xs text-[#5f636b] mt-0.5" style={{ fontFamily: fontFamily.mono }}>{member.email}</div>
+                  <div className="text-xs text-[#94a3b8] mt-0.5" style={{ fontFamily: fontFamily.mono }}>{member.email}</div>
                   <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                     {member.projects.map((p) => (
                       <span key={p} className="inline-flex items-center gap-1 text-[10px] text-[#94a3b8] bg-[#161d24] px-1.5 py-0.5 border border-[#222c37]">
@@ -74,7 +76,7 @@ const Team: React.FC = () => {
                   <ShieldCheck size={14} />
                   <span className="text-lg font-bold" style={{ fontFamily: fontFamily.mono }}>{member.approvalsThisMonth}</span>
                 </div>
-                <div className="text-[10px] text-[#5f636b] uppercase tracking-widest" style={{ fontFamily: fontFamily.mono }}>Approved this month</div>
+                <div className="text-[10px] text-[#94a3b8] uppercase tracking-widest" style={{ fontFamily: fontFamily.mono }}>Approved this month</div>
               </div>
             </div>
           ))}
@@ -87,10 +89,10 @@ const Team: React.FC = () => {
             {mockProjects.map((project) => (
               <div key={project} className="bg-[#161d24] border border-dashed border-[#222c37] hover:border-[#38bdf8]/50 p-4 flex items-center justify-between transition-colors group cursor-pointer">
                 <div className="flex items-center gap-2 min-w-0">
-                  <FolderKanban size={14} className="text-[#5f636b] group-hover:text-[#38bdf8] transition-colors shrink-0" />
+                  <FolderKanban size={14} className="text-[#94a3b8] group-hover:text-[#38bdf8] transition-colors shrink-0" />
                   <span className="text-xs text-[#94a3b8] group-hover:text-[#f4f4f6] transition-colors truncate">{project}</span>
                 </div>
-                <Mail size={14} className="text-[#5f636b] group-hover:text-[#38bdf8] transition-colors shrink-0" />
+                <Mail size={14} className="text-[#94a3b8] group-hover:text-[#38bdf8] transition-colors shrink-0" />
               </div>
             ))}
           </div>

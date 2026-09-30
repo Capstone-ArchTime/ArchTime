@@ -1,5 +1,8 @@
+import SampleDataNotice from '@/components/SampleDataNotice';
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { usePagination } from '@/hooks/usePagination';
+import PaginationBar from '@/components/PaginationBar';
 import { Search, UserPlus, Shield, Code2, ClipboardCheck, MoreVertical } from 'lucide-react';
 
 const fontFamily = {
@@ -37,10 +40,12 @@ const UserManagement: React.FC = () => {
   const filtered = mockUsers.filter(
     (u) => u.name.toLowerCase().includes(query.toLowerCase()) || u.email.toLowerCase().includes(query.toLowerCase())
   );
+  const pagination = usePagination(filtered, query);
 
   return (
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-8">
+        <SampleDataNotice />
 
         {/* HEADER */}
         <div>
@@ -51,7 +56,7 @@ const UserManagement: React.FC = () => {
                 Manage accounts, roles, and access across the ArchTime platform.
               </p>
             </div>
-            <button className="shrink-0 h-10 px-5 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2" style={{ fontFamily: fontFamily.mono }}>
+            <button disabled title="Not available yet: this view uses sample data" aria-label="INVITE USER" className="shrink-0 h-10 px-5 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2" style={{ fontFamily: fontFamily.mono }}>
               <UserPlus size={16} />
               INVITE USER
             </button>
@@ -81,19 +86,20 @@ const UserManagement: React.FC = () => {
 
         {/* SEARCH */}
         <div className="relative w-full max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5f636b]" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by name or email..."
-            className="w-full h-9 bg-[#11161b] border border-[#222c37] pl-9 pr-4 text-xs text-[#f4f4f6] placeholder:text-[#5f636b] focus:outline-none focus:border-[#38bdf8]/50 transition-colors"
+            aria-label="Search users by name or email"
+            className="w-full h-9 bg-[#11161b] border border-[#222c37] pl-9 pr-4 text-xs text-[#f4f4f6] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#38bdf8]/50 transition-colors"
             style={{ fontFamily: fontFamily.mono }}
           />
         </div>
 
         {/* USER TABLE */}
-        <div className="bg-[#11161b] border border-[#222c37] overflow-hidden">
+        <div className="bg-[#11161b] border border-[#222c37] overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-[#161d24] border-b border-[#222c37] text-[10px] text-[#94a3b8] uppercase tracking-wider" style={{ fontFamily: fontFamily.mono }}>
               <tr>
@@ -105,7 +111,7 @@ const UserManagement: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#222c37]">
-              {filtered.map((user) => {
+              {pagination.items.map((user) => {
                 const role = roleMeta[user.role];
                 const status = statusMeta[user.status];
                 return (
@@ -117,7 +123,7 @@ const UserManagement: React.FC = () => {
                         </div>
                         <div>
                           <div className="text-[#f4f4f6] font-medium text-sm">{user.name}</div>
-                          <div className="text-[10px] text-[#5f636b]" style={{ fontFamily: fontFamily.mono }}>{user.email}</div>
+                          <div className="text-[10px] text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>{user.email}</div>
                         </div>
                       </div>
                     </td>
@@ -137,7 +143,7 @@ const UserManagement: React.FC = () => {
                     </td>
                     <td className="px-5 py-4 text-[#94a3b8] text-xs" style={{ fontFamily: fontFamily.mono }}>{user.lastActive}</td>
                     <td className="px-5 py-4 text-right">
-                      <button className="text-[#5f636b] hover:text-[#f4f4f6] transition-colors">
+                      <button disabled title="Not available yet: this view uses sample data" aria-label="Unavailable action" className="text-[#94a3b8] hover:text-[#f4f4f6] transition-colors">
                         <MoreVertical size={16} />
                       </button>
                     </td>
@@ -148,6 +154,7 @@ const UserManagement: React.FC = () => {
           </table>
         </div>
 
+        <PaginationBar {...pagination} />
         <div className="h-10"></div>
       </div>
     </DashboardLayout>
