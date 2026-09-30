@@ -14,7 +14,10 @@ export function createProjectRouter(
 
   router.post("/", projectController.registerProject);
   router.get("/", projectController.getProjects);
+  router.get("/jobs", projectController.getMiningJobs); // must be before /:id
   router.delete("/:id", projectController.deleteProject);
+  router.post("/:id/mine", projectController.mineProject);
+  router.get("/:id/snapshots", projectController.getSnapshots);
 
   return router;
 }

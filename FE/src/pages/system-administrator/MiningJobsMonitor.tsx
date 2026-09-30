@@ -5,6 +5,7 @@ import { Activity, Filter, XCircle, Loader2, CheckCircle2, AlertTriangle } from 
 import { useComingSoon } from '@/hooks/useComingSoon';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationBar from '@/components/PaginationBar';
+import { API_BASE_URL } from '@/auth/session';
 
 const fontFamily = {
   mono: '"JetBrains Mono", monospace',
@@ -19,13 +20,7 @@ const statusMeta: Record<JobStatus, { label: string; color: string; icon: typeof
   failed: { label: 'FAILED', color: '#ef4444', icon: AlertTriangle },
 };
 
-const mockJobs: { id: string; repo: string; requestedBy: string; status: JobStatus; stage: string; progress: number; startedAgo: string }[] = [
-  { id: 'job-a3f21c', repo: 'ecomm-core', requestedBy: 'j.tran', status: 'running', stage: 'Parsing AST', progress: 62, startedAgo: '3 minutes ago' },
-  { id: 'job-8af31c', repo: 'catalog-service', requestedBy: 'm.nguyen', status: 'running', stage: 'Mining Git history', progress: 24, startedAgo: '1 minute ago' },
-  { id: 'job-d82f91', repo: 'payment-service', requestedBy: 'k.pham', status: 'queued', stage: 'Waiting for worker', progress: 0, startedAgo: '—' },
-  { id: 'job-c4199b', repo: 'settlement-core', requestedBy: 'a.le', status: 'completed', stage: 'Persisted snapshot', progress: 100, startedAgo: '18 minutes ago' },
-  { id: 'job-f9b02e', repo: 'legacy-billing', requestedBy: 'k.pham', status: 'failed', stage: 'AST parse error at src/Invoice.java:412', progress: 41, startedAgo: '26 minutes ago' },
-];
+const mockJobs: { id: string; repo: string; requestedBy: string; status: JobStatus; stage: string; progress: number; startedAgo: string }[] = [];
 
 const filterOptions: { key: 'all' | JobStatus; label: string }[] = [
   { key: 'all', label: 'All Jobs' },
@@ -38,11 +33,40 @@ const filterOptions: { key: 'all' | JobStatus; label: string }[] = [
 const MiningJobsMonitor: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState<'all' | JobStatus>('all');
   const notifyComingSoon = useComingSoon();
+  const [jobsList, setJobsList] = useState<any[]>([]);
 
-  const filtered = mockJobs.filter((j) => activeFilter === 'all' || j.status === activeFilter);
+  React.useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const res = await fetch(`${API_BASE_URL}/projects/jobs`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setJobsList(data.data.jobs.map((j: any) => ({
+            id: j.id,
+            repo: j.projectId?.name || 'Unknown Project',
+            requestedBy: 'System', // from populated user if we had one
+            status: j.status,
+            stage: j.stage,
+            progress: j.progress,
+            startedAgo: new Date(j.createdAt).toLocaleTimeString(),
+          })));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchJobs();
+    const interval = setInterval(fetchJobs, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const filtered = jobsList.filter((j) => activeFilter === 'all' || j.status === activeFilter);
   const pagination = usePagination(filtered, activeFilter);
-  const runningCount = mockJobs.filter((j) => j.status === 'running').length;
-  const queuedCount = mockJobs.filter((j) => j.status === 'queued').length;
+  const runningCount = jobsList.filter((j) => j.status === 'running').length;
+  const queuedCount = jobsList.filter((j) => j.status === 'queued').length;
 
   return (
     <DashboardLayout>

@@ -18,6 +18,9 @@ import { GetCurrentUserUseCase } from "./application/use-cases/GetCurrentUserUse
 import { RegisterProjectUseCase } from "./application/use-cases/projects/RegisterProjectUseCase.js";
 import { GetAllProjectsUseCase } from "./application/use-cases/projects/GetAllProjectsUseCase.js";
 import { DeleteProjectUseCase } from "./application/use-cases/projects/DeleteProjectUseCase.js";
+import { MineProjectUseCase } from "./application/use-cases/projects/MineProjectUseCase.js";
+import { GetSnapshotsUseCase } from "./application/use-cases/projects/GetSnapshotsUseCase.js";
+import { GetMiningJobsUseCase } from "./application/use-cases/projects/GetMiningJobsUseCase.js";
 
 // ── Presentation ──
 import { AuthController } from "./presentation/controllers/AuthController.js";
@@ -75,6 +78,9 @@ const getCurrentUserUseCase = new GetCurrentUserUseCase(userRepository);
 const registerProjectUseCase = new RegisterProjectUseCase(projectRepository);
 const getAllProjectsUseCase = new GetAllProjectsUseCase(projectRepository);
 const deleteProjectUseCase = new DeleteProjectUseCase(projectRepository);
+const mineProjectUseCase = new MineProjectUseCase();
+const getSnapshotsUseCase = new GetSnapshotsUseCase();
+const getMiningJobsUseCase = new GetMiningJobsUseCase();
 
 // ─────────────────────────────────────────
 // Controllers
@@ -92,6 +98,9 @@ export const projectController = new ProjectController(
   registerProjectUseCase,
   getAllProjectsUseCase,
   deleteProjectUseCase,
+  mineProjectUseCase,
+  getSnapshotsUseCase,
+  getMiningJobsUseCase,
 );
 
 export { jwtTokenService };

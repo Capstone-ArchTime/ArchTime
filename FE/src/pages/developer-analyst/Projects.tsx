@@ -169,6 +169,15 @@ const Projects: React.FC = () => {
       });
       
       if (response.ok) {
+        const data = await response.json();
+        const projectId = data.data.project.id;
+        
+        // Trigger mining
+        await fetch(`${API_BASE_URL}/projects/${projectId}/mine`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
+        });
+
         message.success('Repository successfully registered and queued for analysis.');
         fetchProjects();
         closeModal();

@@ -16,9 +16,10 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationBar from '@/components/PaginationBar';
+import { API_BASE_URL } from '@/auth/session';
 
 // Mock Commit Data
-const commits = [
+const mockCommits = [
   {
     hash: 'a82f91a',
     version: 'v1.0',
@@ -28,51 +29,108 @@ const commits = [
     files: 24,
     archChanges: 0,
     depAdded: 12,
-    depRemoved: 0
-  },
-  {
-    hash: 'd82f91a',
-    version: 'v1.2',
-    title: 'PaymentService extracted',
-    author: 'developer@example.com',
-    date: 'Sep 18, 2026',
-    files: 12,
-    archChanges: 2, // 1 extracted, 1 dep changed
-    depAdded: 8,
-    depRemoved: 3
-  },
-  {
-    hash: '8af31c2',
-    version: 'v1.5',
-    title: 'Order Dependency Changed',
-    author: 'alex@example.com',
-    date: 'Sep 20, 2026',
-    files: 5,
-    archChanges: 1,
-    depAdded: 2,
-    depRemoved: 1
-  },
-  {
-    hash: 'c4199be',
-    version: 'v2.0',
-    title: 'Settlement Pipeline Decoupled',
-    author: 'developer@example.com',
-    date: 'Sep 21, 2026',
-    files: 18,
-    archChanges: 3,
-    depAdded: 15,
-    depRemoved: 6
+    depRemoved: 0,
+    nodes: [],
+    edges: []
   }
 ];
 
 const ArchitectureHistory: React.FC = () => {
+  const [allCommits, setAllCommits] = useState<any[]>(mockCommits);
+  const [commits, setCommits] = useState<any[]>(mockCommits);
+  const [projectsList, setProjectsList] = useState<any[]>([]);
+  const [branchesList, setBranchesList] = useState<string[]>(['main']);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedBranch, setSelectedBranch] = useState<string>('main');
   const pagination = usePagination(commits, '', 5);
-  const [activeCommit, setActiveCommit] = useState(commits[1].hash); // Default to d82f91a
+  const [activeCommit, setActiveCommit] = useState(commits[0]?.hash);
   
-  const currentCommit = commits.find(c => c.hash === activeCommit) || commits[1];
-  
-  // Base State (Before extraction)
-  const isBaseState = activeCommit === 'a82f91a';
+  const currentCommit = commits.find(c => c.hash === activeCommit) || commits[0] || mockCommits[0];
+  const isBaseState = activeCommit === commits[0]?.hash;
+
+  React.useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const res = await fetch(`${API_BASE_URL}/projects`, { headers: { Authorization: `Bearer ${token}` }});
+        if (res.ok) {
+          const data = await res.json();
+          const completedProjects = data.data.projects.filter((p: any) => p.status === 'COMPLETED');
+          setProjectsList(completedProjects);
+          if (completedProjects.length > 0) {
+            setSelectedProjectId(completedProjects[0].id);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchProjects();
+  }, []);
+
+  React.useEffect(() => {
+    if (!selectedProjectId) return;
+    const fetchSnapshots = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const snapRes = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}/snapshots`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (snapRes.ok) {
+          const snapData = await snapRes.json();
+          if (snapData.data.snapshots.length > 0) {
+            const fetchedCommits = snapData.data.snapshots.map((s: any) => ({
+              hash: s.hash,
+              version: s.version,
+              title: s.title,
+              author: s.author,
+              date: new Date(s.date).toLocaleDateString(),
+              branches: s.branches || [],
+              files: s.files,
+              archChanges: s.archChanges,
+              depAdded: s.depAdded,
+              depRemoved: s.depRemoved,
+              nodes: s.nodes || [],
+              edges: s.edges || []
+            }));
+            
+            setAllCommits(fetchedCommits);
+            
+            // Extract unique branches
+            const uniqueBranches = Array.from(new Set(fetchedCommits.flatMap((c: any) => c.branches)));
+            if (uniqueBranches.length > 0) {
+              setBranchesList(uniqueBranches as string[]);
+              const initialBranch = (uniqueBranches as string[]).includes('main') ? 'main' : uniqueBranches[0] as string;
+              setSelectedBranch(initialBranch);
+            }
+          } else {
+            setAllCommits(mockCommits);
+            setCommits(mockCommits);
+            setActiveCommit(mockCommits[0].hash);
+            setBranchesList(['main']);
+            setSelectedBranch('main');
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchSnapshots();
+  }, [selectedProjectId]);
+
+  // Filter commits when branch changes
+  React.useEffect(() => {
+    if (allCommits === mockCommits) return;
+    
+    const branchCommits = allCommits.filter(c => c.branches && c.branches.includes(selectedBranch));
+    if (branchCommits.length > 0) {
+      setCommits(branchCommits);
+      setActiveCommit(branchCommits[0].hash);
+    } else {
+      setCommits([]);
+      setActiveCommit('');
+    }
+  }, [selectedBranch, allCommits]);
 
   return (
     <DashboardLayout>
@@ -104,33 +162,50 @@ const ArchitectureHistory: React.FC = () => {
             <div className="flex items-center gap-2 text-[10px] font-mono text-[#94a3b8] uppercase px-2"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Filters:</div>
             
-            <button disabled title="Not available yet: this view uses sample data" aria-label="PROJECT E-COMMERCE PLATFORM" className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
-              <span className="text-[10px] font-mono text-[#94a3b8] uppercase"
+            <div className="relative group flex items-center h-9 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] transition-colors">
+              <span className="text-[10px] font-mono text-[#94a3b8] uppercase pl-4"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Project</span>
-              <span className="text-xs font-bold text-[#f4f4f6]">E-Commerce Platform</span>
-              <ChevronDown size={14} className="text-[#94a3b8] group-hover:text-[#f4f4f6]" />
-            </button>
+              <select 
+                value={selectedProjectId || ''} 
+                onChange={(e) => setSelectedProjectId(e.target.value)}
+                className="appearance-none bg-transparent border-none text-xs font-bold text-[#f4f4f6] pl-2 pr-8 h-full outline-none cursor-pointer"
+              >
+                {projectsList.length > 0 ? projectsList.map(p => (
+                  <option key={p.id} value={p.id} className="bg-[#161d24]">{p.name}</option>
+                )) : <option value="" className="bg-[#161d24]">No Projects Completed</option>}
+              </select>
+              <ChevronDown size={14} className="text-[#94a3b8] absolute right-3 pointer-events-none group-hover:text-[#f4f4f6]" />
+            </div>
             
-            <button disabled title="Not available yet: this view uses sample data" aria-label="REPOSITORY ORDER-SERVICE" className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
+            <div className="flex items-center h-9 px-4 bg-[#080b0e] border border-[#222c37] gap-2">
               <span className="text-[10px] font-mono text-[#94a3b8] uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository</span>
-              <span className="text-xs font-bold text-[#f4f4f6]">order-service</span>
-              <ChevronDown size={14} className="text-[#94a3b8] group-hover:text-[#f4f4f6]" />
-            </button>
+              <span className="text-xs font-bold text-[#f4f4f6]">Default</span>
+            </div>
 
-            <button disabled title="Not available yet: this view uses sample data" aria-label="BRANCH MAIN" className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
-              <span className="text-[10px] font-mono text-[#94a3b8] uppercase"
+            <div className="relative group flex items-center h-9 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] transition-colors">
+              <span className="text-[10px] font-mono text-[#94a3b8] uppercase pl-4"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Branch</span>
-              <span className="text-xs font-bold text-[#f4f4f6] flex items-center gap-1.5"><GitBranch size={12} className="text-[#38bdf8]" /> main</span>
-              <ChevronDown size={14} className="text-[#94a3b8] group-hover:text-[#f4f4f6]" />
-            </button>
+              <div className="flex items-center gap-1.5 pl-2 pr-8 text-[#38bdf8]">
+                <GitBranch size={12} />
+                <select 
+                  value={selectedBranch} 
+                  onChange={(e) => setSelectedBranch(e.target.value)}
+                  className="appearance-none bg-transparent border-none text-xs font-bold text-[#f4f4f6] h-full outline-none cursor-pointer"
+                >
+                  {branchesList.map(b => (
+                    <option key={b} value={b} className="bg-[#161d24]">{b}</option>
+                  ))}
+                </select>
+              </div>
+              <ChevronDown size={14} className="text-[#94a3b8] absolute right-3 pointer-events-none group-hover:text-[#f4f4f6]" />
+            </div>
 
-            <button disabled title="Not available yet: this view uses sample data" aria-label="TIME RANGE ALL TIME" className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group ml-auto">
+            <div className="flex items-center h-9 px-4 bg-[#080b0e] border border-[#222c37] gap-2 ml-auto">
               <span className="text-[10px] font-mono text-[#94a3b8] uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Time Range</span>
               <span className="text-xs font-bold text-[#f4f4f6]">ALL TIME</span>
-              <ChevronDown size={14} className="text-[#94a3b8] group-hover:text-[#f4f4f6]" />
-            </button>
+            </div>
           </div>
         </div>
 
@@ -232,130 +307,72 @@ const ArchitectureHistory: React.FC = () => {
 
                   {/* LINES */}
                   <g fill="none" strokeWidth="2" opacity="0.6">
-                     {/* Static lines (Always exist) */}
-                     <path d="M 400 150 L 400 250" stroke="#38bdf8" />
-                     <path d="M 400 150 C 250 150, 250 200, 250 250" stroke="#38bdf8" />
-                     <path d="M 250 290 L 250 380" stroke="#38bdf8" />
-                     
-                     <AnimatePresence>
-                       {isBaseState ? (
-                         <motion.path 
-                           initial={{ opacity: 0 }} animate={{ opacity: 0.6 }} exit={{ opacity: 0 }}
-                           d="M 400 150 C 550 150, 550 200, 550 250" 
+                     {/* Dynamic lines */}
+                     {currentCommit?.edges?.length > 0 ? currentCommit.edges.map((edge: any, i: number) => {
+                       // Find source and target node index
+                       const srcIdx = currentCommit.nodes.findIndex((n: any) => n.id === edge.source);
+                       const tgtIdx = currentCommit.nodes.findIndex((n: any) => n.id === edge.target);
+                       if (srcIdx === -1 || tgtIdx === -1) return null;
+                       
+                       const angleSrc = (srcIdx / currentCommit.nodes.length) * Math.PI * 2;
+                       const cxSrc = 400 + Math.cos(angleSrc) * 150;
+                       const cySrc = 250 + Math.sin(angleSrc) * 150;
+
+                       const angleTgt = (tgtIdx / currentCommit.nodes.length) * Math.PI * 2;
+                       const cxTgt = 400 + Math.cos(angleTgt) * 150;
+                       const cyTgt = 250 + Math.sin(angleTgt) * 150;
+
+                       return (
+                         <path 
+                           key={i} 
+                           d={`M ${cxSrc} ${cySrc} L ${cxTgt} ${cyTgt}`} 
                            stroke="#38bdf8" 
+                           strokeDasharray={edge.type === 'imports' ? '4 4' : 'none'}
                          />
-                       ) : (
-                         <motion.path 
-                           initial={{ opacity: 0 }} animate={{ opacity: 0.8 }} exit={{ opacity: 0 }}
-                           d="M 400 150 C 550 150, 550 200, 550 250" 
-                           stroke="#ffb03a" strokeWidth="3" filter="url(#glow-amber)"
-                           strokeDasharray="4 4"
-                         />
-                       )}
-                     </AnimatePresence>
-                     
-                     <path d="M 400 290 L 400 380" stroke="#38bdf8" />
-                     
-                     {/* New Line for Payment Extraction in State 2 */}
-                     {!isBaseState && (
-                        <motion.path 
-                          initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 0.8 }}
-                          transition={{ duration: 0.8, ease: "easeInOut" }}
-                          d="M 550 290 L 550 380" 
-                          stroke="#ffb03a" strokeWidth="2"
-                        />
-                     )}
-                     
-                     {/* Dep line from extracted to DB */}
-                     {!isBaseState && (
-                        <motion.path 
-                          initial={{ opacity: 0 }} animate={{ opacity: 0.6 }} transition={{ delay: 0.5 }}
-                          d="M 550 420 C 550 460, 400 460, 400 420" 
-                          stroke="#38bdf8" 
-                        />
+                       );
+                     }) : (
+                       <>
+                         {/* Fallback lines */}
+                         <path d="M 400 150 L 400 250" stroke="#38bdf8" />
+                         <path d="M 400 150 C 250 150, 250 200, 250 250" stroke="#38bdf8" />
+                         <path d="M 250 290 L 250 380" stroke="#38bdf8" />
+                       </>
                      )}
                   </g>
 
                   {/* NODES */}
                   <g>
-                    {/* API GATEWAY */}
-                    <g transform="translate(320, 110)">
-                      <rect width="160" height="40" rx="4" fill="#161d24" stroke="#38bdf8" strokeWidth="2" filter="url(#glow-cyan)" opacity="0.3" />
-                      <rect width="160" height="40" rx="4" fill="#161d24" stroke="#38bdf8" strokeWidth="2" />
-                      <circle cx="20" cy="20" r="4" fill="#38bdf8" />
-                      <text x="35" y="24" fill="#f4f4f6" fontSize="13" fontFamily="monospace" fontWeight="bold">API GATEWAY</text>
-                    </g>
-
-                    {/* USER MODULE */}
-                    <g transform="translate(170, 250)">
-                      <rect width="160" height="40" rx="4" fill="#161d24" stroke="#38bdf8" strokeOpacity="0.5" />
-                      <circle cx="20" cy="20" r="4" fill="#38bdf8" />
-                      <text x="35" y="24" fill="#f4f4f6" fontSize="13" fontFamily="monospace" fontWeight="bold">USER_SERVICE</text>
-                    </g>
-
-                    {/* ORDER MODULE */}
-                    <g transform="translate(320, 250)">
-                      <rect width="160" height="40" rx="4" fill="#161d24" stroke="#38bdf8" strokeOpacity="0.5" />
-                      <circle cx="20" cy="20" r="4" fill="#38bdf8" />
-                      <text x="35" y="24" fill="#f4f4f6" fontSize="13" fontFamily="monospace" fontWeight="bold">ORDER_SERVICE</text>
-                    </g>
-
-                    {/* DATABASE */}
-                    <g transform="translate(320, 380)">
-                      <rect width="160" height="40" rx="4" fill="#161d24" stroke="#5f636b" strokeOpacity="0.5" />
-                      <circle cx="20" cy="20" r="4" fill="#5f636b" />
-                      <text x="35" y="24" fill="#94a3b8" fontSize="13" fontFamily="monospace" fontWeight="bold">DATABASE</text>
-                    </g>
-
-                    {/* PAYMENT MODULE (Changes state) */}
-                    <AnimatePresence mode="wait">
-                      {isBaseState ? (
-                        <motion.g 
-                          key="state1"
-                          initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-                          transform="translate(470, 250)"
-                        >
+                    {currentCommit?.nodes?.length > 0 ? currentCommit.nodes.map((node: any, idx: number) => {
+                       // Layout dynamically in a circle
+                       const angle = (idx / currentCommit.nodes.length) * Math.PI * 2;
+                       const cx = 400 + Math.cos(angle) * 150;
+                       const cy = 250 + Math.sin(angle) * 150;
+                       return (
+                         <g key={node.id} transform={`translate(${cx - 80}, ${cy - 20})`}>
+                            <rect width="160" height="40" rx="4" fill="#161d24" stroke="#38bdf8" strokeWidth="2" opacity="0.8" />
+                            <circle cx="20" cy="20" r="4" fill="#38bdf8" />
+                            <text x="35" y="24" fill="#f4f4f6" fontSize="10" fontFamily="monospace" fontWeight="bold">
+                              {node.name.length > 15 ? node.name.substring(0,15) + '...' : node.name}
+                            </text>
+                         </g>
+                       );
+                    }) : (
+                      <>
+                        <g transform="translate(320, 110)">
+                          <rect width="160" height="40" rx="4" fill="#161d24" stroke="#38bdf8" strokeWidth="2" filter="url(#glow-cyan)" opacity="0.3" />
+                          <rect width="160" height="40" rx="4" fill="#161d24" stroke="#38bdf8" strokeWidth="2" />
+                          <circle cx="20" cy="20" r="4" fill="#38bdf8" />
+                          <text x="35" y="24" fill="#f4f4f6" fontSize="13" fontFamily="monospace" fontWeight="bold">API GATEWAY</text>
+                        </g>
+                        <g transform="translate(170, 250)">
                           <rect width="160" height="40" rx="4" fill="#161d24" stroke="#38bdf8" strokeOpacity="0.5" />
                           <circle cx="20" cy="20" r="4" fill="#38bdf8" />
-                          <text x="35" y="24" fill="#94a3b8" fontSize="13" fontFamily="monospace" fontWeight="bold">LEGACY_MONO</text>
-                        </motion.g>
-                      ) : (
-                        <motion.g 
-                          key="state2"
-                          initial={{ opacity: 0, scale: 1.1 }} animate={{ opacity: 1, scale: 1 }}
-                          transform="translate(470, 250)"
-                        >
-                          <rect width="160" height="40" rx="4" fill="#161d24" stroke="#ffb03a" strokeWidth="2" filter="url(#glow-amber)" opacity="0.6" />
-                          <rect width="160" height="40" rx="4" fill="#161d24" stroke="#ffb03a" strokeWidth="2" />
-                          <circle cx="20" cy="20" r="4" fill="#ffb03a" />
-                          <text x="35" y="24" fill="#ffb03a" fontSize="13" fontFamily="monospace" fontWeight="bold">PAYMENT_SVC</text>
-                          
-                          {/* Floating Tag */}
-                          <g transform="translate(140, -15)">
-                            <rect width="70" height="18" rx="2" fill="#ffb03a" fillOpacity="0.1" stroke="#ffb03a" />
-                            <text x="35" y="12" fill="#ffb03a" fontSize="9" fontFamily="monospace" fontWeight="bold" textAnchor="middle">EXTRACTED</text>
-                          </g>
-                        </motion.g>
-                      )}
-                    </AnimatePresence>
-
-                    {/* NEW PAYMENT DATABASE (Only in state 2) */}
-                    {!isBaseState && (
-                      <motion.g 
-                        initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-                        transform="translate(470, 380)"
-                      >
-                        <rect width="160" height="40" rx="4" fill="#161d24" stroke="#ffb03a" strokeWidth="1.5" />
-                        <circle cx="20" cy="20" r="4" fill="#ffb03a" />
-                        <text x="35" y="24" fill="#f4f4f6" fontSize="13" fontFamily="monospace" fontWeight="bold">PAYMENT_DB</text>
-                        
-                        <g transform="translate(140, -15)">
-                          <rect width="50" height="18" rx="2" fill="#ffb03a" fillOpacity="0.1" stroke="#ffb03a" />
-                          <text x="25" y="12" fill="#ffb03a" fontSize="9" fontFamily="monospace" fontWeight="bold" textAnchor="middle">NEW</text>
+                          <text x="35" y="24" fill="#f4f4f6" fontSize="13" fontFamily="monospace" fontWeight="bold">USER_SERVICE</text>
                         </g>
-                      </motion.g>
+                      </>
                     )}
                   </g>
+
                   </g>
                 </svg>
               </div>
@@ -374,10 +391,10 @@ const ArchitectureHistory: React.FC = () => {
                 <div className="flex items-center gap-2 mb-3">
                   <GitCommit size={18} className="text-[#38bdf8]" />
                   <span className="text-xl font-mono font-bold text-[#f4f4f6]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{currentCommit.hash}</span>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{currentCommit?.hash}</span>
                 </div>
                 <h3 className="text-sm font-bold text-[#f4f4f6] leading-snug">
-                  {currentCommit.title}
+                  {currentCommit?.title}
                 </h3>
               </div>
 
@@ -391,7 +408,7 @@ const ArchitectureHistory: React.FC = () => {
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       <User size={12} /> Author
                     </div>
-                    <div className="text-xs text-[#f4f4f6]">{currentCommit.author}</div>
+                    <div className="text-xs text-[#f4f4f6]">{currentCommit?.author}</div>
                   </div>
                   <div>
                     <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider flex items-center gap-1.5 mb-1"
@@ -399,7 +416,7 @@ const ArchitectureHistory: React.FC = () => {
                       <Calendar size={12} /> Date
                     </div>
                     <div className="text-xs font-mono text-[#94a3b8]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{currentCommit.date}</div>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{currentCommit?.date}</div>
                   </div>
                 </div>
 
@@ -412,7 +429,7 @@ const ArchitectureHistory: React.FC = () => {
                     <Layers size={12} /> Architectural Changes
                   </div>
                   
-                  {currentCommit.archChanges > 0 ? (
+                  {currentCommit?.archChanges > 0 ? (
                     <div className="space-y-3">
                       <div className="bg-[#ffb03a]/10 border border-[#ffb03a]/20 p-3 text-[#ffb03a] text-xs font-mono"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -428,13 +445,13 @@ const ArchitectureHistory: React.FC = () => {
                           <div className="text-[10px] font-mono text-[#94a3b8] mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Dependencies</div>
                           <div className="text-sm font-mono text-[#22c55e] font-bold"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>+{currentCommit.depAdded}</div>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>+{currentCommit?.depAdded}</div>
                         </div>
                         <div className="bg-[#161d24] border border-[#222c37] p-3">
                           <div className="text-[10px] font-mono text-[#94a3b8] mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Removed</div>
                           <div className="text-sm font-mono text-[#ef4444] font-bold"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>-{currentCommit.depRemoved}</div>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>-{currentCommit?.depRemoved}</div>
                         </div>
                       </div>
                     </div>
@@ -455,7 +472,7 @@ const ArchitectureHistory: React.FC = () => {
                     <FileText size={12} /> Files Changed
                   </div>
                   <div className="text-lg font-mono font-bold text-[#f4f4f6]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{currentCommit.files}</div>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{currentCommit?.files}</div>
                 </div>
 
               </div>
