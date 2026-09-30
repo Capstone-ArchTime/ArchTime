@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Activity, Filter, XCircle, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useComingSoon } from '@/hooks/useComingSoon';
+import { usePagination } from '@/hooks/usePagination';
+import PaginationBar from '@/components/PaginationBar';
 
 const fontFamily = {
   mono: '"JetBrains Mono", monospace',
@@ -37,6 +39,7 @@ const MiningJobsMonitor: React.FC = () => {
   const notifyComingSoon = useComingSoon();
 
   const filtered = mockJobs.filter((j) => activeFilter === 'all' || j.status === activeFilter);
+  const pagination = usePagination(filtered, activeFilter);
   const runningCount = mockJobs.filter((j) => j.status === 'running').length;
   const queuedCount = mockJobs.filter((j) => j.status === 'queued').length;
 
@@ -78,7 +81,7 @@ const MiningJobsMonitor: React.FC = () => {
 
         {/* JOB LIST */}
         <div className="space-y-3">
-          {filtered.map((job) => {
+          {pagination.items.map((job) => {
             const meta = statusMeta[job.status];
             const StatusIcon = meta.icon;
             return (
@@ -125,6 +128,7 @@ const MiningJobsMonitor: React.FC = () => {
           )}
         </div>
 
+        <PaginationBar {...pagination} />
         <div className="h-10"></div>
       </div>
     </DashboardLayout>

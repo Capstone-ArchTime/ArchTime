@@ -5,9 +5,11 @@ import { Icon } from '@iconify/react';
 import { motion, AnimatePresence } from 'motion/react';
 import { App } from 'antd';
 import { Logo } from '@/components/Logo';
+import { useAuth } from '@/auth/auth-context';
+import { loginDestination } from '@/auth/permissions';
+import { API_BASE_URL } from '@/auth/session';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api';
 
 type AuthResponse = {
   user?: { id: string; name: string; email: string; role: string };
@@ -39,6 +41,7 @@ const AuthPage: React.FC = () => {
   const navigate = useNavigate();
   const isRegister = location.pathname === '/register';
   const { message } = App.useApp();
+  const { signIn } = useAuth();
 
   // Form States
   const [name, setName] = useState('');
@@ -142,10 +145,10 @@ const AuthPage: React.FC = () => {
           throw new Error('Login response is missing authentication tokens.');
         }
 
-        localStorage.setItem('accessToken', result.accessToken);
-        localStorage.setItem('refreshToken', result.refreshToken);
+        const user = await signIn({ accessToken: result.accessToken, refreshToken: result.refreshToken });
         message.success('Signed in successfully.');
-        navigate('/dashboard', { replace: true });
+        const requested = typeof location.state?.from === 'string' ? location.state.from : undefined;
+        navigate(loginDestination(user.role, requested), { replace: true });
       }
     } catch (error) {
       message.error(error instanceof Error ? error.message : 'Unable to complete the request.');

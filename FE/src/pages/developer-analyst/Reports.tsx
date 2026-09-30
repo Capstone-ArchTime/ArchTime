@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useComingSoon } from '@/hooks/useComingSoon';
+import { usePagination } from '@/hooks/usePagination';
+import PaginationBar from '@/components/PaginationBar';
 
 // Mock Data
 const reportsData = [
@@ -47,6 +49,7 @@ const Reports: React.FC = () => {
   const [viewState, setViewState] = useState<'list' | 'preview'>('list');
   const [activeReport, setActiveReport] = useState<typeof reportsData[0] | null>(null);
   const notifyComingSoon = useComingSoon();
+  const pagination = usePagination(reportsData);
 
   const handleViewReport = (report: typeof reportsData[0]) => {
     setActiveReport(report);
@@ -164,7 +167,7 @@ const Reports: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#222c37]">
-                      {reportsData.map((report) => (
+                      {pagination.items.map((report) => (
                         <tr key={report.id} className="group hover:bg-[#222c37]/30 transition-colors">
                           <td className="p-4 text-sm font-bold text-[#f4f4f6] flex items-center gap-2">
                              <FileText size={16} className="text-[#38bdf8]" />
@@ -201,6 +204,7 @@ const Reports: React.FC = () => {
                       ))}
                     </tbody>
                   </table>
+                  <PaginationBar {...pagination} />
                 </div>
               </div>
 

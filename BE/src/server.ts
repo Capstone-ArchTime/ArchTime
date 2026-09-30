@@ -8,7 +8,7 @@ async function start(): Promise<void> {
   const url = `http://localhost:${env.port}`;
   app.listen(env.port, async () => {
     console.log(`ArchTime BE listening on ${url}`);
-    
+
     // Automatically open Swagger UI in default browser
     try {
       await open(`${url}/api-docs`);

@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { Icon } from '@iconify/react';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { usePagination } from '@/hooks/usePagination';
+import PaginationBar from '@/components/PaginationBar';
 
 const Projects: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -82,6 +84,7 @@ const Projects: React.FC = () => {
     }
   ];
 
+  const pagination = usePagination(projects);
   return (
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-10 relative">
@@ -155,7 +158,7 @@ const Projects: React.FC = () => {
 
         {/* PROJECT LIST */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project) => (
+          {pagination.items.map((project) => (
             <div key={project.id} className="bg-[#11161b] border border-[#222c37] hover:border-[#38bdf8]/50 overflow-hidden transition-colors flex flex-col group">
               
               {/* SVG GRAPH PREVIEW */}
@@ -251,6 +254,7 @@ const Projects: React.FC = () => {
         </div>
 
         {/* BOTTOM PADDING */}
+        <PaginationBar {...pagination} />
         <div className="h-10"></div>
         
       </div>

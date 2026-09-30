@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '@/auth/auth-context';
 import {
   LayoutDashboard,
   FolderKanban,
@@ -12,9 +13,17 @@ import {
   Settings,
   Search,
   Bell,
+  ShieldCheck,
+  GitPullRequest,
+  Users,
+  Users2,
+  SlidersHorizontal,
+  ScrollText,
   FileText,
-  KeyRound,
   Activity,
+  Network,
+  BookOpen,
+  LogOut,
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -37,26 +46,29 @@ const navItemsByRole = {
     { path: '/reports', label: 'Reports', icon: FileBarChart },
   ],
   'project-maintainer': [
-    { path: '/project-maintainer', label: 'Documentation', icon: LayoutDashboard },
+    { path: '/project-maintainer', label: 'Overview', icon: ShieldCheck },
+    { path: '/project-maintainer/approvals', label: 'Approval Queue', icon: GitPullRequest },
+    { path: '/project-maintainer/team', label: 'Team', icon: Users },
+    { path: '/project-maintainer/component-diagram', label: 'Component Diagram', icon: Network },
+    { path: '/project-maintainer/architecture-rules', label: 'Architecture Rules', icon: ShieldCheck },
+    { path: '/project-maintainer/design-decisions', label: 'Design Decisions', icon: BookOpen },
     { path: '/project-maintainer/reports', label: 'Evolution Reports', icon: FileText },
   ],
   'system-administrator': [
-    { path: '/system-administrator', label: 'Platform Health', icon: LayoutDashboard },
-    { path: '/system-administrator/settings', label: 'Repository & Extraction Config', icon: KeyRound },
+    { path: '/system-administrator', label: 'Overview', icon: LayoutDashboard },
+    { path: '/system-administrator/users', label: 'User Management', icon: Users2 },
+    { path: '/system-administrator/settings', label: 'System Settings', icon: SlidersHorizontal },
+    { path: '/system-administrator/audit-log', label: 'Audit Log', icon: ScrollText },
     { path: '/system-administrator/mining-jobs', label: 'Mining Jobs Monitor', icon: Activity },
   ],
 } as const;
 
-function resolveRole(pathname: string): keyof typeof navItemsByRole {
-  if (pathname.startsWith('/project-maintainer')) return 'project-maintainer';
-  if (pathname.startsWith('/system-administrator')) return 'system-administrator';
-  return 'developer-analyst';
-}
-
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const location = useLocation();
+  const { user, signOut } = useAuth();
   const currentPath = location.pathname;
-  const role = resolveRole(currentPath);
+  if (!user) return null;
+  const role = user.role;
   const navItems = navItemsByRole[role];
   const homePath = navItems[0].path;
 
@@ -71,7 +83,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         
         {/* Branding */}
         <div className="p-6 pb-4">
-          <Link to="/dashboard" className="flex items-center gap-3 mb-2">
+          <Link to={homePath} className="flex items-center gap-3 mb-2">
             <div className="w-8 h-8 bg-[#11161b] flex items-center justify-center border border-[#222c37] shadow-lg">
               <div className="w-4 h-4 relative">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] absolute top-0 left-0 shadow-[0_0_8px_#38bdf8]"></div>
@@ -116,6 +128,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           </div>
 
           {/* RECENT PROJECTS */}
+          {role === 'developer-analyst' && (
           <div>
             <h3 className="text-[10px] font-mono font-semibold text-[#5f636b] uppercase tracking-wider px-3 mb-3"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Recent Projects</h3>
@@ -142,6 +155,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
               })}
             </div>
           </div>
+          )}
         </div>
 
         {/* ACCOUNT */}
@@ -149,6 +163,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
            <h3 className="text-[10px] font-mono font-semibold text-[#5f636b] uppercase tracking-wider px-2 mb-3"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Account</h3>
            <div className="space-y-0.5">
+             <p className="px-2 text-xs text-[#94a3b8] truncate" title={user.email}>{user.name}</p>
+             <p className="px-2 pb-2 text-[10px] uppercase text-[#38bdf8]">{user.role.replaceAll('-', ' ')}</p>
+             <button onClick={signOut} className="w-full flex items-center gap-3 px-2 py-2 text-sm text-[#94a3b8] hover:text-white"><LogOut size={16} />Sign out</button>
              <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-[#94a3b8] hover:text-[#f4f4f6] hover:bg-[#11161b] transition-colors">
                 <User size={16} className="text-[#5f636b]" />
                 Profile
@@ -212,17 +229,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
               <div className="absolute top-0 right-0 w-2 h-2 bg-[#38bdf8] rounded-full border border-[#080b0e]"></div>
             </button>
 
-            <button className="h-8 px-4 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-semibold text-xs transition-all flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)]">
+            {role === 'developer-analyst' && <button className="hidden sm:flex h-8 px-4 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-semibold text-xs transition-all items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)]">
               ANALYZE REPOSITORY
-            </button>
-
-            <div className="w-8 h-8 rounded-full bg-[#222c37] flex items-center justify-center border border-[#5f636b] cursor-pointer overflow-hidden">
-              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Alex&backgroundColor=222c37" alt="User" className="w-full h-full object-cover" />
+            </button>}
+            <button onClick={signOut} aria-label="Sign out" className="md:hidden text-[#94a3b8]"><LogOut size={18} /></button>
+            <div title={`${user.name} (${user.role})`} className="w-8 h-8 rounded-full bg-[#222c37] flex items-center justify-center border border-[#5f636b] overflow-hidden">
+              <span aria-label={user.name}>{user.name.slice(0, 1).toUpperCase()}</span>
             </div>
           </div>
         </header>
 
         {/* SCROLLABLE SUB-PAGE CONTENT */}
+        <nav aria-label="Mobile workspace navigation" className="md:hidden flex gap-2 overflow-x-auto border-b border-[#222c37] px-4 py-3 shrink-0">
+          {navItems.map(item => <Link key={item.path} to={item.path} aria-current={currentPath === item.path ? 'page' : undefined} className={`whitespace-nowrap text-xs px-3 py-2 border ${currentPath === item.path ? 'border-[#38bdf8] text-[#38bdf8]' : 'border-[#222c37] text-[#94a3b8]'}`}>{item.label}</Link>)}
+        </nav>
         <main className="flex-1 overflow-y-auto p-6 lg:p-8 xl:p-10 scrollbar-hide">
           {children}
         </main>

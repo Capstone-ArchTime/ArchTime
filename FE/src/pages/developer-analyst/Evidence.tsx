@@ -16,6 +16,8 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useComingSoon } from '@/hooks/useComingSoon';
+import { usePagination } from '@/hooks/usePagination';
+import PaginationBar from '@/components/PaginationBar';
 
 // Mock Data
 const evidenceData = [
@@ -86,6 +88,7 @@ const Evidence: React.FC = () => {
   const closeDrawer = useCallback(() => setSelectedChange(null), []);
   const drawerRef = useFocusTrap(selectedChange !== null, closeDrawer);
   const notifyComingSoon = useComingSoon();
+  const pagination = usePagination(evidenceData);
 
   return (
     <DashboardLayout>
@@ -184,7 +187,7 @@ const Evidence: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#222c37]">
-                {evidenceData.map((item) => (
+                {pagination.items.map((item) => (
                   <tr 
                     key={item.id} 
                     className="group hover:bg-[#222c37]/30 transition-colors cursor-pointer"
@@ -222,6 +225,7 @@ const Evidence: React.FC = () => {
                 ))}
               </tbody>
             </table>
+            <PaginationBar {...pagination} />
           </div>
         </div>
 

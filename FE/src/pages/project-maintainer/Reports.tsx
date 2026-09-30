@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { FileText, Download, Calendar, FolderKanban, ChevronDown } from 'lucide-react';
 import { useComingSoon } from '@/hooks/useComingSoon';
+import { usePagination } from '@/hooks/usePagination';
+import PaginationBar from '@/components/PaginationBar';
 
 const fontFamily = {
   mono: '"JetBrains Mono", monospace',
@@ -18,6 +20,7 @@ const mockExportedReports = [
 const Reports: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState(mockProjects[0]);
   const notifyComingSoon = useComingSoon();
+  const pagination = usePagination(mockExportedReports);
 
   return (
     <DashboardLayout>
@@ -117,7 +120,7 @@ const Reports: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#222c37]">
-                {mockExportedReports.map((report) => (
+                {pagination.items.map((report) => (
                   <tr key={report.name} className="hover:bg-[#161d24]/50 transition-colors group">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
@@ -140,6 +143,7 @@ const Reports: React.FC = () => {
               </tbody>
             </table>
           </div>
+          <PaginationBar {...pagination} />
         </section>
 
         <div className="h-10"></div>
