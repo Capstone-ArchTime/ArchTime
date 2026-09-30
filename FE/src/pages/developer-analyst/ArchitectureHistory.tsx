@@ -11,7 +11,9 @@ import {
   Calendar,
   Layers,
   GitMerge,
-  GitCompare
+  GitCompare,
+  Search,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePagination } from '@/hooks/usePagination';
@@ -42,6 +44,8 @@ const ArchitectureHistory: React.FC = () => {
   const [branchesList, setBranchesList] = useState<string[]>(['main']);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<string>('main');
+  const [searchInput, setSearchInput] = useState('');
+  const [appliedSearchQuery, setAppliedSearchQuery] = useState('');
   const pagination = usePagination(commits, '', 5);
   const [activeCommit, setActiveCommit] = useState(commits[0]?.hash);
   
@@ -118,19 +122,32 @@ const ArchitectureHistory: React.FC = () => {
     fetchSnapshots();
   }, [selectedProjectId]);
 
-  // Filter commits when branch changes
+  // Filter commits when branch or applied search query changes
   React.useEffect(() => {
     if (allCommits === mockCommits) return;
     
-    const branchCommits = allCommits.filter(c => c.branches && c.branches.includes(selectedBranch));
-    if (branchCommits.length > 0) {
-      setCommits(branchCommits);
-      setActiveCommit(branchCommits[0].hash);
+    let filtered = allCommits.filter(c => c.branches && c.branches.includes(selectedBranch));
+    
+    if (appliedSearchQuery.trim() !== '') {
+      const q = appliedSearchQuery.toLowerCase();
+      filtered = filtered.filter(c => 
+        c.title.toLowerCase().includes(q) || 
+        c.hash.toLowerCase().includes(q) ||
+        c.author.toLowerCase().includes(q)
+      );
+    }
+
+    if (filtered.length > 0) {
+      setCommits(filtered);
+      // Only reset active commit if the current one is filtered out
+      if (!filtered.find(c => c.hash === activeCommit)) {
+        setActiveCommit(filtered[0].hash);
+      }
     } else {
       setCommits([]);
       setActiveCommit('');
     }
-  }, [selectedBranch, allCommits]);
+  }, [selectedBranch, appliedSearchQuery, allCommits]);
 
   return (
     <DashboardLayout>
@@ -177,11 +194,6 @@ const ArchitectureHistory: React.FC = () => {
               <ChevronDown size={14} className="text-[#94a3b8] absolute right-3 pointer-events-none group-hover:text-[#f4f4f6]" />
             </div>
             
-            <div className="flex items-center h-9 px-4 bg-[#080b0e] border border-[#222c37] gap-2">
-              <span className="text-[10px] font-mono text-[#94a3b8] uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository</span>
-              <span className="text-xs font-bold text-[#f4f4f6]">Default</span>
-            </div>
 
             <div className="relative group flex items-center h-9 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] transition-colors">
               <span className="text-[10px] font-mono text-[#94a3b8] uppercase pl-4"
@@ -205,6 +217,39 @@ const ArchitectureHistory: React.FC = () => {
               <span className="text-[10px] font-mono text-[#94a3b8] uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Time Range</span>
               <span className="text-xs font-bold text-[#f4f4f6]">ALL TIME</span>
+            </div>
+
+            <div className="relative flex items-center h-9 bg-[#080b0e] border border-[#222c37] focus-within:border-[#38bdf8] transition-colors ml-2 w-48 lg:w-64">
+              <Search size={14} className="text-[#94a3b8] absolute left-3" />
+              <input 
+                type="text" 
+                placeholder="Search commits..."
+                value={searchInput}
+                onChange={(e) => {
+                  setSearchInput(e.target.value);
+                  if (e.target.value === '') {
+                    setAppliedSearchQuery('');
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setAppliedSearchQuery(searchInput);
+                  }
+                }}
+                className="w-full h-full bg-transparent border-none text-xs text-[#f4f4f6] pl-9 pr-8 outline-none placeholder-[#5f636b]"
+              />
+              {searchInput && (
+                <button 
+                  onClick={() => {
+                    setSearchInput('');
+                    setAppliedSearchQuery('');
+                  }}
+                  className="absolute right-2.5 text-[#5f636b] hover:text-[#f4f4f6] transition-colors outline-none"
+                  title="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
           </div>
         </div>
