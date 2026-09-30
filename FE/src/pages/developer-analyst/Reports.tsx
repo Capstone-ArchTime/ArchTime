@@ -1,8 +1,8 @@
+import SampleDataNotice from '@/components/SampleDataNotice';
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   FileText,
-  ChevronDown,
   Download,
   Share2,
   ArrowLeft,
@@ -49,7 +49,10 @@ const Reports: React.FC = () => {
   const [viewState, setViewState] = useState<'list' | 'preview'>('list');
   const [activeReport, setActiveReport] = useState<typeof reportsData[0] | null>(null);
   const notifyComingSoon = useComingSoon();
-  const pagination = usePagination(reportsData);
+  const [search, setSearch] = useState('');
+  const [projectFilter, setProjectFilter] = useState('all');
+  const filteredReports = reportsData.filter(report => (projectFilter === 'all' || report.project === projectFilter) && report.name.toLowerCase().includes(search.trim().toLowerCase()));
+  const pagination = usePagination(filteredReports, JSON.stringify([search, projectFilter]));
 
   const handleViewReport = (report: typeof reportsData[0]) => {
     setActiveReport(report);
@@ -63,7 +66,8 @@ const Reports: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <div className="max-w-[1400px] mx-auto flex flex-col h-[calc(100vh-140px)] relative overflow-hidden">
+      <div className="max-w-[1400px] mx-auto flex flex-col min-h-[calc(100dvh-140px)] relative overflow-hidden">
+        <SampleDataNotice />
         
         <AnimatePresence mode="wait">
           
@@ -101,48 +105,11 @@ const Reports: React.FC = () => {
 
                 {/* FILTER BAR */}
                 <div className="flex flex-wrap items-center gap-3 bg-[#11161b] p-3 border border-[#222c37]">
-                  <div className="flex items-center gap-2 text-[10px] font-mono text-[#5f636b] uppercase px-2"
+                  <div className="flex items-center gap-2 text-[10px] font-mono text-[#94a3b8] uppercase px-2"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Filters:</div>
                   
-                  <button
-                    onClick={() => notifyComingSoon("Project filter")}
-                    aria-haspopup="listbox"
-                    className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
-                    <span className="text-[10px] font-mono text-[#5f636b] uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Project</span>
-                    <span className="text-xs font-bold text-[#f4f4f6]">E-Commerce Platform</span>
-                    <ChevronDown size={14} className="text-[#5f636b] group-hover:text-[#f4f4f6]" />
-                  </button>
-
-                  <button
-                    onClick={() => notifyComingSoon("Repository filter")}
-                    aria-haspopup="listbox"
-                    className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
-                    <span className="text-[10px] font-mono text-[#5f636b] uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository</span>
-                    <span className="text-xs font-bold text-[#f4f4f6]">order-service</span>
-                    <ChevronDown size={14} className="text-[#5f636b] group-hover:text-[#f4f4f6]" />
-                  </button>
-
-                  <button
-                    onClick={() => notifyComingSoon("Revision range filter")}
-                    aria-haspopup="listbox"
-                    className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
-                    <span className="text-[10px] font-mono text-[#5f636b] uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Revision Range</span>
-                    <span className="text-xs font-bold text-[#f4f4f6]">v1.0 → HEAD</span>
-                    <ChevronDown size={14} className="text-[#5f636b] group-hover:text-[#f4f4f6]" />
-                  </button>
-
-                  <button
-                    onClick={() => notifyComingSoon("Report type filter")}
-                    aria-haspopup="listbox"
-                    className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
-                    <span className="text-[10px] font-mono text-[#5f636b] uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Report Type</span>
-                    <span className="text-xs font-bold text-[#f4f4f6]">Architecture Evolution</span>
-                    <ChevronDown size={14} className="text-[#5f636b] group-hover:text-[#f4f4f6]" />
-                  </button>
+                  <input aria-label="Search reports" placeholder="Search reports?" value={search} onChange={event => setSearch(event.target.value)} className="flex-1 min-w-40 bg-[#080b0e] border border-[#222c37] px-3 h-10 text-sm" />
+                  <select aria-label="Filter reports by project" value={projectFilter} onChange={event => setProjectFilter(event.target.value)} className="bg-[#080b0e] border border-[#222c37] h-10 px-3 text-sm"><option value="all">All projects</option>{[...new Set(reportsData.map(report => report.project))].map(value => <option key={value} value={value}>{value}</option>)}</select>
                 </div>
               </div>
 
@@ -152,21 +119,22 @@ const Reports: React.FC = () => {
                   <table className="w-full text-left border-collapse min-w-[800px]">
                     <thead>
                       <tr className="border-b border-[#222c37] bg-[#161d24]">
-                        <th className="p-4 text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-wider"
+                        <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Report</th>
-                        <th className="p-4 text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-wider"
+                        <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Project</th>
-                        <th className="p-4 text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-wider"
+                        <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Revision Range</th>
-                        <th className="p-4 text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-wider"
+                        <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Created</th>
-                        <th className="p-4 text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-wider"
+                        <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Status</th>
-                        <th className="p-4 text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-wider text-right"
+                        <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider text-right"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#222c37]">
+                      {!filteredReports.length && <tr><td colSpan={6} className="p-8 text-center text-sm text-[#94a3b8]" role="status">No reports match these filters.</td></tr>}
                       {pagination.items.map((report) => (
                         <tr key={report.id} className="group hover:bg-[#222c37]/30 transition-colors">
                           <td className="p-4 text-sm font-bold text-[#f4f4f6] flex items-center gap-2">
@@ -259,8 +227,8 @@ const Reports: React.FC = () => {
                     {/* REPORT HEADER */}
                     <div className="text-center space-y-6 pb-12 border-b border-[#222c37]">
                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#080b0e] border border-[#222c37] mb-4">
-                         <FileText size={12} className="text-[#5f636b]" />
-                         <span className="text-[10px] font-mono text-[#5f636b] tracking-widest font-bold uppercase"
+                         <FileText size={12} className="text-[#94a3b8]" />
+                         <span className="text-[10px] font-mono text-[#94a3b8] tracking-widest font-bold uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>ArchTime Architecture Report</span>
                        </div>
                        
@@ -329,19 +297,19 @@ const Reports: React.FC = () => {
                        <div className="relative pl-6 space-y-8 border-l border-[#222c37] ml-2">
                           <div className="relative">
                              <div className="absolute -left-[30px] w-3 h-3 rounded-full bg-[#222c37] border-2 border-[#11161b]"></div>
-                             <div className="text-[10px] font-mono text-[#5f636b] font-bold mb-1"
+                             <div className="text-[10px] font-mono text-[#94a3b8] font-bold mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>v1.0 (a82f91a)</div>
                              <div className="text-sm text-[#f4f4f6]">Initial Monolith structure</div>
                           </div>
                           <div className="relative">
                              <div className="absolute -left-[30px] w-3 h-3 rounded-full bg-[#ffb03a] border-2 border-[#11161b] shadow-[0_0_5px_#ffb03a]"></div>
-                             <div className="text-[10px] font-mono text-[#5f636b] font-bold mb-1"
+                             <div className="text-[10px] font-mono text-[#94a3b8] font-bold mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>v1.2 (d82f91a)</div>
                              <div className="text-sm text-[#ffb03a] font-bold">PaymentService Extracted</div>
                           </div>
                           <div className="relative">
                              <div className="absolute -left-[30px] w-3 h-3 rounded-full bg-[#38bdf8] border-2 border-[#11161b]"></div>
-                             <div className="text-[10px] font-mono text-[#5f636b] font-bold mb-1"
+                             <div className="text-[10px] font-mono text-[#94a3b8] font-bold mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>v1.5 (8af31c2)</div>
                              <div className="text-sm text-[#f4f4f6]">Order Dependency Restructured</div>
                           </div>
@@ -402,7 +370,7 @@ const Reports: React.FC = () => {
                        </div>
                        
                        <div className="bg-[#080b0e] border border-[#222c37]">
-                          <div className="p-3 border-b border-[#222c37] flex items-center justify-between text-[10px] font-mono text-[#5f636b] uppercase tracking-widest"
+                          <div className="p-3 border-b border-[#222c37] flex items-center justify-between text-[10px] font-mono text-[#94a3b8] uppercase tracking-widest"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                              <span>Commit Hash</span>
                              <span>Modified Files</span>
@@ -458,7 +426,7 @@ const Reports: React.FC = () => {
                     </section>
                     
                     <div className="text-center pt-8 border-t border-[#222c37]">
-                       <div className="text-[10px] font-mono text-[#5f636b] uppercase tracking-widest"
+                       <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-widest"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                           Generated by ArchTime • {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                        </div>

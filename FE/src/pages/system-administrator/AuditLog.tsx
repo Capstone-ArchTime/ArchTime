@@ -1,3 +1,4 @@
+import SampleDataNotice from '@/components/SampleDataNotice';
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { LogIn, ShieldAlert, UserCog, Trash2, KeyRound, Filter } from 'lucide-react';
@@ -43,6 +44,7 @@ const AuditLog: React.FC = () => {
   return (
     <DashboardLayout>
       <div className="max-w-[1100px] mx-auto space-y-8">
+        <SampleDataNotice />
 
         {/* HEADER */}
         <div>
@@ -55,7 +57,7 @@ const AuditLog: React.FC = () => {
 
         {/* FILTERS */}
         <div className="flex items-center gap-2 flex-wrap">
-          <Filter size={14} className="text-[#5f636b] mr-1" />
+          <Filter size={14} className="text-[#94a3b8] mr-1" />
           {filterOptions.map((opt) => (
             <button
               key={opt.key}
@@ -90,10 +92,10 @@ const AuditLog: React.FC = () => {
                     <span className="text-[9px] font-bold uppercase tracking-widest" style={{ fontFamily: fontFamily.mono, color: meta.color }}>
                       {meta.label}
                     </span>
-                    <span className="text-[10px] text-[#5f636b]" style={{ fontFamily: fontFamily.mono }}>{event.ts}</span>
+                    <span className="text-[10px] text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>{event.ts}</span>
                   </div>
                   <p className="text-sm text-[#f4f4f6] mb-1">{event.description}</p>
-                  <div className="text-xs text-[#5f636b]" style={{ fontFamily: fontFamily.mono }}>
+                  <div className="text-xs text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>
                     actor: {event.actor} &middot; ip: {event.ip}
                   </div>
                 </div>
@@ -101,7 +103,7 @@ const AuditLog: React.FC = () => {
             );
           })}
           {filtered.length === 0 && (
-            <p className="text-sm text-[#5f636b] pl-2">No events match this filter.</p>
+            <p className="text-sm text-[#94a3b8] pl-2">No events match this filter.</p>
           )}
         </div>
 

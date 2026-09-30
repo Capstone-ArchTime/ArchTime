@@ -1,3 +1,4 @@
+import SampleDataNotice from '@/components/SampleDataNotice';
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Key, Cpu, Save, Eye, EyeOff } from 'lucide-react';
@@ -17,6 +18,7 @@ const SystemSettings: React.FC = () => {
   return (
     <DashboardLayout>
       <div className="max-w-[900px] mx-auto space-y-10">
+        <SampleDataNotice />
 
         {/* HEADER */}
         <div>
@@ -30,7 +32,7 @@ const SystemSettings: React.FC = () => {
         {/* REPOSITORY AUTHORIZATION */}
         <section>
           <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-1" style={{ fontFamily: fontFamily.mono }}>Repository Authorization</h3>
-          <p className="text-xs text-[#5f636b] mb-4">Authorize which source providers the mining pipeline can access.</p>
+          <p className="text-xs text-[#94a3b8] mb-4">Authorize which source providers the mining pipeline can access.</p>
 
           <div className="bg-[#161d24] border border-[#222c37] divide-y divide-[#222c37]">
             <div className="flex items-center justify-between p-5">
@@ -38,7 +40,7 @@ const SystemSettings: React.FC = () => {
                 <Icon icon="mdi:github" width="24" height="24" className="text-[#f4f4f6]" />
                 <div>
                   <div className="text-sm text-[#f4f4f6] font-medium">GitHub</div>
-                  <div className="text-xs text-[#5f636b]">Connected as archtime-bot</div>
+                  <div className="text-xs text-[#94a3b8]">Connected as archtime-bot</div>
                 </div>
               </div>
               <span className="text-[10px] font-bold text-[#22c55e] uppercase tracking-widest" style={{ fontFamily: fontFamily.mono }}>Connected</span>
@@ -48,7 +50,7 @@ const SystemSettings: React.FC = () => {
                 <Icon icon="mdi:gitlab" width="24" height="24" className="text-[#FC6D26]" />
                 <div>
                   <div className="text-sm text-[#f4f4f6] font-medium">GitLab</div>
-                  <div className="text-xs text-[#5f636b]">Not connected</div>
+                  <div className="text-xs text-[#94a3b8]">Not connected</div>
                 </div>
               </div>
               <button
@@ -63,12 +65,12 @@ const SystemSettings: React.FC = () => {
         {/* API KEYS */}
         <section>
           <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-1" style={{ fontFamily: fontFamily.mono }}>API Keys</h3>
-          <p className="text-xs text-[#5f636b] mb-4">Credentials used by the analysis pipeline and external clients.</p>
+          <p className="text-xs text-[#94a3b8] mb-4">Credentials used by the analysis pipeline and external clients.</p>
 
           <div className="bg-[#161d24] border border-[#222c37] p-5">
             <label className="text-[10px] text-[#94a3b8] uppercase tracking-widest block mb-2" style={{ fontFamily: fontFamily.mono }}>Pipeline API Key</label>
             <div className="relative">
-              <Key size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5f636b]" />
+              <Key size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
               <input
                 type={showApiKey ? 'text' : 'password'}
                 readOnly
@@ -80,19 +82,19 @@ const SystemSettings: React.FC = () => {
                 type="button"
                 onClick={() => setShowApiKey((v) => !v)}
                 aria-label={showApiKey ? "Hide API key" : "Show API key"}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5f636b] hover:text-[#f4f4f6] transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#f4f4f6] transition-colors"
               >
                 {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
-            <p className="text-[10px] text-[#5f636b] mt-2">Last rotated 14 days ago</p>
+            <p className="text-[10px] text-[#94a3b8] mt-2">Last rotated 14 days ago</p>
           </div>
         </section>
 
         {/* EXTRACTION PARAMETERS */}
         <section>
           <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-1" style={{ fontFamily: fontFamily.mono }}>Extraction Parameters</h3>
-          <p className="text-xs text-[#5f636b] mb-4">Control how the mining pipeline extracts and processes repositories.</p>
+          <p className="text-xs text-[#94a3b8] mb-4">Control how the mining pipeline extracts and processes repositories.</p>
 
           <div className="bg-[#161d24] border border-[#222c37] divide-y divide-[#222c37]">
             <div className="p-5">

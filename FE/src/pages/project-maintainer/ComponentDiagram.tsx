@@ -4,29 +4,19 @@ import { CheckCircle2, Plus, Save } from 'lucide-react';
 import { WorkspacePage, StorageError } from './workspace';
 import { panel, useWorkspace } from './workspace-store';
 import type { Component, Dependency, Diagram } from './workspace-store';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 
 function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyChange: (dirty: boolean) => void }) {
   const { data, save, loadError } = useWorkspace(project);
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const [draft, setDraft] = useState<Diagram>(data.diagram);
   const [component, setComponent] = useState<Component | null | undefined>();
   const [edgeOpen, setEdgeOpen] = useState(false);
   const [componentForm] = Form.useForm<Component>();
   const [edgeForm] = Form.useForm<Dependency>();
   const dirty = JSON.stringify(draft) !== JSON.stringify(data.diagram);
+  useUnsavedChanges(dirty);
   useEffect(() => { onDirtyChange(dirty); }, [dirty, onDirtyChange]);
-  useEffect(() => {
-    if (!dirty) return;
-    const beforeUnload = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
-    const beforeNavigate = (event: MouseEvent) => {
-      if (event.target instanceof Element && event.target.closest('a[href]') && !window.confirm('Discard unsaved diagram changes?')) {
-        event.preventDefault(); event.stopPropagation();
-      }
-    };
-    window.addEventListener('beforeunload', beforeUnload);
-    document.addEventListener('click', beforeNavigate, true);
-    return () => { window.removeEventListener('beforeunload', beforeUnload); document.removeEventListener('click', beforeNavigate, true); };
-  }, [dirty]);
   const options = draft.components.map(c => ({ label: c.name, value: c.id }));
   function update(next: Diagram) { setDraft({ ...next, confirmedAt: null }); }
   function persist(confirm: boolean) {
@@ -45,7 +35,7 @@ function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyCha
     <StorageError visible={loadError} />
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex flex-wrap items-center gap-2"><Tag color={draft.confirmedAt ? 'green' : 'gold'}>{draft.confirmedAt ? 'Confirmed' : 'Needs confirmation'}</Tag><span className="text-xs text-[#94a3b8]">Revision {data.diagram.revision}{dirty ? ' • Unsaved changes' : ' • Saved'}</span></div>
-      <div className="flex flex-wrap gap-2"><Button icon={<Save size={14} />} disabled={!dirty || loadError} onClick={() => persist(false)}>Save draft</Button><Button type="primary" icon={<CheckCircle2 size={14} />} disabled={loadError || !draft.components.length || (!!draft.confirmedAt && !dirty)} onClick={() => Modal.confirm({ title: 'Confirm this component diagram?', content: 'The current components and dependencies will become the reviewed diagram. Further edits will require confirmation again.', onOk: () => persist(true) })}>Confirm diagram</Button></div>
+      <div className="flex flex-wrap gap-2"><Button icon={<Save size={14} />} disabled={!dirty || loadError} onClick={() => persist(false)}>Save draft</Button><Button type="primary" icon={<CheckCircle2 size={14} />} disabled={loadError || !draft.components.length || (!!draft.confirmedAt && !dirty)} onClick={() => modal.confirm({ title: 'Confirm this component diagram?', content: 'The current components and dependencies will become the reviewed diagram. Further edits will require confirmation again.', onOk: () => persist(true) })}>Confirm diagram</Button></div>
     </div>
     {draft.confirmedAt && <p className="text-xs text-[#94a3b8]">Confirmed on {new Date(draft.confirmedAt).toLocaleString()}</p>}
     <div className={panel}>
@@ -70,7 +60,7 @@ function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyCha
     </div>
     <div className="grid xl:grid-cols-2 gap-5">
       <section className={panel}><h3 className="font-semibold mb-4">Components <span className="text-[#94a3b8]">/ {draft.components.length}</span></h3><div className="divide-y divide-[#222c37]">{draft.components.map(c => <div key={c.id} className="py-3 flex items-center justify-between gap-3"><div className="min-w-0"><p className="text-sm break-words">{c.name} <Tag>{c.kind}</Tag></p><p className="text-xs text-[#94a3b8] break-words mt-1">{c.description}</p></div><div className="flex shrink-0 gap-1"><Button size="small" onClick={() => editComponent(c)}>Edit</Button><Popconfirm title={`Remove ${c.name}?`} description="Connected dependencies will also be removed." onConfirm={() => update({ ...draft, components: draft.components.filter(x => x.id !== c.id), dependencies: draft.dependencies.filter(e => e.source !== c.id && e.target !== c.id) })}><Button size="small" danger>Remove</Button></Popconfirm></div></div>)}</div></section>
-      <section className={panel}><div className="flex justify-between gap-3 mb-4"><h3 className="font-semibold">Dependencies / {draft.dependencies.length}</h3><Button size="small" disabled={draft.components.length < 2} onClick={() => { edgeForm.resetFields(); setEdgeOpen(true); }}>Add dependency</Button></div>{!draft.dependencies.length && <Empty description="No dependencies" image={Empty.PRESENTED_IMAGE_SIMPLE} />}<div className="divide-y divide-[#222c37]">{draft.dependencies.map(e => <div className="py-3 flex items-center justify-between gap-3" key={e.id}><div className="text-sm"><p>{draft.components.find(c => c.id === e.source)?.name} → {draft.components.find(c => c.id === e.target)?.name}</p><p className="text-xs text-[#94a3b8] mt-1">{e.label}</p></div><Button size="small" danger onClick={() => update({ ...draft, dependencies: draft.dependencies.filter(x => x.id !== e.id) })}>Remove</Button></div>)}</div></section>
+      <section className={panel}><div className="flex justify-between gap-3 mb-4"><h3 className="font-semibold">Dependencies / {draft.dependencies.length}</h3><Button size="small" disabled={draft.components.length < 2} onClick={() => { edgeForm.resetFields(); setEdgeOpen(true); }}>Add dependency</Button></div>{!draft.dependencies.length && <Empty description="No dependencies" image={Empty.PRESENTED_IMAGE_SIMPLE} />}<div className="divide-y divide-[#222c37]">{draft.dependencies.map(e => <div className="py-3 flex items-center justify-between gap-3" key={e.id}><div className="text-sm"><p>{draft.components.find(c => c.id === e.source)?.name} → {draft.components.find(c => c.id === e.target)?.name}</p><p className="text-xs text-[#94a3b8] mt-1">{e.label}</p></div><Popconfirm title="Remove this dependency?" onConfirm={() => update({ ...draft, dependencies: draft.dependencies.filter(x => x.id !== e.id) })}><Button size="small" danger>Remove</Button></Popconfirm></div>)}</div></section>
     </div>
     <Modal title={component ? 'Edit component' : 'Add component'} open={component !== undefined} onCancel={() => setComponent(undefined)} onOk={() => componentForm.submit()} okText="Apply changes">
       <Form form={componentForm} layout="vertical" onFinish={values => {

@@ -1,3 +1,4 @@
+import SampleDataNotice from '@/components/SampleDataNotice';
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -15,6 +16,7 @@ import { Icon } from '@iconify/react';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationBar from '@/components/PaginationBar';
+import { Link } from 'react-router-dom';
 
 const Projects: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -84,10 +86,13 @@ const Projects: React.FC = () => {
     }
   ];
 
-  const pagination = usePagination(projects);
+  const [search, setSearch] = useState('');
+  const filteredProjects = projects.filter(project => `${project.name} ${project.description}`.toLowerCase().includes(search.trim().toLowerCase()));
+  const pagination = usePagination(filteredProjects, search);
   return (
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-10 relative">
+        <SampleDataNotice />
         
         {/* HEADER */}
         <div>
@@ -123,7 +128,7 @@ const Projects: React.FC = () => {
               <FolderKanban size={20} className="text-[#94a3b8]" />
             </div>
             <div>
-              <h4 className="text-[10px] font-mono font-semibold text-[#5f636b] tracking-widest uppercase mb-1"
+              <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Total Projects</h4>
               <div className="text-2xl font-bold text-[#f4f4f6] font-mono"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>03</div>
@@ -135,7 +140,7 @@ const Projects: React.FC = () => {
               <Activity size={20} className="text-[#38bdf8]" />
             </div>
             <div>
-              <h4 className="text-[10px] font-mono font-semibold text-[#5f636b] tracking-widest uppercase mb-1"
+              <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Active Analyses</h4>
               <div className="text-2xl font-bold text-[#f4f4f6] font-mono"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>02</div>
@@ -147,7 +152,7 @@ const Projects: React.FC = () => {
               <GitPullRequest size={20} className="text-[#ffb03a]" />
             </div>
             <div>
-              <h4 className="text-[10px] font-mono font-semibold text-[#5f636b] tracking-widest uppercase mb-1"
+              <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Architectural Changes</h4>
               <div className="text-2xl font-bold text-[#f4f4f6] font-mono"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>64</div>
@@ -157,6 +162,8 @@ const Projects: React.FC = () => {
         </div>
 
         {/* PROJECT LIST */}
+        <input aria-label="Search projects" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search projects?" className="h-11 w-full max-w-md px-4 border border-[#222c37] bg-[#11161b] text-sm" />
+        {!filteredProjects.length && <p role="status" className="text-[#94a3b8] text-sm">No projects match your search.</p>}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {pagination.items.map((project) => (
             <div key={project.id} className="bg-[#11161b] border border-[#222c37] hover:border-[#38bdf8]/50 overflow-hidden transition-colors flex flex-col group">
@@ -167,7 +174,7 @@ const Projects: React.FC = () => {
                 
                 <svg viewBox="0 0 100 60" className="w-full h-full opacity-70 group-hover:opacity-100 transition-opacity group-hover:scale-105 duration-500">
                   <defs>
-                    <filter id="glow-amber-mini" x="-50%" y="-50%" width="200%" height="200%">
+                    <filter id={`glow-amber-mini-${project.id}`} x="-50%" y="-50%" width="200%" height="200%">
                       <feGaussianBlur stdDeviation="2" result="blur" />
                       <feComposite in="SourceGraphic" in2="blur" operator="over" />
                     </filter>
@@ -187,7 +194,7 @@ const Projects: React.FC = () => {
                         cy={node.cy} 
                         r={node.r} 
                         fill={node.color} 
-                        filter={node.glow ? "url(#glow-amber-mini)" : undefined} 
+                        filter={node.glow ? `url(#glow-amber-mini-${project.id})` : undefined}
                       />
                     ))}
                   </g>
@@ -206,7 +213,7 @@ const Projects: React.FC = () => {
                 
                 <div className="grid grid-cols-2 gap-y-4 gap-x-2 mb-6">
                   <div>
-                    <div className="text-[10px] font-mono text-[#5f636b] uppercase tracking-wider mb-1"
+                    <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repositories</div>
                     <div className="text-[#f4f4f6] text-sm font-mono flex items-center gap-1.5"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -215,7 +222,7 @@ const Projects: React.FC = () => {
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] font-mono text-[#5f636b] uppercase tracking-wider mb-1"
+                    <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Last Analyzed</div>
                     <div className="text-[#f4f4f6] text-sm font-mono flex items-center gap-1.5"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -224,7 +231,7 @@ const Projects: React.FC = () => {
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] font-mono text-[#5f636b] uppercase tracking-wider mb-1"
+                    <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Arch Changes</div>
                     <div className="text-[#ffb03a] text-sm font-mono font-bold flex items-center gap-1.5"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -233,7 +240,7 @@ const Projects: React.FC = () => {
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] font-mono text-[#5f636b] uppercase tracking-wider mb-1"
+                    <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Analysis Status</div>
                     <div className="text-[#22c55e] text-[11px] font-mono font-bold flex items-center gap-1.5"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -243,10 +250,7 @@ const Projects: React.FC = () => {
                   </div>
                 </div>
                 
-                <button className="w-full h-10 bg-[#161d24] hover:bg-[#222c37] border border-[#222c37] group-hover:border-[#38bdf8]/50 text-[#f4f4f6] group-hover:text-[#38bdf8] font-mono font-bold text-xs transition-colors flex items-center justify-center gap-2 mt-auto"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                  OPEN PROJECT <ArrowRight size={14} />
-                </button>
+                {project.id === 1 ? <Link to="/project" className="w-full h-11 bg-[#161d24] hover:bg-[#222c37] border border-[#222c37] text-sm flex items-center justify-center gap-2 mt-auto">Open project <ArrowRight size={14} aria-hidden="true" /></Link> : <button disabled className="w-full h-11 bg-[#161d24] border border-[#222c37] text-xs mt-auto" title="No architecture snapshot has been connected for this sample project">Snapshot unavailable</button>}
               </div>
               
             </div>
@@ -282,7 +286,7 @@ const Projects: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-lg bg-[#11161b] border border-[#222c37] shadow-2xl overflow-hidden"
+              className="relative w-full max-h-[90dvh] overflow-y-auto max-w-lg bg-[#11161b] border border-[#222c37] shadow-2xl overflow-hidden"
             >
               <div className="p-6 border-b border-[#222c37] flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -293,13 +297,13 @@ const Projects: React.FC = () => {
                 <button
                   onClick={closeModal}
                   aria-label="Close dialog"
-                  className="text-[#5f636b] hover:text-[#f4f4f6] transition-colors"
+                  className="text-[#94a3b8] hover:text-[#f4f4f6] transition-colors"
                 >
                   <X size={20} />
                 </button>
               </div>
 
-              <div className="p-6 space-y-6">
+              <div className="p-6 space-y-6"><p role="status" className="text-sm text-[#94a3b8]">Repository connection is not available yet. This form previews the information required; it does not create a project.</p>
                 <div className="space-y-1.5">
                   <label htmlFor="project-name" className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Project Name</label>
@@ -307,17 +311,17 @@ const Projects: React.FC = () => {
                     id="project-name"
                     type="text"
                     placeholder="e.g. Identity Service"
-                    className="w-full h-10 bg-[#161d24] border border-[#222c37] px-3 text-sm text-[#f4f4f6] placeholder:text-[#5f636b] focus:outline-none focus:border-[#38bdf8]/50 focus:ring-1 focus:ring-[#38bdf8]/20 transition-all"
+                    className="w-full h-10 bg-[#161d24] border border-[#222c37] px-3 text-sm text-[#f4f4f6] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#38bdf8]/50 focus:ring-1 focus:ring-[#38bdf8]/20 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                   />
                 </div>
 
                 <div className="space-y-1.5">
                   <label htmlFor="project-description" className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Description <span className="text-[#5f636b]">(Optional)</span></label>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Description <span className="text-[#94a3b8]">(Optional)</span></label>
                   <textarea
                     id="project-description"
                     placeholder="Brief architectural context..."
-                    className="w-full h-20 bg-[#161d24] border border-[#222c37] px-3 py-2 text-sm text-[#f4f4f6] placeholder:text-[#5f636b] focus:outline-none focus:border-[#38bdf8]/50 focus:ring-1 focus:ring-[#38bdf8]/20 transition-all resize-none"
+                    className="w-full h-20 bg-[#161d24] border border-[#222c37] px-3 py-2 text-sm text-[#f4f4f6] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#38bdf8]/50 focus:ring-1 focus:ring-[#38bdf8]/20 transition-[color,background-color,border-color,box-shadow,opacity,transform] resize-none"
                   ></textarea>
                 </div>
 
@@ -345,7 +349,7 @@ const Projects: React.FC = () => {
                     id="repository-url"
                     type="text"
                     placeholder="https://github.com/organization/repo"
-                    className="w-full h-10 bg-[#161d24] border border-[#222c37] px-3 text-sm font-mono text-[#f4f4f6] placeholder:text-[#5f636b] focus:outline-none focus:border-[#38bdf8]/50 focus:ring-1 focus:ring-[#38bdf8]/20 transition-all"
+                    className="w-full h-10 bg-[#161d24] border border-[#222c37] px-3 text-sm font-mono text-[#f4f4f6] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#38bdf8]/50 focus:ring-1 focus:ring-[#38bdf8]/20 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}
                   />
                 </div>
@@ -353,7 +357,8 @@ const Projects: React.FC = () => {
 
               <div className="p-6 pt-0">
                 <button
-                  onClick={closeModal}
+                  disabled
+                  title="Repository connection API is not available yet"
                   className="w-full h-10 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)]"
                 >
                   <FolderGit2 size={16} />

@@ -16,7 +16,7 @@ const routes: Record<Role, readonly string[]> = {
 
 export function canAccess(role: Role, path: string) {
   const pathname = path.split(/[?#]/)[0].replace(/\/+$/, '') || '/';
-  return routes[role]?.includes(pathname) ?? false;
+  return Object.hasOwn(routes, role) && routes[role].includes(pathname);
 }
 
 export function loginDestination(role: Role, requested?: string) {
@@ -26,5 +26,5 @@ export function loginDestination(role: Role, requested?: string) {
 export function isAuthUser(value: unknown): value is AuthUser {
   if (!value || typeof value !== 'object') return false;
   const user = value as Record<string, unknown>;
-  return typeof user.id === 'string' && typeof user.name === 'string' && typeof user.email === 'string' && roles.includes(user.role as Role);
+  return typeof user.id === 'string' && !!user.id.trim() && typeof user.name === 'string' && typeof user.email === 'string' && roles.includes(user.role as Role);
 }

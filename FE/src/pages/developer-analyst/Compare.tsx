@@ -1,3 +1,5 @@
+import SampleDataNotice from '@/components/SampleDataNotice';
+import { Link } from 'react-router-dom';
 import React from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
@@ -14,6 +16,7 @@ const Compare: React.FC = () => {
   return (
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-8 flex flex-col min-h-0">
+        <SampleDataNotice />
         
         {/* HEADER */}
         <div className="shrink-0">
@@ -35,7 +38,7 @@ const Compare: React.FC = () => {
           {/* BASE REVISION */}
           <div className="flex-1 bg-[#11161b] border border-[#222c37] p-5 relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <GitCommit size={64} className="text-[#5f636b]" />
+              <GitCommit size={64} className="text-[#94a3b8]" />
             </div>
             <h3 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-4"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Base Revision</h3>
@@ -43,9 +46,9 @@ const Compare: React.FC = () => {
               <div className="flex flex-col">
                 <div className="text-2xl font-bold text-[#f4f4f6] mb-1 flex items-center gap-2">
                   v1.5
-                  <ChevronDown size={16} className="text-[#5f636b]" />
+                  <ChevronDown size={16} className="text-[#94a3b8]" />
                 </div>
-                <div className="flex items-center gap-3 text-xs font-mono text-[#5f636b]"
+                <div className="flex items-center gap-3 text-xs font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                   <span className="flex items-center gap-1 text-[#94a3b8]"><GitCommit size={12} /> 8af31c2</span>
                   <span>•</span>
@@ -57,10 +60,10 @@ const Compare: React.FC = () => {
 
           {/* ARROW & COMPARE BUTTON */}
           <div className="flex flex-col justify-center items-center px-4 gap-2">
-            <div className="w-10 h-10 rounded-full bg-[#161d24] border border-[#222c37] flex items-center justify-center text-[#5f636b]">
+            <div className="w-10 h-10 rounded-full bg-[#161d24] border border-[#222c37] flex items-center justify-center text-[#94a3b8]">
               <ArrowRightLeft size={18} />
             </div>
-            <button className="px-4 py-1.5 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-[10px] tracking-wider transition-colors shadow-[0_0_10px_rgba(56,189,248,0.15)] uppercase">
+            <button disabled title="Not available yet: this view uses sample data" aria-label="COMPARE" className="px-4 py-1.5 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-[10px] tracking-wider transition-colors shadow-[0_0_10px_rgba(56,189,248,0.15)] uppercase">
               Compare
             </button>
           </div>
@@ -76,9 +79,9 @@ const Compare: React.FC = () => {
               <div className="flex flex-col">
                 <div className="text-2xl font-bold text-[#f4f4f6] mb-1 flex items-center gap-2">
                   v2.0
-                  <ChevronDown size={16} className="text-[#5f636b]" />
+                  <ChevronDown size={16} className="text-[#94a3b8]" />
                 </div>
-                <div className="flex items-center gap-3 text-xs font-mono text-[#5f636b]"
+                <div className="flex items-center gap-3 text-xs font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                   <span className="flex items-center gap-1 text-[#f4f4f6]"><GitCommit size={12} className="text-[#38bdf8]" /> d82f91a</span>
                   <span>•</span>
@@ -93,7 +96,7 @@ const Compare: React.FC = () => {
         {/* SUMMARY METRICS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 shrink-0">
           <div className="bg-[#161d24] border border-[#222c37] p-4 flex flex-col justify-between">
-            <h4 className="text-[10px] font-mono font-semibold text-[#5f636b] tracking-widest uppercase mb-2"
+            <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-2"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Modules</h4>
             <div className="text-xl font-bold font-mono text-[#22c55e] flex items-center gap-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -102,18 +105,18 @@ const Compare: React.FC = () => {
           </div>
           
           <div className="bg-[#161d24] border border-[#222c37] p-4 flex flex-col justify-between">
-            <h4 className="text-[10px] font-mono font-semibold text-[#5f636b] tracking-widest uppercase mb-2"
+            <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-2"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Dependencies</h4>
             <div className="flex items-center gap-3 text-xl font-bold font-mono"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
               <span className="text-[#22c55e]">+8</span>
-              <span className="text-[#5f636b]">/</span>
+              <span className="text-[#94a3b8]">/</span>
               <span className="text-[#ef4444]">-3</span>
             </div>
           </div>
 
           <div className="bg-[#161d24] border border-[#222c37] p-4 flex flex-col justify-between">
-            <h4 className="text-[10px] font-mono font-semibold text-[#5f636b] tracking-widest uppercase mb-2"
+            <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-2"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Files</h4>
             <div className="text-xl font-bold text-[#f4f4f6] flex items-center gap-2">
               12 <span className="text-xs font-sans text-[#94a3b8] font-normal">changed</span>
@@ -132,7 +135,7 @@ const Compare: React.FC = () => {
         </div>
 
         {/* SIDE-BY-SIDE GRAPH CONTAINER */}
-        <div className="flex flex-col lg:flex-row gap-6 shrink-0 h-[450px]">
+          <div className="flex flex-col lg:flex-row gap-6 shrink-0 min-h-[450px]">
           
           {/* LEFT: BEFORE GRAPH */}
           <div className="flex-1 flex flex-col bg-[#080b0e] border border-[#222c37] overflow-hidden shadow-2xl relative">
@@ -145,7 +148,7 @@ const Compare: React.FC = () => {
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Architecture at 8af31c2</div>
             </div>
             
-            <div className="flex-1 relative w-full h-full">
+            <div className="relative w-full h-[360px]">
                <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#F5F7FA 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
                
                <svg viewBox="0 0 500 400" className="w-full h-full absolute inset-0" preserveAspectRatio="xMidYMid meet">
@@ -194,7 +197,7 @@ const Compare: React.FC = () => {
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Architecture at d82f91a</div>
             </div>
             
-            <div className="flex-1 relative w-full h-full">
+            <div className="relative w-full h-[360px]">
                <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#F5F7FA 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
                
                <svg viewBox="0 0 500 440" className="w-full h-full absolute inset-0" preserveAspectRatio="xMidYMid meet">
@@ -304,17 +307,17 @@ const Compare: React.FC = () => {
                  <div className="flex items-center gap-2 mb-2">
                    <span className="px-2 py-0.5 bg-[#ffb03a]/10 border border-[#ffb03a]/20 text-[#ffb03a] text-[9px] font-mono font-bold uppercase tracking-widest"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Module Extraction</span>
-                   <span className="text-[10px] font-mono text-[#5f636b]"
+                   <span className="text-[10px] font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>d82f91a</span>
                  </div>
                  <div className="text-sm font-bold text-[#f4f4f6] mb-1">PaymentService extracted from LegacyMono</div>
                  <div className="text-xs text-[#94a3b8] font-mono"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>12 files affected</div>
                </div>
-               <button className="shrink-0 h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#38bdf8]/50 text-[#38bdf8] font-mono font-bold text-[10px] transition-colors flex items-center gap-2"
+               <Link to="/evidence" className="shrink-0 h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#38bdf8]/50 text-[#38bdf8] font-mono font-bold text-[10px] transition-colors flex items-center gap-2"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                  VIEW EVIDENCE <ArrowRight size={14} />
-               </button>
+               </Link>
             </div>
 
             {/* Event 2 */}
@@ -323,17 +326,17 @@ const Compare: React.FC = () => {
                  <div className="flex items-center gap-2 mb-2">
                    <span className="px-2 py-0.5 bg-[#38bdf8]/10 border border-[#38bdf8]/20 text-[#38bdf8] text-[9px] font-mono font-bold uppercase tracking-widest"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Dependency Change</span>
-                   <span className="text-[10px] font-mono text-[#5f636b]"
+                   <span className="text-[10px] font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>d82f91a</span>
                  </div>
-                 <div className="text-sm font-bold text-[#f4f4f6] mb-1">OrderService <ArrowRight size={12} className="inline text-[#5f636b]" /> PaymentService</div>
+                 <div className="text-sm font-bold text-[#f4f4f6] mb-1">OrderService <ArrowRight size={12} className="inline text-[#94a3b8]" /> PaymentService</div>
                  <div className="text-xs text-[#94a3b8] font-mono"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>8 dependencies added, 3 removed</div>
                </div>
-               <button className="shrink-0 h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#38bdf8]/50 text-[#38bdf8] font-mono font-bold text-[10px] transition-colors flex items-center gap-2"
+               <Link to="/evidence" className="shrink-0 h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#38bdf8]/50 text-[#38bdf8] font-mono font-bold text-[10px] transition-colors flex items-center gap-2"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                  VIEW EVIDENCE <ArrowRight size={14} />
-               </button>
+               </Link>
             </div>
 
             {/* Event 3 */}
@@ -342,17 +345,17 @@ const Compare: React.FC = () => {
                  <div className="flex items-center gap-2 mb-2">
                    <span className="px-2 py-0.5 bg-[#ffb03a]/10 border border-[#ffb03a]/20 text-[#ffb03a] text-[9px] font-mono font-bold uppercase tracking-widest"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Module Split</span>
-                   <span className="text-[10px] font-mono text-[#5f636b]"
+                   <span className="text-[10px] font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>c4199be</span>
                  </div>
                  <div className="text-sm font-bold text-[#f4f4f6] mb-1">SettlementCore decoupled</div>
                  <div className="text-xs text-[#94a3b8] font-mono"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>5 files affected</div>
                </div>
-               <button className="shrink-0 h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#38bdf8]/50 text-[#38bdf8] font-mono font-bold text-[10px] transition-colors flex items-center gap-2"
+               <Link to="/evidence" className="shrink-0 h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#38bdf8]/50 text-[#38bdf8] font-mono font-bold text-[10px] transition-colors flex items-center gap-2"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                  VIEW EVIDENCE <ArrowRight size={14} />
-               </button>
+               </Link>
             </div>
 
           </div>
@@ -360,13 +363,13 @@ const Compare: React.FC = () => {
 
         {/* BOTTOM CTA */}
         <div className="shrink-0 flex items-center justify-end gap-4 py-8">
-           <button className="h-10 px-5 bg-transparent border border-[#222c37] hover:border-[#94a3b8] text-[#f4f4f6] font-bold text-xs transition-colors flex items-center gap-2">
+           <Link to="/history" className="h-10 px-5 bg-transparent border border-[#222c37] hover:border-[#94a3b8] text-[#f4f4f6] font-bold text-xs transition-colors flex items-center gap-2">
               VIEW FULL HISTORY
-           </button>
-           <button className="h-10 px-5 bg-[#161d24] border border-[#222c37] hover:border-[#38bdf8]/50 text-[#38bdf8] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.05)]">
+           </Link>
+           <Link to="/reports" className="h-10 px-5 bg-[#161d24] border border-[#222c37] hover:border-[#38bdf8]/50 text-[#38bdf8] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.05)]">
               <Download size={16} />
               GENERATE REPORT
-           </button>
+           </Link>
         </div>
 
       </div>

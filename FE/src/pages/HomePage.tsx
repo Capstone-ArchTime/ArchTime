@@ -200,7 +200,7 @@ export default function HomePage() {
       </div>
 
       <motion.nav
-        className="fixed left-0 top-0 z-50 flex w-full items-center border-b transition-all duration-300"
+        className="fixed left-0 top-0 z-50 flex w-full items-center border-b transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300"
         animate={{
           height: navScrolled ? 64 : 80,
           backgroundColor: navScrolled ? "rgba(8, 11, 14, 0.9)" : "rgba(8, 11, 14, 0)",
@@ -246,7 +246,7 @@ export default function HomePage() {
             </Link>
             <Link
               to="/register"
-              className="hidden border border-[#38bdf8]/30 bg-[#11161b] px-5 py-2.5 text-xs uppercase tracking-widest text-white transition-all hover:border-[#00f0ff] hover:text-[#00f0ff] md:inline-block"
+              className="hidden border border-[#38bdf8]/30 bg-[#11161b] px-5 py-2.5 text-xs uppercase tracking-widest text-white transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-[#00f0ff] hover:text-[#00f0ff] md:inline-block"
               style={{ fontFamily: fontFamily.mono }}
             >
               Sign Up
@@ -315,7 +315,7 @@ export default function HomePage() {
                 <Link
                   to="/register"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="mt-2 border border-[#38bdf8]/30 bg-[#11161b] px-5 py-2.5 text-center text-white transition-all hover:border-[#00f0ff] hover:text-[#00f0ff]"
+                  className="mt-2 border border-[#38bdf8]/30 bg-[#11161b] px-5 py-2.5 text-center text-white transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-[#00f0ff] hover:text-[#00f0ff]"
                 >
                   Sign Up
                 </Link>
@@ -324,7 +324,7 @@ export default function HomePage() {
                     setMobileMenuOpen(false);
                     notifyComingSoon("Repository analysis");
                   }}
-                  className="mt-2 border border-[#222c37] bg-transparent px-5 py-2.5 text-center text-slate-400 transition-all hover:border-slate-400 hover:text-white"
+                  className="mt-2 border border-[#222c37] bg-transparent px-5 py-2.5 text-center text-slate-400 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400 hover:text-white"
                 >
                   Analyze Repository
                 </button>
@@ -393,7 +393,7 @@ export default function HomePage() {
               </motion.a>
               <a
                 href="#architecture"
-                className="rounded-none border border-[#222c37] bg-[#11161b]/40 px-8 py-4 text-center text-xs font-light uppercase tracking-widest text-slate-300 transition-all hover:border-slate-400"
+                className="rounded-none border border-[#222c37] bg-[#11161b]/40 px-8 py-4 text-center text-xs font-light uppercase tracking-widest text-slate-300 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Explore Pipeline
@@ -403,7 +403,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main className="relative z-10">
+      <div className="relative z-10">
         <RevealSection id="architecture" className="mx-auto max-w-7xl px-6 py-32">
           <div className="grid items-center gap-12 lg:grid-cols-12">
             <div className="space-y-6 lg:col-span-5">
@@ -783,7 +783,7 @@ export default function HomePage() {
             </div>
           </div>
         </footer>
-      </main>
+      </div>
     </main>
   );
 }

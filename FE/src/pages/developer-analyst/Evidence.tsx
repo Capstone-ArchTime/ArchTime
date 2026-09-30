@@ -1,8 +1,8 @@
+import SampleDataNotice from '@/components/SampleDataNotice';
 import React, { useState, useCallback } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   Search,
-  ChevronDown,
   ArrowRight,
   Box,
   Layers,
@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
-import { useComingSoon } from '@/hooks/useComingSoon';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationBar from '@/components/PaginationBar';
 
@@ -87,12 +86,18 @@ const Evidence: React.FC = () => {
   const [selectedChange, setSelectedChange] = useState<typeof evidenceData[0] | null>(null);
   const closeDrawer = useCallback(() => setSelectedChange(null), []);
   const drawerRef = useFocusTrap(selectedChange !== null, closeDrawer);
-  const notifyComingSoon = useComingSoon();
-  const pagination = usePagination(evidenceData);
+  const [search, setSearch] = useState('');
+  const [type, setType] = useState('all');
+  const [repository, setRepository] = useState('all');
+  const filtered = evidenceData.filter(item =>
+    (type === 'all' || item.type === type) && (repository === 'all' || item.repository === repository) &&
+    [item.changeTitle, item.summary, item.commit].some(value => value.toLowerCase().includes(search.trim().toLowerCase())));
+  const pagination = usePagination(filtered, JSON.stringify([search, type, repository]));
 
   return (
     <DashboardLayout>
-      <div className="max-w-[1400px] mx-auto space-y-6 flex flex-col h-[calc(100vh-140px)] relative">
+      <div className="max-w-[1400px] mx-auto space-y-6 flex flex-col min-h-[calc(100dvh-140px)] relative">
+        <SampleDataNotice />
         
         {/* HEADER */}
         <div className="shrink-0 space-y-6">
@@ -113,54 +118,23 @@ const Evidence: React.FC = () => {
           {/* FILTER BAR */}
           <div className="flex flex-wrap items-center gap-3 bg-[#11161b] p-3 border border-[#222c37]">
             <div className="flex-1 relative min-w-[200px]">
-               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5f636b]" />
+               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
                <input
                  type="text"
                  aria-label="Search changes"
+                 value={search}
+                 onChange={event => setSearch(event.target.value)}
                  placeholder="Search changes..."
                  className="w-full bg-[#080b0e] border border-[#222c37] h-9 pl-9 pr-4 text-sm text-[#f4f4f6] placeholder-[#5f636b] focus:outline-none focus:border-[#38bdf8]/50 transition-colors"
                />
             </div>
             
-            <button
-              onClick={() => notifyComingSoon("Project filter")}
-              aria-haspopup="listbox"
-              className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
-              <span className="text-[10px] font-mono text-[#5f636b] uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Project</span>
-              <span className="text-xs font-bold text-[#f4f4f6]">All Projects</span>
-              <ChevronDown size={14} className="text-[#5f636b] group-hover:text-[#f4f4f6]" />
-            </button>
-
-            <button
-              onClick={() => notifyComingSoon("Type filter")}
-              aria-haspopup="listbox"
-              className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
-              <span className="text-[10px] font-mono text-[#5f636b] uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Type</span>
-              <span className="text-xs font-bold text-[#f4f4f6]">All Changes</span>
-              <ChevronDown size={14} className="text-[#5f636b] group-hover:text-[#f4f4f6]" />
-            </button>
-
-            <button
-              onClick={() => notifyComingSoon("Date filter")}
-              aria-haspopup="listbox"
-              className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
-              <span className="text-[10px] font-mono text-[#5f636b] uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Date</span>
-              <span className="text-xs font-bold text-[#f4f4f6]">All Time</span>
-              <ChevronDown size={14} className="text-[#5f636b] group-hover:text-[#f4f4f6]" />
-            </button>
-
-            <button
-              onClick={() => notifyComingSoon("Repository filter")}
-              aria-haspopup="listbox"
-              className="h-9 px-4 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] flex items-center gap-2 transition-colors group">
-              <span className="text-[10px] font-mono text-[#5f636b] uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository</span>
-              <span className="text-xs font-bold text-[#f4f4f6]">All Repositories</span>
-              <ChevronDown size={14} className="text-[#5f636b] group-hover:text-[#f4f4f6]" />
-            </button>
+            <select aria-label="Filter by change type" value={type} onChange={event => setType(event.target.value)} className="h-10 px-3 bg-[#080b0e] border border-[#222c37] text-sm">
+              <option value="all">All change types</option>{[...new Set(evidenceData.map(item => item.type))].map(value => <option key={value} value={value}>{value}</option>)}
+            </select>
+            <select aria-label="Filter by repository" value={repository} onChange={event => setRepository(event.target.value)} className="h-10 px-3 bg-[#080b0e] border border-[#222c37] text-sm">
+              <option value="all">All repositories</option>{[...new Set(evidenceData.map(item => item.repository))].map(value => <option key={value} value={value}>{value}</option>)}
+            </select>
           </div>
         </div>
 
@@ -170,23 +144,24 @@ const Evidence: React.FC = () => {
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
                 <tr className="border-b border-[#222c37] bg-[#161d24]">
-                  <th className="p-4 text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-wider"
+                  <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Change</th>
-                  <th className="p-4 text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-wider"
+                  <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Type</th>
-                  <th className="p-4 text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-wider"
+                  <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository</th>
-                  <th className="p-4 text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-wider"
+                  <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Commit</th>
-                  <th className="p-4 text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-wider"
+                  <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Files</th>
-                  <th className="p-4 text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-wider"
+                  <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Date</th>
-                  <th className="p-4 text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-wider text-right"
+                  <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider text-right"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#222c37]">
+                {!filtered.length && <tr><td colSpan={7} className="p-8 text-center text-sm text-[#94a3b8]" role="status">No changes match these filters.</td></tr>}
                 {pagination.items.map((item) => (
                   <tr 
                     key={item.id} 
@@ -216,7 +191,7 @@ const Evidence: React.FC = () => {
                            setSelectedChange(item);
                          }}
                          aria-label={`View evidence for ${item.changeTitle}`}
-                         className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-[#5f636b] group-hover:text-[#38bdf8] transition-colors uppercase focus:outline-none focus-visible:text-[#38bdf8]"
+                         className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-[#94a3b8] group-hover:text-[#38bdf8] transition-colors uppercase focus:outline-none focus-visible:text-[#38bdf8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                           View <ArrowRight size={14} />
                        </button>
@@ -288,7 +263,7 @@ const Evidence: React.FC = () => {
                   
                   {/* TRACEABILITY CHAIN */}
                   <div className="space-y-3">
-                    <h4 className="text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-widest flex items-center gap-2"
+                    <h4 className="text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-widest flex items-center gap-2"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                        <Link size={14} /> Traceability Chain
                     </h4>
@@ -346,18 +321,18 @@ const Evidence: React.FC = () => {
                   {/* EVIDENCE GRID */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                      <div className="bg-[#161d24] border border-[#222c37] p-4">
-                        <div className="text-[10px] font-mono text-[#5f636b] mb-2 uppercase"
+                        <div className="text-[10px] font-mono text-[#94a3b8] mb-2 uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Commit</div>
                         <div className="text-sm font-mono font-bold text-[#38bdf8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>{selectedChange.commit}</div>
                      </div>
                      <div className="bg-[#161d24] border border-[#222c37] p-4">
-                        <div className="text-[10px] font-mono text-[#5f636b] mb-2 uppercase"
+                        <div className="text-[10px] font-mono text-[#94a3b8] mb-2 uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Files</div>
                         <div className="text-sm font-bold text-[#f4f4f6]">{selectedChange.files} modified</div>
                      </div>
                      <div className="bg-[#161d24] border border-[#222c37] p-4">
-                        <div className="text-[10px] font-mono text-[#5f636b] mb-2 uppercase"
+                        <div className="text-[10px] font-mono text-[#94a3b8] mb-2 uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Dependencies</div>
                         <div className="text-sm font-bold font-mono"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -365,7 +340,7 @@ const Evidence: React.FC = () => {
                         </div>
                      </div>
                      <div className="bg-[#161d24] border border-[#222c37] p-4">
-                        <div className="text-[10px] font-mono text-[#5f636b] mb-2 uppercase"
+                        <div className="text-[10px] font-mono text-[#94a3b8] mb-2 uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Source</div>
                         <div className="text-[10px] font-mono text-[#f4f4f6] truncate"
             style={{ fontFamily: '"JetBrains Mono", monospace' }} title={selectedChange.sourceFiles.join(', ')}>
@@ -376,7 +351,7 @@ const Evidence: React.FC = () => {
 
                   {/* SOURCE DIFF */}
                   <div className="space-y-3">
-                    <h4 className="text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-widest flex items-center gap-2"
+                    <h4 className="text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-widest flex items-center gap-2"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                        <Code2 size={14} /> Source Diff
                     </h4>
@@ -412,7 +387,7 @@ const Evidence: React.FC = () => {
 
                   {/* ARCHITECTURE SUMMARY */}
                   <div className="space-y-3 pb-8">
-                     <h4 className="text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-widest flex items-center gap-2"
+                     <h4 className="text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-widest flex items-center gap-2"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                        <Box size={14} /> Architecture Interpretation
                      </h4>
@@ -420,10 +395,10 @@ const Evidence: React.FC = () => {
                         <div className="inline-flex items-center justify-center gap-4 text-sm font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                            <span className="px-3 py-1 bg-[#222c37] border border-[#5f636b]">Monolithic Node</span>
-                           <ArrowRight size={16} className="text-[#5f636b]" />
+                           <ArrowRight size={16} className="text-[#94a3b8]" />
                            <span className="px-3 py-1 bg-[#ffb03a]/20 text-[#ffb03a] border border-[#ffb03a]/50 font-bold">Decoupled Services</span>
                         </div>
-                        <p className="text-[10px] text-[#5f636b] mt-4 uppercase tracking-widest">
+                        <p className="text-[10px] text-[#94a3b8] mt-4 uppercase tracking-widest">
                            Detected structural change based on AST dependency drift
                         </p>
                      </div>

@@ -1,16 +1,17 @@
 ﻿import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { Alert, Select, Tag } from 'antd';
+import { Alert, App, Select, Tag } from 'antd';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { projects } from './workspace-store';
 
 export function WorkspacePage({ title, description, children }: { title: string; description: string; children: (project: string, onDirtyChange: (dirty: boolean) => void) => ReactNode }) {
   const [project, setProject] = useState(projects[0]);
   const [dirty, setDirty] = useState(false);
+  const { modal } = App.useApp();
   function changeProject(next: string) {
-    if (dirty && !window.confirm('Discard unsaved diagram changes and switch project?')) return;
-    setDirty(false);
-    setProject(next);
+    const proceed = () => { setDirty(false); setProject(next); };
+    if (!dirty) { proceed(); return; }
+    modal.confirm({ title: 'Switch project without saving?', content: 'The current diagram has unsaved changes.', okText: 'Discard and switch', cancelText: 'Keep editing', okButtonProps: { danger: true }, onOk: proceed });
   }
   return <DashboardLayout><div className="max-w-[1400px] mx-auto space-y-6">
     <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 border-b border-[#222c37] pb-6">

@@ -1,3 +1,4 @@
+import SampleDataNotice from '@/components/SampleDataNotice';
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Activity, Filter, XCircle, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
@@ -46,6 +47,7 @@ const MiningJobsMonitor: React.FC = () => {
   return (
     <DashboardLayout>
       <div className="max-w-[1100px] mx-auto space-y-8">
+        <SampleDataNotice />
 
         {/* HEADER */}
         <div>
@@ -53,19 +55,19 @@ const MiningJobsMonitor: React.FC = () => {
           <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
             Live status of Git mining and AST extraction jobs across the platform &mdash;{' '}
             <span className="text-[#38bdf8] font-semibold">{runningCount} running</span>,{' '}
-            <span className="text-[#5f636b] font-semibold">{queuedCount} queued</span>.
+            <span className="text-[#94a3b8] font-semibold">{queuedCount} queued</span>.
           </p>
           <div className="h-[1px] w-full bg-gradient-to-r from-[#222c37] to-transparent mt-8"></div>
         </div>
 
         {/* FILTERS */}
-        <div role="radiogroup" aria-label="Filter jobs by status" className="flex items-center gap-2 flex-wrap">
-          <Filter size={14} className="text-[#5f636b] mr-1" />
+        <div role="group" aria-label="Filter jobs by status" className="flex items-center gap-2 flex-wrap">
+          <Filter size={14} className="text-[#94a3b8] mr-1" />
           {filterOptions.map((opt) => (
             <button
               key={opt.key}
-              role="radio"
-              aria-checked={activeFilter === opt.key}
+              type="button"
+              aria-pressed={activeFilter === opt.key}
               onClick={() => setActiveFilter(opt.key)}
               className={`h-8 px-3 text-[10px] font-bold uppercase tracking-widest border transition-colors ${
                 activeFilter === opt.key
@@ -96,10 +98,10 @@ const MiningJobsMonitor: React.FC = () => {
                         <StatusIcon size={11} className={job.status === 'running' ? 'animate-spin motion-reduce:animate-none' : ''} />
                         {meta.label}
                       </span>
-                      <span className="text-[10px] text-[#5f636b]" style={{ fontFamily: fontFamily.mono }}>{job.id}</span>
+                      <span className="text-[10px] text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>{job.id}</span>
                     </div>
                     <h4 className="text-[#f4f4f6] font-bold text-sm mb-1" style={{ fontFamily: fontFamily.mono }}>{job.repo}</h4>
-                    <div className="text-xs text-[#5f636b]" style={{ fontFamily: fontFamily.mono }}>
+                    <div className="text-xs text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>
                       {job.stage} &middot; requested by {job.requestedBy} &middot; {job.startedAgo}
                     </div>
                   </div>
@@ -115,7 +117,7 @@ const MiningJobsMonitor: React.FC = () => {
                 {(job.status === 'running' || job.status === 'failed') && (
                   <div className="h-1.5 w-full bg-[#0b0f14] overflow-hidden">
                     <div
-                      className="h-full transition-all"
+                      className="h-full transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                       style={{ width: `${job.progress}%`, backgroundColor: meta.color }}
                     ></div>
                   </div>
@@ -124,7 +126,7 @@ const MiningJobsMonitor: React.FC = () => {
             );
           })}
           {filtered.length === 0 && (
-            <p className="text-sm text-[#5f636b]">No jobs match this filter.</p>
+            <p className="text-sm text-[#94a3b8]">No jobs match this filter.</p>
           )}
         </div>
 

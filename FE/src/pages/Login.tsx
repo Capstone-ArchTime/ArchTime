@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, User, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Icon } from '@iconify/react';
@@ -7,27 +7,9 @@ import { App } from 'antd';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/auth/auth-context';
 import { loginDestination } from '@/auth/permissions';
-import { API_BASE_URL } from '@/auth/session';
+import { authRequest } from '@/auth/requests';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-type AuthResponse = {
-  user?: { id: string; name: string; email: string; role: string };
-  accessToken?: string;
-  refreshToken?: string;
-  message?: string;
-};
-
-type ApiErrorResponse = { error?: string; message?: string };
-
-async function getApiError(response: Response): Promise<string> {
-  try {
-    const body = (await response.json()) as ApiErrorResponse;
-    return body.message ?? body.error ?? `Request failed (${response.status}).`;
-  } catch {
-    return `Request failed (${response.status}).`;
-  }
-}
 
 const fontFamily = {
   sans: '"Space Grotesk", sans-serif',
@@ -54,10 +36,10 @@ const AuthPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
-  // Reset states when switching mode
+  const activeRequest = useRef<AbortController | null>(null);
   useEffect(() => {
-    setFieldErrors({});
-    setIsLoading(false);
+    document.title = isRegister ? 'Create account ? ArchTime' : 'Sign in ? ArchTime';
+    return () => activeRequest.current?.abort();
   }, [isRegister]);
 
   const calculatePasswordStrength = (pass: string) => {
@@ -112,34 +94,30 @@ const AuthPage: React.FC = () => {
     setFieldErrors(errors);
 
     if (Object.keys(errors).length > 0) {
+      const field = Object.keys(errors)[0];
+      document.getElementById(field === 'confirmPassword' ? 'auth-confirm-password' : `auth-${field}`)?.focus();
       message.error(Object.values(errors)[0]);
       return;
     }
 
+    if (isLoading) return;
     setIsLoading(true);
+    const controller = new AbortController();
+    activeRequest.current = controller;
 
     try {
-      const endpoint = isRegister ? '/auth/register' : '/auth/login';
-      const body = isRegister
+      const endpoint = isRegister ? 'register' : 'login';
+      const body: Record<string, string> = isRegister
         ? { name: name.trim(), email: email.trim(), password, confirmPassword }
         : { email: email.trim(), password };
 
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        throw new Error(await getApiError(response));
-      }
-
-      const result = (await response.json()) as AuthResponse;
+      const result = await authRequest(endpoint, body, controller.signal);
 
       if (isRegister) {
         message.success(result.message ?? 'Account created. Check your email for the verification OTP.');
         setPassword('');
         setConfirmPassword('');
+        navigate('/verify-email', { state: { email: email.trim(), from: location.state?.from } });
       } else {
         if (!result.accessToken || !result.refreshToken) {
           throw new Error('Login response is missing authentication tokens.');
@@ -151,20 +129,21 @@ const AuthPage: React.FC = () => {
         navigate(loginDestination(user.role, requested), { replace: true });
       }
     } catch (error) {
+      if (controller.signal.aborted) return;
       message.error(error instanceof Error ? error.message : 'Unable to complete the request.');
     } finally {
-      setIsLoading(false);
+      if (!controller.signal.aborted) setIsLoading(false);
     }
   };
 
   return (
     <div
-      className="min-h-screen md:h-screen bg-[#080b0e] text-slate-200 flex flex-col md:flex-row md:overflow-hidden selection:bg-[#f59e0b] selection:text-[#080b0e]"
+      className="min-h-dvh bg-[#080b0e] text-slate-200 flex flex-col md:flex-row selection:bg-[#f59e0b] selection:text-[#080b0e]"
       style={{ fontFamily: fontFamily.sans }}
     >
 
       {/* Left Panel - Authentication */}
-      <div className="w-full md:w-[40%] flex flex-col relative z-10 bg-[#080b0e] border-b md:border-b-0 md:border-r border-[#222c37] shadow-2xl md:h-screen md:overflow-hidden">
+      <div className="w-full md:w-[40%] flex flex-col relative z-10 bg-[#080b0e] border-b md:border-b-0 md:border-r border-[#222c37] shadow-2xl min-h-dvh">
 
         <div className="flex-1 flex flex-col p-6 lg:p-10 xl:px-12 xl:py-8 max-w-xl w-full mx-auto justify-between">
 
@@ -217,6 +196,8 @@ const AuthPage: React.FC = () => {
                       <div className="relative group">
                         <input
                           id="auth-name"
+                          name="name"
+                          autoComplete="name"
                           type="text"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
@@ -241,7 +222,10 @@ const AuthPage: React.FC = () => {
                     <div className="relative group">
                       <input
                         id="auth-email"
+                          name="email"
+                          autoComplete="email"
                         type="email"
+                        spellCheck={false}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         disabled={isLoading}
@@ -277,6 +261,8 @@ const AuthPage: React.FC = () => {
                     <div className="relative group">
                       <input
                         id="auth-password"
+                          name="password"
+                          autoComplete={isRegister ? 'new-password' : 'current-password'}
                         type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -325,6 +311,8 @@ const AuthPage: React.FC = () => {
                       <div className="relative group">
                         <input
                           id="auth-confirm-password"
+                          name="confirmPassword"
+                          autoComplete="new-password"
                           type={showPassword ? "text" : "password"}
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
@@ -368,6 +356,7 @@ const AuthPage: React.FC = () => {
                     )}
                   </button>
                 </form>
+                {!isRegister && <Link to="/verify-email" state={{ email: email.trim(), from: location.state?.from }} className="block mt-4 text-center text-xs text-[#38bdf8]">Have a verification code? Activate your account</Link>}
 
                 <div className="flex items-center gap-4 my-6 opacity-70">
                   <div className="h-[1px] flex-1 bg-[#222c37]"></div>

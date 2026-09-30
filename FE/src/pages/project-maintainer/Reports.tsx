@@ -1,3 +1,4 @@
+import SampleDataNotice from '@/components/SampleDataNotice';
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { FileText, Download, Calendar, FolderKanban, ChevronDown } from 'lucide-react';
@@ -25,6 +26,7 @@ const Reports: React.FC = () => {
   return (
     <DashboardLayout>
       <div className="max-w-[1100px] mx-auto space-y-10">
+        <SampleDataNotice />
 
         {/* HEADER */}
         <div>
@@ -43,7 +45,7 @@ const Reports: React.FC = () => {
             <div>
               <label htmlFor="export-project" className="text-[10px] text-[#94a3b8] uppercase tracking-widest block mb-2" style={{ fontFamily: fontFamily.mono }}>Project</label>
               <div className="relative">
-                <FolderKanban size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5f636b]" />
+                <FolderKanban size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
                 <select
                   id="export-project"
                   value={selectedProject}
@@ -54,7 +56,7 @@ const Reports: React.FC = () => {
                     <option key={p} value={p}>{p}</option>
                   ))}
                 </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5f636b] pointer-events-none" />
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] pointer-events-none" />
               </div>
             </div>
 
@@ -62,7 +64,7 @@ const Reports: React.FC = () => {
               <div>
                 <label htmlFor="from-revision" className="text-[10px] text-[#94a3b8] uppercase tracking-widest block mb-2" style={{ fontFamily: fontFamily.mono }}>From Revision</label>
                 <div className="relative">
-                  <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5f636b]" />
+                  <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
                   <input
                     id="from-revision"
                     type="text"
@@ -75,7 +77,7 @@ const Reports: React.FC = () => {
               <div>
                 <label htmlFor="to-revision" className="text-[10px] text-[#94a3b8] uppercase tracking-widest block mb-2" style={{ fontFamily: fontFamily.mono }}>To Revision</label>
                 <div className="relative">
-                  <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5f636b]" />
+                  <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
                   <input
                     id="to-revision"
                     type="text"
@@ -130,7 +132,7 @@ const Reports: React.FC = () => {
                     </td>
                     <td className="px-5 py-4 text-[#94a3b8] text-xs">{report.project}</td>
                     <td className="px-5 py-4 text-[#94a3b8] text-xs" style={{ fontFamily: fontFamily.mono }}>{report.range}</td>
-                    <td className="px-5 py-4 text-[#5f636b] text-xs" style={{ fontFamily: fontFamily.mono }}>{report.exportedAgo} &middot; {report.size}</td>
+                    <td className="px-5 py-4 text-[#94a3b8] text-xs" style={{ fontFamily: fontFamily.mono }}>{report.exportedAgo} &middot; {report.size}</td>
                     <td className="px-5 py-4 text-right">
                       <button
                         onClick={() => notifyComingSoon(`Download of ${report.name}`)}
