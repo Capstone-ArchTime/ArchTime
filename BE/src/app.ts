@@ -5,8 +5,9 @@ import { notFoundHandler } from "./presentation/middlewares/notFoundHandler.js";
 import { errorHandler } from "./presentation/middlewares/errorHandler.js";
 import healthRouter from "./presentation/routes/health.routes.js";
 import { createAuthRouter } from "./presentation/routes/auth.routes.js";
+import { createProjectRouter } from "./presentation/routes/project.routes.js";
 import { setupSwagger } from "./presentation/swagger/swagger.js";
-import { authController, jwtTokenService } from "./container.js";
+import { authController, projectController, jwtTokenService } from "./container.js";
 
 export const app = express();
 
@@ -20,6 +21,7 @@ setupSwagger(app);
 // ── Routes ──
 app.use("/api/health", healthRouter);
 app.use("/api/auth", createAuthRouter(authController, jwtTokenService));
+app.use("/api/projects", createProjectRouter(projectController, jwtTokenService));
 
 // ── Error Handling ──
 app.use(notFoundHandler);

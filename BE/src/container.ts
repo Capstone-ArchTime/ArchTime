@@ -3,6 +3,7 @@ import { env } from "./config/env.js";
 // ── Infrastructure ──
 import { MongoUserRepository } from "./infrastructure/repositories/MongoUserRepository.js";
 import { MongoOtpRepository } from "./infrastructure/repositories/MongoOtpRepository.js";
+import { MongoProjectRepository } from "./infrastructure/repositories/MongoProjectRepository.js";
 import { BcryptHasher } from "./infrastructure/services/BcryptHasher.js";
 import { JwtTokenService } from "./infrastructure/services/JwtTokenService.js";
 import { NodemailerEmailService } from "./infrastructure/services/NodemailerEmailService.js";
@@ -14,15 +15,20 @@ import { ResendOtpUseCase } from "./application/use-cases/ResendOtpUseCase.js";
 import { LoginUseCase } from "./application/use-cases/LoginUseCase.js";
 import { RefreshTokenUseCase } from "./application/use-cases/RefreshTokenUseCase.js";
 import { GetCurrentUserUseCase } from "./application/use-cases/GetCurrentUserUseCase.js";
+import { RegisterProjectUseCase } from "./application/use-cases/projects/RegisterProjectUseCase.js";
+import { GetAllProjectsUseCase } from "./application/use-cases/projects/GetAllProjectsUseCase.js";
+import { DeleteProjectUseCase } from "./application/use-cases/projects/DeleteProjectUseCase.js";
 
 // ── Presentation ──
 import { AuthController } from "./presentation/controllers/AuthController.js";
+import { ProjectController } from "./presentation/controllers/ProjectController.js";
 
 // ─────────────────────────────────────────
 // Infrastructure instances
 // ─────────────────────────────────────────
 const userRepository = new MongoUserRepository();
 const otpRepository = new MongoOtpRepository();
+const projectRepository = new MongoProjectRepository();
 const bcryptHasher = new BcryptHasher();
 const jwtTokenService = new JwtTokenService(
   env.jwtSecret,
@@ -66,6 +72,9 @@ const refreshTokenUseCase = new RefreshTokenUseCase(
   jwtTokenService,
 );
 const getCurrentUserUseCase = new GetCurrentUserUseCase(userRepository);
+const registerProjectUseCase = new RegisterProjectUseCase(projectRepository);
+const getAllProjectsUseCase = new GetAllProjectsUseCase(projectRepository);
+const deleteProjectUseCase = new DeleteProjectUseCase(projectRepository);
 
 // ─────────────────────────────────────────
 // Controllers
@@ -77,6 +86,12 @@ export const authController = new AuthController(
   loginUseCase,
   refreshTokenUseCase,
   getCurrentUserUseCase,
+);
+
+export const projectController = new ProjectController(
+  registerProjectUseCase,
+  getAllProjectsUseCase,
+  deleteProjectUseCase,
 );
 
 export { jwtTokenService };
