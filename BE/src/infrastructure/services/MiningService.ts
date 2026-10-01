@@ -5,6 +5,7 @@ import ts from 'typescript';
 import { ProjectModel } from '../database/models/ProjectModel.js';
 import { MiningJobModel, JobStatus } from '../database/models/MiningJobModel.js';
 import { SnapshotModel } from '../database/models/SnapshotModel.js';
+import { EvidenceModel } from '../database/models/EvidenceModel.js';
 
 export class MiningService {
   public static async startMiningJob(projectId: string, userId: string): Promise<string> {
@@ -70,8 +71,9 @@ export class MiningService {
       // If no remote branches found (e.g. local only), default to main/master
       if (branches.length === 0) branches.push('main');
 
-      // Delete existing snapshots for this project
+      // Delete existing snapshots and evidences for this project
       await SnapshotModel.deleteMany({ projectId: project._id });
+      await EvidenceModel.deleteMany({ projectId: project._id });
 
       let progress = 30;
       const progressPerBranch = 60 / Math.max(branches.length, 1);
@@ -137,6 +139,37 @@ export class MiningService {
             nodes,
             edges
           });
+
+          if (archChanges > 0 && i > 0) {
+            let patch = '';
+            let fileStats = '';
+            try {
+              patch = await git.show([commit.hash, '--patch']);
+              fileStats = await git.show([commit.hash, '--name-only', '--format=']);
+            } catch (e) {}
+
+            const actualFiles = fileStats.split('\n').map(f => f.trim()).filter(f => f.length > 0);
+
+            let type = 'DEPENDENCY CHANGE';
+            if (nodes.length > prevNodes.length) type = 'MODULE EXTRACTION';
+            if (nodes.length < prevNodes.length) type = 'MODULE REMOVAL';
+
+            await EvidenceModel.create({
+              projectId: project._id,
+              changeTitle: commit.message.split('\n')[0] || 'Architectural Change',
+              type,
+              repository: project.name || 'repository',
+              commit: shortHash,
+              files: actualFiles.length,
+              date: new Date(commit.date),
+              summary: `Detected structural change: ${depAdded} dependencies added, ${depRemoved} dependencies removed.`,
+              depsAdded: depAdded,
+              depsRemoved: depRemoved,
+              sourceFiles: actualFiles,
+              diffBefore: patch, // store full patch
+              diffAfter: ''
+            });
+          }
 
           prevNodes = nodes;
           prevEdges = edges;

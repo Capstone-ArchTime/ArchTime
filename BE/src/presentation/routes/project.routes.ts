@@ -18,6 +18,8 @@ export function createProjectRouter(
   router.delete("/:id", projectController.deleteProject);
   router.post("/:id/mine", projectController.mineProject);
   router.get("/:id/snapshots", projectController.getSnapshots);
+  router.get("/:id/snapshots/compare", projectController.compareSnapshots);
+  router.get("/:id/evidences", projectController.getEvidences);
 
   return router;
 }

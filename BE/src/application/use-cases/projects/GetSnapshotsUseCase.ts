@@ -2,6 +2,11 @@ import { SnapshotModel } from "../../../infrastructure/database/models/SnapshotM
 
 export class GetSnapshotsUseCase {
   public async execute(projectId: string): Promise<any[]> {
-    return await SnapshotModel.find({ projectId }).sort({ date: -1 }).lean();
+    const snapshots = await SnapshotModel.find({ projectId }).sort({ date: -1 }).lean();
+    return snapshots.map(s => ({
+      ...s,
+      id: s._id.toString(),
+      _id: undefined
+    }));
   }
 }

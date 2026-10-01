@@ -16,11 +16,13 @@ import { LoginUseCase } from "./application/use-cases/LoginUseCase.js";
 import { RefreshTokenUseCase } from "./application/use-cases/RefreshTokenUseCase.js";
 import { GetCurrentUserUseCase } from "./application/use-cases/GetCurrentUserUseCase.js";
 import { RegisterProjectUseCase } from "./application/use-cases/projects/RegisterProjectUseCase.js";
+import { CompareSnapshotsUseCase } from "./application/use-cases/projects/CompareSnapshotsUseCase.js";
 import { GetAllProjectsUseCase } from "./application/use-cases/projects/GetAllProjectsUseCase.js";
 import { DeleteProjectUseCase } from "./application/use-cases/projects/DeleteProjectUseCase.js";
 import { MineProjectUseCase } from "./application/use-cases/projects/MineProjectUseCase.js";
 import { GetSnapshotsUseCase } from "./application/use-cases/projects/GetSnapshotsUseCase.js";
 import { GetMiningJobsUseCase } from "./application/use-cases/projects/GetMiningJobsUseCase.js";
+import { GetEvidencesUseCase } from "./application/use-cases/projects/GetEvidencesUseCase.js";
 
 // ── Presentation ──
 import { AuthController } from "./presentation/controllers/AuthController.js";
@@ -81,6 +83,8 @@ const deleteProjectUseCase = new DeleteProjectUseCase(projectRepository);
 const mineProjectUseCase = new MineProjectUseCase();
 const getSnapshotsUseCase = new GetSnapshotsUseCase();
 const getMiningJobsUseCase = new GetMiningJobsUseCase();
+const compareSnapshotsUseCase = new CompareSnapshotsUseCase();
+const getEvidencesUseCase = new GetEvidencesUseCase();
 
 // ─────────────────────────────────────────
 // Controllers
@@ -101,6 +105,8 @@ export const projectController = new ProjectController(
   mineProjectUseCase,
   getSnapshotsUseCase,
   getMiningJobsUseCase,
+  compareSnapshotsUseCase,
+  getEvidencesUseCase,
 );
 
 export { jwtTokenService };

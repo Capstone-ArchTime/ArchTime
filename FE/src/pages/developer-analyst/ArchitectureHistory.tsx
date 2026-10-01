@@ -96,7 +96,7 @@ const ArchitectureHistory: React.FC = () => {
               depRemoved: s.depRemoved,
               nodes: s.nodes || [],
               edges: s.edges || []
-            }));
+            })).reverse();
             
             setAllCommits(fetchedCommits);
             

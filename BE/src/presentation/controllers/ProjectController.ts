@@ -5,6 +5,8 @@ import type { DeleteProjectUseCase } from "../../application/use-cases/projects/
 import type { MineProjectUseCase } from "../../application/use-cases/projects/MineProjectUseCase.js";
 import type { GetSnapshotsUseCase } from "../../application/use-cases/projects/GetSnapshotsUseCase.js";
 import type { GetMiningJobsUseCase } from "../../application/use-cases/projects/GetMiningJobsUseCase.js";
+import type { CompareSnapshotsUseCase } from "../../application/use-cases/projects/CompareSnapshotsUseCase.js";
+import type { GetEvidencesUseCase } from "../../application/use-cases/projects/GetEvidencesUseCase.js";
 
 export class ProjectController {
   constructor(
@@ -14,6 +16,8 @@ export class ProjectController {
     private readonly mineProjectUseCase: MineProjectUseCase,
     private readonly getSnapshotsUseCase: GetSnapshotsUseCase,
     private readonly getMiningJobsUseCase: GetMiningJobsUseCase,
+    private readonly compareSnapshotsUseCase: CompareSnapshotsUseCase,
+    private readonly getEvidencesUseCase: GetEvidencesUseCase,
   ) {}
 
   public registerProject = async (
@@ -140,6 +144,37 @@ export class ProjectController {
     try {
       const jobs = await this.getMiningJobsUseCase.execute();
       res.status(200).json({ success: true, data: { jobs } });
+    } catch (error: any) {
+      next(error);
+    }
+  };
+
+  public compareSnapshots = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const { baseId, targetId } = req.query;
+      if (!baseId || !targetId || typeof baseId !== 'string' || typeof targetId !== 'string') {
+        res.status(400).json({ success: false, message: "Missing baseId or targetId query parameters" });
+        return;
+      }
+      const result = await this.compareSnapshotsUseCase.execute(baseId, targetId);
+      res.status(200).json({ success: true, data: result });
+    } catch (error: any) {
+      next(error);
+    }
+  };
+  public getEvidences = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const evidences = await this.getEvidencesUseCase.execute(id);
+      res.status(200).json({ success: true, data: { evidences } });
     } catch (error: any) {
       next(error);
     }
