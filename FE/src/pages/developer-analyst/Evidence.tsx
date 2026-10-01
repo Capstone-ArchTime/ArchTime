@@ -91,6 +91,15 @@ const Evidence: React.FC = () => {
             diffBefore: e.diffBefore || '// No diff recorded',
           }));
           setEvidenceData(formatted);
+
+          const searchParams = new URLSearchParams(location.search);
+          const commitQuery = searchParams.get('commit');
+          if (commitQuery) {
+            const foundEvidence = formatted.find((e: any) => e.commit === commitQuery);
+            if (foundEvidence) {
+              setSelectedChange(foundEvidence);
+            }
+          }
         } else {
            setEvidenceData([]);
         }

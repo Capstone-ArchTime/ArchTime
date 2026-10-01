@@ -525,7 +525,7 @@ const ArchitectureHistory: React.FC = () => {
 
               {/* Action Button */}
               <div className="p-5 border-t border-[#222c37] bg-[#080b0e]">
-                <Link to="/evidence" className="w-full h-10 bg-[#ffb03a]/10 hover:bg-[#ffb03a]/20 border border-[#ffb03a]/50 text-[#ffb03a] font-bold text-xs transition-colors flex items-center justify-center gap-2">
+                <Link to={`/evidence?projectId=${selectedProjectId || ''}&commit=${currentCommit?.hash || ''}`} className="w-full h-10 bg-[#ffb03a]/10 hover:bg-[#ffb03a]/20 border border-[#ffb03a]/50 text-[#ffb03a] font-bold text-xs transition-colors flex items-center justify-center gap-2">
                   <GitMerge size={16} />
                   VIEW EVIDENCE
                 </Link>
