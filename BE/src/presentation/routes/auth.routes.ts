@@ -227,5 +227,49 @@ export function createAuthRouter(
    */
   router.get("/me", authenticate, authController.me);
 
+  /**
+   * @swagger
+   * /api/auth/forgot-password:
+   *   post:
+   *     tags: [Auth]
+   *     summary: Email a single-use reset code valid for 10 minutes
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [email]
+   *             properties:
+   *               email: { type: string, format: email }
+   *     responses:
+   *       200:
+   *         description: Generic response; at most one email per account per minute
+   *       400:
+   *         description: Invalid email
+   * /api/auth/reset-password:
+   *   post:
+   *     tags: [Auth]
+   *     summary: Reset password and revoke existing sessions
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [email, token, password, confirmPassword]
+   *             properties:
+   *               email: { type: string, format: email }
+   *               token: { type: string, minLength: 32, maxLength: 32 }
+   *               password: { type: string, minLength: 8, maxLength: 72 }
+   *               confirmPassword: { type: string }
+   *     responses:
+   *       200:
+   *         description: Password updated; sign in again
+   *       400:
+   *         description: Invalid fields or invalid, expired, or used code
+   */
+  router.post("/forgot-password", authController.forgotPassword);
+  router.post("/reset-password", authController.resetPassword);
   return router;
 }

@@ -1,5 +1,8 @@
 import { Icon } from "@iconify/react";
-import { App } from "antd";
+import { App, Dropdown } from "antd";
+import { UserRound } from "lucide-react";
+import { useAuth } from "@/auth/auth-context";
+import { roleHome } from "@/auth/permissions";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -115,6 +118,7 @@ function RevealSection({
 }
 
 export default function HomePage() {
+  const { user, loading: authLoading, signOut } = useAuth();
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
   const [navScrolled, setNavScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -237,6 +241,29 @@ export default function HomePage() {
             >
               EVIDENCE // VERIFIED
             </span>
+            {authLoading ? (
+              <span role="status" aria-label="Loading account" className="h-10 w-10 animate-pulse rounded-full border border-[#222c37] bg-[#11161b] motion-reduce:animate-none" />
+            ) : user ? (
+              <Dropdown
+                trigger={['click']}
+                placement="bottomRight"
+                menu={{ items: [
+                  { key: 'identity', label: <div className="max-w-60 py-1 normal-case"><p className="truncate font-semibold">{user.name}</p><p className="truncate text-xs text-slate-400">{user.email}</p></div>, disabled: true },
+                  { type: 'divider' },
+                  { key: 'dashboard', label: <Link to={roleHome[user.role]} onClick={() => setMobileMenuOpen(false)}>Dashboard</Link> },
+                  { key: 'logout', label: 'Sign out', onClick: () => { setMobileMenuOpen(false); signOut(); } },
+                ] }}
+              >
+                <button
+                  type="button"
+                  aria-label={`Open account menu for ${user.name}`}
+                  title={user.name}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-[#38bdf8]/40 bg-[#11161b] text-[#38bdf8] transition-colors hover:border-[#00f0ff] hover:text-[#00f0ff] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#38bdf8]"
+                >
+                  <UserRound size={20} aria-hidden="true" />
+                </button>
+              </Dropdown>
+            ) : (<>
             <Link
               to="/login"
               className="hidden text-xs uppercase tracking-widest text-slate-300 transition-colors hover:text-white md:inline-block"
@@ -251,6 +278,7 @@ export default function HomePage() {
             >
               Sign Up
             </Link>
+            </>)}
             <button
               onClick={() => setMobileMenuOpen((v) => !v)}
               aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
@@ -305,6 +333,7 @@ export default function HomePage() {
                 >
                   Evidence
                 </a>
+                {!authLoading && !user && (<>
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
@@ -319,6 +348,7 @@ export default function HomePage() {
                 >
                   Sign Up
                 </Link>
+                </>)}
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);

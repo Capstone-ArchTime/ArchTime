@@ -4,12 +4,14 @@ import { UnauthorizedError } from "../../shared/errors/AppError.js";
 
 interface AccessTokenPayload {
   sub: string;
+  version?: number;
   role: string;
   type: "access";
 }
 
 interface RefreshTokenPayload {
   sub: string;
+  version?: number;
   type: "refresh";
 }
 
@@ -31,42 +33,42 @@ export class JwtTokenService implements IAuthService {
     throw new Error("Use BcryptHasher for password comparison");
   }
 
-  generateTokens(userId: string, role: string): ITokenPair {
+  generateTokens(userId: string, role: string, version = 0): ITokenPair {
     return {
-      accessToken: this.generateAccessToken(userId, role),
-      refreshToken: this.signRefreshToken(userId),
+      accessToken: this.generateAccessToken(userId, role, version),
+      refreshToken: this.signRefreshToken(userId, version),
     };
   }
 
-  generateAccessToken(userId: string, role: string): string {
-    const payload: AccessTokenPayload = { sub: userId, role, type: "access" };
+  generateAccessToken(userId: string, role: string, version = 0): string {
+    const payload: AccessTokenPayload = { sub: userId, role, type: "access", version };
     return jwt.sign(payload, this.secret, {
       expiresIn: this.accessExpiresIn as jwt.SignOptions["expiresIn"],
     });
   }
 
-  private signRefreshToken(userId: string): string {
-    const payload: RefreshTokenPayload = { sub: userId, type: "refresh" };
+  private signRefreshToken(userId: string, version = 0): string {
+    const payload: RefreshTokenPayload = { sub: userId, type: "refresh", version };
     return jwt.sign(payload, this.secret, {
       expiresIn: this.refreshExpiresIn as jwt.SignOptions["expiresIn"],
     });
   }
 
-  verifyAccessToken(token: string): { userId: string; role: string } {
+  verifyAccessToken(token: string): { userId: string; role: string; version: number } {
     try {
       const payload = jwt.verify(token, this.secret) as AccessTokenPayload;
       if (payload.type !== "access") throw new UnauthorizedError("Invalid token type");
-      return { userId: payload.sub, role: payload.role };
+      return { userId: payload.sub, role: payload.role, version: payload.version ?? 0 };
     } catch {
       throw new UnauthorizedError("Invalid or expired access token");
     }
   }
 
-  verifyRefreshToken(token: string): { userId: string } {
+  verifyRefreshToken(token: string): { userId: string; version: number } {
     try {
       const payload = jwt.verify(token, this.secret) as RefreshTokenPayload;
       if (payload.type !== "refresh") throw new UnauthorizedError("Invalid token type");
-      return { userId: payload.sub };
+      return { userId: payload.sub, version: payload.version ?? 0 };
     } catch {
       throw new UnauthorizedError("Invalid or expired refresh token");
     }

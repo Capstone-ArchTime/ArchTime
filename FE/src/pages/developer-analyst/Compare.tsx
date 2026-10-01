@@ -1,3 +1,4 @@
+import { readTokens } from '@/auth/session';
 import SampleDataNotice from '@/components/SampleDataNotice';
 import { Link, useLocation } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
@@ -29,7 +30,7 @@ const Compare: React.FC = () => {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const token = localStorage.getItem('accessToken');
+        const token = readTokens().accessToken;
         const res = await fetch(`${API_BASE_URL}/projects`, { headers: { Authorization: `Bearer ${token}` } });
         if (res.ok) {
           const data = await res.json();
@@ -55,7 +56,7 @@ const Compare: React.FC = () => {
     if (!selectedProjectId) return;
     const fetchSnapshots = async () => {
       try {
-        const token = localStorage.getItem('accessToken');
+        const token = readTokens().accessToken;
         const res = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}/snapshots`, { headers: { Authorization: `Bearer ${token}` } });
         if (res.ok) {
           const data = await res.json();
@@ -86,7 +87,7 @@ const Compare: React.FC = () => {
     }
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
+      const token = readTokens().accessToken;
       const res = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}/snapshots/compare?baseId=${baseId}&targetId=${targetId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });

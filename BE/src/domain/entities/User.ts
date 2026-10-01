@@ -11,6 +11,7 @@ export interface IUser {
   passwordHash: string;
   role: UserRole;
   isVerified: boolean;
+  tokenVersion?: number;
   createdAt: Date;
   updatedAt: Date;
 }

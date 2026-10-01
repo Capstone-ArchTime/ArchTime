@@ -7,6 +7,8 @@ import type { RefreshTokenUseCase } from "../../application/use-cases/RefreshTok
 import type { GetCurrentUserUseCase } from "../../application/use-cases/GetCurrentUserUseCase.js";
 import { BadRequestError } from "../../shared/errors/AppError.js";
 
+import type { PasswordResetUseCase } from "../../application/use-cases/PasswordResetUseCase.js";
+
 export class AuthController {
   constructor(
     private readonly registerUC: RegisterUseCase,
@@ -15,8 +17,15 @@ export class AuthController {
     private readonly loginUC: LoginUseCase,
     private readonly refreshUC: RefreshTokenUseCase,
     private readonly getMeUC: GetCurrentUserUseCase,
+    private readonly passwordResetUC: PasswordResetUseCase,
   ) {}
 
+  forgotPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try { res.json(await this.passwordResetUC.request(req.body ?? {})); } catch (err) { next(err); }
+  };
+  resetPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try { res.json(await this.passwordResetUC.reset(req.body ?? {})); } catch (err) { next(err); }
+  };
   register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { name, email, password, confirmPassword } = req.body as {

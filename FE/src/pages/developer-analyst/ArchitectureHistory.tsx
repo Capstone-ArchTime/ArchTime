@@ -1,3 +1,4 @@
+import { readTokens } from '@/auth/session';
 import SampleDataNotice from '@/components/SampleDataNotice';
 import { Link } from 'react-router-dom';
 import React, { useState } from 'react';
@@ -55,7 +56,7 @@ const ArchitectureHistory: React.FC = () => {
   React.useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const token = localStorage.getItem('accessToken');
+        const token = readTokens().accessToken;
         const res = await fetch(`${API_BASE_URL}/projects`, { headers: { Authorization: `Bearer ${token}` }});
         if (res.ok) {
           const data = await res.json();
@@ -76,7 +77,7 @@ const ArchitectureHistory: React.FC = () => {
     if (!selectedProjectId) return;
     const fetchSnapshots = async () => {
       try {
-        const token = localStorage.getItem('accessToken');
+        const token = readTokens().accessToken;
         const snapRes = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}/snapshots`, {
           headers: { Authorization: `Bearer ${token}` }
         });

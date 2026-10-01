@@ -1,3 +1,4 @@
+import { readTokens } from '@/auth/session';
 import SampleDataNotice from '@/components/SampleDataNotice';
 import React, { useState, useCallback, useEffect } from 'react';
 import { API_BASE_URL } from '@/auth/session';
@@ -99,7 +100,7 @@ const Projects: React.FC = () => {
 
   const fetchProjects = async () => {
     try {
-      const token = localStorage.getItem('accessToken');
+      const token = readTokens().accessToken;
       if (!token) return;
       
       const response = await fetch(`${API_BASE_URL}/projects`, {
@@ -157,7 +158,7 @@ const Projects: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+          Authorization: `Bearer ${readTokens().accessToken}`
         },
         body: JSON.stringify({
           name: projectName,
@@ -175,7 +176,7 @@ const Projects: React.FC = () => {
         // Trigger mining
         await fetch(`${API_BASE_URL}/projects/${projectId}/mine`, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
+          headers: { Authorization: `Bearer ${readTokens().accessToken}` }
         });
 
         message.success('Repository successfully registered and queued for analysis.');
@@ -208,7 +209,7 @@ const Projects: React.FC = () => {
       const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
         method: 'DELETE',
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+          Authorization: `Bearer ${readTokens().accessToken}`
         }
       });
       if (response.ok) {

@@ -40,7 +40,7 @@ export class LoginUseCase {
       );
     }
 
-    const tokens = this.jwtService.generateTokens(user.id, user.role);
+    const tokens = this.jwtService.generateTokens(user.id, user.role, user.tokenVersion ?? 0);
     const { passwordHash: _ph, ...safeUser } = user;
     return { user: safeUser, tokens };
   }

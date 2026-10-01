@@ -9,6 +9,7 @@ import { JwtTokenService } from "./infrastructure/services/JwtTokenService.js";
 import { NodemailerEmailService } from "./infrastructure/services/NodemailerEmailService.js";
 
 // ── Application ──
+import { PasswordResetUseCase } from "./application/use-cases/PasswordResetUseCase.js";
 import { RegisterUseCase } from "./application/use-cases/RegisterUseCase.js";
 import { VerifyEmailUseCase } from "./application/use-cases/VerifyEmailUseCase.js";
 import { ResendOtpUseCase } from "./application/use-cases/ResendOtpUseCase.js";
@@ -96,6 +97,7 @@ export const authController = new AuthController(
   loginUseCase,
   refreshTokenUseCase,
   getCurrentUserUseCase,
+  new PasswordResetUseCase(userRepository, emailService, bcryptHasher),
 );
 
 export const projectController = new ProjectController(

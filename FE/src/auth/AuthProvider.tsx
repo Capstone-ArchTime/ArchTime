@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { AuthContext } from './auth-context';
 import type { AuthUser } from './permissions';
-import { clearTokens, InvalidSessionError, verifySession } from './session';
+import { clearTokens, readTokens, saveTokens, tokenStorage, InvalidSessionError, verifySession } from './session';
 import type { Tokens } from './session';
 
 export default function AuthProvider({ children }: { children: ReactNode }) {
@@ -17,7 +17,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     active.current?.abort();
     try { clearTokens(); } finally { setUser(null); setError(null); setLoading(false); }
   }
-  async function signIn(tokens: Tokens) {
+  async function signIn(tokens: Tokens, rememberMe = false) {
     signingIn.current = true;
     active.current?.abort();
     const controller = new AbortController();
@@ -26,8 +26,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       const verified = await verifySession(tokens, controller.signal);
       controller.signal.throwIfAborted();
       try {
-        localStorage.setItem('refreshToken', tokens.refreshToken);
-        localStorage.setItem('accessToken', verified.accessToken);
+        saveTokens({ ...tokens, accessToken: verified.accessToken }, rememberMe);
       } catch { clearTokens(); throw new Error('Browser storage is unavailable. Enable it to sign in.'); }
       setUser(verified.user); setError(null); setLoading(false);
       return verified.user;
@@ -43,12 +42,11 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       running = controller;
       active.current?.abort(); active.current = controller;
       try {
-        const accessToken = localStorage.getItem('accessToken');
-        const refreshToken = localStorage.getItem('refreshToken') ?? '';
+        const { accessToken, refreshToken } = readTokens();
         if (!accessToken && !refreshToken) { setUser(null); setError(null); return; }
         const verified = await verifySession({ accessToken: accessToken ?? '', refreshToken }, controller.signal);
         controller.signal.throwIfAborted();
-        localStorage.setItem('accessToken', verified.accessToken);
+        tokenStorage().setItem('accessToken', verified.accessToken);
         setUser(verified.user); setError(null);
       } catch (cause) {
         if (controller.signal.aborted) return;
@@ -64,6 +62,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     const interval = window.setInterval(() => { void restore(); }, 60_000);
     const onFocus = () => { void restore(); };
     const onStorage = (event: StorageEvent) => {
+      if (sessionStorage.getItem('refreshToken')) return;
       if (event.key === null || event.key === 'accessToken' || event.key === 'refreshToken') {
         active.current?.abort();
         signingIn.current = false;

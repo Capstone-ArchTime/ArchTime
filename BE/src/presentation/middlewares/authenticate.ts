@@ -2,8 +2,11 @@ import type { Request, Response, NextFunction } from "express";
 import type { JwtTokenService } from "../../infrastructure/services/JwtTokenService.js";
 import { UnauthorizedError } from "../../shared/errors/AppError.js";
 
+import { MongoUserRepository } from "../../infrastructure/repositories/MongoUserRepository.js";
+
 export function createAuthenticateMiddleware(jwtService: JwtTokenService) {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  const users = new MongoUserRepository();
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader?.startsWith("Bearer ")) {
@@ -15,6 +18,8 @@ export function createAuthenticateMiddleware(jwtService: JwtTokenService) {
 
     try {
       const payload = jwtService.verifyAccessToken(token);
+      const user = await users.findById(payload.userId);
+      if (!user || !user.isVerified || (user.tokenVersion ?? 0) !== payload.version) throw new UnauthorizedError("Session revoked.");
       req.user = { userId: payload.userId, role: payload.role as import("../../domain/entities/User.js").UserRole };
       next();
     } catch {

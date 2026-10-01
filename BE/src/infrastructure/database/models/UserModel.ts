@@ -1,7 +1,11 @@
 import mongoose, { type Document, type Model, Schema } from "mongoose";
 import { UserRole, type IUser } from "../../../domain/entities/User.js";
 
-export interface IUserDocument extends Omit<IUser, "id">, Document {}
+export interface IUserDocument extends Omit<IUser, "id">, Document {
+  resetTokenHash?: string;
+  resetExpiresAt?: Date;
+  resetRequestedAt?: Date;
+}
 
 const UserSchema = new Schema<IUserDocument>(
   {
@@ -19,6 +23,10 @@ const UserSchema = new Schema<IUserDocument>(
       enum: Object.values(UserRole),
       default: UserRole.DEVELOPER_ANALYST,
     },
+    tokenVersion: { type: Number, default: 0 },
+    resetTokenHash: { type: String, select: false },
+    resetExpiresAt: { type: Date, select: false },
+    resetRequestedAt: { type: Date, select: false },
     isVerified: { type: Boolean, default: false },
   },
   {

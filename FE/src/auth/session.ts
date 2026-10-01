@@ -4,9 +4,27 @@ export const API_BASE_URL = import.meta.env?.VITE_API_URL ?? 'http://localhost:4
 export type Tokens = { accessToken: string; refreshToken: string };
 export class InvalidSessionError extends Error {}
 
+export function tokenStorage(): Storage {
+  return sessionStorage.getItem('refreshToken') ? sessionStorage : localStorage;
+}
+export function readTokens(): Tokens {
+  const storage = tokenStorage();
+  return { accessToken: storage.getItem('accessToken') ?? '', refreshToken: storage.getItem('refreshToken') ?? '' };
+}
+export function saveTokens(tokens: Tokens, rememberMe = false) {
+  clearTokens();
+  const storage = rememberMe ? localStorage : sessionStorage;
+  try {
+    storage.setItem('refreshToken', tokens.refreshToken);
+    storage.setItem('accessToken', tokens.accessToken);
+  } catch (error) { clearTokens(); throw error; }
+}
 export function clearTokens() {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
+  try {
+    localStorage.removeItem('accessToken'); localStorage.removeItem('refreshToken');
+  } finally {
+    sessionStorage.removeItem('accessToken'); sessionStorage.removeItem('refreshToken');
+  }
 }
 
 // Always resolve identity and permissions on the server, never from browser-stored roles.

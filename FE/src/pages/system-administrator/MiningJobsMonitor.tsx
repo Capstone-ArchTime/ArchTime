@@ -1,3 +1,4 @@
+import { readTokens } from '@/auth/session';
 import SampleDataNotice from '@/components/SampleDataNotice';
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -38,7 +39,7 @@ const MiningJobsMonitor: React.FC = () => {
   React.useEffect(() => {
     const fetchJobs = async () => {
       try {
-        const token = localStorage.getItem('accessToken');
+        const token = readTokens().accessToken;
         const res = await fetch(`${API_BASE_URL}/projects/jobs`, {
           headers: { Authorization: `Bearer ${token}` }
         });

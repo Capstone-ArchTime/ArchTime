@@ -30,6 +30,7 @@ const DesignDecisions = lazy(() => import("@/pages/project-maintainer/DesignDeci
 const SystemAdministratorDashboard = lazy(() => import("@/pages/system-administrator/Dashboard"));
 const SystemSettings = lazy(() => import("@/pages/system-administrator/SystemSettings"));
 const MiningJobsMonitor = lazy(() => import("@/pages/system-administrator/MiningJobsMonitor"));
+const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
 
 function RootLayout() {
@@ -46,6 +47,8 @@ const router = createBrowserRouter(createRoutesFromElements(
     <Route path="/" element={<HomePage />} />
     <Route path="/login" element={<AuthPage key="login" />} />
     <Route path="/register" element={<AuthPage key="register" />} />
+    <Route path="/forgot-password" element={<ResetPassword />} />
+    <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="/verify-email" element={<VerifyEmail />} />
     <Route element={<RouteGuard />}>
       <Route path="/dashboard" element={<Dashboard />} />

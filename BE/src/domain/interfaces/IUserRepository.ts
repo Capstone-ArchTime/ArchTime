@@ -10,5 +10,8 @@ export interface IUserRepository {
     role: UserRole;
   }): Promise<IUser>;
   existsByEmail(email: string): Promise<boolean>;
+  requestPasswordReset(userId: string, tokenHash: string, now: Date, expiresAt: Date): Promise<boolean>;
+  resetPassword(email: string, tokenHash: string, passwordHash: string, now: Date): Promise<boolean>;
+  clearPasswordReset(userId: string, tokenHash: string): Promise<void>;
   setVerified(userId: string): Promise<void>;
 }

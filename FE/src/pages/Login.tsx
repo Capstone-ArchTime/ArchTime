@@ -26,6 +26,7 @@ const AuthPage: React.FC = () => {
   const { signIn } = useAuth();
 
   // Form States
+  const [rememberMe, setRememberMe] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -123,7 +124,7 @@ const AuthPage: React.FC = () => {
           throw new Error('Login response is missing authentication tokens.');
         }
 
-        const user = await signIn({ accessToken: result.accessToken, refreshToken: result.refreshToken });
+        const user = await signIn({ accessToken: result.accessToken, refreshToken: result.refreshToken }, rememberMe);
         message.success('Signed in successfully.');
         const requested = typeof location.state?.from === 'string' ? location.state.from : undefined;
         navigate(loginDestination(user.role, requested), { replace: true });
@@ -336,10 +337,11 @@ const AuthPage: React.FC = () => {
                     <div className="flex items-center gap-2 pt-2 pb-1">
                       <input
                         type="checkbox"
-                        id="remember"
+                        id="remember" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)}
                         className="w-3.5 h-3.5 border-[#222c37] bg-[#11161b] text-[#38bdf8] focus:ring-[#38bdf8] focus:ring-offset-0 focus:ring-offset-[#080b0e] cursor-pointer"
                       />
-                      <label htmlFor="remember" className="text-sm text-slate-400 cursor-pointer select-none">Remember this browser session</label>
+                      <label htmlFor="remember" className="text-sm text-slate-400 cursor-pointer select-none">Remember me</label>
+                      <Link to="/forgot-password" className="ml-auto text-sm text-sky-400 hover:underline">Forgot password?</Link>
                     </div>
                   )}
 

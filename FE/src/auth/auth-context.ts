@@ -6,7 +6,7 @@ export type AuthState = {
   user: AuthUser | null;
   loading: boolean;
   error: string | null;
-  signIn: (tokens: Tokens) => Promise<AuthUser>;
+  signIn: (tokens: Tokens, rememberMe?: boolean) => Promise<AuthUser>;
   signOut: () => void;
   retry: () => void;
 };

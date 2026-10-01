@@ -19,6 +19,11 @@ export class NodemailerEmailService implements IEmailService {
     });
   }
 
+  async sendPasswordReset(to: string, token: string): Promise<void> {
+    await this.transporter.sendMail({ from: this.from, to, subject: "ArchTime - Reset your password",
+      text: "Your password reset code is:\n\n" + token + "\n\nPaste it into the ArchTime password reset form. It expires in 10 minutes and can only be used once. If you did not request this, ignore this email.",
+    });
+  }
   async sendOtp(to: string, otp: string): Promise<void> {
     await this.transporter.sendMail({
       from: this.from,

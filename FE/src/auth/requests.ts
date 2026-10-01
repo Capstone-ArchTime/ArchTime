@@ -2,7 +2,7 @@ import { API_BASE_URL } from './session.ts';
 
 export type AuthResponse = { accessToken?: string; refreshToken?: string; message?: string };
 
-export async function authRequest(endpoint: 'login' | 'register' | 'verify-email' | 'resend-otp', body: Record<string, string>, signal?: AbortSignal): Promise<AuthResponse> {
+export async function authRequest(endpoint: 'login' | 'register' | 'verify-email' | 'resend-otp' | 'forgot-password' | 'reset-password', body: Record<string, string>, signal?: AbortSignal): Promise<AuthResponse> {
   const timeout = AbortSignal.timeout(15_000);
   try {
     const response = await fetch(`${API_BASE_URL}/auth/${endpoint}`, {

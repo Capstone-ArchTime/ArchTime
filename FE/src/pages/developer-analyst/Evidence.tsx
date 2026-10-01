@@ -1,3 +1,4 @@
+import { readTokens } from '@/auth/session';
 import SampleDataNotice from '@/components/SampleDataNotice';
 import React, { useState, useCallback, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -49,7 +50,7 @@ const Evidence: React.FC = () => {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const token = localStorage.getItem('accessToken');
+        const token = readTokens().accessToken;
         const res = await fetch(`${API_BASE_URL}/projects`, { headers: { Authorization: `Bearer ${token}` } });
         if (res.ok) {
           const data = await res.json();
@@ -76,7 +77,7 @@ const Evidence: React.FC = () => {
     const fetchEvidences = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem('accessToken');
+        const token = readTokens().accessToken;
         const res = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}/evidences`, { headers: { Authorization: `Bearer ${token}` } });
         if (res.ok) {
           const data = await res.json();
