@@ -1,23 +1,42 @@
-import React, { useState } from 'react';
+import { readTokens } from '@/auth/session';
+import SampleDataNotice from '@/components/SampleDataNotice';
+import React, { useState, useCallback, useEffect } from 'react';
+import { API_BASE_URL } from '@/auth/session';
+import { App } from 'antd';
 import { motion, AnimatePresence } from 'motion/react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { 
-  FolderKanban, 
+import {
+  FolderKanban,
   Activity,
   GitPullRequest,
   Plus,
   ArrowRight,
   GitCommit,
   X,
-  FolderGit2
+  FolderGit2,
+  Loader2,
+  Trash2
 } from 'lucide-react';
 import { Icon } from '@iconify/react';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { usePagination } from '@/hooks/usePagination';
+import PaginationBar from '@/components/PaginationBar';
+import { Link } from 'react-router-dom';
 
 const Projects: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  // Hardcoded projects data based on user spec
-  const projects = [
+  const closeModal = useCallback(() => setIsModalOpen(false), []);
+  const modalRef = useFocusTrap(isModalOpen, closeModal);
+  const { message } = App.useApp();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [visibility, setVisibility] = useState('public');
+  const [token, setToken] = useState('');
+  const [projectName, setProjectName] = useState('');
+  const [projectDescription, setProjectDescription] = useState('');
+  const [repoUrl, setRepoUrl] = useState('');
+
+  // Hardcoded projects data based on user spec as fallback/initial
+  const [projectsList, setProjectsList] = useState<any[]>([
     {
       id: 1,
       name: 'E-Commerce Platform',
@@ -77,11 +96,143 @@ const Projects: React.FC = () => {
         { d: "M 30 40 C 50 40, 50 30, 70 30", color: "#38bdf8" },
       ]
     }
-  ];
+  ]);
 
+  const fetchProjects = async () => {
+    try {
+      const token = readTokens().accessToken;
+      if (!token) return;
+      
+      const response = await fetch(`${API_BASE_URL}/projects`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data?.projects?.length > 0) {
+          const mapped = data.data.projects.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            description: p.description || 'Repository connection.',
+            repos: 1,
+            lastAnalyzed: 'Just now',
+            changes: 0,
+            status: p.status,
+            nodes: [{ cx: 50, cy: 30, r: 6, color: '#38bdf8' }],
+            links: []
+          }));
+          
+          setProjectsList((prev: any[]) => {
+            const result = [...mapped];
+            prev.forEach(old => {
+              if (!mapped.find((m: any) => m.id === old.id)) {
+                result.push(old);
+              }
+            });
+            return result;
+          });
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const handleConnect = async () => {
+    if (!projectName.trim() || !repoUrl.trim()) {
+      message.error('Project Name and Repository URL are required.');
+      return;
+    }
+    if (visibility === 'private' && !token.trim()) {
+      message.error('Personal Access Token or SSH Key is required for private repositories.');
+      return;
+    }
+    setIsSubmitting(true);
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/projects`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${readTokens().accessToken}`
+        },
+        body: JSON.stringify({
+          name: projectName,
+          description: projectDescription,
+          repoUrl,
+          visibility,
+          token
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const projectId = data.data.project.id;
+        
+        // Trigger mining
+        await fetch(`${API_BASE_URL}/projects/${projectId}/mine`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${readTokens().accessToken}` }
+        });
+
+        message.success('Repository successfully registered and queued for analysis.');
+        fetchProjects();
+        closeModal();
+        setVisibility('public');
+        setToken('');
+        setProjectName('');
+        setProjectDescription('');
+        setRepoUrl('');
+      } else {
+        const err = await response.json().catch(() => ({}));
+        message.error(err.message || 'Failed to register repository');
+      }
+    } catch (error) {
+      message.error('Network error. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteProject = async (id: string | number) => {
+    // Only allow deletion of non-hardcoded items for demo purposes if id is a string (MongoDB ObjectId)
+    if (typeof id === 'number') {
+      message.warning('Cannot delete sample projects.');
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${readTokens().accessToken}`
+        }
+      });
+      if (response.ok) {
+        message.success('Project deleted successfully');
+        fetchProjects();
+        // Also clean up state if it doesn't immediately refetch
+        setProjectsList(prev => prev.filter(p => p.id !== id));
+      } else {
+        const err = await response.json().catch(() => ({}));
+        message.error(err.message || 'Failed to delete project');
+      }
+    } catch (error) {
+      message.error('Network error. Please try again.');
+    }
+  };
+
+  const [search, setSearch] = useState('');
+  const filteredProjects = projectsList.filter(project => `${project.name} ${project.description}`.toLowerCase().includes(search.trim().toLowerCase()));
+  const pagination = usePagination(filteredProjects, search);
   return (
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-10 relative">
+        <SampleDataNotice />
         
         {/* HEADER */}
         <div>
@@ -117,7 +268,7 @@ const Projects: React.FC = () => {
               <FolderKanban size={20} className="text-[#94a3b8]" />
             </div>
             <div>
-              <h4 className="text-[10px] font-mono font-semibold text-[#5f636b] tracking-widest uppercase mb-1"
+              <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Total Projects</h4>
               <div className="text-2xl font-bold text-[#f4f4f6] font-mono"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>03</div>
@@ -129,7 +280,7 @@ const Projects: React.FC = () => {
               <Activity size={20} className="text-[#38bdf8]" />
             </div>
             <div>
-              <h4 className="text-[10px] font-mono font-semibold text-[#5f636b] tracking-widest uppercase mb-1"
+              <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Active Analyses</h4>
               <div className="text-2xl font-bold text-[#f4f4f6] font-mono"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>02</div>
@@ -141,7 +292,7 @@ const Projects: React.FC = () => {
               <GitPullRequest size={20} className="text-[#ffb03a]" />
             </div>
             <div>
-              <h4 className="text-[10px] font-mono font-semibold text-[#5f636b] tracking-widest uppercase mb-1"
+              <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Architectural Changes</h4>
               <div className="text-2xl font-bold text-[#f4f4f6] font-mono"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>64</div>
@@ -151,8 +302,10 @@ const Projects: React.FC = () => {
         </div>
 
         {/* PROJECT LIST */}
+        <input aria-label="Search projects" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search projects?" className="h-11 w-full max-w-md px-4 border border-[#222c37] bg-[#11161b] text-sm" />
+        {!filteredProjects.length && <p role="status" className="text-[#94a3b8] text-sm">No projects match your search.</p>}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project) => (
+          {pagination.items.map((project) => (
             <div key={project.id} className="bg-[#11161b] border border-[#222c37] hover:border-[#38bdf8]/50 overflow-hidden transition-colors flex flex-col group">
               
               {/* SVG GRAPH PREVIEW */}
@@ -161,7 +314,7 @@ const Projects: React.FC = () => {
                 
                 <svg viewBox="0 0 100 60" className="w-full h-full opacity-70 group-hover:opacity-100 transition-opacity group-hover:scale-105 duration-500">
                   <defs>
-                    <filter id="glow-amber-mini" x="-50%" y="-50%" width="200%" height="200%">
+                    <filter id={`glow-amber-mini-${project.id}`} x="-50%" y="-50%" width="200%" height="200%">
                       <feGaussianBlur stdDeviation="2" result="blur" />
                       <feComposite in="SourceGraphic" in2="blur" operator="over" />
                     </filter>
@@ -181,7 +334,7 @@ const Projects: React.FC = () => {
                         cy={node.cy} 
                         r={node.r} 
                         fill={node.color} 
-                        filter={node.glow ? "url(#glow-amber-mini)" : undefined} 
+                        filter={node.glow ? `url(#glow-amber-mini-${project.id})` : undefined}
                       />
                     ))}
                   </g>
@@ -192,6 +345,13 @@ const Projects: React.FC = () => {
               <div className="p-6 flex-1 flex flex-col">
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="text-[#f4f4f6] font-bold text-lg tracking-tight group-hover:text-[#38bdf8] transition-colors">{project.name}</h3>
+                  <button 
+                    onClick={() => handleDeleteProject(project.id)} 
+                    className="text-[#94a3b8] hover:text-[#ef4444] transition-colors p-1"
+                    title="Delete Project"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
                 
                 <p className="text-[#94a3b8] text-sm mb-6 line-clamp-2 leading-relaxed flex-1">
@@ -200,7 +360,7 @@ const Projects: React.FC = () => {
                 
                 <div className="grid grid-cols-2 gap-y-4 gap-x-2 mb-6">
                   <div>
-                    <div className="text-[10px] font-mono text-[#5f636b] uppercase tracking-wider mb-1"
+                    <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repositories</div>
                     <div className="text-[#f4f4f6] text-sm font-mono flex items-center gap-1.5"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -209,7 +369,7 @@ const Projects: React.FC = () => {
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] font-mono text-[#5f636b] uppercase tracking-wider mb-1"
+                    <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Last Analyzed</div>
                     <div className="text-[#f4f4f6] text-sm font-mono flex items-center gap-1.5"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -218,7 +378,7 @@ const Projects: React.FC = () => {
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] font-mono text-[#5f636b] uppercase tracking-wider mb-1"
+                    <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Arch Changes</div>
                     <div className="text-[#ffb03a] text-sm font-mono font-bold flex items-center gap-1.5"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -227,7 +387,7 @@ const Projects: React.FC = () => {
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] font-mono text-[#5f636b] uppercase tracking-wider mb-1"
+                    <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Analysis Status</div>
                     <div className="text-[#22c55e] text-[11px] font-mono font-bold flex items-center gap-1.5"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -237,10 +397,7 @@ const Projects: React.FC = () => {
                   </div>
                 </div>
                 
-                <button className="w-full h-10 bg-[#161d24] hover:bg-[#222c37] border border-[#222c37] group-hover:border-[#38bdf8]/50 text-[#f4f4f6] group-hover:text-[#38bdf8] font-mono font-bold text-xs transition-colors flex items-center justify-center gap-2 mt-auto"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                  OPEN PROJECT <ArrowRight size={14} />
-                </button>
+                {project.id === 1 ? <Link to="/project" className="w-full h-11 bg-[#161d24] hover:bg-[#222c37] border border-[#222c37] text-sm flex items-center justify-center gap-2 mt-auto">Open project <ArrowRight size={14} aria-hidden="true" /></Link> : <button disabled className="w-full h-11 bg-[#161d24] border border-[#222c37] text-xs mt-auto" title="No architecture snapshot has been connected for this sample project">Snapshot unavailable</button>}
               </div>
               
             </div>
@@ -248,6 +405,7 @@ const Projects: React.FC = () => {
         </div>
 
         {/* BOTTOM PADDING */}
+        <PaginationBar {...pagination} />
         <div className="h-10"></div>
         
       </div>
@@ -258,58 +416,72 @@ const Projects: React.FC = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
             
             {/* Backdrop */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setIsModalOpen(false)}
+              onClick={closeModal}
               className="absolute inset-0 bg-[#080b0e]/80 backdrop-blur-sm"
             ></motion.div>
-            
+
             {/* Modal Dialog */}
-            <motion.div 
+            <motion.div
+              ref={modalRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="create-project-title"
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-lg bg-[#11161b] border border-[#222c37] shadow-2xl overflow-hidden"
+              className="relative w-full max-h-[90dvh] overflow-y-auto max-w-lg bg-[#11161b] border border-[#222c37] shadow-2xl overflow-hidden"
             >
               <div className="p-6 border-b border-[#222c37] flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] shadow-[0_0_5px_#38bdf8]"></div>
-                  <h2 className="text-[#f4f4f6] font-bold tracking-tight uppercase text-sm font-mono tracking-widest"
+                  <h2 id="create-project-title" className="text-[#f4f4f6] font-bold tracking-tight uppercase text-sm font-mono tracking-widest"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Create Project</h2>
                 </div>
-                <button 
-                  onClick={() => setIsModalOpen(false)}
-                  className="text-[#5f636b] hover:text-[#f4f4f6] transition-colors"
+                <button
+                  onClick={closeModal}
+                  aria-label="Close dialog"
+                  className="text-[#94a3b8] hover:text-[#f4f4f6] transition-colors"
                 >
                   <X size={20} />
                 </button>
               </div>
-              
+
               <div className="p-6 space-y-6">
+                <p role="status" className="text-sm text-[#94a3b8]">
+                  Register a new Git repository. Public and private repositories are supported.
+                </p>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
+                  <label htmlFor="project-name" className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Project Name</label>
-                  <input 
-                    type="text" 
+                  <input
+                    id="project-name"
+                    type="text"
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
                     placeholder="e.g. Identity Service"
-                    className="w-full h-10 bg-[#161d24] border border-[#222c37] px-3 text-sm text-[#f4f4f6] placeholder:text-[#5f636b] focus:outline-none focus:border-[#38bdf8]/50 focus:ring-1 focus:ring-[#38bdf8]/20 transition-all"
+                    className="w-full h-10 bg-[#161d24] border border-[#222c37] px-3 text-sm text-[#f4f4f6] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#38bdf8]/50 focus:ring-1 focus:ring-[#38bdf8]/20 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                   />
                 </div>
-                
+
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Description <span className="text-[#5f636b]">(Optional)</span></label>
-                  <textarea 
+                  <label htmlFor="project-description" className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Description <span className="text-[#94a3b8]">(Optional)</span></label>
+                  <textarea
+                    id="project-description"
+                    value={projectDescription}
+                    onChange={(e) => setProjectDescription(e.target.value)}
                     placeholder="Brief architectural context..."
-                    className="w-full h-20 bg-[#161d24] border border-[#222c37] px-3 py-2 text-sm text-[#f4f4f6] placeholder:text-[#5f636b] focus:outline-none focus:border-[#38bdf8]/50 focus:ring-1 focus:ring-[#38bdf8]/20 transition-all resize-none"
+                    className="w-full h-20 bg-[#161d24] border border-[#222c37] px-3 py-2 text-sm text-[#f4f4f6] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#38bdf8]/50 focus:ring-1 focus:ring-[#38bdf8]/20 transition-[color,background-color,border-color,box-shadow,opacity,transform] resize-none"
                   ></textarea>
                 </div>
-                
+
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository Provider</label>
+                  <span className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository Provider</span>
                   <div className="grid grid-cols-2 gap-3">
                     <label className="flex items-center justify-center gap-2 h-10 bg-[#161d24] border border-[#222c37] cursor-pointer hover:border-[#94a3b8] transition-colors has-[:checked]:border-[#38bdf8] has-[:checked]:bg-[#38bdf8]/5 group">
                       <input type="radio" name="provider" className="sr-only" defaultChecked />
@@ -325,23 +497,61 @@ const Projects: React.FC = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
+                  <label htmlFor="repository-url" className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository URL</label>
-                  <input 
-                    type="text" 
+                  <input
+                    id="repository-url"
+                    type="text"
+                    value={repoUrl}
+                    onChange={(e) => setRepoUrl(e.target.value)}
                     placeholder="https://github.com/organization/repo"
-                    className="w-full h-10 bg-[#161d24] border border-[#222c37] px-3 text-sm font-mono text-[#f4f4f6] placeholder:text-[#5f636b] focus:outline-none focus:border-[#38bdf8]/50 focus:ring-1 focus:ring-[#38bdf8]/20 transition-all"
+                    className="w-full h-10 bg-[#161d24] border border-[#222c37] px-3 text-sm font-mono text-[#f4f4f6] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#38bdf8]/50 focus:ring-1 focus:ring-[#38bdf8]/20 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}
                   />
                 </div>
+
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Visibility</span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="flex items-center justify-center gap-2 h-10 bg-[#161d24] border border-[#222c37] cursor-pointer hover:border-[#94a3b8] transition-colors has-[:checked]:border-[#38bdf8] has-[:checked]:bg-[#38bdf8]/5 group">
+                      <input type="radio" name="visibility" value="public" className="sr-only" checked={visibility === 'public'} onChange={() => setVisibility('public')} />
+                      <Icon icon="mdi:earth" width="18" height="18" className="text-[#f4f4f6] group-has-[:checked]:text-[#38bdf8]" />
+                      <span className="text-xs font-bold text-[#f4f4f6] group-has-[:checked]:text-[#38bdf8]">Public</span>
+                    </label>
+                    <label className="flex items-center justify-center gap-2 h-10 bg-[#161d24] border border-[#222c37] cursor-pointer hover:border-[#94a3b8] transition-colors has-[:checked]:border-[#38bdf8] has-[:checked]:bg-[#38bdf8]/5 group">
+                      <input type="radio" name="visibility" value="private" className="sr-only" checked={visibility === 'private'} onChange={() => setVisibility('private')} />
+                      <Icon icon="mdi:lock" width="18" height="18" className="text-[#f4f4f6] group-has-[:checked]:text-[#38bdf8]" />
+                      <span className="text-xs font-bold text-[#f4f4f6] group-has-[:checked]:text-[#38bdf8]">Private</span>
+                    </label>
+                  </div>
+                </div>
+
+                {visibility === 'private' && (
+                  <div className="space-y-1.5">
+                    <label htmlFor="auth-token" className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
+              style={{ fontFamily: '"JetBrains Mono", monospace' }}>Personal Access Token (PAT) / SSH Key</label>
+                    <input
+                      id="auth-token"
+                      type="password"
+                      placeholder="ghp_..."
+                      value={token}
+                      onChange={(e) => setToken(e.target.value)}
+                      className="w-full h-10 bg-[#161d24] border border-[#222c37] px-3 text-sm font-mono text-[#f4f4f6] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#38bdf8]/50 focus:ring-1 focus:ring-[#38bdf8]/20 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
+                      style={{ fontFamily: '"JetBrains Mono", monospace' }}
+                    />
+                    <p className="text-[10px] text-[#94a3b8]">Required to authenticate and clone private repositories.</p>
+                  </div>
+                )}
               </div>
-              
+
               <div className="p-6 pt-0">
-                <button 
-                  onClick={() => setIsModalOpen(false)}
-                  className="w-full h-10 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)]"
+                <button
+                  onClick={handleConnect}
+                  disabled={isSubmitting}
+                  className="w-full h-10 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)] disabled:opacity-70"
                 >
-                  <FolderGit2 size={16} />
+                  {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <FolderGit2 size={16} />}
                   CONNECT REPOSITORY
                 </button>
               </div>

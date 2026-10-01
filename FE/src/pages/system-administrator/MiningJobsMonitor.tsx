@@ -1,6 +1,12 @@
+import { readTokens } from '@/auth/session';
+import SampleDataNotice from '@/components/SampleDataNotice';
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Activity, Filter, XCircle, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { useComingSoon } from '@/hooks/useComingSoon';
+import { usePagination } from '@/hooks/usePagination';
+import PaginationBar from '@/components/PaginationBar';
+import { API_BASE_URL } from '@/auth/session';
 
 const fontFamily = {
   mono: '"JetBrains Mono", monospace',
@@ -15,13 +21,7 @@ const statusMeta: Record<JobStatus, { label: string; color: string; icon: typeof
   failed: { label: 'FAILED', color: '#ef4444', icon: AlertTriangle },
 };
 
-const mockJobs: { id: string; repo: string; requestedBy: string; status: JobStatus; stage: string; progress: number; startedAgo: string }[] = [
-  { id: 'job-a3f21c', repo: 'ecomm-core', requestedBy: 'j.tran', status: 'running', stage: 'Parsing AST', progress: 62, startedAgo: '3 minutes ago' },
-  { id: 'job-8af31c', repo: 'catalog-service', requestedBy: 'm.nguyen', status: 'running', stage: 'Mining Git history', progress: 24, startedAgo: '1 minute ago' },
-  { id: 'job-d82f91', repo: 'payment-service', requestedBy: 'k.pham', status: 'queued', stage: 'Waiting for worker', progress: 0, startedAgo: '—' },
-  { id: 'job-c4199b', repo: 'settlement-core', requestedBy: 'a.le', status: 'completed', stage: 'Persisted snapshot', progress: 100, startedAgo: '18 minutes ago' },
-  { id: 'job-f9b02e', repo: 'legacy-billing', requestedBy: 'k.pham', status: 'failed', stage: 'AST parse error at src/Invoice.java:412', progress: 41, startedAgo: '26 minutes ago' },
-];
+const mockJobs: { id: string; repo: string; requestedBy: string; status: JobStatus; stage: string; progress: number; startedAgo: string }[] = [];
 
 const filterOptions: { key: 'all' | JobStatus; label: string }[] = [
   { key: 'all', label: 'All Jobs' },
@@ -33,14 +33,46 @@ const filterOptions: { key: 'all' | JobStatus; label: string }[] = [
 
 const MiningJobsMonitor: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState<'all' | JobStatus>('all');
+  const notifyComingSoon = useComingSoon();
+  const [jobsList, setJobsList] = useState<any[]>([]);
 
-  const filtered = mockJobs.filter((j) => activeFilter === 'all' || j.status === activeFilter);
-  const runningCount = mockJobs.filter((j) => j.status === 'running').length;
-  const queuedCount = mockJobs.filter((j) => j.status === 'queued').length;
+  React.useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const token = readTokens().accessToken;
+        const res = await fetch(`${API_BASE_URL}/projects/jobs`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setJobsList(data.data.jobs.map((j: any) => ({
+            id: j.id,
+            repo: j.projectId?.name || 'Unknown Project',
+            requestedBy: 'System', // from populated user if we had one
+            status: j.status,
+            stage: j.stage,
+            progress: j.progress,
+            startedAgo: new Date(j.createdAt).toLocaleTimeString(),
+          })));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchJobs();
+    const interval = setInterval(fetchJobs, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const filtered = jobsList.filter((j) => activeFilter === 'all' || j.status === activeFilter);
+  const pagination = usePagination(filtered, activeFilter);
+  const runningCount = jobsList.filter((j) => j.status === 'running').length;
+  const queuedCount = jobsList.filter((j) => j.status === 'queued').length;
 
   return (
     <DashboardLayout>
       <div className="max-w-[1100px] mx-auto space-y-8">
+        <SampleDataNotice />
 
         {/* HEADER */}
         <div>
@@ -48,17 +80,19 @@ const MiningJobsMonitor: React.FC = () => {
           <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
             Live status of Git mining and AST extraction jobs across the platform &mdash;{' '}
             <span className="text-[#38bdf8] font-semibold">{runningCount} running</span>,{' '}
-            <span className="text-[#5f636b] font-semibold">{queuedCount} queued</span>.
+            <span className="text-[#94a3b8] font-semibold">{queuedCount} queued</span>.
           </p>
           <div className="h-[1px] w-full bg-gradient-to-r from-[#222c37] to-transparent mt-8"></div>
         </div>
 
         {/* FILTERS */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <Filter size={14} className="text-[#5f636b] mr-1" />
+        <div role="group" aria-label="Filter jobs by status" className="flex items-center gap-2 flex-wrap">
+          <Filter size={14} className="text-[#94a3b8] mr-1" />
           {filterOptions.map((opt) => (
             <button
               key={opt.key}
+              type="button"
+              aria-pressed={activeFilter === opt.key}
               onClick={() => setActiveFilter(opt.key)}
               className={`h-8 px-3 text-[10px] font-bold uppercase tracking-widest border transition-colors ${
                 activeFilter === opt.key
@@ -74,7 +108,7 @@ const MiningJobsMonitor: React.FC = () => {
 
         {/* JOB LIST */}
         <div className="space-y-3">
-          {filtered.map((job) => {
+          {pagination.items.map((job) => {
             const meta = statusMeta[job.status];
             const StatusIcon = meta.icon;
             return (
@@ -86,18 +120,20 @@ const MiningJobsMonitor: React.FC = () => {
                         className="inline-flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest px-2 py-1 border"
                         style={{ fontFamily: fontFamily.mono, color: meta.color, borderColor: `${meta.color}33`, backgroundColor: `${meta.color}1A` }}
                       >
-                        <StatusIcon size={11} className={job.status === 'running' ? 'animate-spin' : ''} />
+                        <StatusIcon size={11} className={job.status === 'running' ? 'animate-spin motion-reduce:animate-none' : ''} />
                         {meta.label}
                       </span>
-                      <span className="text-[10px] text-[#5f636b]" style={{ fontFamily: fontFamily.mono }}>{job.id}</span>
+                      <span className="text-[10px] text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>{job.id}</span>
                     </div>
                     <h4 className="text-[#f4f4f6] font-bold text-sm mb-1" style={{ fontFamily: fontFamily.mono }}>{job.repo}</h4>
-                    <div className="text-xs text-[#5f636b]" style={{ fontFamily: fontFamily.mono }}>
+                    <div className="text-xs text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>
                       {job.stage} &middot; requested by {job.requestedBy} &middot; {job.startedAgo}
                     </div>
                   </div>
                   {job.status === 'queued' && (
-                    <button className="shrink-0 h-8 px-3 bg-[#161d24] border border-[#222c37] hover:border-[#ef4444]/50 text-[#ef4444] text-[10px] font-bold transition-colors flex items-center gap-1.5" style={{ fontFamily: fontFamily.mono }}>
+                    <button
+                      onClick={() => notifyComingSoon(`Cancelling ${job.id}`)}
+                      className="shrink-0 h-8 px-3 bg-[#161d24] border border-[#222c37] hover:border-[#ef4444]/50 text-[#ef4444] text-[10px] font-bold transition-colors flex items-center gap-1.5" style={{ fontFamily: fontFamily.mono }}>
                       <XCircle size={12} />
                       CANCEL
                     </button>
@@ -106,7 +142,7 @@ const MiningJobsMonitor: React.FC = () => {
                 {(job.status === 'running' || job.status === 'failed') && (
                   <div className="h-1.5 w-full bg-[#0b0f14] overflow-hidden">
                     <div
-                      className="h-full transition-all"
+                      className="h-full transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                       style={{ width: `${job.progress}%`, backgroundColor: meta.color }}
                     ></div>
                   </div>
@@ -115,10 +151,11 @@ const MiningJobsMonitor: React.FC = () => {
             );
           })}
           {filtered.length === 0 && (
-            <p className="text-sm text-[#5f636b]">No jobs match this filter.</p>
+            <p className="text-sm text-[#94a3b8]">No jobs match this filter.</p>
           )}
         </div>
 
+        <PaginationBar {...pagination} />
         <div className="h-10"></div>
       </div>
     </DashboardLayout>

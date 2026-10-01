@@ -1,7 +1,8 @@
+import SampleDataNotice from '@/components/SampleDataNotice';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { 
+import {
   FolderGit2,
   Box,
   GitCommit,
@@ -9,19 +10,18 @@ import {
   ScanSearch,
   Download,
   CheckCircle2,
-  AlertCircle,
   ExternalLink,
   ArrowRight,
   Sparkles,
   SearchCode
 } from 'lucide-react';
 import { Icon } from '@iconify/react';
-import { motion } from 'motion/react';
 
 const ProjectDetail: React.FC = () => {
   return (
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto flex flex-col min-h-0 pb-12">
+        <SampleDataNotice />
         
         {/* HEADER */}
         <div className="shrink-0 space-y-6 pt-2">
@@ -33,7 +33,7 @@ const ProjectDetail: React.FC = () => {
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Project Observatory</span>
               </div>
               
-              <div className="flex items-center gap-2 mb-2 text-sm font-mono text-[#5f636b]"
+              <div className="flex items-center gap-2 mb-2 text-sm font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                  <Link to="/projects" className="hover:text-[#f4f4f6] transition-colors">ArchTime</Link>
                  <span>/</span>
@@ -49,10 +49,10 @@ const ProjectDetail: React.FC = () => {
             </div>
             
             <div className="flex items-center gap-3 shrink-0">
-               <button className="h-10 px-5 bg-[#11161b] border border-[#222c37] hover:border-[#38bdf8]/50 text-[#38bdf8] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.05)] uppercase tracking-wider">
+               <Link to="/reports" className="h-10 px-5 bg-[#11161b] border border-[#222c37] hover:border-[#38bdf8]/50 text-[#38bdf8] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.05)] uppercase tracking-wider">
                   <Download size={16} /> Export Report
-               </button>
-               <button className="h-10 px-5 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)] uppercase tracking-wider">
+               </Link>
+               <button disabled title="Not available yet: this view uses sample data" aria-label="ANALYZE REPOSITORY" className="h-10 px-5 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)] uppercase tracking-wider">
                   <ScanSearch size={16} /> Analyze Repository
                </button>
             </div>
@@ -68,7 +68,7 @@ const ProjectDetail: React.FC = () => {
              <div>
                <div className="text-2xl font-bold font-mono text-[#f4f4f6]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>4</div>
-               <div className="text-[10px] font-mono text-[#5f636b] uppercase tracking-widest font-bold mt-1"
+               <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-widest font-bold mt-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repositories</div>
              </div>
           </div>
@@ -95,13 +95,13 @@ const ProjectDetail: React.FC = () => {
              </div>
           </div>
           <div className="bg-[#11161b] border border-[#222c37] p-5 flex items-center gap-4">
-             <div className="w-12 h-12 bg-[#222c37] flex items-center justify-center text-[#5f636b]">
+             <div className="w-12 h-12 bg-[#222c37] flex items-center justify-center text-[#94a3b8]">
                <Clock size={24} />
              </div>
              <div>
                <div className="text-2xl font-bold font-mono text-[#f4f4f6] text-lg"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>2h ago</div>
-               <div className="text-[10px] font-mono text-[#5f636b] uppercase tracking-widest font-bold mt-1"
+               <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-widest font-bold mt-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Last Analyzed</div>
              </div>
           </div>
@@ -199,7 +199,7 @@ const ProjectDetail: React.FC = () => {
                          <g transform="translate(320, 250)">
                            <rect width="160" height="40" rx="4" fill="#161d24" stroke="#38bdf8" strokeOpacity="0.5" />
                            <circle cx="20" cy="20" r="4" fill="#38bdf8" />
-                           <text x="35" y="24" fill="#f4f4f6" fontSize="13" fontFamily="monospace" fontWeight="bold">INVENTORY_SERVICE</text>
+                           <text x="35" y="24" fill="#f4f4f6" fontSize="11" fontFamily="monospace" fontWeight="bold">INVENTORY_SERVICE</text>
                          </g>
 
                          {/* PAYMENT MODULE */}
@@ -226,7 +226,7 @@ const ProjectDetail: React.FC = () => {
                     </svg>
                  </div>
                  
-                 <div className="p-4 bg-[#080b0e] border-t border-[#222c37] text-[10px] font-mono text-[#5f636b] flex items-center justify-between"
+                 <div className="p-4 bg-[#080b0e] border-t border-[#222c37] text-[10px] font-mono text-[#94a3b8] flex items-center justify-between"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                     <span>Recent structural changes detected: Payment extracted, Dependencies updated.</span>
                     <Link to="/history" className="text-[#38bdf8] hover:underline flex items-center gap-1 font-bold">
@@ -244,17 +244,17 @@ const ProjectDetail: React.FC = () => {
                    <table className="w-full text-left border-collapse min-w-[600px]">
                      <thead>
                        <tr className="border-b border-[#222c37] bg-[#080b0e]">
-                         <th className="p-4 text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-wider"
+                         <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository</th>
-                         <th className="p-4 text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-wider"
+                         <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Provider</th>
-                         <th className="p-4 text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-wider"
+                         <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Branch</th>
-                         <th className="p-4 text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-wider"
+                         <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Commits</th>
-                         <th className="p-4 text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-wider"
+                         <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Status</th>
-                         <th className="p-4 text-[10px] font-mono font-bold text-[#5f636b] uppercase tracking-wider text-right"
+                         <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider text-right"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Action</th>
                        </tr>
                      </thead>
@@ -275,7 +275,7 @@ const ProjectDetail: React.FC = () => {
                             </span>
                          </td>
                          <td className="p-4 text-right">
-                            <button className="text-[10px] font-mono font-bold text-[#5f636b] hover:text-[#38bdf8] transition-colors"
+                            <button disabled title="Not available yet: this view uses sample data" aria-label="Unavailable action" className="text-[10px] font-mono font-bold text-[#94a3b8] hover:text-[#38bdf8] transition-colors"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                                <ExternalLink size={14} />
                             </button>
@@ -297,7 +297,7 @@ const ProjectDetail: React.FC = () => {
                             </span>
                          </td>
                          <td className="p-4 text-right">
-                            <button className="text-[10px] font-mono font-bold text-[#5f636b] hover:text-[#38bdf8] transition-colors"
+                            <button disabled title="Not available yet: this view uses sample data" aria-label="Unavailable action" className="text-[10px] font-mono font-bold text-[#94a3b8] hover:text-[#38bdf8] transition-colors"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                                <ExternalLink size={14} />
                             </button>
@@ -319,7 +319,7 @@ const ProjectDetail: React.FC = () => {
                             </span>
                          </td>
                          <td className="p-4 text-right">
-                            <button className="text-[10px] font-mono font-bold text-[#5f636b] hover:text-[#38bdf8] transition-colors"
+                            <button disabled title="Not available yet: this view uses sample data" aria-label="Unavailable action" className="text-[10px] font-mono font-bold text-[#94a3b8] hover:text-[#38bdf8] transition-colors"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                                <ExternalLink size={14} />
                             </button>
@@ -341,7 +341,7 @@ const ProjectDetail: React.FC = () => {
                             </span>
                          </td>
                          <td className="p-4 text-right">
-                            <button className="text-[10px] font-mono font-bold text-[#5f636b] hover:text-[#38bdf8] transition-colors"
+                            <button disabled title="Not available yet: this view uses sample data" aria-label="Unavailable action" className="text-[10px] font-mono font-bold text-[#94a3b8] hover:text-[#38bdf8] transition-colors"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                                <ExternalLink size={14} />
                             </button>
@@ -356,7 +356,7 @@ const ProjectDetail: React.FC = () => {
            </div>
 
            {/* RIGHT COLUMN (30%) */}
-           <div className="flex-1 flex flex-col gap-6 min-w-[320px]">
+           <div className="flex-1 flex flex-col gap-6 min-w-0">
               
               {/* LATEST AI INSIGHT */}
               <div className="bg-[#11161b] border border-[#38bdf8]/30 overflow-hidden relative group">
@@ -398,7 +398,7 @@ const ProjectDetail: React.FC = () => {
                        <div className="flex items-center gap-2 mb-1.5">
                          <span className="px-1.5 py-0.5 bg-[#ffb03a]/10 border border-[#ffb03a]/20 text-[#ffb03a] text-[9px] font-mono font-bold uppercase tracking-widest"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Module Extraction</span>
-                         <span className="text-[10px] font-mono text-[#5f636b]"
+                         <span className="text-[10px] font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>2h ago</span>
                        </div>
                        <div className="text-sm font-bold text-[#f4f4f6] group-hover:text-[#38bdf8] transition-colors">PaymentService extracted</div>
@@ -408,7 +408,7 @@ const ProjectDetail: React.FC = () => {
                        <div className="flex items-center gap-2 mb-1.5">
                          <span className="px-1.5 py-0.5 bg-[#38bdf8]/10 border border-[#38bdf8]/20 text-[#38bdf8] text-[9px] font-mono font-bold uppercase tracking-widest"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Dependency</span>
-                         <span className="text-[10px] font-mono text-[#5f636b]"
+                         <span className="text-[10px] font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Yesterday</span>
                        </div>
                        <div className="text-sm font-bold text-[#f4f4f6] group-hover:text-[#38bdf8] transition-colors">Order dependency changed</div>
@@ -418,7 +418,7 @@ const ProjectDetail: React.FC = () => {
                        <div className="flex items-center gap-2 mb-1.5">
                          <span className="px-1.5 py-0.5 bg-[#ffb03a]/10 border border-[#ffb03a]/20 text-[#ffb03a] text-[9px] font-mono font-bold uppercase tracking-widest"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Module Split</span>
-                         <span className="text-[10px] font-mono text-[#5f636b]"
+                         <span className="text-[10px] font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>3 days ago</span>
                        </div>
                        <div className="text-sm font-bold text-[#f4f4f6] group-hover:text-[#38bdf8] transition-colors">Settlement pipeline decoupled</div>

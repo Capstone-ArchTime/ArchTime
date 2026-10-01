@@ -1,3 +1,5 @@
+import SampleDataNotice from '@/components/SampleDataNotice';
+import { Link } from 'react-router-dom';
 import React from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { 
@@ -18,6 +20,7 @@ const Dashboard: React.FC = () => {
   return (
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-10">
+        <SampleDataNotice />
         
         {/* DASHBOARD HEADER */}
         <div>
@@ -34,7 +37,7 @@ const Dashboard: React.FC = () => {
                 Reconstruct and trace how your software architecture evolves across repository history.
               </p>
             </div>
-            <button className="shrink-0 h-10 px-5 bg-[#161d24] hover:bg-[#222c37] border border-[#222c37] text-[#f4f4f6] font-medium text-xs transition-colors flex items-center gap-2">
+            <button disabled title="Not available yet: this view uses sample data" aria-label="ANALYZE NEW REPOSITORY" className="shrink-0 h-10 px-5 bg-[#161d24] hover:bg-[#222c37] border border-[#222c37] text-[#f4f4f6] font-medium text-xs transition-colors flex items-center gap-2">
               <FolderGit2 size={16} className="text-[#38bdf8]" />
               ANALYZE NEW REPOSITORY
             </button>
@@ -52,7 +55,7 @@ const Dashboard: React.FC = () => {
             <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-4"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>My Projects</h4>
             <div className="text-4xl font-bold text-[#f4f4f6] mb-1">03</div>
-            <p className="text-xs text-[#5f636b] mb-4">Active projects</p>
+            <p className="text-xs text-[#94a3b8] mb-4">Active projects</p>
             <div className="flex items-center gap-2 text-[10px] font-mono text-[#22c55e]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
               <div className="w-1.5 h-1.5 rounded-full bg-[#22c55e]"></div>
@@ -67,7 +70,7 @@ const Dashboard: React.FC = () => {
             <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-4"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repositories</h4>
             <div className="text-4xl font-bold text-[#f4f4f6] mb-1">07</div>
-            <p className="text-xs text-[#5f636b] mb-4">Connected repositories</p>
+            <p className="text-xs text-[#94a3b8] mb-4">Connected repositories</p>
             <div className="flex items-center gap-2 text-[10px] font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
               <div className="w-1.5 h-1.5 rounded-full bg-[#5f636b]"></div>
@@ -82,7 +85,7 @@ const Dashboard: React.FC = () => {
             <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-4"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Analysis Jobs</h4>
             <div className="text-4xl font-bold text-[#f4f4f6] mb-1">18</div>
-            <p className="text-xs text-[#5f636b] mb-4">Completed analyses</p>
+            <p className="text-xs text-[#94a3b8] mb-4">Completed analyses</p>
             <div className="flex items-center gap-2 text-[10px] font-mono text-[#38bdf8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
               <div className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] shadow-[0_0_5px_#38bdf8]"></div>
@@ -97,7 +100,7 @@ const Dashboard: React.FC = () => {
             <h4 className="text-[10px] font-mono font-semibold text-[#ffb03a] tracking-widest uppercase mb-4"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Architectural Changes</h4>
             <div className="text-4xl font-bold text-[#f4f4f6] mb-1">64</div>
-            <p className="text-xs text-[#5f636b] mb-4">Detected structural changes</p>
+            <p className="text-xs text-[#94a3b8] mb-4">Detected structural changes</p>
             <div className="flex items-center gap-2 text-[10px] font-mono text-[#ffb03a]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
               <div className="w-1.5 h-1.5 rounded-full bg-[#ffb03a]"></div>
@@ -250,25 +253,25 @@ const Dashboard: React.FC = () => {
                     </div>
                     <div className="relative z-10 flex flex-col items-center gap-2 cursor-pointer group">
                       <div className="w-3 h-3 rounded-full bg-[#222c37] border-4 border-[#080b0e] group-hover:scale-125 transition-transform"></div>
-                      <span className="text-[10px] font-mono text-[#5f636b]"
+                      <span className="text-[10px] font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>v2.0</span>
                     </div>
                     <div className="relative z-10 flex flex-col items-center gap-2 cursor-pointer group">
                       <div className="w-3 h-3 rounded-full bg-[#222c37] border-4 border-[#080b0e] group-hover:scale-125 transition-transform"></div>
-                      <span className="text-[10px] font-mono text-[#5f636b]"
+                      <span className="text-[10px] font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>HEAD</span>
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-3 shrink-0 ml-8">
-                    <button className="h-8 px-3 bg-[#11161b] border border-[#222c37] text-[#94a3b8] hover:text-[#f4f4f6] font-mono text-xs transition-colors flex items-center gap-2"
+                    <button disabled title="Not available yet: this view uses sample data" aria-label="V1.5" className="h-8 px-3 bg-[#11161b] border border-[#222c37] text-[#94a3b8] hover:text-[#f4f4f6] font-mono text-xs transition-colors flex items-center gap-2"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       v1.5 <ChevronDown size={14} />
                     </button>
-                    <button className="h-8 px-4 bg-[#161d24] border border-[#222c37] hover:border-[#38bdf8]/50 text-[#38bdf8] font-mono font-bold text-xs transition-all shadow-[0_0_10px_rgba(56,189,248,0.05)]"
+                    <Link to="/compare" className="h-8 px-4 bg-[#161d24] border border-[#222c37] hover:border-[#38bdf8]/50 text-[#38bdf8] font-mono font-bold text-xs transition-[color,background-color,border-color,box-shadow,opacity,transform] shadow-[0_0_10px_rgba(56,189,248,0.05)]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       COMPARE
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -301,7 +304,7 @@ const Dashboard: React.FC = () => {
                     <tr className="hover:bg-[#161d24]/50 transition-colors group">
                       <td className="px-5 py-4 font-mono text-[#f4f4f6] font-medium"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>payment-service</td>
-                      <td className="px-5 py-4 font-mono text-[#5f636b] text-xs"
+                      <td className="px-5 py-4 font-mono text-[#94a3b8] text-xs"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                         3e4877f <span className="text-[#94a3b8]">→</span> d82f91a
                       </td>
@@ -313,10 +316,10 @@ const Dashboard: React.FC = () => {
                           COMPLETED
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-[#5f636b] font-mono text-xs"
+                      <td className="px-5 py-4 text-[#94a3b8] font-mono text-xs"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>2m 14s</td>
                       <td className="px-5 py-4 text-right">
-                        <button className="text-[#38bdf8] hover:text-[#38bdf8]/80 font-mono text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity"
+                        <button disabled title="Not available yet: this view uses sample data" aria-label="DETAILS &RARR;" className="text-[#38bdf8] hover:text-[#38bdf8]/80 font-mono text-xs font-semibold opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                           Details &rarr;
                         </button>
@@ -326,7 +329,7 @@ const Dashboard: React.FC = () => {
                     <tr className="hover:bg-[#161d24]/50 transition-colors group">
                       <td className="px-5 py-4 font-mono text-[#f4f4f6] font-medium"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>order-service</td>
-                      <td className="px-5 py-4 font-mono text-[#5f636b] text-xs"
+                      <td className="px-5 py-4 font-mono text-[#94a3b8] text-xs"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                         a028fa1 <span className="text-[#94a3b8]">→</span> 8af31c2
                       </td>
@@ -334,14 +337,14 @@ const Dashboard: React.FC = () => {
                       <td className="px-5 py-4">
                         <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-[#38bdf8]/10 border border-[#38bdf8]/20 text-[10px] font-mono text-[#38bdf8] font-bold"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                          <div className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse"></div>
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse motion-reduce:animate-none"></div>
                           RUNNING
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-[#5f636b] font-mono text-xs"
+                      <td className="px-5 py-4 text-[#94a3b8] font-mono text-xs"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>3m 37s</td>
                       <td className="px-5 py-4 text-right">
-                        <button className="text-[#38bdf8] hover:text-[#38bdf8]/80 font-mono text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity"
+                        <button disabled title="Not available yet: this view uses sample data" aria-label="DETAILS &RARR;" className="text-[#38bdf8] hover:text-[#38bdf8]/80 font-mono text-xs font-semibold opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                           Details &rarr;
                         </button>
@@ -351,7 +354,7 @@ const Dashboard: React.FC = () => {
                     <tr className="hover:bg-[#161d24]/50 transition-colors group">
                       <td className="px-5 py-4 font-mono text-[#f4f4f6] font-medium"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>inventory-service</td>
-                      <td className="px-5 py-4 font-mono text-[#5f636b] text-xs"
+                      <td className="px-5 py-4 font-mono text-[#94a3b8] text-xs"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                         81a029c <span className="text-[#94a3b8]">→</span> b149e2c
                       </td>
@@ -363,10 +366,10 @@ const Dashboard: React.FC = () => {
                           COMPLETED
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-[#5f636b] font-mono text-xs"
+                      <td className="px-5 py-4 text-[#94a3b8] font-mono text-xs"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>1m 45s</td>
                       <td className="px-5 py-4 text-right">
-                        <button className="text-[#38bdf8] hover:text-[#38bdf8]/80 font-mono text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity"
+                        <button disabled title="Not available yet: this view uses sample data" aria-label="DETAILS &RARR;" className="text-[#38bdf8] hover:text-[#38bdf8]/80 font-mono text-xs font-semibold opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                           Details &rarr;
                         </button>
@@ -399,7 +402,7 @@ const Dashboard: React.FC = () => {
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                         Module Extraction
                       </div>
-                      <span className="text-xs text-[#5f636b] font-mono"
+                      <span className="text-xs text-[#94a3b8] font-mono"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>2 hours ago</span>
                   </div>
                   <h4 className="text-[#f4f4f6] font-bold text-sm mb-2 uppercase tracking-wide">Payment Service Extracted</h4>
@@ -410,7 +413,7 @@ const Dashboard: React.FC = () => {
                       <Box size={12} className="text-[#38bdf8]" />
                       payment-service
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-[#5f636b] font-mono"
+                    <div className="flex items-center gap-1.5 text-xs text-[#94a3b8] font-mono"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       <GitCommit size={12} />
                       d82f91a
@@ -423,10 +426,10 @@ const Dashboard: React.FC = () => {
                     <div className="text-[#94a3b8]"><span className="text-[#22c55e]">+8</span> dependencies</div>
                   </div>
 
-                  <button className="text-[#ffb03a] hover:text-[#ffb03a]/80 font-mono text-xs font-semibold flex items-center gap-1 transition-colors"
+                  <Link to="/evidence" className="text-[#ffb03a] hover:text-[#ffb03a]/80 font-mono text-xs font-semibold flex items-center gap-1 transition-colors"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                     VIEW EVIDENCE <ArrowRight size={14} />
-                  </button>
+                  </Link>
                 </div>
 
                 {/* Event Card 2 */}
@@ -436,7 +439,7 @@ const Dashboard: React.FC = () => {
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                         Dependency Change
                       </div>
-                      <span className="text-xs text-[#5f636b] font-mono"
+                      <span className="text-xs text-[#94a3b8] font-mono"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Yesterday</span>
                   </div>
                   <h4 className="text-[#f4f4f6] font-bold text-sm mb-2 uppercase tracking-wide">Order Dependency Changed</h4>
@@ -447,17 +450,17 @@ const Dashboard: React.FC = () => {
                       <Box size={12} className="text-[#38bdf8]" />
                       order-service
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-[#5f636b] font-mono"
+                    <div className="flex items-center gap-1.5 text-xs text-[#94a3b8] font-mono"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       <GitCommit size={12} />
                       8af31c2
                     </div>
                   </div>
 
-                  <button className="text-[#ffb03a] hover:text-[#ffb03a]/80 font-mono text-xs font-semibold flex items-center gap-1 transition-colors"
+                  <Link to="/evidence" className="text-[#ffb03a] hover:text-[#ffb03a]/80 font-mono text-xs font-semibold flex items-center gap-1 transition-colors"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                     VIEW EVIDENCE <ArrowRight size={14} />
-                  </button>
+                  </Link>
                 </div>
 
                 {/* Event Card 3 */}
@@ -467,7 +470,7 @@ const Dashboard: React.FC = () => {
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                         Module Split
                       </div>
-                      <span className="text-xs text-[#5f636b] font-mono"
+                      <span className="text-xs text-[#94a3b8] font-mono"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>3 days ago</span>
                   </div>
                   <h4 className="text-[#f4f4f6] font-bold text-sm mb-2 uppercase tracking-wide">Settlement Pipeline Decoupled</h4>
@@ -478,17 +481,17 @@ const Dashboard: React.FC = () => {
                       <Box size={12} className="text-[#38bdf8]" />
                       settlement-core
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-[#5f636b] font-mono"
+                    <div className="flex items-center gap-1.5 text-xs text-[#94a3b8] font-mono"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       <GitCommit size={12} />
                       c4199be
                     </div>
                   </div>
 
-                  <button className="text-[#ffb03a] hover:text-[#ffb03a]/80 font-mono text-xs font-semibold flex items-center gap-1 transition-colors"
+                  <Link to="/evidence" className="text-[#ffb03a] hover:text-[#ffb03a]/80 font-mono text-xs font-semibold flex items-center gap-1 transition-colors"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                     VIEW EVIDENCE <ArrowRight size={14} />
-                  </button>
+                  </Link>
                 </div>
 
               </div>
@@ -511,7 +514,7 @@ const Dashboard: React.FC = () => {
                     "Payment processing was extracted from the Order module between commits 3e4877f and d82f91a."
                   </p>
 
-                  <h5 className="text-[10px] font-mono font-semibold text-[#5f636b] tracking-widest uppercase mb-3"
+                  <h5 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-3"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Evidence</h5>
                   <ul className="space-y-2 mb-6">
                     <li className="flex items-center gap-2 text-xs font-mono text-[#94a3b8]"
@@ -536,10 +539,10 @@ const Dashboard: React.FC = () => {
                     </li>
                   </ul>
 
-                  <button className="w-full h-9 bg-[#11161b] hover:bg-[#222c37] border border-[#38bdf8]/30 text-[#38bdf8] font-mono font-bold text-xs transition-colors shadow-[0_0_10px_rgba(56,189,248,0.05)]"
+                  <Link to="/evidence" className="w-full h-9 bg-[#11161b] hover:bg-[#222c37] border border-[#38bdf8]/30 text-[#38bdf8] font-mono font-bold text-xs transition-colors shadow-[0_0_10px_rgba(56,189,248,0.05)]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                     VIEW EVIDENCE
-                  </button>
+                  </Link>
                 </div>
               </div>
             </section>
@@ -559,14 +562,14 @@ const Dashboard: React.FC = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                         <h4 className="text-[#f4f4f6] text-sm font-bold truncate mb-1">E-Commerce Platform</h4>
-                        <div className="flex items-center gap-3 text-[10px] font-mono text-[#5f636b]"
+                        <div className="flex items-center gap-3 text-[10px] font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                           <span>4 repos</span>
                           <span>•</span>
                           <span className="text-[#ffb03a]">38 changes</span>
                         </div>
                     </div>
-                    <ArrowRight size={16} className="text-[#5f636b] group-hover:text-[#f4f4f6] opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                    <ArrowRight size={16} className="text-[#94a3b8] group-hover:text-[#f4f4f6] opacity-0 group-hover:opacity-100 transition-[color,background-color,border-color,box-shadow,opacity,transform] -translate-x-2 group-hover:translate-x-0" />
                   </div>
 
                   <div className="bg-[#11161b] border border-[#222c37] hover:border-[#5f636b] p-4 transition-colors cursor-pointer group flex gap-4 items-center">
@@ -575,14 +578,14 @@ const Dashboard: React.FC = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                         <h4 className="text-[#f4f4f6] text-sm font-bold truncate mb-1">Payment Platform</h4>
-                        <div className="flex items-center gap-3 text-[10px] font-mono text-[#5f636b]"
+                        <div className="flex items-center gap-3 text-[10px] font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                           <span>2 repos</span>
                           <span>•</span>
                           <span className="text-[#ffb03a]">21 changes</span>
                         </div>
                     </div>
-                    <ArrowRight size={16} className="text-[#5f636b] group-hover:text-[#f4f4f6] opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                    <ArrowRight size={16} className="text-[#94a3b8] group-hover:text-[#f4f4f6] opacity-0 group-hover:opacity-100 transition-[color,background-color,border-color,box-shadow,opacity,transform] -translate-x-2 group-hover:translate-x-0" />
                   </div>
 
               </div>
@@ -595,13 +598,13 @@ const Dashboard: React.FC = () => {
                     <FolderGit2 size={18} className="text-[#94a3b8]" />
                   </div>
                   <h4 className="text-[#f4f4f6] font-bold text-sm mb-2">Start New Analysis</h4>
-                  <p className="text-xs text-[#5f636b] mb-5 max-w-[200px] mx-auto">Connect a repository and reconstruct its architectural history.</p>
+                  <p className="text-xs text-[#94a3b8] mb-5 max-w-[200px] mx-auto">Connect a repository and reconstruct its architectural history.</p>
                   <div className="flex gap-2 justify-center">
-                    <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[#11161b] border border-[#222c37] hover:border-[#94a3b8] text-[#f4f4f6] text-[10px] font-mono font-bold transition-colors"
+                    <button disabled title="Not available yet: this view uses sample data" aria-label="GITHUB" className="flex items-center gap-1.5 px-3 py-1.5 bg-[#11161b] border border-[#222c37] hover:border-[#94a3b8] text-[#f4f4f6] text-[10px] font-mono font-bold transition-colors"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       <Icon icon="mdi:github" width="14" height="14" /> GITHUB
                     </button>
-                    <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[#11161b] border border-[#222c37] hover:border-[#94a3b8] text-[#f4f4f6] text-[10px] font-mono font-bold transition-colors"
+                    <button disabled title="Not available yet: this view uses sample data" aria-label="GITLAB" className="flex items-center gap-1.5 px-3 py-1.5 bg-[#11161b] border border-[#222c37] hover:border-[#94a3b8] text-[#f4f4f6] text-[10px] font-mono font-bold transition-colors"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       <Icon icon="mdi:gitlab" width="14" height="14" className="text-[#FC6D26]" /> GITLAB
                     </button>

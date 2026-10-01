@@ -1,3 +1,4 @@
+import SampleDataNotice from '@/components/SampleDataNotice';
 import React from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
@@ -91,6 +92,7 @@ const SystemAdministratorDashboard: React.FC = () => {
   return (
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-10">
+        <SampleDataNotice />
 
         {/* HEADER */}
         <div>
@@ -155,7 +157,7 @@ const SystemAdministratorDashboard: React.FC = () => {
                       <span className="text-sm text-[#f4f4f6] font-medium truncate">{service.name}</span>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-xs text-[#5f636b]" style={{ fontFamily: fontFamily.mono }}>{service.latency}</span>
+                      <span className="text-xs text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>{service.latency}</span>
                       <span
                         className="text-[9px] font-bold uppercase tracking-widest px-2 py-1 border"
                         style={{
@@ -186,14 +188,14 @@ const SystemAdministratorDashboard: React.FC = () => {
                 <span className="h-2.5 w-2.5 rounded-full bg-red-500/40" />
                 <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/40" />
                 <span className="h-2.5 w-2.5 rounded-full bg-green-500/40" />
-                <span className="ml-2 text-xs text-[#5f636b]" style={{ fontFamily: fontFamily.mono }}>
+                <span className="ml-2 text-xs text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>
                   system.log &middot; live tail
                 </span>
               </div>
-              <div className="p-4 space-y-2 text-xs max-h-[340px] overflow-y-auto" style={{ fontFamily: fontFamily.mono }}>
+              <div role="log" aria-live="polite" aria-label="System event log" className="p-4 space-y-2 text-xs max-h-[340px] overflow-y-auto" style={{ fontFamily: fontFamily.mono }}>
                 {mockLogStream.map((entry, i) => (
                   <div key={i} className="flex items-start gap-3">
-                    <span className="text-[#5f636b] shrink-0">{entry.ts}</span>
+                    <span className="text-[#94a3b8] shrink-0">{entry.ts}</span>
                     <span
                       className="shrink-0 uppercase font-bold w-12"
                       style={{ color: logLevelColor[entry.level] }}
@@ -215,7 +217,7 @@ const SystemAdministratorDashboard: React.FC = () => {
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-[#f4f4f6] font-medium">Repository Storage</span>
-                <span className="text-xs text-[#5f636b]" style={{ fontFamily: fontFamily.mono }}>312 GB / 500 GB</span>
+                <span className="text-xs text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>312 GB / 500 GB</span>
               </div>
               <div className="h-1.5 w-full bg-[#0b0f14] overflow-hidden">
                 <div className="h-full bg-[#38bdf8]" style={{ width: '62%' }}></div>

@@ -1,7 +1,14 @@
 import { Icon } from "@iconify/react";
-import { motion } from "motion/react";
+import { App, Dropdown } from "antd";
+import { UserRound } from "lucide-react";
+import { useAuth } from "@/auth/auth-context";
+import { roleHome } from "@/auth/permissions";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { Mascot } from "page-mascot";
 import { Logo } from "@/components/Logo";
+import { useComingSoon } from "@/hooks/useComingSoon";
 
 const particles = [
   { left: "14%", size: 3, duration: 4.5, delay: 0 },
@@ -18,6 +25,7 @@ const fontFamily = {
 
 function TypewriterLine() {
   const [text, setText] = useState("");
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     const sequences = ["compile_all --speed=max", "run mock_compiler.exe", "status --all --verbose"];
@@ -59,8 +67,8 @@ function TypewriterLine() {
     <span className="text-white" style={{ fontFamily: fontFamily.mono }}>
       {text}
       <motion.span
-        animate={{ opacity: [1, 1, 0, 0] }}
-        transition={{ duration: 1, repeat: Infinity, times: [0, 0.5, 0.5, 1], ease: "linear" }}
+        animate={prefersReducedMotion ? { opacity: 1 } : { opacity: [1, 1, 0, 0] }}
+        transition={prefersReducedMotion ? undefined : { duration: 1, repeat: Infinity, times: [0, 0.5, 0.5, 1], ease: "linear" }}
         style={{ color: "#38bdf8" }}
       >
         |
@@ -110,8 +118,21 @@ function RevealSection({
 }
 
 export default function HomePage() {
+  const { user, loading: authLoading, signOut } = useAuth();
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
   const [navScrolled, setNavScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [subscribeEmail, setSubscribeEmail] = useState("");
+  const prefersReducedMotion = useReducedMotion();
+  const notifyComingSoon = useComingSoon();
+  const { message } = App.useApp();
+
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subscribeEmail.trim()) return;
+    message.success("Thanks for subscribing! We'll keep you posted.");
+    setSubscribeEmail("");
+  };
 
   const particleList = useMemo(() => particles, []);
 
@@ -134,6 +155,13 @@ export default function HomePage() {
       className="min-h-screen overflow-x-hidden bg-[#080b0e] text-slate-200 antialiased selection:bg-[#f59e0b] selection:text-[#080b0e]"
       style={{ fontFamily: fontFamily.sans }}
     >
+      <div className="fixed bottom-6 right-6 z-[60]">
+        <Mascot
+          directions="/mascots/crt-directions.webp"
+          reactions="/mascots/crt-reactions.webp"
+        />
+      </div>
+
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
         <div
           className="absolute inset-0"
@@ -151,7 +179,7 @@ export default function HomePage() {
           }}
         />
         <div className="absolute bottom-[10%] right-[-5%] h-[40vw] w-[40vw] rounded-full bg-[#38bdf8]/5 blur-[120px]" />
-        {particleList.map((p, i) => (
+        {!prefersReducedMotion && particleList.map((p, i) => (
           <motion.div
             key={i}
             className="absolute rounded-full"
@@ -176,7 +204,7 @@ export default function HomePage() {
       </div>
 
       <motion.nav
-        className="fixed left-0 top-0 z-50 flex w-full items-center border-b transition-all duration-300"
+        className="fixed left-0 top-0 z-50 flex w-full items-center border-b transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300"
         animate={{
           height: navScrolled ? 64 : 80,
           backgroundColor: navScrolled ? "rgba(8, 11, 14, 0.9)" : "rgba(8, 11, 14, 0)",
@@ -213,14 +241,127 @@ export default function HomePage() {
             >
               EVIDENCE // VERIFIED
             </span>
-            <button
-              className="border border-[#38bdf8]/30 bg-[#11161b] px-5 py-2.5 text-xs uppercase tracking-widest transition-all hover:border-[#00f0ff] hover:text-white"
+            {authLoading ? (
+              <span role="status" aria-label="Loading account" className="h-10 w-10 animate-pulse rounded-full border border-[#222c37] bg-[#11161b] motion-reduce:animate-none" />
+            ) : user ? (
+              <Dropdown
+                trigger={['click']}
+                placement="bottomRight"
+                menu={{ items: [
+                  { key: 'identity', label: <div className="max-w-60 py-1 normal-case"><p className="truncate font-semibold">{user.name}</p><p className="truncate text-xs text-slate-400">{user.email}</p></div>, disabled: true },
+                  { type: 'divider' },
+                  { key: 'dashboard', label: <Link to={roleHome[user.role]} onClick={() => setMobileMenuOpen(false)}>Dashboard</Link> },
+                  { key: 'logout', label: 'Sign out', onClick: () => { setMobileMenuOpen(false); signOut(); } },
+                ] }}
+              >
+                <button
+                  type="button"
+                  aria-label={`Open account menu for ${user.name}`}
+                  title={user.name}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-[#38bdf8]/40 bg-[#11161b] text-[#38bdf8] transition-colors hover:border-[#00f0ff] hover:text-[#00f0ff] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#38bdf8]"
+                >
+                  <UserRound size={20} aria-hidden="true" />
+                </button>
+              </Dropdown>
+            ) : (<>
+            <Link
+              to="/login"
+              className="hidden text-xs uppercase tracking-widest text-slate-300 transition-colors hover:text-white md:inline-block"
               style={{ fontFamily: fontFamily.mono }}
             >
-              Analyze Repository
+              Log In
+            </Link>
+            <Link
+              to="/register"
+              className="hidden border border-[#38bdf8]/30 bg-[#11161b] px-5 py-2.5 text-xs uppercase tracking-widest text-white transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-[#00f0ff] hover:text-[#00f0ff] md:inline-block"
+              style={{ fontFamily: fontFamily.mono }}
+            >
+              Sign Up
+            </Link>
+            </>)}
+            <button
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-nav-menu"
+              className="border border-[#222c37] bg-[#11161b] p-2.5 text-slate-300 transition-colors hover:border-[#00f0ff] hover:text-white md:hidden"
+            >
+              <Icon icon={mobileMenuOpen ? "ph:x-bold" : "ph:list-bold"} className="text-lg" />
             </button>
           </div>
         </div>
+
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              id="mobile-nav-menu"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute left-0 top-full w-full overflow-hidden border-b border-[#222c37] bg-[#080b0e]/95 backdrop-blur-md md:hidden"
+            >
+              <nav
+                className="flex flex-col gap-1 px-6 py-4 text-xs uppercase tracking-widest text-slate-400"
+                style={{ fontFamily: fontFamily.mono }}
+              >
+                <a
+                  href="#architecture"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="border-b border-[#222c37]/60 py-3 transition-colors hover:text-[#00f0ff]"
+                >
+                  Architecture
+                </a>
+                <a
+                  href="#console"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="border-b border-[#222c37]/60 py-3 transition-colors hover:text-[#00f0ff]"
+                >
+                  Console
+                </a>
+                <a
+                  href="#modules"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="border-b border-[#222c37]/60 py-3 transition-colors hover:text-[#00f0ff]"
+                >
+                  Modules
+                </a>
+                <a
+                  href="#hardware"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="border-b border-[#222c37]/60 py-3 transition-colors hover:text-[#00f0ff]"
+                >
+                  Evidence
+                </a>
+                {!authLoading && !user && (<>
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-3 transition-colors hover:text-[#00f0ff]"
+                >
+                  Log In
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="mt-2 border border-[#38bdf8]/30 bg-[#11161b] px-5 py-2.5 text-center text-white transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-[#00f0ff] hover:text-[#00f0ff]"
+                >
+                  Sign Up
+                </Link>
+                </>)}
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    notifyComingSoon("Repository analysis");
+                  }}
+                  className="mt-2 border border-[#222c37] bg-transparent px-5 py-2.5 text-center text-slate-400 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400 hover:text-white"
+                >
+                  Analyze Repository
+                </button>
+              </nav>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.nav>
 
       <header className="relative flex min-h-screen items-center justify-center overflow-hidden pt-20">
@@ -242,7 +383,7 @@ export default function HomePage() {
         <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-12 px-6 py-12 lg:grid-cols-12">
           <div className="space-y-8 text-left lg:col-span-7">
             <div className="inline-flex items-center gap-3 border border-[#222c37] bg-[#11161b]/80 px-4 py-1.5">
-              <Icon icon="radix-icons:dot-filled" className="animate-spin text-[#ffb03a]" />
+              <Icon icon="radix-icons:dot-filled" className="animate-spin motion-reduce:animate-none text-[#ffb03a]" />
               <span
                 className="text-xs uppercase tracking-widest text-slate-300"
                 style={{ fontFamily: fontFamily.mono }}
@@ -282,7 +423,7 @@ export default function HomePage() {
               </motion.a>
               <a
                 href="#architecture"
-                className="rounded-none border border-[#222c37] bg-[#11161b]/40 px-8 py-4 text-center text-xs font-light uppercase tracking-widest text-slate-300 transition-all hover:border-slate-400"
+                className="rounded-none border border-[#222c37] bg-[#11161b]/40 px-8 py-4 text-center text-xs font-light uppercase tracking-widest text-slate-300 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Explore Pipeline
@@ -292,7 +433,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main className="relative z-10">
+      <div className="relative z-10">
         <RevealSection id="architecture" className="mx-auto max-w-7xl px-6 py-32">
           <div className="grid items-center gap-12 lg:grid-cols-12">
             <div className="space-y-6 lg:col-span-5">
@@ -551,6 +692,7 @@ export default function HomePage() {
               </p>
               <div className="pt-2">
                 <button
+                  onClick={() => notifyComingSoon("Evidence trail view")}
                   className="bg-white px-8 py-4 text-xs font-bold uppercase tracking-widest text-[#080b0e] transition-colors hover:bg-[#f59e0b]"
                   style={{ fontFamily: fontFamily.mono }}
                 >
@@ -564,27 +706,38 @@ export default function HomePage() {
         <RevealSection id="subscribe" className="relative mx-auto max-w-4xl overflow-hidden px-6 py-32 text-center">
           <div className="pointer-events-none absolute inset-0 rounded-full bg-[#ffb03a]/5 blur-3xl" />
           <div className="relative z-10 space-y-8">
-            <Icon icon="ph:fingerprint-light" className="animate-pulse text-4xl text-[#38bdf8]" />
+            <Icon icon="ph:fingerprint-light" className="animate-pulse motion-reduce:animate-none text-4xl text-[#38bdf8]" />
             <h2 className="text-3xl font-bold tracking-tight text-white sm:text-5xl">
               Follow the ArchTime Build Log
             </h2>
             <p className="mx-auto max-w-xl text-sm font-light leading-relaxed text-slate-400 sm:text-base">
               Get updates on new evaluation benchmarks, pipeline releases and Java/Spring Boot repository support.
             </p>
-            <div className="mx-auto flex max-w-md flex-col items-center gap-4 sm:flex-row">
+            <form
+              onSubmit={handleSubscribe}
+              className="mx-auto flex max-w-md flex-col items-center gap-4 sm:flex-row"
+            >
+              <label htmlFor="subscribe-email" className="sr-only">
+                Email address
+              </label>
               <input
+                id="subscribe-email"
                 type="email"
+                required
+                value={subscribeEmail}
+                onChange={(e) => setSubscribeEmail(e.target.value)}
                 placeholder="you@domain.com"
                 className="w-full border border-[#222c37] bg-[#161d24] px-5 py-4 text-xs text-white placeholder:text-slate-600 focus:border-[#38bdf8] focus:outline-none transition-colors"
                 style={{ fontFamily: fontFamily.mono }}
               />
               <button
+                type="submit"
                 className="w-full whitespace-nowrap bg-[#38bdf8] px-8 py-4 text-xs font-bold uppercase tracking-widest text-[#080b0e] transition-colors hover:bg-[#00f0ff] sm:w-auto"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Subscribe
               </button>
-            </div>
+            </form>
           </div>
         </RevealSection>
 
@@ -660,7 +813,7 @@ export default function HomePage() {
             </div>
           </div>
         </footer>
-      </main>
+      </div>
     </main>
   );
 }

@@ -1,58 +1,47 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+﻿import React, { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, User, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Icon } from '@iconify/react';
 import { motion, AnimatePresence } from 'motion/react';
+import { App } from 'antd';
 import { Logo } from '@/components/Logo';
+import { useAuth } from '@/auth/auth-context';
+import { loginDestination } from '@/auth/permissions';
+import { authRequest } from '@/auth/requests';
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const fontFamily = {
   sans: '"Space Grotesk", sans-serif',
   mono: '"JetBrains Mono", monospace',
 };
 
+type FieldErrors = Partial<Record<'name' | 'email' | 'password' | 'confirmPassword', string>>;
+
 const AuthPage: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const isRegister = location.pathname === '/register';
+  const { message } = App.useApp();
+  const { signIn } = useAuth();
 
   // Form States
+  const [rememberMe, setRememberMe] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
+
   // UI States
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
-  // Reset states when switching mode
+  const activeRequest = useRef<AbortController | null>(null);
   useEffect(() => {
-    setError('');
-    setIsLoading(false);
+    document.title = isRegister ? 'Create account ? ArchTime' : 'Sign in ? ArchTime';
+    return () => activeRequest.current?.abort();
   }, [isRegister]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    
-    // Basic validation
-    if (!email || !password || (isRegister && (!name || !confirmPassword))) {
-      setError('Please fill in all required fields.');
-      return;
-    }
-    
-    if (isRegister && password !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      // In a real app, handle auth success here
-    }, 1500);
-  };
 
   const calculatePasswordStrength = (pass: string) => {
     let score = 0;
@@ -65,15 +54,97 @@ const AuthPage: React.FC = () => {
 
   const strength = calculatePasswordStrength(password);
   const strengthColors = ['bg-[#5f636b]', 'bg-red-500', 'bg-[#ffb03a]', 'bg-[#38bdf8]', 'bg-[#00f0ff]'];
+  const strengthLabels = ['Very weak', 'Weak', 'Fair', 'Strong', 'Very strong'];
+
+  const validate = (): FieldErrors => {
+    const errors: FieldErrors = {};
+
+    if (isRegister && !name.trim()) {
+      errors.name = 'Full name is required.';
+    }
+
+    if (!email.trim()) {
+      errors.email = 'Email address is required.';
+    } else if (!EMAIL_PATTERN.test(email.trim())) {
+      errors.email = 'Enter a valid email address.';
+    }
+
+    if (!password) {
+      errors.password = 'Password is required.';
+    } else if (password.length < 8) {
+      errors.password = 'Password must be at least 8 characters.';
+    } else if (isRegister && strength < 3) {
+      errors.password = 'Password is too weak. Add uppercase, a number, or a symbol.';
+    }
+
+    if (isRegister) {
+      if (!confirmPassword) {
+        errors.confirmPassword = 'Please confirm your password.';
+      } else if (password !== confirmPassword) {
+        errors.confirmPassword = 'Passwords do not match.';
+      }
+    }
+
+    return errors;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const errors = validate();
+    setFieldErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      const field = Object.keys(errors)[0];
+      document.getElementById(field === 'confirmPassword' ? 'auth-confirm-password' : `auth-${field}`)?.focus();
+      message.error(Object.values(errors)[0]);
+      return;
+    }
+
+    if (isLoading) return;
+    setIsLoading(true);
+    const controller = new AbortController();
+    activeRequest.current = controller;
+
+    try {
+      const endpoint = isRegister ? 'register' : 'login';
+      const body: Record<string, string> = isRegister
+        ? { name: name.trim(), email: email.trim(), password, confirmPassword }
+        : { email: email.trim(), password };
+
+      const result = await authRequest(endpoint, body, controller.signal);
+
+      if (isRegister) {
+        message.success(result.message ?? 'Account created. Check your email for the verification OTP.');
+        setPassword('');
+        setConfirmPassword('');
+        navigate('/verify-email', { state: { email: email.trim(), from: location.state?.from } });
+      } else {
+        if (!result.accessToken || !result.refreshToken) {
+          throw new Error('Login response is missing authentication tokens.');
+        }
+
+        const user = await signIn({ accessToken: result.accessToken, refreshToken: result.refreshToken }, rememberMe);
+        message.success('Signed in successfully.');
+        const requested = typeof location.state?.from === 'string' ? location.state.from : undefined;
+        navigate(loginDestination(user.role, requested), { replace: true });
+      }
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      message.error(error instanceof Error ? error.message : 'Unable to complete the request.');
+    } finally {
+      if (!controller.signal.aborted) setIsLoading(false);
+    }
+  };
 
   return (
     <div
-      className="min-h-screen md:h-screen bg-[#080b0e] text-slate-200 flex flex-col md:flex-row md:overflow-hidden selection:bg-[#f59e0b] selection:text-[#080b0e]"
+      className="min-h-dvh bg-[#080b0e] text-slate-200 flex flex-col md:flex-row selection:bg-[#f59e0b] selection:text-[#080b0e]"
       style={{ fontFamily: fontFamily.sans }}
     >
 
       {/* Left Panel - Authentication */}
-      <div className="w-full md:w-[40%] flex flex-col relative z-10 bg-[#080b0e] border-b md:border-b-0 md:border-r border-[#222c37] shadow-2xl md:h-screen md:overflow-hidden">
+      <div className="w-full md:w-[40%] flex flex-col relative z-10 bg-[#080b0e] border-b md:border-b-0 md:border-r border-[#222c37] shadow-2xl min-h-dvh">
 
         <div className="flex-1 flex flex-col p-6 lg:p-10 xl:px-12 xl:py-8 max-w-xl w-full mx-auto justify-between">
 
@@ -118,50 +189,64 @@ const AuthPage: React.FC = () => {
                   </p>
                 </div>
 
-                {error && (
-                  <div className="mb-6 p-3 bg-red-900/20 border border-red-500/30 text-red-400 text-sm flex items-center gap-2">
-                    <div className="w-1 h-1 rounded-full bg-red-500"></div>
-                    {error}
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} noValidate className="space-y-4">
 
                   {isRegister && (
                     <div className="space-y-1.5">
-                      <label className="text-[11px] text-slate-400 uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>Full name</label>
+                      <label htmlFor="auth-name" className="text-[11px] text-slate-400 uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>Full name</label>
                       <div className="relative group">
                         <input
+                          id="auth-name"
+                          name="name"
+                          autoComplete="name"
                           type="text"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
                           disabled={isLoading}
                           placeholder="Jane Doe"
-                          className="w-full h-11 bg-[#11161b] border border-[#222c37] pl-10 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-[#38bdf8] transition-colors disabled:opacity-50"
+                          aria-invalid={!!fieldErrors.name}
+                          aria-describedby={fieldErrors.name ? 'auth-name-error' : undefined}
+                          className={`w-full h-11 bg-[#11161b] border pl-10 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none transition-colors disabled:opacity-50 ${
+                            fieldErrors.name ? 'border-red-500/60 focus:border-red-500' : 'border-[#222c37] focus:border-[#38bdf8]'
+                          }`}
                         />
                         <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#38bdf8] transition-colors" />
                       </div>
+                      {fieldErrors.name && (
+                        <p id="auth-name-error" role="alert" className="text-xs text-red-400">{fieldErrors.name}</p>
+                      )}
                     </div>
                   )}
 
                   <div className="space-y-1.5">
-                    <label className="text-[11px] text-slate-400 uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>Email address</label>
+                    <label htmlFor="auth-email" className="text-[11px] text-slate-400 uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>Email address</label>
                     <div className="relative group">
                       <input
+                        id="auth-email"
+                          name="email"
+                          autoComplete="email"
                         type="email"
+                        spellCheck={false}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         disabled={isLoading}
                         placeholder="developer@archtime.io"
-                        className="w-full h-11 bg-[#11161b] border border-[#222c37] pl-10 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-[#38bdf8] transition-colors disabled:opacity-50"
+                        aria-invalid={!!fieldErrors.email}
+                        aria-describedby={fieldErrors.email ? 'auth-email-error' : undefined}
+                        className={`w-full h-11 bg-[#11161b] border pl-10 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none transition-colors disabled:opacity-50 ${
+                          fieldErrors.email ? 'border-red-500/60 focus:border-red-500' : 'border-[#222c37] focus:border-[#38bdf8]'
+                        }`}
                       />
                       <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#38bdf8] transition-colors" />
                     </div>
+                    {fieldErrors.email && (
+                      <p id="auth-email-error" role="alert" className="text-xs text-red-400">{fieldErrors.email}</p>
+                    )}
                   </div>
 
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <label className="text-[11px] text-slate-400 uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>Password</label>
+                      <label htmlFor="auth-password" className="text-[11px] text-slate-400 uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>Password</label>
                       {!isRegister && (
                         <button
                           type="button"
@@ -176,51 +261,75 @@ const AuthPage: React.FC = () => {
                     </div>
                     <div className="relative group">
                       <input
+                        id="auth-password"
+                          name="password"
+                          autoComplete={isRegister ? 'new-password' : 'current-password'}
                         type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         disabled={isLoading}
-                        placeholder="••••••••••••••••"
-                        className="w-full h-11 bg-[#11161b] border border-[#222c37] pl-10 pr-10 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-[#38bdf8] transition-colors tracking-wide disabled:opacity-50"
+                        placeholder="••••••••"
+                        aria-invalid={!!fieldErrors.password}
+                        aria-describedby={fieldErrors.password ? 'auth-password-error' : undefined}
+                        className={`w-full h-11 bg-[#11161b] border pl-10 pr-10 text-sm text-white placeholder:text-slate-600 focus:outline-none transition-colors tracking-wide disabled:opacity-50 ${
+                          fieldErrors.password ? 'border-red-500/60 focus:border-red-500' : 'border-[#222c37] focus:border-[#38bdf8]'
+                        }`}
                       />
                       <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#38bdf8] transition-colors" />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        tabIndex={-1}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors focus:outline-none"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors focus:outline-none focus-visible:text-[#38bdf8]"
                       >
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
 
-                    {/* Subtle Password Strength Indicator */}
+                    {fieldErrors.password && (
+                      <p id="auth-password-error" role="alert" className="text-xs text-red-400">{fieldErrors.password}</p>
+                    )}
+
+                    {/* Password Strength Indicator */}
                     {isRegister && password.length > 0 && (
-                      <div className="flex gap-1 mt-2">
-                        {[1, 2, 3, 4].map((level) => (
-                          <div
-                            key={level}
-                            className={`h-1 flex-1 transition-colors duration-300 ${strength >= level ? strengthColors[strength] : 'bg-[#222c37]'}`}
-                          ></div>
-                        ))}
+                      <div className="mt-2">
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4].map((level) => (
+                            <div
+                              key={level}
+                              className={`h-1 flex-1 transition-colors duration-300 ${strength >= level ? strengthColors[strength] : 'bg-[#222c37]'}`}
+                            ></div>
+                          ))}
+                        </div>
+                        <p className="mt-1 text-[11px] text-slate-500">{strengthLabels[strength]}</p>
                       </div>
                     )}
                   </div>
 
                   {isRegister && (
                     <div className="space-y-1.5">
-                      <label className="text-[11px] text-slate-400 uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>Confirm password</label>
+                      <label htmlFor="auth-confirm-password" className="text-[11px] text-slate-400 uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>Confirm password</label>
                       <div className="relative group">
                         <input
+                          id="auth-confirm-password"
+                          name="confirmPassword"
+                          autoComplete="new-password"
                           type={showPassword ? "text" : "password"}
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
                           disabled={isLoading}
-                          placeholder="••••••••••••••••"
-                          className="w-full h-11 bg-[#11161b] border border-[#222c37] pl-10 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-[#38bdf8] transition-colors tracking-wide disabled:opacity-50"
+                          placeholder="••••••••"
+                          aria-invalid={!!fieldErrors.confirmPassword}
+                          aria-describedby={fieldErrors.confirmPassword ? 'auth-confirm-password-error' : undefined}
+                          className={`w-full h-11 bg-[#11161b] border pl-10 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none transition-colors tracking-wide disabled:opacity-50 ${
+                            fieldErrors.confirmPassword ? 'border-red-500/60 focus:border-red-500' : 'border-[#222c37] focus:border-[#38bdf8]'
+                          }`}
                         />
                         <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#38bdf8] transition-colors" />
                       </div>
+                      {fieldErrors.confirmPassword && (
+                        <p id="auth-confirm-password-error" role="alert" className="text-xs text-red-400">{fieldErrors.confirmPassword}</p>
+                      )}
                     </div>
                   )}
 
@@ -228,10 +337,11 @@ const AuthPage: React.FC = () => {
                     <div className="flex items-center gap-2 pt-2 pb-1">
                       <input
                         type="checkbox"
-                        id="remember"
+                        id="remember" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)}
                         className="w-3.5 h-3.5 border-[#222c37] bg-[#11161b] text-[#38bdf8] focus:ring-[#38bdf8] focus:ring-offset-0 focus:ring-offset-[#080b0e] cursor-pointer"
                       />
-                      <label htmlFor="remember" className="text-sm text-slate-400 cursor-pointer select-none">Remember this browser session</label>
+                      <label htmlFor="remember" className="text-sm text-slate-400 cursor-pointer select-none">Remember me</label>
+                      <Link to="/forgot-password" className="ml-auto text-sm text-sky-400 hover:underline">Forgot password?</Link>
                     </div>
                   )}
 
@@ -242,12 +352,13 @@ const AuthPage: React.FC = () => {
                     style={{ fontFamily: fontFamily.mono }}
                   >
                     {isLoading ? (
-                      <Loader2 size={16} className="animate-spin" />
+                      <Loader2 size={16} className="animate-spin motion-reduce:animate-none" />
                     ) : (
                       isRegister ? 'Create account' : 'Sign in'
                     )}
                   </button>
                 </form>
+                {!isRegister && <Link to="/verify-email" state={{ email: email.trim(), from: location.state?.from }} className="block mt-4 text-center text-xs text-[#38bdf8]">Have a verification code? Activate your account</Link>}
 
                 <div className="flex items-center gap-4 my-6 opacity-70">
                   <div className="h-[1px] flex-1 bg-[#222c37]"></div>
