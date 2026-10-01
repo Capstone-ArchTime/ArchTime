@@ -11,6 +11,8 @@ export interface IUser {
   passwordHash: string;
   role: UserRole;
   isVerified: boolean;
+  githubId?: string;
+  avatarUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }

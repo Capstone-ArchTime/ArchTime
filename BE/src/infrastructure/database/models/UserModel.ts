@@ -13,13 +13,15 @@ const UserSchema = new Schema<IUserDocument>(
       lowercase: true,
       trim: true,
     },
-    passwordHash: { type: String, required: true, select: false },
+    passwordHash: { type: String, select: false },
     role: {
       type: String,
       enum: Object.values(UserRole),
       default: UserRole.DEVELOPER_ANALYST,
     },
     isVerified: { type: Boolean, default: false },
+    githubId: { type: String, unique: true, sparse: true },
+    avatarUrl: { type: String },
   },
   {
     timestamps: true,
@@ -39,3 +41,4 @@ export const UserModel: Model<IUserDocument> = mongoose.model<IUserDocument>(
   "User",
   UserSchema,
 );
+

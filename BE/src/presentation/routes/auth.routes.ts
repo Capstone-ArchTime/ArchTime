@@ -1,4 +1,5 @@
 import { Router } from "express";
+import passport from "passport";
 import type { AuthController } from "../controllers/AuthController.js";
 import type { JwtTokenService } from "../../infrastructure/services/JwtTokenService.js";
 import { createAuthenticateMiddleware } from "../middlewares/authenticate.js";
@@ -322,5 +323,114 @@ export function createAuthRouter(
    */
   router.post("/change-password", authenticate, authController.changePassword);
 
+  // ─────────────────────────────────────────
+  // GitHub OAuth Routes
+  // ─────────────────────────────────────────
+
+  /**
+   * @swagger
+   * /api/auth/github:
+   *   get:
+   *     tags: [Auth]
+   *     summary: Initiate GitHub OAuth login
+   *     description: >
+   *       Redirects the user to GitHub's authorization page. After the user
+   *       authorises the app, GitHub redirects back to `/api/auth/github/callback`.
+   *       If the GitHub email matches an existing account that is not yet linked,
+   *       the callback returns `ACCOUNT_LINK_REQUIRED` status.
+   *     responses:
+   *       302:
+   *         description: Redirect to GitHub OAuth consent screen
+   */
+  router.get(
+    "/github",
+    passport.authenticate("github", { scope: ["user:email"], session: false }),
+  );
+
+  /**
+   * @swagger
+   * /api/auth/github/callback:
+   *   get:
+   *     tags: [Auth]
+   *     summary: GitHub OAuth callback (login / register)
+   *     description: >
+   *       GitHub redirects here after user authorization. Possible outcomes:
+   *       - **SUCCESS**: New or linked account — redirects to frontend with `accessToken` and `refreshToken` as query params.
+   *       - **ACCOUNT_LINK_REQUIRED**: Email already has an account — redirects with `status=ACCOUNT_LINK_REQUIRED` and an instructional message.
+   *     responses:
+   *       302:
+   *         description: Redirects to frontend with result status and tokens (or error details)
+   */
+  router.get(
+    "/github/callback",
+    passport.authenticate("github", { failureRedirect: "/api/auth/github", session: false }),
+    authController.githubCallback,
+  );
+
+  /**
+   * @swagger
+   * /api/auth/github/link:
+   *   get:
+   *     tags: [Auth]
+   *     summary: Link GitHub account (authenticated users)
+   *     description: >
+   *       An authenticated user can call this endpoint to initiate GitHub OAuth for
+   *       the purpose of **linking** their GitHub account to their existing ArchTime account.
+   *       Pass the Bearer token as a query parameter `token` (since this is a redirect-based flow).
+   *       The user's ID is forwarded to GitHub via the `state` parameter.
+   *     parameters:
+   *       - in: query
+   *         name: token
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The user's JWT access token
+   *     responses:
+   *       302:
+   *         description: Redirect to GitHub OAuth consent screen
+   *       401:
+   *         description: Invalid or missing token
+   */
+  router.get("/github/link", (req, res, next) => {
+    // Extract and verify the JWT from query param (redirect flow can't use Authorization header)
+    const token = req.query["token"] as string;
+    if (!token) {
+      res.status(401).json({ message: "Missing token query parameter." });
+      return;
+    }
+
+    try {
+      const payload = jwtService.verifyAccessToken(token);
+      // Pass userId via OAuth `state` parameter so the callback knows who to link
+      passport.authenticate("github", {
+        scope: ["user:email"],
+        session: false,
+        state: payload.userId,
+      } as object)(req, res, next);
+    } catch {
+      res.status(401).json({ message: "Invalid or expired access token." });
+    }
+  });
+
+  /**
+   * @swagger
+   * /api/auth/github/link/callback:
+   *   get:
+   *     tags: [Auth]
+   *     summary: GitHub OAuth callback for account linking
+   *     description: >
+   *       Callback endpoint for the account linking flow. After GitHub redirects here,
+   *       the GitHub profile is linked to the ArchTime user identified by the `state` parameter.
+   *     responses:
+   *       302:
+   *         description: Redirects to frontend with `status=LINKED` on success
+   */
+  router.get(
+    "/github/link/callback",
+    passport.authenticate("github", { failureRedirect: "/api/auth/github", session: false }),
+    authController.linkGithubCallback,
+  );
+
   return router;
 }
+

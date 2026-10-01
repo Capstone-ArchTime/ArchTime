@@ -24,4 +24,13 @@ export const env = {
   smtpUser: required("SMTP_USER"),
   smtpPass: required("SMTP_PASS"),
   smtpFrom: required("SMTP_FROM"),
+
+  // GitHub OAuth
+  githubClientId: required("GITHUB_CLIENT_ID", ""),
+  githubClientSecret: required("GITHUB_CLIENT_SECRET", ""),
+  githubCallbackUrl: required(
+    "GITHUB_CALLBACK_URL",
+    "http://localhost:4000/api/auth/github/callback",
+  ),
 };
+

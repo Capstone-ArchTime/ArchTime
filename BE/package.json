@@ -19,6 +19,8 @@
     "mongoose": "^8.7.0",
     "nodemailer": "^10.0.10",
     "open": "^11.0.4",
+    "passport": "^0.7.0",
+    "passport-github2": "^0.1.12",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1"
   },
@@ -29,6 +31,8 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.7.4",
     "@types/nodemailer": "^8.0.2",
+    "@types/passport": "^1.0.17",
+    "@types/passport-github2": "^1.2.9",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "eslint": "^9.11.1",

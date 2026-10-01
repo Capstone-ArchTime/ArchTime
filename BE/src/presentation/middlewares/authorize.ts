@@ -15,7 +15,7 @@ export function authorize(...allowedRoles: UserRole[]) {
       return;
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    if (!allowedRoles.includes(req.user.role!)) {
       res.status(403).json({
         error: "Forbidden: you do not have permission to access this resource.",
         requiredRoles: allowedRoles,

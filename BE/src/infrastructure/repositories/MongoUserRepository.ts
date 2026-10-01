@@ -11,6 +11,8 @@ export class MongoUserRepository implements IUserRepository {
       passwordHash: (doc.passwordHash as string) ?? "",
       role: doc.role as UserRole,
       isVerified: doc.isVerified as boolean,
+      githubId: doc.githubId as string | undefined,
+      avatarUrl: doc.avatarUrl as string | undefined,
       createdAt: doc.createdAt as Date,
       updatedAt: doc.updatedAt as Date,
     };
@@ -28,6 +30,12 @@ export class MongoUserRepository implements IUserRepository {
     return this.toEntity(doc as Record<string, unknown>);
   }
 
+  async findByGithubId(githubId: string): Promise<IUser | null> {
+    const doc = await UserModel.findOne({ githubId }).select("+passwordHash").lean();
+    if (!doc) return null;
+    return this.toEntity(doc as Record<string, unknown>);
+  }
+
   async create(data: {
     name: string;
     email: string;
@@ -35,6 +43,20 @@ export class MongoUserRepository implements IUserRepository {
     role: UserRole;
   }): Promise<IUser> {
     const doc = await UserModel.create(data);
+    return this.toEntity(doc.toObject() as unknown as Record<string, unknown>);
+  }
+
+  async createOAuthUser(data: {
+    name: string;
+    email: string;
+    role: UserRole;
+    githubId: string;
+    avatarUrl?: string;
+  }): Promise<IUser> {
+    const doc = await UserModel.create({
+      ...data,
+      isVerified: true, // OAuth users are pre-verified by the provider
+    });
     return this.toEntity(doc.toObject() as unknown as Record<string, unknown>);
   }
 
@@ -49,4 +71,12 @@ export class MongoUserRepository implements IUserRepository {
   async updatePassword(userId: string, passwordHash: string): Promise<void> {
     await UserModel.findByIdAndUpdate(userId, { passwordHash });
   }
+
+  async linkGithub(userId: string, githubId: string, avatarUrl?: string): Promise<void> {
+    await UserModel.findByIdAndUpdate(userId, {
+      githubId,
+      ...(avatarUrl && { avatarUrl }),
+    });
+  }
 }
+

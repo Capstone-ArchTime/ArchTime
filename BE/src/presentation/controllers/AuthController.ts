@@ -8,6 +8,9 @@ import type { GetCurrentUserUseCase } from "../../application/use-cases/GetCurre
 import type { ForgotPasswordUseCase } from "../../application/use-cases/ForgotPasswordUseCase.js";
 import type { ResetPasswordUseCase } from "../../application/use-cases/ResetPasswordUseCase.js";
 import type { ChangePasswordUseCase } from "../../application/use-cases/ChangePasswordUseCase.js";
+import type { GitHubLoginUseCase } from "../../application/use-cases/GitHubLoginUseCase.js";
+import type { LinkGithubUseCase } from "../../application/use-cases/LinkGithubUseCase.js";
+import type { GitHubProfile } from "../../infrastructure/services/GitHubOAuthService.js";
 import { BadRequestError } from "../../shared/errors/AppError.js";
 import { validatePassword } from "../../shared/utils/validators.js";
 
@@ -22,6 +25,8 @@ export class AuthController {
     private readonly forgotPasswordUC: ForgotPasswordUseCase,
     private readonly resetPasswordUC: ResetPasswordUseCase,
     private readonly changePasswordUC: ChangePasswordUseCase,
+    private readonly githubLoginUC: GitHubLoginUseCase,
+    private readonly linkGithubUC: LinkGithubUseCase,
   ) {}
 
   register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -111,7 +116,7 @@ export class AuthController {
 
   me = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const userId = req.user!.userId;
+      const userId = req.user!.userId!;
       const user = await this.getMeUC.execute({ userId });
       res.status(200).json({ user });
     } catch (err) {
@@ -161,7 +166,7 @@ export class AuthController {
 
   changePassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const userId = req.user!.userId;
+      const userId = req.user!.userId!;
       const { oldPassword, newPassword, confirmNewPassword } = req.body as {
         oldPassword?: string;
         newPassword?: string;
@@ -183,4 +188,78 @@ export class AuthController {
       next(err);
     }
   };
+
+  /**
+   * Handles the GitHub OAuth callback after Passport authenticates the user.
+   * The frontend redirect URL receives tokens as query params on success,
+   * or a status indicator on failure/link-required.
+   */
+  githubCallback = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const ghProfile = req.user as GitHubProfile | undefined;
+      if (!ghProfile) {
+        throw new BadRequestError("GitHub authentication failed.");
+      }
+
+      const result = await this.githubLoginUC.execute(ghProfile);
+
+      if (result.status === "ACCOUNT_LINK_REQUIRED") {
+        // Redirect to frontend with a link-required status
+        const frontendUrl = process.env["CORS_ORIGIN"] || "http://localhost:5173";
+        const params = new URLSearchParams({
+          status: "ACCOUNT_LINK_REQUIRED",
+          email: result.email,
+          message: result.message,
+        });
+        res.redirect(`${frontendUrl}/auth/github/callback?${params.toString()}`);
+        return;
+      }
+
+      // Success — redirect to frontend with tokens
+      const frontendUrl = process.env["CORS_ORIGIN"] || "http://localhost:5173";
+      const params = new URLSearchParams({
+        status: "SUCCESS",
+        accessToken: result.tokens.accessToken,
+        refreshToken: result.tokens.refreshToken,
+      });
+      res.redirect(`${frontendUrl}/auth/github/callback?${params.toString()}`);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  /**
+   * Handles the callback when an *authenticated* user links their GitHub account.
+   * Requires a valid Bearer token. The Passport profile is in req.user after OAuth,
+   * but the userId comes from the `state` parameter passed during the OAuth init.
+   */
+  linkGithubCallback = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const ghProfile = req.user as GitHubProfile | undefined;
+      if (!ghProfile) {
+        throw new BadRequestError("GitHub authentication failed.");
+      }
+
+      // The userId was passed via the OAuth state parameter
+      const userId = (req.query["state"] as string) || "";
+      if (!userId) {
+        throw new BadRequestError("Missing user context for account linking.");
+      }
+
+      const result = await this.linkGithubUC.execute({
+        userId,
+        githubProfile: ghProfile,
+      });
+
+      const frontendUrl = process.env["CORS_ORIGIN"] || "http://localhost:5173";
+      const params = new URLSearchParams({
+        status: "LINKED",
+        message: result.message,
+      });
+      res.redirect(`${frontendUrl}/auth/github/callback?${params.toString()}`);
+    } catch (err) {
+      next(err);
+    }
+  };
 }
+
