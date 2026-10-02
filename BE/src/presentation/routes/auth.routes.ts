@@ -271,5 +271,6 @@ export function createAuthRouter(
    */
   router.post("/forgot-password", authController.forgotPassword);
   router.post("/reset-password", authController.resetPassword);
+  router.post("/change-password", authenticate, authController.changePassword);
   return router;
 }

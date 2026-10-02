@@ -61,4 +61,11 @@ export class MongoUserRepository implements IUserRepository {
   async setVerified(userId: string): Promise<void> {
     await UserModel.findByIdAndUpdate(userId, { isVerified: true });
   }
+  async updatePassword(userId: string, passwordHash: string): Promise<void> {
+    await UserModel.updateOne({ _id: userId }, {
+      $set: { passwordHash },
+      $inc: { tokenVersion: 1 },
+      $unset: { resetTokenHash: 1, resetExpiresAt: 1 },
+    });
+  }
 }

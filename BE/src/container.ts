@@ -10,6 +10,7 @@ import { NodemailerEmailService } from "./infrastructure/services/NodemailerEmai
 
 // ── Application ──
 import { PasswordResetUseCase } from "./application/use-cases/PasswordResetUseCase.js";
+import { ChangePasswordUseCase } from "./application/use-cases/ChangePasswordUseCase.js";
 import { RegisterUseCase } from "./application/use-cases/RegisterUseCase.js";
 import { VerifyEmailUseCase } from "./application/use-cases/VerifyEmailUseCase.js";
 import { ResendOtpUseCase } from "./application/use-cases/ResendOtpUseCase.js";
@@ -98,6 +99,7 @@ export const authController = new AuthController(
   refreshTokenUseCase,
   getCurrentUserUseCase,
   new PasswordResetUseCase(userRepository, emailService, bcryptHasher),
+  new ChangePasswordUseCase(userRepository, bcryptHasher),
 );
 
 export const projectController = new ProjectController(

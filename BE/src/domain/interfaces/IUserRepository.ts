@@ -14,4 +14,5 @@ export interface IUserRepository {
   resetPassword(email: string, tokenHash: string, passwordHash: string, now: Date): Promise<boolean>;
   clearPasswordReset(userId: string, tokenHash: string): Promise<void>;
   setVerified(userId: string): Promise<void>;
+  updatePassword(userId: string, passwordHash: string): Promise<void>;
 }

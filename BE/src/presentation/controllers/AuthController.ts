@@ -8,6 +8,8 @@ import type { GetCurrentUserUseCase } from "../../application/use-cases/GetCurre
 import { BadRequestError } from "../../shared/errors/AppError.js";
 
 import type { PasswordResetUseCase } from "../../application/use-cases/PasswordResetUseCase.js";
+import type { ChangePasswordUseCase } from "../../application/use-cases/ChangePasswordUseCase.js";
+import { validatePassword } from "../../shared/utils/validators.js";
 
 export class AuthController {
   constructor(
@@ -18,6 +20,7 @@ export class AuthController {
     private readonly refreshUC: RefreshTokenUseCase,
     private readonly getMeUC: GetCurrentUserUseCase,
     private readonly passwordResetUC: PasswordResetUseCase,
+    private readonly changePasswordUC: ChangePasswordUseCase,
   ) {}
 
   forgotPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -25,6 +28,16 @@ export class AuthController {
   };
   resetPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try { res.json(await this.passwordResetUC.reset(req.body ?? {})); } catch (err) { next(err); }
+  };
+  changePassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { oldPassword, newPassword, confirmNewPassword } = req.body ?? {};
+      if (typeof oldPassword !== "string" || !oldPassword || typeof newPassword !== "string" || !newPassword) {
+        throw new BadRequestError("Fields required: oldPassword, newPassword, confirmNewPassword.");
+      }
+      if (newPassword !== confirmNewPassword) throw new BadRequestError("New passwords do not match.");
+      res.json(await this.changePasswordUC.execute({ userId: req.user!.userId, oldPassword, newPassword }));
+    } catch (err) { next(err); }
   };
   register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -42,6 +55,7 @@ export class AuthController {
         throw new BadRequestError("Passwords do not match.");
       }
 
+      validatePassword(password);
       const result = await this.registerUC.execute({ name, email, password });
       res.status(201).json(result);
     } catch (err) {
