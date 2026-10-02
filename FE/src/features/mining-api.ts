@@ -2,7 +2,7 @@ import { apiRequest } from '@/api/client';
 import type { MonthCount } from './mining-coverage';
 
 export type MiningJobState = {
-  id: string; kind: 'scan' | 'mine'; status: string; stage: string; progress: number; error?: string;
+  id: string; kind: 'scan' | 'mine' | 'abstract'; status: string; stage: string; progress: number; error?: string;
   total: number; processed: number; failedCommits: number; batchIndex: number; batchCount: number;
 };
 export type MiningOverview = {
@@ -25,7 +25,7 @@ export function parseJobState(raw: unknown): MiningJobState | null {
   const id = String(job.id ?? job._id ?? '');
   if (!id) return null;
   return {
-    id, kind: job.kind === 'scan' ? 'scan' : 'mine', status: job.status, stage: typeof job.stage === 'string' ? job.stage : '',
+    id, kind: job.kind === 'scan' || job.kind === 'abstract' ? job.kind : 'mine', status: job.status, stage: typeof job.stage === 'string' ? job.stage : '',
     progress: Math.min(100, Math.max(0, num(job.progress))), error: typeof job.error === 'string' ? job.error : undefined,
     total: num(job.total), processed: num(job.processed), failedCommits: num(job.failedCommits), batchIndex: num(job.batchIndex), batchCount: num(job.batchCount),
   };
