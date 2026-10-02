@@ -37,6 +37,8 @@ export class ClaudeClient implements LlmClient {
       try {
         return await this.send(messages, options);
       } catch (error) {
+        const billing = billingProblem(error);
+        if (billing) throw billing; // nothing about the request would change the outcome
         const rejected = error instanceof Anthropic.BadRequestError || error instanceof Anthropic.UnprocessableEntityError;
         if (rejected && this.useFallbacks) { this.useFallbacks = false; this.dropped.push(`The provider rejected the refusal-fallback option (${reasonOf(error)}); it was switched off.`); continue; }
         if (rejected && this.useSchema && options.schema) { this.useSchema = false; this.dropped.push(`The provider rejected schema-constrained output (${reasonOf(error)}); the answer is checked after the fact instead.`); continue; }
@@ -70,6 +72,13 @@ function reasonOf(error: unknown): string {
   const inner = (error as { error?: { error?: { message?: unknown } } })?.error?.error?.message;
   const text = typeof inner === 'string' ? inner : error instanceof Error ? error.message : 'no reason given';
   return text.replace(/\s+/g, ' ').slice(0, 240);
+}
+
+/** The API answers an unfunded account with a 400; retrying or dropping options cannot help. */
+function billingProblem(error: unknown): LlmError | null {
+  if (!(error instanceof Anthropic.APIError)) return null;
+  if (!/credit balance|plans\s*&\s*billing|billing/i.test(reasonOf(error))) return null;
+  return new LlmError('billing', 'The Anthropic account behind this API key has no credit left. Add credit under Plans & Billing in the Anthropic Console (a Claude subscription does not include API credit), or point ArchTime at a self-hosted model instead.');
 }
 
 function translate(error: unknown, model: string): LlmError | unknown {

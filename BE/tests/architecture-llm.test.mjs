@@ -120,7 +120,7 @@ test('each rule of the verifier catches its own mistake', () => {
 });
 
 test('provider failures: bad credentials and refusals stop at once, timeouts are retried', async () => {
-  for (const kind of ['auth', 'refusal', 'request']) {
+  for (const kind of ['auth', 'billing', 'refusal', 'request']) {
     const client = fake(new LlmError(kind, 'nope'));
     const result = await run(client);
     assert.equal(client.calls.length, 1, kind);

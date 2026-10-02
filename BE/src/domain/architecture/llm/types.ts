@@ -12,7 +12,7 @@ export interface LlmInfo {
   external: boolean;
 }
 
-export type LlmErrorKind = 'auth' | 'request' | 'rate_limit' | 'timeout' | 'refusal' | 'truncated' | 'network' | 'other';
+export type LlmErrorKind = 'auth' | 'billing' | 'request' | 'rate_limit' | 'timeout' | 'refusal' | 'truncated' | 'network' | 'other';
 
 export class LlmError extends Error {
   readonly kind: LlmErrorKind;
@@ -23,7 +23,7 @@ export class LlmError extends Error {
   }
   /** Errors that another attempt cannot fix. */
   get fatal(): boolean {
-    return this.kind === 'auth' || this.kind === 'refusal' || this.kind === 'request';
+    return this.kind === 'auth' || this.kind === 'billing' || this.kind === 'refusal' || this.kind === 'request';
   }
 }
 

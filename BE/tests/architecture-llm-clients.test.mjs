@@ -78,6 +78,16 @@ test('provider messages are kept so the user can see what went wrong', async () 
   } finally { await missing.close(); }
 });
 
+test('an unfunded account is reported as billing and nothing else is tried', async () => {
+  const srv = await server((req, res) => json(res, 400, { type: 'error', error: { type: 'invalid_request_error', message: 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.' } }));
+  try {
+    const client = new ClaudeClient({ apiKey: 'k', model: 'claude-opus-5-5', baseUrl: srv.url, timeoutMs: 5000 });
+    await assert.rejects(client.complete(MESSAGES, { schema: { type: 'object', additionalProperties: false } }), e => e.kind === 'billing' && e.fatal && /no credit left/.test(e.message) && /self-hosted/.test(e.message));
+    assert.equal(srv.requests.length, 1, 'no retry and no option is dropped');
+    assert.deepEqual(client.notes(), []);
+  } finally { await srv.close(); }
+});
+
 test('optional request features the provider rejects are switched off, in order, and stay off', async () => {
   const reject = message => ({ type: 'error', error: { type: 'invalid_request_error', message } });
   const srv = await server((req, res) => {
