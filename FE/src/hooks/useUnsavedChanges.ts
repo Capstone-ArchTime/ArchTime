@@ -12,7 +12,7 @@ export function useUnsavedChanges(dirty: boolean) {
     if (blocker.state !== 'blocked') return;
     const dialog = modal.confirm({
       title: 'Leave without saving?',
-      content: 'Your diagram has unsaved changes. Stay on this page to save them, or discard them and continue.',
+      content: 'You have unsaved changes. Stay on this page to save them, or discard them and continue.',
       okText: 'Discard changes', cancelText: 'Keep editing', okButtonProps: { danger: true },
       onOk: () => blocker.proceed(), onCancel: () => blocker.reset(),
     });
