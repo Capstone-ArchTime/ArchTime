@@ -1,7 +1,7 @@
 import { Tag } from 'antd';
 import type { ArchitectureView } from '@/features/architecture/types';
 import type { Scene } from '@/features/architecture/scene';
-import { ROLE_LABEL } from '@/features/architecture/scene';
+import { ROLE_LABEL, unitWord } from '@/features/architecture/scene';
 import type { DiagramTheme } from '@/features/architecture/theme';
 import type { Highlight } from '@/features/architecture/highlight';
 import { cycles } from '@/features/architecture/queries';
@@ -36,7 +36,7 @@ export default function Inspector({ view, scene, theme, selectedNode, selectedEd
     return <aside aria-label="Dependency details" className="space-y-4">
       <div><h3 className={heading}>Dependency</h3>
         <p className="text-sm font-semibold">{nameOf(edge.source)} <span className="text-[#64748b]">→</span> {nameOf(edge.target)}</p>
-        <p className="text-xs text-[#94a3b8] mt-1">{edge.weight} class-level {edge.weight === 1 ? 'dependency' : 'dependencies'} back this arrow.</p></div>
+        <p className="text-xs text-[#94a3b8] mt-1">{edge.weight} {view.unit === 'file' ? 'file' : 'class'}-level {edge.weight === 1 ? 'dependency' : 'dependencies'} back this arrow.</p></div>
       <div className="flex flex-wrap gap-1">{Object.entries(edge.kinds).map(([k, n]) => <Tag key={k}>{k} × {n}</Tag>)}</div>
       <div><h3 className={heading}>Evidence</h3>
         <ul className="space-y-1.5 max-h-80 overflow-auto pr-1">{edge.evidence.map((ev, i) => <li key={i} className="text-xs border border-[#222c37] p-2">
@@ -57,7 +57,7 @@ export default function Inspector({ view, scene, theme, selectedNode, selectedEd
         <p className="text-xs text-[#94a3b8] mt-1">{PROVENANCE_HELP[component.label]}</p>
         <p className="text-sm mt-3 leading-relaxed">{component.description}</p>
       </div>
-      <button type="button" onClick={() => onOpen(component.id)} className="w-full h-9 border border-[#38bdf8]/50 text-[#38bdf8] text-xs font-bold hover:bg-[#38bdf8]/10">SHOW {members.length} CLASSES</button>
+      <button type="button" onClick={() => onOpen(component.id)} className="w-full h-9 border border-[#38bdf8]/50 text-[#38bdf8] text-xs font-bold hover:bg-[#38bdf8]/10">SHOW {members.length} {unitWord(view, members.length).toUpperCase()}</button>
       <List title={`Depends on (${outgoing.length})`} items={outgoing.map(e => ({ id: e.target, label: nameOf(e.target), edge: e.id, weight: e.weight }))} onNode={onSelectNode} onEdge={onSelectEdge} />
       <List title={`Used by (${incoming.length})`} items={incoming.map(e => ({ id: e.source, label: nameOf(e.source), edge: e.id, weight: e.weight }))} onNode={onSelectNode} onEdge={onSelectEdge} />
     </aside>;
@@ -67,8 +67,8 @@ export default function Inspector({ view, scene, theme, selectedNode, selectedEd
     const cls = view.classes.find(c => c.id === classNode.id);
     const out = scene.edges.filter(e => e.source === classNode.id);
     const inn = scene.edges.filter(e => e.target === classNode.id);
-    return <aside aria-label="Class details" className="space-y-4">
-      <div><h3 className={heading}>{classNode.kind === 'neighbour' ? 'Outside component' : 'Class'}</h3><p className="text-base font-semibold">{classNode.title}</p>
+    return <aside aria-label="Details" className="space-y-4">
+      <div><h3 className={heading}>{classNode.kind === 'neighbour' ? 'Outside component' : view.unit === 'file' ? 'File' : 'Class'}</h3><p className="text-base font-semibold">{classNode.title}</p>
         {cls && <p className="text-xs text-[#94a3b8] mt-1 break-all">{cls.path}</p>}</div>
       <List title={`Depends on (${out.length})`} items={out.map(e => ({ id: e.target, label: nameOf(e.target), edge: e.id, weight: e.weight }))} onNode={onSelectNode} onEdge={onSelectEdge} />
       <List title={`Used by (${inn.length})`} items={inn.map(e => ({ id: e.source, label: nameOf(e.source), edge: e.id, weight: e.weight }))} onNode={onSelectNode} onEdge={onSelectEdge} />
@@ -77,15 +77,15 @@ export default function Inspector({ view, scene, theme, selectedNode, selectedEd
 
   const loops = cycles(scene.edges);
   return <aside aria-label="Diagram summary" className="space-y-4">
-    <div><h3 className={heading}>{scene.mode === 'components' ? 'Overview' : 'Classes'}</h3>
+    <div><h3 className={heading}>{scene.mode === 'components' ? 'Overview' : view.unit === 'file' ? 'Files' : 'Classes'}</h3>
       <p className="text-sm leading-relaxed">{scene.mode === 'components'
-        ? <>{scene.nodes.length} components and {scene.edges.length} dependencies. Every arrow is computed from class-level dependencies; select one to see them.</>
-        : <>{scene.nodes.filter(n => n.kind === 'class').length} classes. Dashed boxes are components outside this one.</>}</p></div>
+        ? <>{scene.nodes.length} components and {scene.edges.length} dependencies. Every arrow is computed from {view.unit === 'file' ? 'file' : 'class'}-level dependencies; select one to see them.</>
+        : <>{scene.nodes.filter(n => n.kind === 'class').length} {unitWord(view, 2)}. Dashed boxes are components outside this one.</>}</p></div>
     {loops.length > 0 && <div className="text-xs text-[#fca5a5] border border-[#7f1d1d] p-2 space-y-1">
       <p>{loops.length} circular {loops.length === 1 ? 'dependency' : 'dependencies'} (red arrows):</p>
       <ul>{loops.map(g => <li key={g.join()}>{g.map(nameOf).join(' ↔ ')}</li>)}</ul></div>}
     <div><h3 className={heading}>How to read it</h3><ul className="text-xs text-[#94a3b8] space-y-1 leading-relaxed">
-      <li>Click a box to focus it; double-click (or Shift + Enter) to show its classes.</li>
+      <li>Click a box to focus it; double-click (or Shift + Enter) to show what is inside.</li>
       <li>Rows are architectural tiers; arrows point from the dependent to what it uses.</li>
       <li>Dashed arrows point upward, against the tier order.</li>
       <li>FACT / INFERENCE / UNKNOWN tells how well the evidence supports a component's role.</li>

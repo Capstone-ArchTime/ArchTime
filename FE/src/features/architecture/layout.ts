@@ -195,12 +195,15 @@ export function layoutGraph(nodesIn: LayoutNodeInput[], edgesIn: LayoutEdgeInput
     let i = 0;
     for (const b of blocks) for (let j = 0; j < b.n; j++, i++) cx.set(row[i], b.sum / b.n + offset[i]);
   };
-  for (let k = 0; k < layerCount; k++) settle(k, new Map(layers[k].map((id, i) => [id, i * 1000])));
-  const pull = (k: number, neighbours: Map<string, string[]>) =>
+  for (let k = 0; k < layerCount; k++) settle(k, new Map(layers[k].map(id => [id, 0] as const)));
+  const pull = (k: number, neighbours: Map<string, string[]>) => {
+    // Items with nothing to follow drift towards the middle of the drawing instead of staying where they started.
+    const middle = mean([...cx.values()]);
     settle(k, new Map(layers[k].map(id => {
       const ns = neighbours.get(id)!;
-      return [id, ns.length ? mean(ns.map(n => cx.get(n)!)) : cx.get(id)!] as const;
+      return [id, ns.length ? mean(ns.map(n => cx.get(n)!)) : middle] as const;
     })));
+  };
   for (let pass = 0; pass < 10; pass++) {
     for (let k = 1; k < layerCount; k++) pull(k, up);
     for (let k = layerCount - 2; k >= 0; k--) pull(k, down);

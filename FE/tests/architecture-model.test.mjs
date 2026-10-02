@@ -118,3 +118,17 @@ test('hash state round-trips and drops anything unknown', () => {
   assert.deepEqual(parseHash('#route=web~web'), {});
   assert.equal(serializeHash({}), '');
 });
+
+test('server projects travel in the hash and are ignored when a sample is chosen', () => {
+  assert.deepEqual(parseHash('#project=64b0aa&snapshot=64b0bb&focus=x'), { project: '64b0aa', snapshot: '64b0bb', focus: 'x' });
+  assert.deepEqual(parseHash('#view=shophub&project=64b0aa'), { view: 'shophub' });
+  assert.deepEqual(parseHash('#project=bad id&snapshot=<script>'), {});
+  assert.deepEqual(parseHash('#project=64b0aa&snapshot=bad/id'), { project: '64b0aa' });
+  assert.equal(serializeHash({ project: '64b0aa', snapshot: '64b0bb', detail: 'x' }), '#project=64b0aa&snapshot=64b0bb&detail=x');
+  assert.equal(serializeHash({ view: 'shophub', project: '64b0aa' }), '#view=shophub');
+});
+
+test('unit must be class or file', () => {
+  assert.ok(codes({ ...shop, unit: 'file' }).length === 0);
+  assert.ok(codes({ ...shop, unit: 'method' }).includes('S001'));
+});

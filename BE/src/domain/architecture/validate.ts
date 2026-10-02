@@ -1,5 +1,5 @@
-import { COMPONENT_ROLES, DEPENDENCY_KINDS, PROVENANCES } from './types.ts';
-import type { ValidationIssue, ValidationResult } from './types.ts';
+import { COMPONENT_ROLES, DEPENDENCY_KINDS, PROVENANCES } from './types.js';
+import type { ValidationIssue, ValidationResult } from './types.js';
 
 export interface ValidateOptions {
   minComponents?: number;

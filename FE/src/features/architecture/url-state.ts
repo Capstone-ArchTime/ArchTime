@@ -4,7 +4,10 @@ import type { ReachDirection } from './queries.ts';
 
 // Shareable viewer state kept in the URL hash: #view=shophub&focus=order&reach=upstream&route=web~payment&lens=service~controller&detail=order&edge=a->b
 export interface ViewerState {
+  /** A built-in sample view, or (when absent) the server project named by `project`. */
   view?: string;
+  project?: string;
+  snapshot?: string;
   focus?: string;
   reach?: ReachDirection;
   route?: [string, string];
@@ -12,6 +15,7 @@ export interface ViewerState {
   detail?: string;
   edge?: string;
 }
+const SERVER_ID = /^[A-Za-z0-9_-]{1,64}$/;
 export interface KnownIds { views: ReadonlySet<string>; components: ReadonlySet<string>; edges: ReadonlySet<string> }
 
 export function parseHash(hash: string, known?: Partial<KnownIds>): ViewerState {
@@ -19,6 +23,12 @@ export function parseHash(hash: string, known?: Partial<KnownIds>): ViewerState 
   const state: ViewerState = {};
   const view = params.get('view');
   if (view && (!known?.views || known.views.has(view))) state.view = view;
+  const project = params.get('project');
+  if (!state.view && project && SERVER_ID.test(project)) {
+    state.project = project;
+    const snapshot = params.get('snapshot');
+    if (snapshot && SERVER_ID.test(snapshot)) state.snapshot = snapshot;
+  }
   const comp = (v: string | null) => (v && (!known?.components || known.components.has(v)) ? v : undefined);
   const focus = comp(params.get('focus'));
   if (focus) {
@@ -40,6 +50,7 @@ export function parseHash(hash: string, known?: Partial<KnownIds>): ViewerState 
 export function serializeHash(state: ViewerState): string {
   const params = new URLSearchParams();
   if (state.view) params.set('view', state.view);
+  else if (state.project) { params.set('project', state.project); if (state.snapshot) params.set('snapshot', state.snapshot); }
   if (state.focus) { params.set('focus', state.focus); if (state.reach) params.set('reach', state.reach); }
   if (state.route) params.set('route', state.route.join('~'));
   if (state.lens?.length) params.set('lens', state.lens.join('~'));

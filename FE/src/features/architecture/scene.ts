@@ -27,16 +27,19 @@ export interface Scene { mode: SceneMode; componentId?: string; nodes: SceneNode
 export const ROLE_LABEL: Record<ComponentRole, string> = {
   controller: 'Controller', service: 'Service', repository: 'Repository', entity: 'Entity', gateway: 'Gateway', config: 'Config', util: 'Utility', external: 'External', other: 'Other',
 };
-const classes = (n: number) => `${n} ${n === 1 ? 'class' : 'classes'}`;
+export const unitWord = (view: Pick<ArchitectureView, 'unit'>, n: number) => {
+  const file = view.unit === 'file';
+  return n === 1 ? (file ? 'file' : 'class') : file ? 'files' : 'classes';
+};
 
 export function componentScene(view: ArchitectureView): Scene {
   const out = new Map<string, number>();
   const into = new Map<string, number>();
   for (const e of view.edges) { out.set(e.source, (out.get(e.source) ?? 0) + 1); into.set(e.target, (into.get(e.target) ?? 0) + 1); }
   const nodes = view.components.map((c): SceneNode => ({
-    id: c.id, kind: 'component', title: c.name, subtitle: `${ROLE_LABEL[c.role]} · ${classes(c.memberIds.length)}`, role: c.role, tag: c.label,
+    id: c.id, kind: 'component', title: c.name, subtitle: `${ROLE_LABEL[c.role]} · ${c.memberIds.length} ${unitWord(view, c.memberIds.length)}`, role: c.role, tag: c.label,
     width: 196, height: 84, layer: c.layer,
-    aria: `${c.name}, ${ROLE_LABEL[c.role]}, ${classes(c.memberIds.length)}, ${c.label}. Depends on ${out.get(c.id) ?? 0} components, used by ${into.get(c.id) ?? 0}.`,
+    aria: `${c.name}, ${ROLE_LABEL[c.role]}, ${c.memberIds.length} ${unitWord(view, c.memberIds.length)}, ${c.label}. Depends on ${out.get(c.id) ?? 0} components, used by ${into.get(c.id) ?? 0}.`,
   }));
   const edges = view.edges.map((e): SceneEdge => ({ id: e.id, source: e.source, target: e.target, weight: e.weight, evidence: e.evidence, kinds: e.kinds }));
   return { mode: 'components', nodes, edges };
@@ -56,7 +59,7 @@ export function classScene(view: ArchitectureView, componentId: string): Scene {
   for (const id of component.memberIds) {
     const c = classById.get(id);
     if (!c) continue;
-    nodes.push({ id, kind: 'class', title: c.name, subtitle: c.path.split('/').slice(-2).join('/'), role: component.role, width: 188, height: 52, aria: `${c.name}, class in ${component.name}, ${c.path}.` });
+    nodes.push({ id, kind: 'class', title: c.name, subtitle: c.path.split('/').slice(-2).join('/'), role: component.role, width: 188, height: 52, aria: `${c.name}, ${view.unit === 'file' ? 'file' : 'class'} in ${component.name}, ${c.path}.` });
   }
   const add = (source: string, target: string, ev: Evidence) => {
     const id = `${source}->${target}`;

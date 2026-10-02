@@ -7,6 +7,7 @@ import type { GetSnapshotsUseCase } from "../../application/use-cases/projects/G
 import type { GetMiningJobsUseCase } from "../../application/use-cases/projects/GetMiningJobsUseCase.js";
 import type { CompareSnapshotsUseCase } from "../../application/use-cases/projects/CompareSnapshotsUseCase.js";
 import type { MiningWorkflowUseCase } from "../../application/use-cases/projects/MiningWorkflowUseCase.js";
+import type { ArchitectureUseCase } from "../../application/use-cases/projects/ArchitectureUseCase.js";
 import type { GetEvidencesUseCase } from "../../application/use-cases/projects/GetEvidencesUseCase.js";
 
 export class ProjectController {
@@ -20,6 +21,7 @@ export class ProjectController {
     private readonly compareSnapshotsUseCase: CompareSnapshotsUseCase,
     private readonly getEvidencesUseCase: GetEvidencesUseCase,
     private readonly miningWorkflowUseCase: MiningWorkflowUseCase,
+    private readonly architectureUseCase: ArchitectureUseCase,
   ) {}
 
   public registerProject = async (
@@ -131,7 +133,12 @@ export class ProjectController {
   ): Promise<void> => {
     try {
       const { id } = req.params;
-      const snapshots = await this.getSnapshotsUseCase.execute(id);
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        res.status(401).json({ success: false, message: "Unauthorized" });
+        return;
+      }
+      const snapshots = await this.getSnapshotsUseCase.execute(id, userId, req.query.summary === "1");
       res.status(200).json({ success: true, data: { snapshots } });
     } catch (error: any) {
       next(error);
@@ -233,6 +240,34 @@ export class ProjectController {
       }
       const job = await this.miningWorkflowUseCase.cancel(req.params.jobId, userId);
       res.status(200).json({ success: true, data: { job } });
+    } catch (error: any) {
+      next(error);
+    }
+  };
+
+  public getArchitecture = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        res.status(401).json({ success: false, message: "Unauthorized" });
+        return;
+      }
+      const data = await this.architectureUseCase.get(req.params.id, userId, req.query.snapshotId);
+      res.status(200).json({ success: true, data });
+    } catch (error: any) {
+      next(error);
+    }
+  };
+
+  public generateArchitecture = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        res.status(401).json({ success: false, message: "Unauthorized" });
+        return;
+      }
+      const data = await this.architectureUseCase.generate(req.params.id, userId, req.body);
+      res.status(200).json({ success: true, data });
     } catch (error: any) {
       next(error);
     }
