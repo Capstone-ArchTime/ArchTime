@@ -16,7 +16,7 @@ import {
   Search,
   X
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+
 import { usePagination } from '@/hooks/usePagination';
 import PaginationBar from '@/components/PaginationBar';
 import { API_BASE_URL } from '@/auth/session';

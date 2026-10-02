@@ -23,10 +23,10 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationBar from '@/components/PaginationBar';
 import { API_BASE_URL } from '@/auth/session';
-import { App, Modal } from 'antd';
+import { Modal } from 'antd';
 
 const Evidence: React.FC = () => {
-  const { message } = App.useApp();
+
   const location = useLocation();
   const [projectsList, setProjectsList] = useState<any[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
@@ -517,7 +517,7 @@ const Evidence: React.FC = () => {
           width={900}
           className="dark-modal"
           styles={{
-            content: { backgroundColor: '#11161b', border: '1px solid #222c37', padding: 0 },
+            container: { backgroundColor: '#11161b', border: '1px solid #222c37', padding: 0 },
             header: { backgroundColor: '#161d24', borderBottom: '1px solid #222c37', padding: '16px', margin: 0 },
             body: { padding: '0' }
           }}
