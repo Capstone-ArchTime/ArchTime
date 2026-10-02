@@ -12,6 +12,7 @@ export interface RefineReceipt {
   accepted: boolean;
   fallbackReason?: string;
   movedRatio?: number;
+  notes?: string[];
 }
 export interface LlmCapability { enabled: boolean; provider: string | null; model: string | null; host: string | null; external: boolean; reason?: string }
 export interface ArchitecturePayload {

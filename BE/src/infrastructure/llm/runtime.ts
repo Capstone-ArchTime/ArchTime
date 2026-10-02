@@ -10,6 +10,7 @@ import { OpenAiCompatibleClient } from './OpenAiCompatibleClient.js';
  * LLM_BASE_URL      openai-compatible: required (for example http://localhost:11434/v1); anthropic: optional override
  * LLM_API_KEY       openai-compatible only, optional; anthropic reads ANTHROPIC_API_KEY
  * LLM_TIMEOUT_MS    default 180000
+ * LLM_EFFORT        anthropic: low | medium | high (default medium); lower is faster and cheaper
  * LLM_JSON_MODE     openai-compatible: send response_format json_object (default true)
  * LLM_MAX_REFINE_FILES / LLM_MAX_MOVE_RATIO   see RefineOptions
  */
@@ -40,7 +41,7 @@ export function loadLlmRuntime(env: NodeJS.ProcessEnv = process.env): LlmRuntime
     if (provider === 'none' || provider === '') return off('No AI provider is configured on this server.');
     if (provider === 'anthropic') {
       if (!env.ANTHROPIC_API_KEY) return off('LLM_PROVIDER is anthropic but ANTHROPIC_API_KEY is not set.');
-      client = new ClaudeClient({ apiKey: env.ANTHROPIC_API_KEY, model: env.LLM_MODEL || 'claude-opus-5-5', baseUrl: env.LLM_BASE_URL || undefined, timeoutMs });
+      client = new ClaudeClient({ apiKey: env.ANTHROPIC_API_KEY, model: env.LLM_MODEL || 'claude-opus-5-5', baseUrl: env.LLM_BASE_URL || undefined, timeoutMs, effort: (['low', 'medium', 'high'] as const).find(e => e === env.LLM_EFFORT) });
     } else if (provider === 'openai-compatible') {
       if (!env.LLM_BASE_URL || !env.LLM_MODEL) return off('LLM_BASE_URL and LLM_MODEL are required for an openai-compatible provider.');
       client = new OpenAiCompatibleClient({ baseUrl: env.LLM_BASE_URL, model: env.LLM_MODEL, apiKey: env.LLM_API_KEY || undefined, timeoutMs, jsonMode: env.LLM_JSON_MODE !== 'false' });

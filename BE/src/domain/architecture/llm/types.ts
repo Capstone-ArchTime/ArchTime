@@ -12,7 +12,7 @@ export interface LlmInfo {
   external: boolean;
 }
 
-export type LlmErrorKind = 'auth' | 'rate_limit' | 'timeout' | 'refusal' | 'truncated' | 'network' | 'other';
+export type LlmErrorKind = 'auth' | 'request' | 'rate_limit' | 'timeout' | 'refusal' | 'truncated' | 'network' | 'other';
 
 export class LlmError extends Error {
   readonly kind: LlmErrorKind;
@@ -23,7 +23,7 @@ export class LlmError extends Error {
   }
   /** Errors that another attempt cannot fix. */
   get fatal(): boolean {
-    return this.kind === 'auth' || this.kind === 'refusal';
+    return this.kind === 'auth' || this.kind === 'refusal' || this.kind === 'request';
   }
 }
 
@@ -36,6 +36,8 @@ export interface CompleteOptions {
 
 export interface LlmClient {
   readonly info: LlmInfo;
+  /** Optional request features this client had to switch off because the provider rejected them. */
+  notes?(): string[];
   /** Returns the model's text answer. Throws LlmError. */
   complete(messages: LlmMessage[], options?: CompleteOptions): Promise<string>;
 }
@@ -66,4 +68,5 @@ export interface RefineReceipt {
   accepted: boolean;
   fallbackReason?: string;
   movedRatio?: number;
+  notes?: string[];
 }

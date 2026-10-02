@@ -52,7 +52,9 @@ test('Claude client turns provider outcomes into typed errors', async () => {
     [() => ({ status: 200, body: message({ stop_reason: 'refusal', content: [] }) }), 'refusal'],
     [() => ({ status: 200, body: message({ stop_reason: 'max_tokens' }) }), 'truncated'],
     [() => ({ status: 200, body: message({ content: [{ type: 'text', text: '   ' }] }) }), 'other'],
-    [() => ({ status: 400, body: { type: 'error', error: { type: 'invalid_request_error', message: 'nope' } } }), 'other'],
+    [() => ({ status: 400, body: { type: 'error', error: { type: 'invalid_request_error', message: 'nope' } } }), 'request'],
+    [() => ({ status: 404, body: { type: 'error', error: { type: 'not_found_error', message: 'model: claude-opus-5-5' } } }), 'request'],
+    [() => ({ status: 500, body: { type: 'error', error: { type: 'api_error', message: 'boom' } }, headers: { 'retry-after-ms': '5' } }), 'other'],
   ];
   for (const [reply, kind] of cases) {
     const srv = await server((req, res) => { const r = reply(); json(res, r.status, r.body, r.headers); });
@@ -61,6 +63,42 @@ test('Claude client turns provider outcomes into typed errors', async () => {
       await assert.rejects(client.complete(MESSAGES), e => e.name === 'LlmError' && e.kind === kind, kind);
     } finally { await srv.close(); }
   }
+});
+
+test('provider messages are kept so the user can see what went wrong', async () => {
+  const srv = await server((req, res) => json(res, 400, { type: 'error', error: { type: 'invalid_request_error', message: 'output_config.format: schema is too complex' } }));
+  try {
+    const client = new ClaudeClient({ apiKey: 'k', model: 'm', baseUrl: srv.url, timeoutMs: 5000 });
+    await assert.rejects(client.complete(MESSAGES), e => e.kind === 'request' && /schema is too complex/.test(e.message));
+  } finally { await srv.close(); }
+  const missing = await server((req, res) => json(res, 404, { type: 'error', error: { type: 'not_found_error', message: 'model: nope' } }));
+  try {
+    const client = new ClaudeClient({ apiKey: 'k', model: 'nope', baseUrl: missing.url, timeoutMs: 5000 });
+    await assert.rejects(client.complete(MESSAGES), e => e.kind === 'request' && /Model "nope" was not found/.test(e.message) && /LLM_MODEL/.test(e.message));
+  } finally { await missing.close(); }
+});
+
+test('optional request features the provider rejects are switched off, in order, and stay off', async () => {
+  const reject = message => ({ type: 'error', error: { type: 'invalid_request_error', message } });
+  const srv = await server((req, res) => {
+    if ('fallbacks' in req.body) return json(res, 400, reject('fallbacks: not enabled for this organization'));
+    if (req.body.output_config?.format) return json(res, 400, reject('output_config.format: not supported here'));
+    json(res, 200, message());
+  });
+  try {
+    const client = new ClaudeClient({ apiKey: 'k', model: 'claude-opus-5-5', baseUrl: srv.url, timeoutMs: 5000 });
+    const schema = { type: 'object', properties: {}, additionalProperties: false };
+    assert.equal(await client.complete(MESSAGES, { schema }), '{"components":[]}');
+    assert.deepEqual(srv.requests.map(r => ['fallbacks' in r.body, !!r.body.output_config?.format]), [[true, true], [false, true], [false, false]]);
+    assert.equal(srv.requests.at(-1).headers['anthropic-beta'], undefined);
+    const notes = client.notes();
+    assert.equal(notes.length, 2);
+    assert.match(notes[0], /not enabled for this organization/);
+    assert.match(notes[1], /not supported here/);
+    await client.complete(MESSAGES, { schema });
+    assert.equal(srv.requests.length, 4, 'once switched off, later calls go straight through');
+    assert.deepEqual(client.notes(), notes);
+  } finally { await srv.close(); }
 });
 
 test('Claude client times out', async () => {

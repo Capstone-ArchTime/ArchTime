@@ -68,5 +68,12 @@ Server configuration (environment):
 | `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY` | Self-hosted model behind a chat-completions API (Ollama `http://localhost:11434/v1`, vLLM, LM Studio). `LLM_BASE_URL` and `LLM_MODEL` are required. A loopback or private-network host is reported as not external |
 | `LLM_JSON_MODE` | `false` if your server rejects `response_format` (default true) |
 | `LLM_TIMEOUT_MS`, `LLM_MAX_REFINE_FILES`, `LLM_MAX_MOVE_RATIO` | Limits; defaults 180000, 400 and 0.4 |
+| `LLM_EFFORT` | Claude only: `low`, `medium` (default) or `high`. Lower is faster and cheaper |
 
 With nothing configured, the feature is off and the button is disabled with the reason.
+
+### When refinement does not work
+
+The warning on the page lists every attempt with its code and the provider's own message. `M000` is a provider failure (the request never produced an answer); `M001`-`M008` are verification failures of an answer that did arrive. The same text is written to the server log as `[architecture] project <id>: attempt n/3 failed: ...`.
+
+Common causes: `network: Could not reach the provider` (no route to the API host from the server); `request: Model "..." was not found` (wrong `LLM_MODEL`, or the key has no access to it); `auth` (wrong or revoked key); `timeout` (raise `LLM_TIMEOUT_MS` or set `LLM_EFFORT=low`); `truncated` (the model spent its output budget, usually on reasoning; lower `LLM_EFFORT`). Errors that retrying cannot fix (`auth`, `request`, `refusal`) stop after the first attempt. If the provider rejects the refusal-fallback option or schema-constrained output, that option is switched off for the rest of the process and noted under the result.

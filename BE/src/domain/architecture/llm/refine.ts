@@ -17,6 +17,8 @@ export interface RefineInput {
   onProgress?: (stage: string, progress: number) => void | Promise<void>;
   isCancelled?: () => boolean;
   signal?: AbortSignal;
+  /** Where to report why an attempt failed, for the server log. */
+  log?: (message: string) => void;
 }
 
 export interface RefineResult {
@@ -78,8 +80,10 @@ export async function refineMapping(input: RefineInput): Promise<RefineResult> {
     filesSent: mode === 'refine' ? files.length : initial.reduce((n, c) => n + Math.min(25, c.memberIds.length), 0),
     attempts: [], accepted: false,
   };
+  const finish = () => { const notes = client.notes?.() ?? []; if (notes.length) receipt.notes = notes; };
   const fallback = (reason: string): RefineResult => {
     receipt.fallbackReason = reason;
+    finish();
     return { components: initial, generator: 'cluster-only', receipt };
   };
 
@@ -109,7 +113,7 @@ export async function refineMapping(input: RefineInput): Promise<RefineResult> {
           ...(c.role !== 'other' && layerForRole(c.role) !== undefined ? { layer: layerForRole(c.role) } : {}),
           memberIds: [...new Set(c.files)].sort((a, b) => a - b).map(f => files[f]),
         }));
-        attempt.ok = true; receipt.accepted = true;
+        attempt.ok = true; receipt.accepted = true; finish();
         return { components, generator: 'cluster+llm', receipt };
       }
 
@@ -126,10 +130,11 @@ export async function refineMapping(input: RefineInput): Promise<RefineResult> {
           description: named.description.trim(), ...(layer === undefined ? {} : { layer }),
         };
       });
-      attempt.ok = true; receipt.accepted = true;
+      attempt.ok = true; receipt.accepted = true; finish();
       return { components, generator: 'cluster+llm', receipt };
     } catch (error) {
       attempt.issues = error instanceof VerificationFailed ? error.issues : [describe(error)];
+      input.log?.(`attempt ${n}/${total} failed: ${attempt.issues.slice(0, 3).map(i => `${i.code} ${i.message}`).join(' | ')}`);
       if (error instanceof LlmError && error.fatal) return fallback(`${error.kind}: ${error.message}`);
       if (error instanceof VerificationFailed || (!(error instanceof LlmError))) {
         messages = retryMessages(buildMessages(prompt), answer || '(no usable answer)', attempt.issues);
@@ -137,5 +142,8 @@ export async function refineMapping(input: RefineInput): Promise<RefineResult> {
     }
   }
   const last = receipt.attempts[receipt.attempts.length - 1];
-  return fallback(`Verification failed after ${total} attempts: ${last.issues.slice(0, 3).map(i => i.code).join(', ') || 'no usable answer'}`);
+  const providerFailure = last.issues.find(i => i.code === 'M000');
+  return fallback(providerFailure
+    ? `The AI provider failed on every attempt: ${providerFailure.message}`
+    : `Verification failed after ${total} attempts: ${last.issues.slice(0, 3).map(i => i.code).join(', ') || 'no usable answer'}`);
 }

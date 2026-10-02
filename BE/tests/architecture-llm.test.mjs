@@ -120,7 +120,7 @@ test('each rule of the verifier catches its own mistake', () => {
 });
 
 test('provider failures: bad credentials and refusals stop at once, timeouts are retried', async () => {
-  for (const kind of ['auth', 'refusal']) {
+  for (const kind of ['auth', 'refusal', 'request']) {
     const client = fake(new LlmError(kind, 'nope'));
     const result = await run(client);
     assert.equal(client.calls.length, 1, kind);
@@ -132,6 +132,21 @@ test('provider failures: bad credentials and refusals stop at once, timeouts are
   assert.equal(client.calls.length, 2);
   assert.equal(result.generator, 'cluster+llm');
   assert.equal(result.receipt.attempts[0].issues[0].code, 'M000');
+});
+
+test('when the provider fails every time the reason is kept, logged and shown, not just a code', async () => {
+  const logs = [];
+  const client = fake(new LlmError('network', 'Could not reach the provider (getaddrinfo ENOTFOUND api.anthropic.com).'));
+  client.notes = () => ['The provider rejected the refusal-fallback option (x); it was switched off.'];
+  const result = await run(client, { log: m => logs.push(m) });
+  assert.equal(client.calls.length, 3);
+  assert.equal(result.generator, 'cluster-only');
+  assert.match(result.receipt.fallbackReason, /The AI provider failed on every attempt: network: Could not reach the provider \(getaddrinfo ENOTFOUND/);
+  assert.equal(result.receipt.attempts[2].issues[0].code, 'M000');
+  assert.match(result.receipt.attempts[2].issues[0].message, /ENOTFOUND/);
+  assert.equal(logs.length, 3);
+  assert.match(logs[0], /attempt 1\/3 failed: M000 network/);
+  assert.deepEqual(result.receipt.notes, ['The provider rejected the refusal-fallback option (x); it was switched off.']);
 });
 
 test('large repositories only get names: the grouping is kept and the file list is not sent', async () => {

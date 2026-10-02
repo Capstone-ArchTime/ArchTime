@@ -113,6 +113,7 @@ export class ArchitectureService {
       files, edges, initial, client: runtime.client,
       options: { ...runtime.options, minComponents, maxComponents },
       onProgress: hooks.onProgress, isCancelled: hooks.isCancelled, signal: hooks.signal,
+      log: message => console.warn(`[architecture] project ${projectId}: ${message}`),
     });
     const mapping = await this.store(projectId, snapshot, graph, {
       generator: result.generator, options: { minComponents, maxComponents }, components: result.components as MappingComponent[], receipt: result.receipt,

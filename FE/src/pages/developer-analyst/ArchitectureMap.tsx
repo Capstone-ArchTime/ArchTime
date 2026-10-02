@@ -137,11 +137,16 @@ export default function ArchitectureMap() {
   function receiptNote(receipt: RefineReceipt | null) {
     if (!receipt) return null;
     const failed = receipt.attempts.filter(a => !a.ok).length;
+    const notes = receipt.notes?.length ? <ul className="list-disc pl-5 text-xs text-[#94a3b8]">{receipt.notes.map((n, i) => <li key={i}>{n}</li>)}</ul> : null;
     if (receipt.accepted) {
-      return <p className="text-xs text-[#94a3b8]" role="status">AI refinement by <code>{receipt.model}</code> was accepted after {failed + 1} attempt{failed ? 's' : ''}{receipt.mode === 'name-only' ? ' (names only: the repository was too large to regroup)' : receipt.movedRatio !== undefined ? `; ${Math.round(receipt.movedRatio * 100)}% of files moved from the dependency grouping` : ''}.</p>;
+      return <div className="space-y-1"><p className="text-xs text-[#94a3b8]" role="status">AI refinement by <code>{receipt.model}</code> was accepted after {failed + 1} attempt{failed ? 's' : ''}{receipt.mode === 'name-only' ? ' (names only: the repository was too large to regroup)' : receipt.movedRatio !== undefined ? `; ${Math.round(receipt.movedRatio * 100)}% of files moved from the dependency grouping` : ''}.</p>{notes}</div>;
     }
-    const codes = [...new Set(receipt.attempts.flatMap(a => a.issues.map(i => i.code)))].join(', ');
-    return <Alert type="warning" showIcon title="AI refinement did not produce a usable answer" description={`${receipt.fallbackReason ?? 'No answer passed verification.'}${codes && !(receipt.fallbackReason ?? '').includes(codes) ? ` (${codes})` : ''}. The grouping by dependencies is shown instead.`} />;
+    return <Alert type="warning" showIcon title="AI refinement did not produce a usable answer"
+      description={<div className="space-y-2">
+        <p>{receipt.fallbackReason ?? 'No answer passed verification.'} The grouping by dependencies is shown instead.</p>
+        <ol className="list-decimal pl-5 text-xs space-y-1">{receipt.attempts.map(a => <li key={a.n}>Attempt {a.n}: {a.issues.length ? a.issues.slice(0, 3).map((i, k) => <span key={k} className="block"><code>{i.code}</code> {i.message}</span>) : 'no answer'}</li>)}</ol>
+        {notes}
+      </div>} />;
   }
 
   const base: ViewerState = useMemo(() => (projectId ? { project: projectId, ...(snapshotParam ? { snapshot: snapshotParam } : {}) } : { view: sample?.id }), [projectId, snapshotParam, sample?.id]);
