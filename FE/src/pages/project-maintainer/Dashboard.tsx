@@ -1,235 +1,36 @@
-import SampleDataNotice from '@/components/SampleDataNotice';
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import DashboardLayout from '@/components/layout/DashboardLayout';
-import {
-  ShieldCheck,
-  ArrowRight,
-  UserPlus,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Mail,
-} from 'lucide-react';
+import { Alert, Button, Empty, Tag } from 'antd';
+import FeaturePage, { DemoNotice, featurePanel } from '@/components/FeaturePage';
+import { demoProjects, useMaintainerDemo } from '@/features/maintainer-demo';
+import { getProjects } from '@/features/project-data';
+import type { ProjectSummary } from '@/features/project-data';
+import { evaluateRule } from '@/features/evaluate-rule';
+import { useWorkspace } from './workspace-store';
 
-const fontFamily = {
-  mono: '"JetBrains Mono", monospace',
-};
+function WorkspaceSummary({ project }: { project: string }) {
+  const { data, loadError } = useWorkspace(project);
+  const violations = data.rules.filter(r => evaluateRule(data.diagram, r).label === 'Violation').length;
+  return <article className={featurePanel}><h3 className="font-semibold mb-3">{project}</h3>{loadError ? <Alert type="error" title="Local workspace could not be loaded" /> : <><Tag color={data.diagram.confirmedAt ? 'green' : 'gold'}>{data.diagram.confirmedAt ? 'Confirmed' : 'Draft'} · Revision {data.diagram.revision}</Tag><dl className="grid grid-cols-2 gap-4 mt-5 text-sm"><div><dt className="text-[#94a3b8]">Components</dt><dd className="text-2xl mt-1">{data.diagram.components.length}</dd></div><div><dt className="text-[#94a3b8]">Rule violations</dt><dd className="text-2xl mt-1">{violations}</dd></div><div><dt className="text-[#94a3b8]">Enabled rules</dt><dd>{data.rules.filter(r => r.enabled).length}</dd></div><div><dt className="text-[#94a3b8]">Design decisions</dt><dd>{data.decisions.length}</dd></div></dl><Link to={`/project-maintainer/component-diagram?project=${encodeURIComponent(project)}`} className="inline-block text-sm text-[#38bdf8] mt-5">Open diagram →</Link></>}</article>;
+}
 
-const mockProjectHealth = [
-  { name: 'E-Commerce Platform', repos: 4, health: 91, changes: 12, healthColor: '#22c55e' },
-  { name: 'Payment Platform', repos: 2, health: 76, changes: 21, healthColor: '#ffb03a' },
-  { name: 'Healthcare Connect', repos: 3, health: 64, changes: 38, healthColor: '#ef4444' },
-];
-
-const mockApprovalFeed = [
-  {
-    status: 'pending' as const,
-    title: 'Extract notification-service from core-monolith',
-    repo: 'ecomm-core',
-    requestedBy: 'j.tran',
-    ago: '2 hours ago',
-  },
-  {
-    status: 'pending' as const,
-    title: 'Reverse dependency: catalog-svc → pricing-svc',
-    repo: 'catalog-service',
-    requestedBy: 'm.nguyen',
-    ago: 'Yesterday',
-  },
-  {
-    status: 'approved' as const,
-    title: 'Split payment-gateway into auth and settlement modules',
-    repo: 'payment-service',
-    requestedBy: 'k.pham',
-    ago: '2 days ago',
-  },
-  {
-    status: 'rejected' as const,
-    title: 'Merge legacy-job into settlement-core',
-    repo: 'settlement-core',
-    requestedBy: 'k.pham',
-    ago: '3 days ago',
-  },
-];
-
-const mockTeamRoster = [
-  { name: 'j.tran', role: 'Developer / Analyst', projects: 3, active: true },
-  { name: 'm.nguyen', role: 'Developer / Analyst', projects: 2, active: true },
-  { name: 'k.pham', role: 'Developer / Analyst', projects: 4, active: false },
-  { name: 'a.le', role: 'Developer / Analyst', projects: 1, active: true },
-];
-
-const statusMeta = {
-  pending: { label: 'PENDING', color: '#ffb03a', icon: Clock },
-  approved: { label: 'APPROVED', color: '#22c55e', icon: CheckCircle2 },
-  rejected: { label: 'REJECTED', color: '#ef4444', icon: XCircle },
-};
-
-const ProjectMaintainerDashboard: React.FC = () => {
-  return (
-    <DashboardLayout>
-      <div className="max-w-[1400px] mx-auto space-y-10">
-        <SampleDataNotice />
-
-        {/* HEADER */}
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#161d24] border border-[#222c37] mb-4">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] shadow-[0_0_5px_#38bdf8]"></div>
-            <span
-              className="text-[10px] text-[#38bdf8] tracking-wider font-semibold uppercase"
-              style={{ fontFamily: fontFamily.mono }}
-            >
-              Project Maintainer Workspace
-            </span>
-          </div>
-
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Project &amp; architecture overview</h2>
-              <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
-                Track architecture health, review changes, manage teams, and document diagrams, rules, and design decisions.
-              </p>
-            </div>
-            <button disabled title="Not available yet: this view uses sample data" aria-label="INVITE TEAM MEMBER" className="shrink-0 h-10 px-5 bg-[#161d24] hover:bg-[#222c37] border border-[#222c37] text-[#f4f4f6] font-medium text-xs transition-colors flex items-center gap-2">
-              <UserPlus size={16} className="text-[#38bdf8]" />
-              INVITE TEAM MEMBER
-            </button>
-          </div>
-          <div className="h-[1px] w-full bg-gradient-to-r from-[#222c37] to-transparent mt-8"></div>
-        </div>
-
-        <section aria-label="Architecture maintenance" className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {[
-            { path: 'component-diagram', title: 'Confirm & edit component diagram', description: 'Refine components and dependencies, then confirm the reviewed model.' },
-            { path: 'architecture-rules', title: 'Define architecture rules', description: 'Set dependency constraints and check the saved diagram for violations.' },
-            { path: 'design-decisions', title: 'Record design decisions', description: 'Capture context, alternatives, and the consequences of each decision.' },
-          ].map(item => <Link key={item.path} to={`/project-maintainer/${item.path}`} className="group border border-[#222c37] bg-[#11161b] p-5 hover:border-[#38bdf8] focus-visible:outline focus-visible:outline-[#38bdf8] transition-colors"><div className="flex justify-between gap-3"><h3 className="font-semibold text-sm group-hover:text-[#38bdf8]">{item.title}</h3><ArrowRight size={16} className="text-[#38bdf8] shrink-0" /></div><p className="text-xs text-[#94a3b8] leading-relaxed mt-3">{item.description}</p></Link>)}
-        </section>
-        {/* PROJECT HEALTH — horizontal progress strip */}
-        <section>
-          <div className="mb-6 flex items-center gap-2">
-            <ShieldCheck size={18} className="text-[#38bdf8]" />
-            <h3 className="text-xl font-bold text-[#f4f4f6] tracking-tight">Project Health</h3>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {mockProjectHealth.map((project) => (
-              <div key={project.name} className="bg-[#161d24] border border-[#222c37] p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-bold text-[#f4f4f6]">{project.name}</h4>
-                  <span className="text-lg font-bold" style={{ fontFamily: fontFamily.mono, color: project.healthColor }}>
-                    {project.health}%
-                  </span>
-                </div>
-                <div className="h-1.5 w-full bg-[#0b0f14] overflow-hidden mb-3">
-                  <div
-                    className="h-full transition-[color,background-color,border-color,box-shadow,opacity,transform]"
-                    style={{ width: `${project.health}%`, backgroundColor: project.healthColor }}
-                  ></div>
-                </div>
-                <div className="flex items-center gap-3 text-[10px] text-[#94a3b8] uppercase tracking-wider" style={{ fontFamily: fontFamily.mono }}>
-                  <span>{project.repos} repos</span>
-                  <span>&middot;</span>
-                  <span>{project.changes} changes</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-
-          {/* APPROVAL FEED — vertical timeline */}
-          <section className="lg:col-span-3">
-            <div className="mb-6">
-              <h3 className="text-xl font-bold text-[#f4f4f6] tracking-tight">Approval Activity</h3>
-              <p className="text-sm text-[#94a3b8] mt-1">Recent architectural change requests across your projects.</p>
-            </div>
-
-            <div className="relative pl-6 space-y-6">
-              <div className="absolute left-[3px] top-1 bottom-1 w-px bg-[#222c37]"></div>
-              {mockApprovalFeed.map((item) => {
-                const meta = statusMeta[item.status];
-                const StatusIcon = meta.icon;
-                return (
-                  <div key={item.title} className="relative">
-                    <div
-                      className="absolute -left-6 top-1 w-[7px] h-[7px] rounded-full"
-                      style={{ backgroundColor: meta.color, boxShadow: `0 0 6px ${meta.color}` }}
-                    ></div>
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span
-                            className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest"
-                            style={{ fontFamily: fontFamily.mono, color: meta.color }}
-                          >
-                            <StatusIcon size={11} />
-                            {meta.label}
-                          </span>
-                          <span className="text-[10px] text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>{item.ago}</span>
-                        </div>
-                        <h4 className="text-[#f4f4f6] text-sm font-bold mb-1">{item.title}</h4>
-                        <div className="text-xs text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>
-                          {item.repo} &middot; requested by {item.requestedBy}
-                        </div>
-                      </div>
-                      {item.status === 'pending' && (
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button disabled title="Not available yet: this view uses sample data" aria-label="REJECT" className="h-7 px-2.5 bg-[#161d24] border border-[#222c37] hover:border-[#ef4444]/50 text-[#ef4444] text-[10px] font-bold transition-colors" style={{ fontFamily: fontFamily.mono }}>
-                            REJECT
-                          </button>
-                          <button disabled title="Not available yet: this view uses sample data" aria-label="APPROVE" className="h-7 px-2.5 bg-[#22c55e]/10 border border-[#22c55e]/30 hover:border-[#22c55e] text-[#22c55e] text-[10px] font-bold transition-colors" style={{ fontFamily: fontFamily.mono }}>
-                            APPROVE
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          {/* TEAM ROSTER — grid of cards */}
-          <section className="lg:col-span-2">
-            <div className="mb-6">
-              <h3 className="text-xl font-bold text-[#f4f4f6] tracking-tight">Team Roster</h3>
-              <p className="text-sm text-[#94a3b8] mt-1">Members across projects you maintain.</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              {mockTeamRoster.map((member) => (
-                <div key={member.name} className="bg-[#11161b] border border-[#222c37] p-4 flex flex-col items-center text-center gap-2">
-                  <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-[#161d24] border border-[#222c37] flex items-center justify-center text-sm font-bold text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>
-                      {member.name.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div
-                      className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#11161b]"
-                      style={{ backgroundColor: member.active ? '#22c55e' : '#5f636b' }}
-                    ></div>
-                  </div>
-                  <div className="min-w-0 w-full">
-                    <h4 className="text-[#f4f4f6] text-xs font-bold truncate" style={{ fontFamily: fontFamily.mono }}>{member.name}</h4>
-                    <p className="text-[10px] text-[#94a3b8] truncate">{member.role}</p>
-                    <p className="text-[10px] text-[#38bdf8] mt-1" style={{ fontFamily: fontFamily.mono }}>{member.projects} projects</p>
-                  </div>
-                </div>
-              ))}
-              <button disabled title="Not available yet: this view uses sample data" aria-label="INVITE" className="border border-dashed border-[#222c37] hover:border-[#38bdf8]/50 p-4 flex flex-col items-center justify-center gap-2 text-[#94a3b8] hover:text-[#38bdf8] transition-colors">
-                <Mail size={18} />
-                <span className="text-[10px] uppercase tracking-widest" style={{ fontFamily: fontFamily.mono }}>Invite</span>
-              </button>
-            </div>
-          </section>
-        </div>
-
-        <div className="h-10"></div>
-      </div>
-    </DashboardLayout>
-  );
-};
-
-export default ProjectMaintainerDashboard;
+export default function Dashboard() {
+  const store = useMaintainerDemo();
+  const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [revision, setRevision] = useState(0);
+  useEffect(() => {
+    const controller = new AbortController(); setLoading(true); setError(null);
+    getProjects(controller.signal).then(setProjects).catch(e => { if (!controller.signal.aborted) setError(e.message); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [revision]);
+  const pending = store.data.approvals.filter(a => a.status === 'pending');
+  return <FeaturePage title="Project & architecture overview" description="Open server reports and review your local architecture workspace." demo={false} error={store.error} actions={<Link to="/project-maintainer/team" className="text-sm text-[#38bdf8]">Manage team →</Link>}>
+    <section className={featurePanel}><div className="flex justify-between items-center mb-3"><h3 className="font-semibold">Projects returned by the server</h3><Button loading={loading} onClick={() => setRevision(v => v + 1)}>Refresh projects</Button></div><p className="text-xs text-[#94a3b8] mb-4">The current API returns projects owned by this account. Team membership and managed-project discovery still require BE support.</p>{error ? <Alert type="error" title={error} action={<Button onClick={() => setRevision(v => v + 1)}>Retry</Button>} /> : loading ? <p role="status">Loading projects…</p> : projects.length ? <ul className="space-y-2">{projects.map(p => <li key={p.id} className="text-sm border-t border-[#222c37] pt-2">{p.name}</li>)}</ul> : <Empty description="No server projects for this account" />}<Link to="/project-maintainer/reports" className="inline-block mt-4 text-sm text-[#38bdf8]">Create an evolution report →</Link></section>
+    <DemoNotice />
+    <div className="grid md:grid-cols-3 gap-4">{demoProjects.map(project => <WorkspaceSummary key={project} project={project} />)}</div>
+    <div className="flex flex-wrap gap-3">{[['component-diagram', 'Component diagram'], ['architecture-rules', 'Architecture rules'], ['design-decisions', 'Design decisions']].map(([path, label]) => <Link key={path} to={`/project-maintainer/${path}`} className="border border-[#222c37] px-4 py-3 text-sm text-[#38bdf8] hover:border-[#38bdf8]">{label} →</Link>)}</div>
+    <div className="grid lg:grid-cols-2 gap-5"><section className={featurePanel}><div className="flex justify-between gap-3 mb-4"><h3 className="font-semibold">Awaiting review <Tag>{pending.length}</Tag></h3><Link to="/project-maintainer/approvals" className="text-sm text-[#38bdf8]">Review queue →</Link></div>{pending.length ? <ul className="space-y-3">{pending.slice(0, 5).map(a => <li key={a.id} className="border-t border-[#222c37] pt-3"><p className="text-sm">{a.title}</p><p className="text-xs text-[#94a3b8] mt-1">{a.project} · {a.requestedBy}</p></li>)}</ul> : <Empty description="All local proposals have been reviewed" />}</section><section className={featurePanel}><h3 className="font-semibold mb-4">Team overview</h3><p className="text-sm text-[#94a3b8] mb-4">{store.data.members.filter(m => m.status === 'active').length} active members · {store.data.members.filter(m => m.status === 'invited').length} pending demo invitations</p>{store.data.members.slice(0, 5).map(m => <div key={m.id} className="border-t border-[#222c37] py-3 text-sm">{m.name} <Tag>{m.status}</Tag><p className="text-xs text-[#94a3b8] mt-1">{m.projects.join(' · ')}</p></div>)}<Link to="/project-maintainer/team" className="text-sm text-[#38bdf8]">Manage memberships →</Link></section></div>
+  </FeaturePage>;
+}

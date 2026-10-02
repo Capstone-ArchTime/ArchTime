@@ -3,9 +3,12 @@ import type { ReactNode } from 'react';
 import { Alert, App, Select, Tag } from 'antd';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { projects } from './workspace-store';
+import { useSearchParams } from 'react-router-dom';
 
 export function WorkspacePage({ title, description, children }: { title: string; description: string; children: (project: string, onDirtyChange: (dirty: boolean) => void) => ReactNode }) {
-  const [project, setProject] = useState(projects[0]);
+  const [params] = useSearchParams();
+  const requested = params.get('project');
+  const [project, setProject] = useState(requested && projects.includes(requested) ? requested : projects[0]);
   const [dirty, setDirty] = useState(false);
   const { modal } = App.useApp();
   function changeProject(next: string) {
