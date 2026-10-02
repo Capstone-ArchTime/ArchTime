@@ -33,7 +33,7 @@ export class ChangePasswordUseCase {
     }
 
     const passwordHash = await this.hasher.hashPassword(input.newPassword);
-    
+
     await this.userRepo.updatePassword(user.id, passwordHash);
 
     return { message: "Password has been changed successfully." };
