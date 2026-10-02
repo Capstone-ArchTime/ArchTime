@@ -1,5 +1,6 @@
 import { readTokens } from '@/auth/session';
 import SampleDataNotice from '@/components/SampleDataNotice';
+import MiningCoverageNotice from '@/components/MiningCoverageNotice';
 import React, { useState, useCallback, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -30,6 +31,7 @@ const Evidence: React.FC = () => {
   const location = useLocation();
   const [projectsList, setProjectsList] = useState<any[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [reloadKey, setReloadKey] = useState(0);
   const [evidenceData, setEvidenceData] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -111,7 +113,7 @@ const Evidence: React.FC = () => {
       }
     };
     fetchEvidences();
-  }, [selectedProjectId]);
+  }, [selectedProjectId, reloadKey]);
 
   const filtered = evidenceData.filter(item =>
     (type === 'all' || item.type === type) && (repository === 'all' || item.repository === repository) &&
@@ -146,6 +148,7 @@ const Evidence: React.FC = () => {
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-6 flex flex-col min-h-[calc(100dvh-140px)] relative">
         {evidenceData.length === 0 && !loading && <SampleDataNotice />}
+        <MiningCoverageNotice project={projectsList.find(p => p.id === selectedProjectId) ?? null} context="evidence" onMiningFinished={() => setReloadKey(k => k + 1)} />
         
         {/* HEADER */}
         <div className="shrink-0 space-y-6">

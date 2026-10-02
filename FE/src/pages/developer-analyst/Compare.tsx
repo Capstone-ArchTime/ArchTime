@@ -1,5 +1,6 @@
 import { readTokens } from '@/auth/session';
 import SampleDataNotice from '@/components/SampleDataNotice';
+import MiningCoverageNotice from '@/components/MiningCoverageNotice';
 import { Link, useLocation } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -21,6 +22,7 @@ const Compare: React.FC = () => {
   const location = useLocation();
   const [projectsList, setProjectsList] = useState<any[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [reloadKey, setReloadKey] = useState(0);
   const [snapshots, setSnapshots] = useState<any[]>([]);
   const [baseId, setBaseId] = useState<string>('');
   const [targetId, setTargetId] = useState<string>('');
@@ -78,7 +80,7 @@ const Compare: React.FC = () => {
       }
     };
     fetchSnapshots();
-  }, [selectedProjectId]);
+  }, [selectedProjectId, reloadKey]);
 
   const handleCompare = async () => {
     if (!selectedProjectId || !baseId || !targetId) {
@@ -200,6 +202,7 @@ const Compare: React.FC = () => {
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-8 flex flex-col min-h-0">
         {!compareData && <SampleDataNotice />}
+        <MiningCoverageNotice project={projectsList.find(p => p.id === selectedProjectId) ?? null} context="compare" between={snapshots.find(s => s.id === baseId) && snapshots.find(s => s.id === targetId) ? [snapshots.find(s => s.id === baseId).date, snapshots.find(s => s.id === targetId).date] : undefined} onMiningFinished={() => setReloadKey(k => k + 1)} />
         
         {/* HEADER */}
         <div className="shrink-0">

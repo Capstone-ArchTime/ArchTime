@@ -1,5 +1,6 @@
 import { readTokens } from '@/auth/session';
 import SampleDataNotice from '@/components/SampleDataNotice';
+import MiningCoverageNotice from '@/components/MiningCoverageNotice';
 import { Link } from 'react-router-dom';
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -44,6 +45,7 @@ const ArchitectureHistory: React.FC = () => {
   const [projectsList, setProjectsList] = useState<any[]>([]);
   const [branchesList, setBranchesList] = useState<string[]>(['main']);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [selectedBranch, setSelectedBranch] = useState<string>('main');
   const [searchInput, setSearchInput] = useState('');
   const [appliedSearchQuery, setAppliedSearchQuery] = useState('');
@@ -60,7 +62,7 @@ const ArchitectureHistory: React.FC = () => {
         const res = await fetch(`${API_BASE_URL}/projects`, { headers: { Authorization: `Bearer ${token}` }});
         if (res.ok) {
           const data = await res.json();
-          const completedProjects = data.data.projects.filter((p: any) => p.status === 'COMPLETED');
+          const completedProjects = data.data.projects.filter((p: any) => p.status === 'COMPLETED' || p.status === 'PARTIAL');
           setProjectsList(completedProjects);
           if (completedProjects.length > 0) {
             setSelectedProjectId(completedProjects[0].id);
@@ -121,7 +123,7 @@ const ArchitectureHistory: React.FC = () => {
       }
     };
     fetchSnapshots();
-  }, [selectedProjectId]);
+  }, [selectedProjectId, reloadKey]);
 
   // Filter commits when branch or applied search query changes
   React.useEffect(() => {
@@ -154,6 +156,7 @@ const ArchitectureHistory: React.FC = () => {
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-6 flex flex-col min-h-[calc(100dvh-140px)]">
         <SampleDataNotice />
+        <MiningCoverageNotice project={projectsList.find(p => p.id === selectedProjectId) ?? null} context="history" onMiningFinished={() => setReloadKey(k => k + 1)} />
         
         {/* HEADER & TOP CONTROLS */}
         <div className="shrink-0 space-y-6">

@@ -71,7 +71,7 @@ const fakes = { project: collection(), job: collection(), snap: collection(), ev
 const patch = (model, fake) => Object.assign(model, fake);
 patch(ProjectModel, { findById: fakes.project.findById, findOne: fakes.project.findOne, updateOne: fakes.project.updateOne });
 patch(MiningJobModel, { create: fakes.job.create, findById: fakes.job.findById, updateOne: fakes.job.updateOne, exists: fakes.job.exists, find: fakes.job.find });
-patch(SnapshotModel, { find: fakes.snap.find, findOne: fakes.snap.findOne, insertMany: fakes.snap.insertMany, updateOne: fakes.snap.updateOne, deleteMany: fakes.snap.deleteMany, countDocuments: fakes.snap.countDocuments });
+patch(SnapshotModel, { exists: fakes.snap.exists, find: fakes.snap.find, findOne: fakes.snap.findOne, insertMany: fakes.snap.insertMany, updateOne: fakes.snap.updateOne, deleteMany: fakes.snap.deleteMany, countDocuments: fakes.snap.countDocuments });
 patch(EvidenceModel, { insertMany: fakes.evid.insertMany, deleteMany: fakes.evid.deleteMany });
 
 // --- a real git repo with 6 commits over 3 months; every commit adds an import edge ---
@@ -126,7 +126,11 @@ test('mining a date range analyzes only that range, in batches', async () => {
 });
 
 test('continuing mines only what is left and finishes the project', async () => {
+  const seen = new Set();
+  const watcher = setInterval(() => seen.add(project.status), 1);
   const job = await settled(await MiningService.startMiningJob(project._id, 'u1'));
+  clearInterval(watcher);
+  assert.ok(!seen.has('ANALYZING'), 'a project with mined snapshots stays PARTIAL while mining continues');
   assert.equal(job.status, 'completed', job.error);
   assert.equal(job.total, 4);
   assert.equal(fakes.snap.rows.length, 6);

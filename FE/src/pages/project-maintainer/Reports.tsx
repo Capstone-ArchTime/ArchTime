@@ -5,6 +5,7 @@ import { getProjects, getSnapshots } from '@/features/project-data';
 import type { ProjectSummary, Snapshot } from '@/features/project-data';
 import { createEvolutionReport, reportHtml, validReports } from '@/features/evolution-report';
 import type { EvolutionReport } from '@/features/evolution-report';
+import MiningCoverageNotice from '@/components/MiningCoverageNotice';
 import { useDemoStore } from '@/features/useDemoStore';
 import { downloadText } from '@/features/download';
 const emptyHistory: EvolutionReport[] = [];
@@ -23,6 +24,7 @@ function RevisionReport({ project, onReport }: { project: ProjectSummary; onRepo
   }, [project.id, revision]);
   const options = snapshots.map(s => ({ value: s.id, label: `${s.hash.slice(0, 10)} · ${s.title}` }));
   return <section className={featurePanel}>
+    <MiningCoverageNotice project={project} context="report" className="mb-4" onMiningFinished={() => { setLoading(true); setRevision(v => v + 1); }} />
     {error && <Alert type="error" title={error} action={<Button onClick={() => { setLoading(true); setRevision(v => v + 1); }}>Retry</Button>} />}
     <div className="grid sm:grid-cols-2 gap-4"><div><label htmlFor="report-base" className="block text-sm mb-2">From revision</label><Select id="report-base" loading={loading} disabled={loading || !!error} className="w-full" value={base || undefined} onChange={setBase} options={options} /></div><div><label htmlFor="report-target" className="block text-sm mb-2">To revision</label><Select id="report-target" loading={loading} disabled={loading || !!error} className="w-full" value={target || undefined} onChange={setTarget} options={options} /></div></div>
     {!loading && !error && snapshots.length < 2 && <Empty description="At least two mined snapshots are needed to create an evolution report." />}

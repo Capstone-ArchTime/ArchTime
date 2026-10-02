@@ -214,7 +214,9 @@ export class MiningService {
     try {
       if (!project) throw new Error('Project no longer exists');
       await set({ status: JobStatus.RUNNING, startedAt: new Date(), stage: 'Preparing repository', progress: 1 });
-      if (job.kind === JobKind.MINE) {
+      // A project that already has snapshots keeps its PARTIAL/COMPLETED status while mining continues,
+      // so pages that list analyzed projects do not lose it mid-run.
+      if (job.kind === JobKind.MINE && !(await SnapshotModel.exists({ projectId: String(project._id) }))) {
         await ProjectModel.updateOne({ _id: project._id }, { $set: { status: ProjectStatus.ANALYZING } });
       }
 
