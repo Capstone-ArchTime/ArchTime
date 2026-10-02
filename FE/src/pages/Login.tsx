@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, User, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Icon } from '@iconify/react';
@@ -248,17 +248,6 @@ const AuthPage: React.FC = () => {
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <label htmlFor="auth-password" className="text-[11px] text-slate-400 uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>Password</label>
-                      {!isRegister && (
-                        <button
-                          type="button"
-                          disabled
-                          aria-disabled="true"
-                          title="Coming soon"
-                          className="text-xs text-slate-600 cursor-not-allowed"
-                        >
-                          Forgot password?
-                        </button>
-                      )}
                     </div>
                     <div className="relative group">
                       <input
