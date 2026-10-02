@@ -1,3 +1,4 @@
+import { MiningService } from "../../../infrastructure/services/MiningService.js";
 import type { IProjectRepository } from "../../../domain/interfaces/IProjectRepository.js";
 
 export class DeleteProjectUseCase {
@@ -7,6 +8,8 @@ export class DeleteProjectUseCase {
     if (!projectId || !userId) {
       throw new Error("Missing required parameters");
     }
-    return this.projectRepository.delete(projectId, userId);
+    const deleted = await this.projectRepository.delete(projectId, userId);
+    if (deleted) await MiningService.purgeProject(projectId);
+    return deleted;
   }
 }
