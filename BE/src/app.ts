@@ -8,11 +8,15 @@ import { createAuthRouter } from "./presentation/routes/auth.routes.js";
 import { createProjectRouter } from "./presentation/routes/project.routes.js";
 import { setupSwagger } from "./presentation/swagger/swagger.js";
 import { authController, projectController, jwtTokenService } from "./container.js";
+import { createGitHubRouter } from './presentation/routes/github.routes.js';
+import { GitHubIdentityService } from './infrastructure/services/GitHubIdentityService.js';
+import { GitHubLoginUseCase } from './application/use-cases/GitHubLoginUseCase.js';
+import { MongoUserRepository } from './infrastructure/repositories/MongoUserRepository.js';
 
 export const app = express();
 
 // ── Core Middleware ──
-app.use(cors({ origin: env.corsOrigin }));
+app.use(cors({ origin: env.corsOrigin, credentials: true }));
 app.use(express.json());
 
 // ── Swagger UI ──
@@ -20,6 +24,7 @@ setupSwagger(app);
 
 // ── Routes ──
 app.use("/api/health", healthRouter);
+app.use('/api/auth/github', createGitHubRouter(env, new GitHubIdentityService(env.githubClientId, env.githubClientSecret, env.githubCallbackUrl), new GitHubLoginUseCase(), new MongoUserRepository(), jwtTokenService));
 app.use("/api/auth", createAuthRouter(authController, jwtTokenService));
 app.use("/api/projects", createProjectRouter(projectController, jwtTokenService));
 

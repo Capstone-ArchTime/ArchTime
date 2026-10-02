@@ -9,6 +9,7 @@ export interface IUser {
   name: string;
   email: string;
   passwordHash: string;
+  githubId?: string;
   role: UserRole;
   isVerified: boolean;
   tokenVersion?: number;

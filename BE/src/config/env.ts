@@ -9,6 +9,9 @@ function required(name: string, fallback?: string): string {
 }
 
 export const env = {
+  githubClientId: process.env.GITHUB_CLIENT_ID ?? "",
+  githubClientSecret: process.env.GITHUB_CLIENT_SECRET ?? "",
+  githubCallbackUrl: process.env.GITHUB_CALLBACK_URL ?? "http://localhost:4000/api/auth/github/callback",
   port: Number(required("PORT", "4000")),
   mongodbUri: required("MONGODB_URI", "mongodb://localhost:27017/archtime"),
   corsOrigin: required("CORS_ORIGIN", "http://localhost:5173"),

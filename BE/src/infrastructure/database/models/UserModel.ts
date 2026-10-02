@@ -18,6 +18,7 @@ const UserSchema = new Schema<IUserDocument>(
       trim: true,
     },
     passwordHash: { type: String, required: true, select: false },
+    githubId: { type: String, unique: true, sparse: true },
     role: {
       type: String,
       enum: Object.values(UserRole),
