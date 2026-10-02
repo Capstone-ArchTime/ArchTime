@@ -1,107 +1,37 @@
-import SampleDataNotice from '@/components/SampleDataNotice';
-import React from 'react';
-import DashboardLayout from '@/components/layout/DashboardLayout';
-import { UserPlus, Mail, FolderKanban, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
+import { App, Button, Form, Input, Modal, Popconfirm, Select, Table, Tag } from 'antd';
+import FeaturePage from '@/components/FeaturePage';
+import { demoProjects, useMaintainerDemo } from '@/features/maintainer-demo';
+import type { TeamMember } from '@/features/maintainer-demo';
 
-const fontFamily = {
-  mono: '"JetBrains Mono", monospace',
-};
-
-const mockTeam = [
-  { name: 'j.tran', email: 'j.tran@archtime.io', role: 'Developer / Analyst', projects: ['E-Commerce Platform'], active: true, approvalsThisMonth: 8 },
-  { name: 'm.nguyen', email: 'm.nguyen@archtime.io', role: 'Developer / Analyst', projects: ['E-Commerce Platform', 'Payment Platform'], active: true, approvalsThisMonth: 5 },
-  { name: 'k.pham', email: 'k.pham@archtime.io', role: 'Developer / Analyst', projects: ['Payment Platform', 'Healthcare Connect'], active: false, approvalsThisMonth: 2 },
-  { name: 'a.le', email: 'a.le@archtime.io', role: 'Developer / Analyst', projects: ['Healthcare Connect'], active: true, approvalsThisMonth: 4 },
-];
-
-const mockProjects = ['E-Commerce Platform', 'Payment Platform', 'Healthcare Connect'];
-
-const Team: React.FC = () => {
-  return (
-    <DashboardLayout>
-      <div className="max-w-[1100px] mx-auto space-y-8">
-        <SampleDataNotice />
-
-        {/* HEADER */}
-        <div>
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Team</h2>
-              <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
-                Members contributing to the projects you maintain.
-              </p>
-            </div>
-            <button disabled title="Not available yet: this view uses sample data" aria-label="INVITE MEMBER" className="shrink-0 h-10 px-5 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2" style={{ fontFamily: fontFamily.mono }}>
-              <UserPlus size={16} />
-              INVITE MEMBER
-            </button>
-          </div>
-          <div className="h-[1px] w-full bg-gradient-to-r from-[#222c37] to-transparent mt-8"></div>
-        </div>
-
-        {/* MEMBER LIST */}
-        <div className="space-y-3">
-          {mockTeam.map((member) => (
-            <div key={member.email} className="bg-[#11161b] border border-[#222c37] p-5 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4 min-w-0">
-                <div className="relative shrink-0">
-                  <div className="w-11 h-11 rounded-full bg-[#161d24] border border-[#222c37] flex items-center justify-center text-sm font-bold text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>
-                    {member.name.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div
-                    className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#11161b]"
-                    style={{ backgroundColor: member.active ? '#22c55e' : '#5f636b' }}
-                  ></div>
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-[#f4f4f6] font-bold text-sm" style={{ fontFamily: fontFamily.mono }}>{member.name}</h4>
-                    <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 border border-[#38bdf8]/33 text-[#38bdf8] bg-[#38bdf8]/10" style={{ fontFamily: fontFamily.mono }}>
-                      {member.role}
-                    </span>
-                  </div>
-                  <div className="text-xs text-[#94a3b8] mt-0.5" style={{ fontFamily: fontFamily.mono }}>{member.email}</div>
-                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                    {member.projects.map((p) => (
-                      <span key={p} className="inline-flex items-center gap-1 text-[10px] text-[#94a3b8] bg-[#161d24] px-1.5 py-0.5 border border-[#222c37]">
-                        <FolderKanban size={10} />
-                        {p}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="text-right shrink-0">
-                <div className="flex items-center justify-end gap-1.5 text-[#22c55e]">
-                  <ShieldCheck size={14} />
-                  <span className="text-lg font-bold" style={{ fontFamily: fontFamily.mono }}>{member.approvalsThisMonth}</span>
-                </div>
-                <div className="text-[10px] text-[#94a3b8] uppercase tracking-widest" style={{ fontFamily: fontFamily.mono }}>Approved this month</div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* PENDING INVITES */}
-        <section>
-          <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-3" style={{ fontFamily: fontFamily.mono }}>Invite by Project</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {mockProjects.map((project) => (
-              <div key={project} className="bg-[#161d24] border border-dashed border-[#222c37] hover:border-[#38bdf8]/50 p-4 flex items-center justify-between transition-colors group cursor-pointer">
-                <div className="flex items-center gap-2 min-w-0">
-                  <FolderKanban size={14} className="text-[#94a3b8] group-hover:text-[#38bdf8] transition-colors shrink-0" />
-                  <span className="text-xs text-[#94a3b8] group-hover:text-[#f4f4f6] transition-colors truncate">{project}</span>
-                </div>
-                <Mail size={14} className="text-[#94a3b8] group-hover:text-[#38bdf8] transition-colors shrink-0" />
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <div className="h-10"></div>
-      </div>
-    </DashboardLayout>
-  );
-};
-
-export default Team;
+export default function Team() {
+  const store = useMaintainerDemo();
+  const { message } = App.useApp();
+  const [query, setQuery] = useState('');
+  const [project, setProject] = useState('all');
+  const [editing, setEditing] = useState<TeamMember | null | undefined>();
+  const [form] = Form.useForm<TeamMember>();
+  function open(member: TeamMember | null) { form.resetFields(); form.setFieldsValue(member ?? { role: 'developer-analyst', projects: project === 'all' ? [] : [project] }); setEditing(member); }
+  const rows = store.data.members.filter(m => `${m.name} ${m.email}`.toLowerCase().includes(query.toLowerCase()) && (project === 'all' || m.projects.includes(project)));
+  return <FeaturePage title="Team" description="Manage members and invitations across your maintained projects." error={store.error} actions={<Button type="primary" disabled={!!store.error} onClick={() => open(null)}>Invite member</Button>}>
+    <div className="flex flex-wrap gap-3"><Input.Search aria-label="Search team members" placeholder="Name or email" value={query} onChange={e => setQuery(e.target.value)} className="max-w-sm" allowClear /><Select aria-label="Filter team by project" value={project} onChange={setProject} className="min-w-60" options={['all', ...demoProjects].map(value => ({ value, label: value === 'all' ? 'All projects' : value }))} /></div>
+    <Table rowKey="id" dataSource={rows} scroll={{ x: 850 }} pagination={{ pageSize: 10, showSizeChanger: false }} columns={[
+      { title: 'Member', render: (_, m: TeamMember) => <div>{m.name}<p className="text-xs text-[#94a3b8]">{m.email}</p></div> }, { title: 'Role', dataIndex: 'role' },
+      { title: 'Projects', render: (_, m: TeamMember) => <div className="flex flex-wrap gap-1">{m.projects.map(p => <Tag key={p}>{p}</Tag>)}</div> },
+      { title: 'Status', dataIndex: 'status', render: s => <Tag color={s === 'active' ? 'green' : 'gold'}>{s}</Tag> },
+      { title: 'Actions', render: (_, m: TeamMember) => <div className="flex gap-2"><Button disabled={!!store.error} onClick={() => open(m)}>Edit</Button><Popconfirm title={m.status === 'invited' ? 'Revoke this demo invitation?' : 'Remove this demo member from all listed projects?'} onConfirm={() => { if (store.save({ ...store.data, members: store.data.members.filter(item => item.id !== m.id) })) message.success('Removed locally.'); }}><Button danger disabled={!!store.error}>{m.status === 'invited' ? 'Revoke' : 'Remove'}</Button></Popconfirm></div> },
+    ]} />
+    <Modal title={editing ? 'Edit project membership' : 'Invite member (local demo)'} open={editing !== undefined} onCancel={() => setEditing(undefined)} onOk={() => form.submit()} okText="Save locally">
+      <Form form={form} layout="vertical" onFinish={values => {
+        const email = values.email.trim().toLowerCase();
+        if (store.data.members.some(m => m.id !== editing?.id && m.email.toLowerCase() === email)) { message.error('This member already exists. Edit their project memberships instead.'); return; }
+        const next: TeamMember = { ...values, email, name: values.name.trim(), id: editing?.id ?? crypto.randomUUID(), status: editing?.status ?? 'invited' };
+        if (store.save({ ...store.data, members: editing ? store.data.members.map(m => m.id === editing.id ? next : m) : [...store.data.members, next] })) { message.success('Saved locally. No invitation email was sent.'); setEditing(undefined); }
+      }}>
+        <Form.Item name="name" label="Name" rules={[{ required: true, whitespace: true }]}><Input maxLength={80} /></Form.Item><Form.Item name="email" label="Email" rules={[{ required: true }, { type: 'email' }]}><Input disabled={!!editing} maxLength={254} /></Form.Item>
+        <Form.Item name="projects" label="Projects" rules={[{ required: true, type: 'array', min: 1 }]}><Select mode="multiple" options={demoProjects.map(value => ({ value, label: value }))} /></Form.Item>
+        <Form.Item name="role" label="Project role" rules={[{ required: true }]}><Select options={['developer-analyst', 'project-maintainer'].map(value => ({ value, label: value }))} /></Form.Item>
+      </Form>
+    </Modal>
+  </FeaturePage>;
+}
