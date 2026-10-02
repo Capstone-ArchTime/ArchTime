@@ -1,8 +1,9 @@
 ﻿import { useState } from 'react';
 import { App } from 'antd';
 import { useAuth } from '@/auth/auth-context';
+import { demoProjects } from '@/features/maintainer-demo';
 
-export const projects = ['E-Commerce Platform', 'Payment Platform', 'Healthcare Connect'];
+export const projects = demoProjects;
 export const panel = 'border border-[#222c37] bg-[#11161b] p-5';
 export type Component = { id: string; name: string; kind: string; description: string };
 export type Dependency = { id: string; source: string; target: string; label: string };
@@ -11,7 +12,7 @@ export type Rule = { id: string; name: string; source: string; target: string; c
 export type Decision = { id: string; number: number; title: string; status: 'Proposed' | 'Accepted' | 'Deprecated'; context: string; decision: string; alternatives: string; consequences: string; componentIds: string[]; createdAt: string; updatedAt: string };
 export type Workspace = { diagram: Diagram; rules: Rule[]; decisions: Decision[] };
 
-function initialWorkspace(project: string): Workspace {
+export function initialWorkspace(project: string): Workspace {
   const service = project === projects[1] ? 'Payment Service' : project === projects[2] ? 'Patient Service' : 'Catalog Service';
   return {
     diagram: {
