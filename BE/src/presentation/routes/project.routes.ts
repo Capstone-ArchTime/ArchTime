@@ -26,6 +26,7 @@ export function createProjectRouter(
   router.get("/:id/evidences", projectController.getEvidences);
   router.get("/:id/architecture", projectController.getArchitecture);
   router.post("/:id/architecture", projectController.generateArchitecture);
+  router.post("/:id/architecture/refine", projectController.refineArchitecture);
 
   return router;
 }

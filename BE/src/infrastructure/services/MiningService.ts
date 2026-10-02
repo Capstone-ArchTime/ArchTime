@@ -20,6 +20,7 @@ import {
   type MineRequest,
   type MinedIndex,
 } from '../../domain/mining/miningPlan.js';
+import { runArchitectureJob } from './ArchitectureJob.js';
 import { ConflictError, NotFoundError } from '../../shared/errors/AppError.js';
 
 type GraphNode = { id: string; name: string; type: string };
@@ -49,6 +50,11 @@ export class MiningService {
 
   public static async startScanJob(projectId: string, userId: string): Promise<string> {
     return this.enqueue(projectId, userId, { kind: JobKind.SCAN, stage: 'Queued for scan' });
+  }
+
+  /** Groups a snapshot into components and refines the result with the configured AI model. */
+  public static async startAbstractJob(projectId: string, userId: string, snapshotId?: string): Promise<string> {
+    return this.enqueue(projectId, userId, { kind: JobKind.ABSTRACT, stage: 'Queued', ...(snapshotId ? { target: snapshotId } : {}) });
   }
 
   public static async startMiningJob(projectId: string, userId: string, request?: MineRequest): Promise<string> {
@@ -210,6 +216,12 @@ export class MiningService {
     const checkCancel = () => {
       if (this.cancelled.has(jobId)) throw new CancelledError();
     };
+
+    if (job.kind === JobKind.ABSTRACT) {
+      // Not a repository job: no clone, no project status change.
+      await runArchitectureJob({ id: jobId, projectId: String(job.projectId), target: job.target }, () => this.cancelled.has(jobId));
+      return;
+    }
 
     try {
       if (!project) throw new Error('Project no longer exists');

@@ -272,4 +272,18 @@ export class ProjectController {
       next(error);
     }
   };
+
+  public refineArchitecture = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        res.status(401).json({ success: false, message: "Unauthorized" });
+        return;
+      }
+      const jobId = await this.architectureUseCase.refine(req.params.id, userId, req.body);
+      res.status(202).json({ success: true, data: { jobId } });
+    } catch (error: any) {
+      next(error);
+    }
+  };
 }

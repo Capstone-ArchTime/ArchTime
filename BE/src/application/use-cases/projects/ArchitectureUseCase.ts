@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import { MiningService } from "../../../infrastructure/services/MiningService.js";
+import { getLlmRuntime } from "../../../infrastructure/llm/runtime.js";
 import { ArchitectureService } from "../../../infrastructure/services/ArchitectureService.js";
 import { BadRequestError } from "../../../shared/errors/AppError.js";
 import { loadOwnedProject } from "./loadOwnedProject.js";
@@ -22,5 +24,14 @@ export class ArchitectureUseCase {
       minComponents: input.minComponents as number | undefined,
       maxComponents: input.maxComponents as number | undefined,
     });
+  }
+
+  /** Starts a background job that groups and then refines with the AI model. Returns the job id. */
+  public async refine(projectId: string, userId: string, body: unknown): Promise<string> {
+    await loadOwnedProject(projectId, userId);
+    const input = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
+    const { client, capability } = getLlmRuntime();
+    if (!client) throw new BadRequestError(capability.reason ?? "AI refinement is not configured on this server");
+    return MiningService.startAbstractJob(projectId, userId, snapshotIdOf(input.snapshotId));
   }
 }

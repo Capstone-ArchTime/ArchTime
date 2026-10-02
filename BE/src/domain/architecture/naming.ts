@@ -27,6 +27,8 @@ const ROLE_RULES: [ComponentRole, RegExp][] = [
 ];
 const LAYER: Partial<Record<ComponentRole, number>> = { controller: 0, service: 1, entity: 2, repository: 3, gateway: 3, config: 3, util: 3 };
 
+export const layerForRole = (role: ComponentRole): number | undefined => LAYER[role];
+
 export const roleOfFile = (path: string): ComponentRole | null => {
   const p = path.toLowerCase();
   for (const [role, re] of ROLE_RULES) if (re.test(p)) return role;

@@ -1,5 +1,6 @@
 import mongoose, { type Document, type Model, Schema } from "mongoose";
 import type { MappingComponent } from "../../../domain/architecture/buildView.js";
+import type { RefineReceipt } from "../../../domain/architecture/llm/types.js";
 
 export interface IArchitectureMapping {
   projectId: string;
@@ -10,6 +11,8 @@ export interface IArchitectureMapping {
   graphHash: string;
   options: { minComponents: number; maxComponents: number };
   components: MappingComponent[];
+  /** How an AI refinement went: attempts, verification issues, and why it fell back if it did. */
+  receipt?: RefineReceipt;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -24,6 +27,7 @@ const ArchitectureMappingSchema = new Schema<IArchitectureMappingDocument>(
     algorithmVersion: { type: String, required: true },
     graphHash: { type: String, required: true },
     options: { minComponents: Number, maxComponents: Number },
+    receipt: { type: Schema.Types.Mixed },
     components: [
       {
         _id: false,
