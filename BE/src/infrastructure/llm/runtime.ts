@@ -5,8 +5,10 @@ import { ClaudeClient } from './ClaudeClient.js';
 import { OpenAiCompatibleClient } from './OpenAiCompatibleClient.js';
 
 /**
- * LLM_PROVIDER      none | anthropic | openai-compatible   (default: anthropic when ANTHROPIC_API_KEY is set, otherwise none)
- * LLM_MODEL         anthropic: defaults to claude-opus-5-5; openai-compatible: required
+ * LLM_PROVIDER      none | anthropic | gemini | openai-compatible
+ *                    (default: anthropic when ANTHROPIC_API_KEY is set, else gemini when GEMINI_API_KEY is set, else none)
+ * LLM_MODEL         anthropic: defaults to claude-opus-5-5; gemini: defaults to gemini-3.6-flash; openai-compatible: required
+ * GEMINI_API_KEY    gemini (LLM_API_KEY also works)
  * LLM_BASE_URL      openai-compatible: required (for example http://localhost:11434/v1); anthropic: optional override
  * LLM_API_KEY       openai-compatible only, optional; anthropic reads ANTHROPIC_API_KEY
  * LLM_TIMEOUT_MS    default 180000
@@ -34,7 +36,7 @@ export function loadLlmRuntime(env: NodeJS.ProcessEnv = process.env): LlmRuntime
     maxMoveRatio: Math.min(1, Math.max(0, number(env.LLM_MAX_MOVE_RATIO, DEFAULT_REFINE_OPTIONS.maxMoveRatio))),
   };
   const off = (reason: string): LlmRuntime => ({ client: null, options, capability: { enabled: false, provider: null, model: null, host: null, external: false, reason } });
-  const provider = (env.LLM_PROVIDER ?? (env.ANTHROPIC_API_KEY ? 'anthropic' : 'none')).toLowerCase();
+  const provider = (env.LLM_PROVIDER ?? (env.ANTHROPIC_API_KEY ? 'anthropic' : env.GEMINI_API_KEY ? 'gemini' : 'none')).toLowerCase();
   const timeoutMs = number(env.LLM_TIMEOUT_MS, 180_000);
   try {
     let client: LlmClient;
@@ -42,6 +44,14 @@ export function loadLlmRuntime(env: NodeJS.ProcessEnv = process.env): LlmRuntime
     if (provider === 'anthropic') {
       if (!env.ANTHROPIC_API_KEY) return off('LLM_PROVIDER is anthropic but ANTHROPIC_API_KEY is not set.');
       client = new ClaudeClient({ apiKey: env.ANTHROPIC_API_KEY, model: env.LLM_MODEL || 'claude-opus-5-5', baseUrl: env.LLM_BASE_URL || undefined, timeoutMs, effort: (['low', 'medium', 'high'] as const).find(e => e === env.LLM_EFFORT) });
+    } else if (provider === 'gemini') {
+      const apiKey = env.GEMINI_API_KEY || env.LLM_API_KEY;
+      if (!apiKey) return off('LLM_PROVIDER is gemini but GEMINI_API_KEY is not set.');
+      // Google's OpenAI-compatible endpoint. Temperature is left at the model's default, which Google recommends for Gemini 3.
+      client = new OpenAiCompatibleClient({
+        baseUrl: env.LLM_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/openai', model: env.LLM_MODEL || 'gemini-3.6-flash', apiKey,
+        timeoutMs, jsonMode: env.LLM_JSON_MODE !== 'false', providerName: 'gemini', temperature: null, maxTokens: 16000,
+      });
     } else if (provider === 'openai-compatible') {
       if (!env.LLM_BASE_URL || !env.LLM_MODEL) return off('LLM_BASE_URL and LLM_MODEL are required for an openai-compatible provider.');
       client = new OpenAiCompatibleClient({ baseUrl: env.LLM_BASE_URL, model: env.LLM_MODEL, apiKey: env.LLM_API_KEY || undefined, timeoutMs, jsonMode: env.LLM_JSON_MODE !== 'false' });

@@ -141,7 +141,7 @@ test('self-hosted client speaks the chat-completions protocol', async () => {
 });
 
 test('self-hosted client turns failures into typed errors', async () => {
-  const cases = [[401, {}, 'auth'], [403, {}, 'auth'], [429, {}, 'rate_limit'], [500, {}, 'other'], [200, { choices: [{ message: { content: 'x' }, finish_reason: 'length' }] }, 'truncated'], [200, { choices: [] }, 'other'], [200, { nope: 1 }, 'other']];
+  const cases = [[401, {}, 'auth'], [403, {}, 'auth'], [429, {}, 'rate_limit'], [500, {}, 'other'], [404, {}, 'request'], [200, { choices: [{ message: { content: 'x' }, finish_reason: 'length' }] }, 'truncated'], [200, { choices: [] }, 'other'], [200, { nope: 1 }, 'other']];
   for (const [status, body, kind] of cases) {
     const srv = await server((req, res) => json(res, status, body));
     try {
@@ -157,9 +157,67 @@ test('self-hosted client turns failures into typed errors', async () => {
   } finally { await slow.close(); }
 });
 
+test('self-hosted client keeps the server explanation and reads Google-style errors', async () => {
+  const cases = [
+    [400, [{ error: { code: 400, message: 'API key not valid. Please pass a valid API key.', status: 'INVALID_ARGUMENT' } }], 'auth', /API key not valid/],
+    [429, [{ error: { code: 429, message: 'You exceeded your current quota.', status: 'RESOURCE_EXHAUSTED' } }], 'rate_limit', /exceeded your current quota/],
+    [404, { error: { message: 'models/nope is not found for API version v1beta' } }, 'request', /models\/nope is not found/],
+    [400, { error: { message: 'Unsupported parameter: max_tokens' } }, 'request', /Unsupported parameter/],
+    [402, { error: { message: 'Insufficient credit on this account' } }, 'billing', /no credit/],
+    [503, { error: { message: 'The model is overloaded' } }, 'other', /overloaded/],
+  ];
+  for (const [status, body, kind, text] of cases) {
+    const srv = await server((req, res) => json(res, status, body));
+    try {
+      const client = new OpenAiCompatibleClient({ baseUrl: srv.url, model: 'm', timeoutMs: 5000, jsonMode: false });
+      await assert.rejects(client.complete(MESSAGES), e => e.kind === kind && text.test(e.message), `${status} ${kind}`);
+    } finally { await srv.close(); }
+  }
+});
+
+test('JSON mode that the server rejects is switched off once, then stays off', async () => {
+  const srv = await server((req, res) => (req.body.response_format ? json(res, 400, { error: { message: 'response_format is not supported' } }) : json(res, 200, { choices: [{ message: { content: '{"ok":1}' }, finish_reason: 'stop' }] })));
+  try {
+    const client = new OpenAiCompatibleClient({ baseUrl: srv.url, model: 'm', timeoutMs: 5000, jsonMode: true });
+    assert.equal(await client.complete(MESSAGES), '{"ok":1}');
+    assert.deepEqual(srv.requests.map(r => 'response_format' in r.body), [true, false]);
+    assert.match(client.notes()[0], /JSON mode.*response_format is not supported.*switched off/);
+    await client.complete(MESSAGES);
+    assert.equal(srv.requests.length, 3);
+  } finally { await srv.close(); }
+});
+
+test('Gemini goes through the OpenAI-compatible endpoint with its key, no temperature and room to think', async () => {
+  const srv = await server((req, res) => json(res, 200, { choices: [{ message: { content: '{"components":[]}' }, finish_reason: 'stop' }] }));
+  try {
+    const runtime = loadLlmRuntime({ GEMINI_API_KEY: 'g-secret', LLM_BASE_URL: `${srv.url}/v1beta/openai/` });
+    assert.equal(runtime.capability.provider, 'gemini');
+    assert.equal(runtime.capability.model, 'gemini-3.6-flash');
+    await runtime.client.complete(MESSAGES, { schema: { type: 'object' } });
+    const [req] = srv.requests;
+    assert.equal(req.url, '/v1beta/openai/chat/completions');
+    assert.equal(req.headers.authorization, 'Bearer g-secret');
+    assert.equal(req.body.model, 'gemini-3.6-flash');
+    assert.ok(!('temperature' in req.body), 'Gemini 3 is meant to run at its default temperature');
+    assert.ok(req.body.max_tokens >= 16000);
+    assert.deepEqual(req.body.response_format, { type: 'json_object' });
+  } finally { await srv.close(); }
+});
+
 test('hosts on a private network are not "external"', () => {
   for (const h of ['localhost:11434', '127.0.0.1', '10.1.2.3', '192.168.0.9:8000', '172.16.5.5', '172.31.255.1', '[::1]:11434', 'gpu-box.local', 'llm.internal']) assert.equal(isPrivateHost(h), true, h);
   for (const h of ['api.anthropic.com', '8.8.8.8', '172.32.0.1', '172.15.0.1', 'example.com:443']) assert.equal(isPrivateHost(h), false, h);
+});
+
+test('Gemini configuration', () => {
+  assert.equal(loadLlmRuntime({ GEMINI_API_KEY: 'k' }).capability.provider, 'gemini');
+  assert.deepEqual(loadLlmRuntime({ GEMINI_API_KEY: 'k' }).capability, { enabled: true, provider: 'gemini', model: 'gemini-3.6-flash', host: 'generativelanguage.googleapis.com', external: true });
+  assert.equal(loadLlmRuntime({ GEMINI_API_KEY: 'k', LLM_MODEL: 'gemini-3.5-flash' }).capability.model, 'gemini-3.5-flash');
+  assert.equal(loadLlmRuntime({ ANTHROPIC_API_KEY: 'a', GEMINI_API_KEY: 'k' }).capability.provider, 'anthropic', 'Claude wins unless LLM_PROVIDER says otherwise');
+  assert.equal(loadLlmRuntime({ ANTHROPIC_API_KEY: 'a', GEMINI_API_KEY: 'k', LLM_PROVIDER: 'gemini' }).capability.provider, 'gemini');
+  assert.equal(loadLlmRuntime({ LLM_PROVIDER: 'gemini', LLM_API_KEY: 'k' }).capability.enabled, true);
+  assert.match(loadLlmRuntime({ LLM_PROVIDER: 'gemini' }).capability.reason, /GEMINI_API_KEY/);
+  assert.ok(!JSON.stringify(loadLlmRuntime({ GEMINI_API_KEY: 'g-top-secret' }).capability).includes('secret'));
 });
 
 test('configuration: off by default, explicit about why, and secrets never reach the capability report', () => {

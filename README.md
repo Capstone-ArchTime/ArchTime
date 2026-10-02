@@ -207,7 +207,7 @@ Each snapshot is compared with the closest earlier *mined* snapshot, so after mi
 
 ### AI-assisted architecture components
 
-The Architecture Map groups a snapshot's files into 8-15 components with deterministic clustering. An AI model can then name and refine the grouping, but only after the server is configured for it: set `ANTHROPIC_API_KEY` in `BE/.env` (Claude, default model `claude-opus-5-5`), or point `LLM_PROVIDER=openai-compatible`, `LLM_BASE_URL` and `LLM_MODEL` at a model you host (for example Ollama). Only file paths and import relations are sent, never source code; for an external provider the UI asks before sending. Every answer is verified and the clustering result is kept when it fails. Details and all variables: `FE/src/features/architecture/README.md`.
+The Architecture Map groups a snapshot's files into 8-15 components with deterministic clustering. An AI model can then name and refine the grouping, but only after the server is configured for it: set `ANTHROPIC_API_KEY` in `BE/.env` (Claude, default model `claude-opus-5-5`), or `GEMINI_API_KEY` (Google Gemini, default model `gemini-3.6-flash`), or point `LLM_PROVIDER=openai-compatible`, `LLM_BASE_URL` and `LLM_MODEL` at a model you host (for example Ollama). Only file paths and import relations are sent, never source code; for an external provider the UI asks before sending. Every answer is verified and the clustering result is kept when it fails. Details and all variables: `FE/src/features/architecture/README.md`.
 
 ### Authentication merge compatibility
 
