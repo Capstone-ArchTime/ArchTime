@@ -4,6 +4,7 @@ export interface ISnapshot {
   id: string;
   projectId: string;
   hash: string;
+  fullHash?: string;
   version: string;
   title: string;
   author: string;
@@ -25,6 +26,7 @@ const SnapshotSchema = new Schema<ISnapshotDocument>(
   {
     projectId: { type: String, required: true, ref: "Project" },
     hash: { type: String, required: true },
+    fullHash: { type: String },
     version: { type: String },
     title: { type: String, required: true },
     author: { type: String, required: true },
@@ -60,6 +62,9 @@ const SnapshotSchema = new Schema<ISnapshotDocument>(
     },
   },
 );
+
+SnapshotSchema.index({ projectId: 1, date: 1 });
+SnapshotSchema.index({ projectId: 1, hash: 1 });
 
 export const SnapshotModel: Model<ISnapshotDocument> = mongoose.model<ISnapshotDocument>(
   "Snapshot",

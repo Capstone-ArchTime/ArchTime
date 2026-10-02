@@ -5,6 +5,12 @@ export enum JobStatus {
   RUNNING = "running",
   COMPLETED = "completed",
   FAILED = "failed",
+  CANCELLED = "cancelled",
+}
+
+export enum JobKind {
+  SCAN = "scan",
+  MINE = "mine",
 }
 
 export interface IMiningJob {
@@ -15,6 +21,19 @@ export interface IMiningJob {
   stage: string;
   progress: number;
   error?: string;
+  kind: JobKind;
+  mode?: "range" | "remaining";
+  rangeSince?: Date;
+  rangeUntil?: Date;
+  force?: boolean;
+  total: number; // commits this job will analyze
+  processed: number;
+  failedCommits: number;
+  batchSize: number;
+  batchIndex: number;
+  batchCount: number;
+  startedAt?: Date;
+  finishedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,6 +52,19 @@ const MiningJobSchema = new Schema<IMiningJobDocument>(
     stage: { type: String, default: "Waiting for worker" },
     progress: { type: Number, default: 0 },
     error: { type: String },
+    kind: { type: String, enum: Object.values(JobKind), default: JobKind.MINE },
+    mode: { type: String, enum: ["range", "remaining"] },
+    rangeSince: { type: Date },
+    rangeUntil: { type: Date },
+    force: { type: Boolean, default: false },
+    total: { type: Number, default: 0 },
+    processed: { type: Number, default: 0 },
+    failedCommits: { type: Number, default: 0 },
+    batchSize: { type: Number, default: 50 },
+    batchIndex: { type: Number, default: 0 },
+    batchCount: { type: Number, default: 0 },
+    startedAt: { type: Date },
+    finishedAt: { type: Date },
   },
   {
     timestamps: true,

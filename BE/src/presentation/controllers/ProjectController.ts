@@ -6,6 +6,7 @@ import type { MineProjectUseCase } from "../../application/use-cases/projects/Mi
 import type { GetSnapshotsUseCase } from "../../application/use-cases/projects/GetSnapshotsUseCase.js";
 import type { GetMiningJobsUseCase } from "../../application/use-cases/projects/GetMiningJobsUseCase.js";
 import type { CompareSnapshotsUseCase } from "../../application/use-cases/projects/CompareSnapshotsUseCase.js";
+import type { MiningWorkflowUseCase } from "../../application/use-cases/projects/MiningWorkflowUseCase.js";
 import type { GetEvidencesUseCase } from "../../application/use-cases/projects/GetEvidencesUseCase.js";
 
 export class ProjectController {
@@ -18,6 +19,7 @@ export class ProjectController {
     private readonly getMiningJobsUseCase: GetMiningJobsUseCase,
     private readonly compareSnapshotsUseCase: CompareSnapshotsUseCase,
     private readonly getEvidencesUseCase: GetEvidencesUseCase,
+    private readonly miningWorkflowUseCase: MiningWorkflowUseCase,
   ) {}
 
   public registerProject = async (
@@ -115,7 +117,7 @@ export class ProjectController {
         return;
       }
 
-      const jobId = await this.mineProjectUseCase.execute(id, userId);
+      const jobId = await this.mineProjectUseCase.execute(id, userId, req.body);
       res.status(200).json({ success: true, data: { jobId } });
     } catch (error: any) {
       next(error);
@@ -175,6 +177,62 @@ export class ProjectController {
       const { id } = req.params;
       const evidences = await this.getEvidencesUseCase.execute(id);
       res.status(200).json({ success: true, data: { evidences } });
+    } catch (error: any) {
+      next(error);
+    }
+  };
+
+  public scanProject = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        res.status(401).json({ success: false, message: "Unauthorized" });
+        return;
+      }
+      const jobId = await this.miningWorkflowUseCase.scan(req.params.id, userId);
+      res.status(202).json({ success: true, data: { jobId } });
+    } catch (error: any) {
+      next(error);
+    }
+  };
+
+  public getMiningOverview = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        res.status(401).json({ success: false, message: "Unauthorized" });
+        return;
+      }
+      const overview = await this.miningWorkflowUseCase.overview(req.params.id, userId);
+      res.status(200).json({ success: true, data: overview });
+    } catch (error: any) {
+      next(error);
+    }
+  };
+
+  public estimateMining = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        res.status(401).json({ success: false, message: "Unauthorized" });
+        return;
+      }
+      const estimate = await this.miningWorkflowUseCase.estimate(req.params.id, userId, req.query);
+      res.status(200).json({ success: true, data: estimate });
+    } catch (error: any) {
+      next(error);
+    }
+  };
+
+  public cancelMiningJob = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        res.status(401).json({ success: false, message: "Unauthorized" });
+        return;
+      }
+      const job = await this.miningWorkflowUseCase.cancel(req.params.jobId, userId);
+      res.status(200).json({ success: true, data: { job } });
     } catch (error: any) {
       next(error);
     }

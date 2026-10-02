@@ -12,6 +12,7 @@ export class MongoProjectRepository implements IProjectRepository {
       visibility: doc.visibility as RepoVisibility,
       token: doc.token as string | undefined,
       status: doc.status as ProjectStatus,
+      history: doc.history as IProject["history"],
       userId: String(doc.userId),
       createdAt: doc.createdAt as Date,
       updatedAt: doc.updatedAt as Date,
