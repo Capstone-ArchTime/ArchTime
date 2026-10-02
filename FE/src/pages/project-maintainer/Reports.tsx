@@ -1,157 +1,66 @@
-import SampleDataNotice from '@/components/SampleDataNotice';
-import React, { useState } from 'react';
-import DashboardLayout from '@/components/layout/DashboardLayout';
-import { FileText, Download, Calendar, FolderKanban, ChevronDown } from 'lucide-react';
-import { useComingSoon } from '@/hooks/useComingSoon';
-import { usePagination } from '@/hooks/usePagination';
-import PaginationBar from '@/components/PaginationBar';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, App, Button, Empty, Modal, Select, Table } from 'antd';
+import FeaturePage, { featurePanel } from '@/components/FeaturePage';
+import { getProjects, getSnapshots } from '@/features/project-data';
+import type { ProjectSummary, Snapshot } from '@/features/project-data';
+import { createEvolutionReport, reportHtml, validReports } from '@/features/evolution-report';
+import type { EvolutionReport } from '@/features/evolution-report';
+import { useDemoStore } from '@/features/useDemoStore';
+import { downloadText } from '@/features/download';
+const emptyHistory: EvolutionReport[] = [];
 
-const fontFamily = {
-  mono: '"JetBrains Mono", monospace',
-};
+function RevisionReport({ project, onReport }: { project: ProjectSummary; onReport: (report: EvolutionReport) => void }) {
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
+  const [base, setBase] = useState('');
+  const [target, setTarget] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [revision, setRevision] = useState(0);
+  useEffect(() => {
+    const controller = new AbortController(); setLoading(true); setError(null);
+    getSnapshots(project.id, controller.signal).then(rows => { setSnapshots(rows); setBase(rows.at(-1)?.id ?? ''); setTarget(rows[0]?.id ?? ''); }).catch(e => { if (!controller.signal.aborted) setError(e.message); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [project.id, revision]);
+  const options = snapshots.map(s => ({ value: s.id, label: `${s.hash.slice(0, 10)} · ${s.title}` }));
+  return <section className={featurePanel}>
+    {error && <Alert type="error" title={error} action={<Button onClick={() => setRevision(v => v + 1)}>Retry</Button>} />}
+    <div className="grid sm:grid-cols-2 gap-4"><div><label htmlFor="report-base" className="block text-sm mb-2">From revision</label><Select id="report-base" loading={loading} disabled={loading || !!error} className="w-full" value={base || undefined} onChange={setBase} options={options} /></div><div><label htmlFor="report-target" className="block text-sm mb-2">To revision</label><Select id="report-target" loading={loading} disabled={loading || !!error} className="w-full" value={target || undefined} onChange={setTarget} options={options} /></div></div>
+    {!loading && !error && snapshots.length < 2 && <Empty description="At least two mined snapshots are needed to create an evolution report." />}
+    {base && base === target && <p className="text-sm text-amber-400 mt-3">Choose two different revisions.</p>}
+    <Button className="mt-5" type="primary" disabled={loading || !!error || !base || !target || base === target} onClick={() => { const a = snapshots.find(s => s.id === base), b = snapshots.find(s => s.id === target); if (a && b) onReport(createEvolutionReport(project.name, a, b)); }}>Preview report</Button>
+  </section>;
+}
 
-const mockProjects = ['E-Commerce Platform', 'Payment Platform', 'Healthcare Connect'];
-
-const mockExportedReports = [
-  { name: 'ecomm-core_evolution_2026-Q3.pdf', project: 'E-Commerce Platform', range: 'v1.0.0 → v1.5.0', exportedAgo: '2 days ago', size: '1.2 MB' },
-  { name: 'payment-service_evolution_2026-Q3.pdf', project: 'Payment Platform', range: 'v2.1.0 → v2.4.0', exportedAgo: '1 week ago', size: '840 KB' },
-  { name: 'healthcare-connect_onboarding.pdf', project: 'Healthcare Connect', range: 'v1.0.0 → HEAD', exportedAgo: '2 weeks ago', size: '2.1 MB' },
-];
-
-const Reports: React.FC = () => {
-  const [selectedProject, setSelectedProject] = useState(mockProjects[0]);
-  const notifyComingSoon = useComingSoon();
-  const pagination = usePagination(mockExportedReports);
-
-  return (
-    <DashboardLayout>
-      <div className="max-w-[1100px] mx-auto space-y-10">
-        <SampleDataNotice />
-
-        {/* HEADER */}
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Evolution Reports</h2>
-          <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
-            Export architecture evolution reports for maintenance handoff and developer onboarding.
-          </p>
-          <div className="h-[1px] w-full bg-gradient-to-r from-[#222c37] to-transparent mt-8"></div>
-        </div>
-
-        {/* NEW EXPORT */}
-        <section>
-          <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-4" style={{ fontFamily: fontFamily.mono }}>New Export</h3>
-
-          <div className="bg-[#161d24] border border-[#222c37] p-6 space-y-5">
-            <div>
-              <label htmlFor="export-project" className="text-[10px] text-[#94a3b8] uppercase tracking-widest block mb-2" style={{ fontFamily: fontFamily.mono }}>Project</label>
-              <div className="relative">
-                <FolderKanban size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
-                <select
-                  id="export-project"
-                  value={selectedProject}
-                  onChange={(e) => setSelectedProject(e.target.value)}
-                  className="w-full h-10 bg-[#11161b] border border-[#222c37] pl-9 pr-9 text-sm text-[#f4f4f6] focus:outline-none focus:border-[#38bdf8]/50 transition-colors appearance-none"
-                >
-                  {mockProjects.map((p) => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
-                </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] pointer-events-none" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="from-revision" className="text-[10px] text-[#94a3b8] uppercase tracking-widest block mb-2" style={{ fontFamily: fontFamily.mono }}>From Revision</label>
-                <div className="relative">
-                  <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
-                  <input
-                    id="from-revision"
-                    type="text"
-                    defaultValue="v1.0.0"
-                    className="w-full h-10 bg-[#11161b] border border-[#222c37] pl-9 pr-4 text-sm text-[#f4f4f6] focus:outline-none focus:border-[#38bdf8]/50 transition-colors"
-                    style={{ fontFamily: fontFamily.mono }}
-                  />
-                </div>
-              </div>
-              <div>
-                <label htmlFor="to-revision" className="text-[10px] text-[#94a3b8] uppercase tracking-widest block mb-2" style={{ fontFamily: fontFamily.mono }}>To Revision</label>
-                <div className="relative">
-                  <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
-                  <input
-                    id="to-revision"
-                    type="text"
-                    defaultValue="HEAD"
-                    className="w-full h-10 bg-[#11161b] border border-[#222c37] pl-9 pr-4 text-sm text-[#f4f4f6] focus:outline-none focus:border-[#38bdf8]/50 transition-colors"
-                    style={{ fontFamily: fontFamily.mono }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                onClick={() => notifyComingSoon("PDF generation")}
-                className="h-10 px-5 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2" style={{ fontFamily: fontFamily.mono }}>
-                <Download size={14} />
-                GENERATE PDF
-              </button>
-              <button
-                onClick={() => notifyComingSoon("Report preview")}
-                className="h-10 px-5 bg-[#161d24] border border-[#222c37] hover:border-[#5f636b] text-[#94a3b8] hover:text-[#f4f4f6] font-bold text-xs transition-colors flex items-center gap-2" style={{ fontFamily: fontFamily.mono }}>
-                <FileText size={14} />
-                PREVIEW
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* EXPORTED REPORTS */}
-        <section>
-          <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-4" style={{ fontFamily: fontFamily.mono }}>Previously Exported</h3>
-
-          <div className="bg-[#11161b] border border-[#222c37] overflow-hidden">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-[#161d24] border-b border-[#222c37] text-[10px] text-[#94a3b8] uppercase tracking-wider" style={{ fontFamily: fontFamily.mono }}>
-                <tr>
-                  <th className="px-5 py-3 font-medium">Report</th>
-                  <th className="px-5 py-3 font-medium">Project</th>
-                  <th className="px-5 py-3 font-medium">Range</th>
-                  <th className="px-5 py-3 font-medium">Exported</th>
-                  <th className="px-5 py-3 font-medium"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#222c37]">
-                {pagination.items.map((report) => (
-                  <tr key={report.name} className="hover:bg-[#161d24]/50 transition-colors group">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        <FileText size={14} className="text-[#38bdf8] shrink-0" />
-                        <span className="text-[#f4f4f6] font-medium text-xs" style={{ fontFamily: fontFamily.mono }}>{report.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-[#94a3b8] text-xs">{report.project}</td>
-                    <td className="px-5 py-4 text-[#94a3b8] text-xs" style={{ fontFamily: fontFamily.mono }}>{report.range}</td>
-                    <td className="px-5 py-4 text-[#94a3b8] text-xs" style={{ fontFamily: fontFamily.mono }}>{report.exportedAgo} &middot; {report.size}</td>
-                    <td className="px-5 py-4 text-right">
-                      <button
-                        onClick={() => notifyComingSoon(`Download of ${report.name}`)}
-                        className="text-[#38bdf8] hover:text-[#00f0ff] text-xs font-semibold opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity" style={{ fontFamily: fontFamily.mono }}>
-                        Download &rarr;
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <PaginationBar {...pagination} />
-        </section>
-
-        <div className="h-10"></div>
-      </div>
-    </DashboardLayout>
-  );
-};
-
-export default Reports;
+export default function Reports() {
+  const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const [projectId, setProjectId] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [revision, setRevision] = useState(0);
+  const [preview, setPreview] = useState<EvolutionReport | null>(null);
+  const frame = useRef<HTMLIFrameElement>(null);
+  const [frameReady, setFrameReady] = useState(false);
+  const history = useDemoStore('report-history', emptyHistory, validReports, 'project-maintainer');
+  const { message } = App.useApp();
+  useEffect(() => {
+    const controller = new AbortController(); setLoading(true); setError(null);
+    getProjects(controller.signal).then(rows => { setProjects(rows); setProjectId(rows[0]?.id ?? ''); }).catch(e => { if (!controller.signal.aborted) setError(e.message); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [revision]);
+  const project = projects.find(p => p.id === projectId);
+  function show(report: EvolutionReport) { setFrameReady(false); setPreview(report); }
+  function remember(report: EvolutionReport) {
+    if (!history.data.some(r => r.id === report.id)) return history.save([report, ...history.data].slice(0, 30));
+    return true;
+  }
+  return <FeaturePage title="Evolution Reports" description="Compare server snapshots, preview the report, and print or save it as PDF using your browser." demo={false} error={history.error}>
+    {error && <Alert type="error" title={error} action={<Button onClick={() => setRevision(v => v + 1)}>Retry</Button>} />}
+    <Select aria-label="Report project" loading={loading} disabled={loading || !!error} className="w-full sm:max-w-md" placeholder="Select a project" value={projectId || undefined} onChange={setProjectId} options={projects.map(p => ({ value: p.id, label: p.name }))} />
+    {!loading && !error && !projects.length && <Empty description="No projects were returned for this account." />}
+    {project && !error && <RevisionReport key={project.id} project={project} onReport={show} />}
+    <section><h3 className="font-semibold mb-2">Export history on this device</h3><p className="text-xs text-[#94a3b8] mb-4">The latest 30 reports are stored in this browser only. Print history records that the print dialog was requested, not whether a PDF was saved.</p><Table rowKey="id" dataSource={history.data} pagination={{ pageSize: 5, showSizeChanger: false }} scroll={{ x: 650 }} columns={[{ title: 'Project', dataIndex: 'project' }, { title: 'Generated', dataIndex: 'createdAt', render: at => new Date(at).toLocaleString() }, { title: 'Revision range', render: (_, r: EvolutionReport) => `${r.from.slice(0, 10)} → ${r.to.slice(0, 10)}` }, { title: 'Actions', render: (_, r: EvolutionReport) => <Button onClick={() => show(r)}>Open report</Button> }]} /></section>
+    <Modal title="Evolution report preview" width={1000} open={!!preview} onCancel={() => setPreview(null)} footer={<div className="flex flex-wrap justify-end gap-2"><Button onClick={() => setPreview(null)}>Close</Button><Button disabled={!preview} onClick={() => { if (preview) { downloadText(`evolution-${preview.id}.html`, reportHtml(preview), 'text/html;charset=utf-8'); if (!remember(preview)) message.warning('Downloaded, but history could not be saved.'); } }}>Download HTML</Button><Button type="primary" disabled={!preview || !frameReady} onClick={() => { try { frame.current?.contentWindow?.focus(); frame.current?.contentWindow?.print(); if (preview) remember(preview); } catch { message.error('Printing is unavailable here. Download HTML and print it from your browser.'); } }}>Print / Save as PDF</Button></div>}>
+      {preview && <iframe ref={frame} title="Evolution report" sandbox="allow-same-origin allow-modals" srcDoc={reportHtml(preview)} onLoad={() => setFrameReady(true)} className="w-full h-[65vh] bg-white border-0" />}
+    </Modal>
+  </FeaturePage>;
+}

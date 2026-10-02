@@ -1,3 +1,5 @@
+import { evaluateRule } from '@/features/evaluate-rule';
+import { downloadText } from '@/features/download';
 import { useState } from 'react';
 import { App, Button, Empty, Form, Input, Modal, Popconfirm, Select, Switch, Tag } from 'antd';
 import { Plus, ShieldCheck } from 'lucide-react';
@@ -12,22 +14,18 @@ function RulesEditor({ project }: { project: string }) {
   const { message } = App.useApp();
   const [editing, setEditing] = useState<Rule | null | undefined>();
   const [search, setSearch] = useState('');
+  const [resultFilter, setResultFilter] = useState('All');
   const [form] = Form.useForm<Rule>();
   const options = data.diagram.components.map(c => ({ value: c.id, label: c.name }));
   const name = (id: string) => data.diagram.components.find(c => c.id === id)?.name ?? 'Removed component';
-  function result(rule: Rule) {
-    if (!rule.enabled) return { label: 'Disabled', color: 'default' };
-    if (![rule.source, rule.target].every(id => data.diagram.components.some(c => c.id === id))) return { label: 'Needs review', color: 'gold' };
-    const exists = data.diagram.dependencies.some(e => e.source === rule.source && e.target === rule.target);
-    return (rule.constraint === 'required' ? exists : !exists) ? { label: 'Satisfied', color: 'green' } : { label: 'Violation', color: 'red' };
-  }
+  const result = (rule: Rule) => evaluateRule(data.diagram, rule);
   function open(rule: Rule | null) {
     form.resetFields(); form.setFieldsValue(rule ?? { constraint: 'forbidden', severity: 'error', enabled: true }); setEditing(rule);
   }
-  const filtered = data.rules.filter(r => `${r.name} ${r.rationale}`.toLowerCase().includes(search.toLowerCase()));
-  const pagination = usePagination(filtered, search);
+  const filtered = data.rules.filter(r => `${r.name} ${r.rationale}`.toLowerCase().includes(search.toLowerCase()) && (resultFilter === 'All' || result(r).label === resultFilter));
+  const pagination = usePagination(filtered, JSON.stringify([search, resultFilter]));
   return <div className="space-y-5">
-    <StorageError visible={loadError} />
+    <StorageError visible={loadError} /><div className="flex flex-wrap gap-3"><Select aria-label="Filter rule results" className="min-w-44" value={resultFilter} onChange={setResultFilter} options={["All", "Satisfied", "Violation", "Needs review", "Disabled"].map(value => ({ value, label: value }))} /><Button disabled={loadError} onClick={() => downloadText("architecture-rules.json", JSON.stringify({ project, revision: data.diagram.revision, source: "local-demo", rules: filtered.map(rule => ({ ...rule, result: result(rule).label })) }, null, 2))}>Export filtered results</Button></div>
     <div className="flex flex-wrap gap-3 items-center justify-between"><div className="flex items-center gap-3"><ShieldCheck size={20} className="text-[#38bdf8]" /><span className="text-sm">{data.rules.filter(r => r.enabled).length} active rules</span><Tag color="red">{data.rules.filter(r => result(r).label === 'Violation').length} violations</Tag></div><Button type="primary" icon={<Plus size={14} />} disabled={loadError || options.length < 2} onClick={() => open(null)}>Define rule</Button></div>
     <p className="text-xs text-[#94a3b8]">Results evaluate direct dependencies in the saved diagram, revision {data.diagram.revision} ({data.diagram.confirmedAt ? 'confirmed' : 'draft'}). They do not analyze repository source code.</p>
     {options.length < 2 && <p className="text-sm text-[#ffb03a]">Add and save at least two components in the Component Diagram before defining a rule.</p>}

@@ -5,6 +5,7 @@ import { WorkspacePage, StorageError } from './workspace';
 import { panel, useWorkspace } from './workspace-store';
 import type { Component, Dependency, Diagram } from './workspace-store';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import { downloadText } from '@/features/download';
 
 function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyChange: (dirty: boolean) => void }) {
   const { data, save, loadError } = useWorkspace(project);
@@ -12,6 +13,7 @@ function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyCha
   const [draft, setDraft] = useState<Diagram>(data.diagram);
   const [component, setComponent] = useState<Component | null | undefined>();
   const [edgeOpen, setEdgeOpen] = useState(false);
+  const [editingEdge, setEditingEdge] = useState<Dependency | null>(null);
   const [componentForm] = Form.useForm<Component>();
   const [edgeForm] = Form.useForm<Dependency>();
   const dirty = JSON.stringify(draft) !== JSON.stringify(data.diagram);
@@ -33,6 +35,7 @@ function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyCha
   const positions = new Map(draft.components.map((c, i) => [c.id, { x: 30 + (i % 3) * 250, y: 40 + Math.floor(i / 3) * 180 }]));
   return <div className="space-y-5">
     <StorageError visible={loadError} />
+    <div className="flex flex-wrap gap-2"><Button onClick={() => downloadText('component-diagram.json', JSON.stringify({ project, diagram: data.diagram, source: 'local-demo' }, null, 2))} disabled={loadError}>Export saved diagram</Button><Button disabled={!dirty} onClick={() => modal.confirm({ title: 'Discard unsaved diagram changes?', okText: 'Discard', okButtonProps: { danger: true }, onOk: () => setDraft(data.diagram) })}>Discard changes</Button></div>
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex flex-wrap items-center gap-2"><Tag color={draft.confirmedAt ? 'green' : 'gold'}>{draft.confirmedAt ? 'Confirmed' : 'Needs confirmation'}</Tag><span className="text-xs text-[#94a3b8]">Revision {data.diagram.revision}{dirty ? ' • Unsaved changes' : ' • Saved'}</span></div>
       <div className="flex flex-wrap gap-2"><Button icon={<Save size={14} />} disabled={!dirty || loadError} onClick={() => persist(false)}>Save draft</Button><Button type="primary" icon={<CheckCircle2 size={14} />} disabled={loadError || !draft.components.length || (!!draft.confirmedAt && !dirty)} onClick={() => modal.confirm({ title: 'Confirm this component diagram?', content: 'The current components and dependencies will become the reviewed diagram. Further edits will require confirmation again.', onOk: () => persist(true) })}>Confirm diagram</Button></div>
@@ -60,7 +63,7 @@ function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyCha
     </div>
     <div className="grid xl:grid-cols-2 gap-5">
       <section className={panel}><h3 className="font-semibold mb-4">Components <span className="text-[#94a3b8]">/ {draft.components.length}</span></h3><div className="divide-y divide-[#222c37]">{draft.components.map(c => <div key={c.id} className="py-3 flex items-center justify-between gap-3"><div className="min-w-0"><p className="text-sm break-words">{c.name} <Tag>{c.kind}</Tag></p><p className="text-xs text-[#94a3b8] break-words mt-1">{c.description}</p></div><div className="flex shrink-0 gap-1"><Button size="small" onClick={() => editComponent(c)}>Edit</Button><Popconfirm title={`Remove ${c.name}?`} description="Connected dependencies will also be removed." onConfirm={() => update({ ...draft, components: draft.components.filter(x => x.id !== c.id), dependencies: draft.dependencies.filter(e => e.source !== c.id && e.target !== c.id) })}><Button size="small" danger>Remove</Button></Popconfirm></div></div>)}</div></section>
-      <section className={panel}><div className="flex justify-between gap-3 mb-4"><h3 className="font-semibold">Dependencies / {draft.dependencies.length}</h3><Button size="small" disabled={draft.components.length < 2} onClick={() => { edgeForm.resetFields(); setEdgeOpen(true); }}>Add dependency</Button></div>{!draft.dependencies.length && <Empty description="No dependencies" image={Empty.PRESENTED_IMAGE_SIMPLE} />}<div className="divide-y divide-[#222c37]">{draft.dependencies.map(e => <div className="py-3 flex items-center justify-between gap-3" key={e.id}><div className="text-sm"><p>{draft.components.find(c => c.id === e.source)?.name} → {draft.components.find(c => c.id === e.target)?.name}</p><p className="text-xs text-[#94a3b8] mt-1">{e.label}</p></div><Popconfirm title="Remove this dependency?" onConfirm={() => update({ ...draft, dependencies: draft.dependencies.filter(x => x.id !== e.id) })}><Button size="small" danger>Remove</Button></Popconfirm></div>)}</div></section>
+      <section className={panel}><div className="flex justify-between gap-3 mb-4"><h3 className="font-semibold">Dependencies / {draft.dependencies.length}</h3><Button size="small" disabled={draft.components.length < 2} onClick={() => { edgeForm.resetFields(); setEditingEdge(null); setEdgeOpen(true); }}>Add dependency</Button></div>{!draft.dependencies.length && <Empty description="No dependencies" image={Empty.PRESENTED_IMAGE_SIMPLE} />}<div className="divide-y divide-[#222c37]">{draft.dependencies.map(e => <div className="py-3 flex items-center justify-between gap-3" key={e.id}><div className="text-sm"><p>{draft.components.find(c => c.id === e.source)?.name} → {draft.components.find(c => c.id === e.target)?.name}</p><p className="text-xs text-[#94a3b8] mt-1">{e.label}</p></div><div className="flex gap-1"><Button size="small" onClick={() => { setEditingEdge(e); edgeForm.setFieldsValue(e); setEdgeOpen(true); }}>Edit</Button><Popconfirm title="Remove this dependency?" onConfirm={() => update({ ...draft, dependencies: draft.dependencies.filter(x => x.id !== e.id) })}><Button size="small" danger>Remove</Button></Popconfirm></div></div>)}</div></section>
     </div>
     <Modal title={component ? 'Edit component' : 'Add component'} open={component !== undefined} onCancel={() => setComponent(undefined)} onOk={() => componentForm.submit()} okText="Apply changes">
       <Form form={componentForm} layout="vertical" onFinish={values => {
@@ -74,11 +77,12 @@ function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyCha
         <Form.Item name="description" label="Responsibility"><Input.TextArea rows={3} maxLength={1000} /></Form.Item>
       </Form>
     </Modal>
-    <Modal title="Add dependency" open={edgeOpen} onCancel={() => setEdgeOpen(false)} onOk={() => edgeForm.submit()}>
+    <Modal title={editingEdge ? "Edit dependency" : "Add dependency"} open={edgeOpen} onCancel={() => setEdgeOpen(false)} onOk={() => edgeForm.submit()}>
       <Form form={edgeForm} layout="vertical" onFinish={values => {
         if (values.source === values.target) { message.error('Choose two different components.'); return; }
-        if (draft.dependencies.some(e => e.source === values.source && e.target === values.target)) { message.error('This dependency already exists.'); return; }
-        update({ ...draft, dependencies: [...draft.dependencies, { ...values, label: values.label.trim(), id: crypto.randomUUID() }] }); setEdgeOpen(false);
+        if (draft.dependencies.some(e => e.id !== editingEdge?.id && e.source === values.source && e.target === values.target)) { message.error('This dependency already exists.'); return; }
+        const next = { ...values, label: values.label.trim(), id: editingEdge?.id ?? crypto.randomUUID() };
+        update({ ...draft, dependencies: editingEdge ? draft.dependencies.map(e => e.id === editingEdge.id ? next : e) : [...draft.dependencies, next] }); setEdgeOpen(false);
       }}>
         <Form.Item name="source" label="Source (caller)" rules={[{ required: true }]}><Select options={options} /></Form.Item><Form.Item name="target" label="Target" rules={[{ required: true }]}><Select options={options} /></Form.Item><Form.Item name="label" label="Protocol / relationship" rules={[{ required: true, whitespace: true }]}><Input maxLength={40} placeholder="e.g. HTTPS, publishes events" /></Form.Item>
       </Form>

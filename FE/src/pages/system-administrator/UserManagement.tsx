@@ -1,164 +1,48 @@
-import SampleDataNotice from '@/components/SampleDataNotice';
-import React, { useState } from 'react';
-import DashboardLayout from '@/components/layout/DashboardLayout';
-import { usePagination } from '@/hooks/usePagination';
-import PaginationBar from '@/components/PaginationBar';
-import { Search, UserPlus, Shield, Code2, ClipboardCheck, MoreVertical } from 'lucide-react';
+import { useState } from 'react';
+import { App, Button, Empty, Form, Input, Modal, Select, Table, Tag } from 'antd';
+import FeaturePage from '@/components/FeaturePage';
+import { useAuth } from '@/auth/auth-context';
+import { roles } from '@/auth/permissions';
+import { useAdminDemo, withAudit } from '@/features/admin-demo';
+import type { DemoUser } from '@/features/admin-demo';
 
-const fontFamily = {
-  mono: '"JetBrains Mono", monospace',
-};
-
-type Role = 'developer-analyst' | 'project-maintainer' | 'system-administrator';
-type AccountStatus = 'active' | 'suspended' | 'invited';
-
-const roleMeta: Record<Role, { label: string; color: string; icon: typeof Code2 }> = {
-  'developer-analyst': { label: 'Developer / Analyst', color: '#38bdf8', icon: Code2 },
-  'project-maintainer': { label: 'Project Maintainer', color: '#ffb03a', icon: ClipboardCheck },
-  'system-administrator': { label: 'System Administrator', color: '#00f0ff', icon: Shield },
-};
-
-const statusMeta: Record<AccountStatus, { label: string; color: string }> = {
-  active: { label: 'ACTIVE', color: '#22c55e' },
-  suspended: { label: 'SUSPENDED', color: '#ef4444' },
-  invited: { label: 'INVITED', color: '#94a3b8' },
-};
-
-const mockUsers: { name: string; email: string; role: Role; status: AccountStatus; lastActive: string }[] = [
-  { name: 'j.tran', email: 'j.tran@archtime.io', role: 'developer-analyst', status: 'active', lastActive: '2 hours ago' },
-  { name: 'm.nguyen', email: 'm.nguyen@archtime.io', role: 'developer-analyst', status: 'active', lastActive: 'Yesterday' },
-  { name: 'k.pham', email: 'k.pham@archtime.io', role: 'developer-analyst', status: 'suspended', lastActive: '9 days ago' },
-  { name: 'a.le', email: 'a.le@archtime.io', role: 'project-maintainer', status: 'active', lastActive: '5 hours ago' },
-  { name: 'h.vo', email: 'h.vo@archtime.io', role: 'project-maintainer', status: 'active', lastActive: '1 hour ago' },
-  { name: 'd.hoang', email: 'd.hoang@archtime.io', role: 'system-administrator', status: 'active', lastActive: 'Just now' },
-  { name: 't.bui', email: 't.bui@archtime.io', role: 'developer-analyst', status: 'invited', lastActive: 'Never' },
-];
-
-const UserManagement: React.FC = () => {
+export default function UserManagement() {
+  const store = useAdminDemo();
+  const { user } = useAuth();
+  const { message, modal } = App.useApp();
   const [query, setQuery] = useState('');
-
-  const filtered = mockUsers.filter(
-    (u) => u.name.toLowerCase().includes(query.toLowerCase()) || u.email.toLowerCase().includes(query.toLowerCase())
-  );
-  const pagination = usePagination(filtered, query);
-
-  return (
-    <DashboardLayout>
-      <div className="max-w-[1400px] mx-auto space-y-8">
-        <SampleDataNotice />
-
-        {/* HEADER */}
-        <div>
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">User Management</h2>
-              <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
-                Manage accounts, roles, and access across the ArchTime platform.
-              </p>
-            </div>
-            <button disabled title="Not available yet: this view uses sample data" aria-label="INVITE USER" className="shrink-0 h-10 px-5 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2" style={{ fontFamily: fontFamily.mono }}>
-              <UserPlus size={16} />
-              INVITE USER
-            </button>
-          </div>
-          <div className="h-[1px] w-full bg-gradient-to-r from-[#222c37] to-transparent mt-8"></div>
-        </div>
-
-        {/* ROLE SUMMARY */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {(Object.keys(roleMeta) as Role[]).map((role) => {
-            const meta = roleMeta[role];
-            const RoleIcon = meta.icon;
-            const count = mockUsers.filter((u) => u.role === role).length;
-            return (
-              <div key={role} className="bg-[#161d24] border border-[#222c37] p-5 flex items-center gap-4">
-                <div className="w-10 h-10 flex items-center justify-center shrink-0" style={{ backgroundColor: `${meta.color}1A`, border: `1px solid ${meta.color}33` }}>
-                  <RoleIcon size={18} style={{ color: meta.color }} />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-[#f4f4f6]" style={{ fontFamily: fontFamily.mono }}>{count}</div>
-                  <div className="text-xs text-[#94a3b8]">{meta.label}</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* SEARCH */}
-        <div className="relative w-full max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name or email..."
-            aria-label="Search users by name or email"
-            className="w-full h-9 bg-[#11161b] border border-[#222c37] pl-9 pr-4 text-xs text-[#f4f4f6] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#38bdf8]/50 transition-colors"
-            style={{ fontFamily: fontFamily.mono }}
-          />
-        </div>
-
-        {/* USER TABLE */}
-        <div className="bg-[#11161b] border border-[#222c37] overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-[#161d24] border-b border-[#222c37] text-[10px] text-[#94a3b8] uppercase tracking-wider" style={{ fontFamily: fontFamily.mono }}>
-              <tr>
-                <th className="px-5 py-3 font-medium">User</th>
-                <th className="px-5 py-3 font-medium">Role</th>
-                <th className="px-5 py-3 font-medium">Status</th>
-                <th className="px-5 py-3 font-medium">Last Active</th>
-                <th className="px-5 py-3 font-medium"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#222c37]">
-              {pagination.items.map((user) => {
-                const role = roleMeta[user.role];
-                const status = statusMeta[user.status];
-                return (
-                  <tr key={user.email} className="hover:bg-[#161d24]/50 transition-colors">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-[#161d24] border border-[#222c37] flex items-center justify-center text-[10px] font-bold text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>
-                          {user.name.slice(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                          <div className="text-[#f4f4f6] font-medium text-sm">{user.name}</div>
-                          <div className="text-[10px] text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>{user.email}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span
-                        className="inline-flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold border"
-                        style={{ fontFamily: fontFamily.mono, color: role.color, borderColor: `${role.color}33`, backgroundColor: `${role.color}1A` }}
-                      >
-                        {role.label}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="inline-flex items-center gap-1.5 text-[10px] font-bold" style={{ fontFamily: fontFamily.mono, color: status.color }}>
-                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: status.color }}></div>
-                        {status.label}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-[#94a3b8] text-xs" style={{ fontFamily: fontFamily.mono }}>{user.lastActive}</td>
-                    <td className="px-5 py-4 text-right">
-                      <button disabled title="Not available yet: this view uses sample data" aria-label="Unavailable action" className="text-[#94a3b8] hover:text-[#f4f4f6] transition-colors">
-                        <MoreVertical size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        <PaginationBar {...pagination} />
-        <div className="h-10"></div>
-      </div>
-    </DashboardLayout>
-  );
-};
-
-export default UserManagement;
+  const [role, setRole] = useState('all');
+  const [status, setStatus] = useState('all');
+  const [editing, setEditing] = useState<DemoUser | null | undefined>();
+  const [form] = Form.useForm<DemoUser>();
+  const filtered = store.data.users.filter(u => `${u.name} ${u.email}`.toLowerCase().includes(query.toLowerCase()) && (role === 'all' || u.role === role) && (status === 'all' || u.status === status));
+  function open(value: DemoUser | null) { form.resetFields(); form.setFieldsValue(value ?? { role: 'developer-analyst' }); setEditing(value); }
+  function changeStatus(target: DemoUser) {
+    const next = target.status === 'suspended' ? 'active' : 'suspended';
+    modal.confirm({ title: `${next === 'active' ? 'Reactivate' : 'Suspend'} ${target.name}?`, content: 'This changes the local demo account only.', onOk: () => {
+      if (store.save(withAudit({ ...store.data, users: store.data.users.map(u => u.id === target.id ? { ...u, status: next } : u) }, user!.name, 'security', `${target.email}: ${target.status} → ${next}`))) message.success('Demo account updated.');
+    } });
+  }
+  return <FeaturePage title="User Management" description="Manage platform accounts and roles." error={store.error} actions={<Button type="primary" disabled={!!store.error} onClick={() => open(null)}>Invite user</Button>}>
+    <div className="flex flex-wrap gap-3">{roles.map(r => <Tag key={r}>{r}: {store.data.users.filter(u => u.role === r).length}</Tag>)}</div>
+    <div className="flex flex-wrap gap-3"><Input.Search aria-label="Search users" placeholder="Name or email" className="max-w-sm" value={query} onChange={e => setQuery(e.target.value)} allowClear /><Select aria-label="Filter user role" value={role} onChange={setRole} className="min-w-52" options={['all', ...roles].map(value => ({ value, label: value === 'all' ? 'All roles' : value }))} /><Select aria-label="Filter account status" value={status} onChange={setStatus} className="min-w-40" options={['all', 'active', 'suspended', 'invited'].map(value => ({ value, label: value === 'all' ? 'All statuses' : value }))} /></div>
+    <Table rowKey="id" dataSource={filtered} scroll={{ x: 850 }} pagination={{ pageSize: 10, showSizeChanger: false }} locale={{ emptyText: <Empty description="No matching users" /> }} columns={[
+      { title: 'User', dataIndex: 'name', render: (_, u: DemoUser) => <div>{u.name}<p className="text-xs text-[#94a3b8]">{u.email}</p></div> },
+      { title: 'Role', dataIndex: 'role' }, { title: 'Status', dataIndex: 'status', render: s => <Tag color={s === 'active' ? 'green' : s === 'suspended' ? 'red' : 'gold'}>{s}</Tag> },
+      { title: 'Last active', dataIndex: 'lastActive' },
+      { title: 'Actions', render: (_, u: DemoUser) => <div className="flex gap-2"><Button disabled={!!store.error} onClick={() => open(u)}>Edit role</Button>{u.status !== 'invited' && <Button danger={u.status !== 'suspended'} disabled={!!store.error} onClick={() => changeStatus(u)}>{u.status === 'suspended' ? 'Reactivate' : 'Suspend'}</Button>}</div> },
+    ]} />
+    <Modal title={editing ? 'Change account role' : 'Invite user (local demo)'} open={editing !== undefined} onCancel={() => setEditing(undefined)} onOk={() => form.submit()} okText={editing ? 'Save role' : 'Create demo invitation'}>
+      <Form form={form} layout="vertical" onFinish={values => {
+        const email = values.email.trim().toLowerCase();
+        if (store.data.users.some(u => u.id !== editing?.id && u.email.toLowerCase() === email)) { message.error('This email already has an account or invitation.'); return; }
+        const next: DemoUser = { ...values, email, name: values.name.trim(), id: editing?.id ?? crypto.randomUUID(), status: editing?.status ?? 'invited', lastActive: editing?.lastActive ?? 'Never' };
+        if (store.save(withAudit({ ...store.data, users: editing ? store.data.users.map(u => u.id === editing.id ? next : u) : [...store.data.users, next] }, user!.name, editing ? 'role_change' : 'invitation', editing ? `${email}: ${editing.role} → ${next.role}` : `Demo invitation created for ${email}`))) { message.success('Saved locally. No email was sent.'); setEditing(undefined); }
+      }}>
+        <Form.Item name="name" label="Name" rules={[{ required: true, whitespace: true, max: 80 }]}><Input disabled={!!editing} maxLength={80} /></Form.Item>
+        <Form.Item name="email" label="Email" rules={[{ required: true }, { type: 'email' }]}><Input disabled={!!editing} maxLength={254} /></Form.Item>
+        <Form.Item name="role" label="Platform role" rules={[{ required: true }]}><Select options={roles.map(value => ({ value, label: value }))} /></Form.Item>
+      </Form>
+    </Modal>
+  </FeaturePage>;
+}
