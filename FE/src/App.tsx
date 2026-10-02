@@ -32,6 +32,7 @@ const SystemSettings = lazy(() => import("@/pages/system-administrator/SystemSet
 const MiningJobsMonitor = lazy(() => import("@/pages/system-administrator/MiningJobsMonitor"));
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
+const GitHubCallback = lazy(() => import('@/pages/GitHubCallback'));
 
 function RootLayout() {
   const location = useLocation();
@@ -46,6 +47,7 @@ const router = createBrowserRouter(createRoutesFromElements(
 
     <Route path="/" element={<HomePage />} />
     <Route path="/login" element={<AuthPage key="login" />} />
+    <Route path="/auth/github/callback" element={<GitHubCallback />} />
     <Route path="/register" element={<AuthPage key="register" />} />
     <Route path="/forgot-password" element={<ResetPassword />} />
     <Route path="/reset-password" element={<ResetPassword />} />

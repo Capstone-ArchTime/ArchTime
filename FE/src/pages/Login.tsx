@@ -8,6 +8,7 @@ import { Logo } from '@/components/Logo';
 import { useAuth } from '@/auth/auth-context';
 import { loginDestination } from '@/auth/permissions';
 import { authRequest } from '@/auth/requests';
+import { API_BASE_URL } from '@/auth/session';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -368,6 +369,12 @@ const AuthPage: React.FC = () => {
 
                 <button
                   type="button"
+                  onClick={() => {
+                    try {
+                      sessionStorage.setItem('github-login', JSON.stringify({ rememberMe, from: location.state?.from }));
+                      window.location.assign(`${API_BASE_URL}/auth/github`);
+                    } catch { message.error('Browser storage is unavailable. Enable it to sign in.'); }
+                  }}
                   disabled={isLoading}
                   className="w-full h-11 flex items-center justify-center gap-3 px-4 bg-[#11161b] hover:bg-[#161d24] border border-[#222c37] transition-colors text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:border-[#38bdf8]"
                 >

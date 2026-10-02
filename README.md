@@ -51,6 +51,30 @@ ArchTime/
 
 ## Frontend
 
+### GitHub sign-in (local development)
+
+Set `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, and
+`GITHUB_CALLBACK_URL=http://localhost:4000/api/auth/github/callback` in `BE/.env`.
+The GitHub OAuth app's authorization callback URL must match that callback.
+Use `CORS_ORIGIN=http://localhost:5173` and open `http://localhost:5173/login`.
+If overriding `VITE_API_URL`, point it to the backend's `/api` URL; keep frontend
+and backend on the same site for the HTTP-only OAuth cookie (do not mix
+`localhost` and `127.0.0.1`). Never put the client secret in frontend variables.
+
+Choose **Continue with GitHub** and complete GitHub authorization. The backend
+uses state and PKCE, reads a verified GitHub email, and creates a verified
+`developer-analyst` account on first sign-in. Existing GitHub identities retain
+their account and role. A matching email on a different existing account is
+rejected; use that account's email/password login instead of automatic linking.
+The frontend verifies the resulting application session and restores an allowed
+destination, honoring Remember me. GitHub tokens are not stored in the browser.
+
+Pending OAuth requests and single-use handoff codes are held in backend memory
+(10 minutes and 60 seconds respectively). Run one backend instance for this
+setup; restarting it requires restarting sign-in. Use a shared expiring store
+before deploying multiple backend instances. HTTPS is required outside local
+development. Protocol reference: [GitHub OAuth web application flow](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps).
+
 React frontend for ArchTime.
 
 ### Stack
