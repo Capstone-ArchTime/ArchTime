@@ -17,13 +17,13 @@ function RevisionReport({ project, onReport }: { project: ProjectSummary; onRepo
   const [loading, setLoading] = useState(true);
   const [revision, setRevision] = useState(0);
   useEffect(() => {
-    const controller = new AbortController(); setLoading(true); setError(null);
+    const controller = new AbortController();
     getSnapshots(project.id, controller.signal).then(rows => { setSnapshots(rows); setBase(rows.at(-1)?.id ?? ''); setTarget(rows[0]?.id ?? ''); }).catch(e => { if (!controller.signal.aborted) setError(e.message); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [project.id, revision]);
   const options = snapshots.map(s => ({ value: s.id, label: `${s.hash.slice(0, 10)} · ${s.title}` }));
   return <section className={featurePanel}>
-    {error && <Alert type="error" title={error} action={<Button onClick={() => setRevision(v => v + 1)}>Retry</Button>} />}
+    {error && <Alert type="error" title={error} action={<Button onClick={() => { setLoading(true); setRevision(v => v + 1); }}>Retry</Button>} />}
     <div className="grid sm:grid-cols-2 gap-4"><div><label htmlFor="report-base" className="block text-sm mb-2">From revision</label><Select id="report-base" loading={loading} disabled={loading || !!error} className="w-full" value={base || undefined} onChange={setBase} options={options} /></div><div><label htmlFor="report-target" className="block text-sm mb-2">To revision</label><Select id="report-target" loading={loading} disabled={loading || !!error} className="w-full" value={target || undefined} onChange={setTarget} options={options} /></div></div>
     {!loading && !error && snapshots.length < 2 && <Empty description="At least two mined snapshots are needed to create an evolution report." />}
     {base && base === target && <p className="text-sm text-amber-400 mt-3">Choose two different revisions.</p>}
@@ -43,7 +43,7 @@ export default function Reports() {
   const history = useDemoStore('report-history', emptyHistory, validReports, 'project-maintainer');
   const { message } = App.useApp();
   useEffect(() => {
-    const controller = new AbortController(); setLoading(true); setError(null);
+    const controller = new AbortController();
     getProjects(controller.signal).then(rows => { setProjects(rows); setProjectId(rows[0]?.id ?? ''); }).catch(e => { if (!controller.signal.aborted) setError(e.message); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [revision]);
@@ -54,7 +54,7 @@ export default function Reports() {
     return true;
   }
   return <FeaturePage title="Evolution Reports" description="Compare server snapshots, preview the report, and print or save it as PDF using your browser." demo={false} error={history.error}>
-    {error && <Alert type="error" title={error} action={<Button onClick={() => setRevision(v => v + 1)}>Retry</Button>} />}
+    {error && <Alert type="error" title={error} action={<Button onClick={() => { setLoading(true); setRevision(v => v + 1); }}>Retry</Button>} />}
     <Select aria-label="Report project" loading={loading} disabled={loading || !!error} className="w-full sm:max-w-md" placeholder="Select a project" value={projectId || undefined} onChange={setProjectId} options={projects.map(p => ({ value: p.id, label: p.name }))} />
     {!loading && !error && !projects.length && <Empty description="No projects were returned for this account." />}
     {project && !error && <RevisionReport key={project.id} project={project} onReport={show} />}

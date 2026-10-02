@@ -26,13 +26,13 @@ export default function MiningJobsMonitor() {
       } catch (cause) { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Could not load jobs.'); }
       finally { if (!controller.signal.aborted) { setLoading(false); if (!paused) timer = setTimeout(load, 5000); } }
     }
-    setLoading(true); void load();
+    void load();
     return () => { controller.abort(); clearTimeout(timer); };
   }, [revision, paused]);
   const filtered = jobs.filter(j => filter === 'all' || j.status === filter);
   const pagination = usePagination(filtered, filter);
-  return <FeaturePage title="Mining Jobs Monitor" description="Monitor repository analysis jobs from the server." demo={false} actions={<div className="flex gap-2"><Button onClick={() => setPaused(v => !v)}>{paused ? 'Resume auto-refresh' : 'Pause auto-refresh'}</Button><Button loading={loading} onClick={() => setRevision(v => v + 1)}>Refresh</Button></div>}>
-    {error && <Alert type="error" showIcon title={error} description={updated ? 'The last successfully loaded data remains visible.' : 'Jobs could not be loaded.'} action={<Button onClick={() => setRevision(v => v + 1)}>Retry</Button>} />}
+  return <FeaturePage title="Mining Jobs Monitor" description="Monitor repository analysis jobs from the server." demo={false} actions={<div className="flex gap-2"><Button onClick={() => { setLoading(true); setPaused(v => !v); }}>{paused ? 'Resume auto-refresh' : 'Pause auto-refresh'}</Button><Button loading={loading} onClick={() => { setLoading(true); setRevision(v => v + 1); }}>Refresh</Button></div>}>
+    {error && <Alert type="error" showIcon title={error} description={updated ? 'The last successfully loaded data remains visible.' : 'Jobs could not be loaded.'} action={<Button onClick={() => { setLoading(true); setRevision(v => v + 1); }}>Retry</Button>} />}
     <div className="flex flex-wrap gap-3 items-center"><Select className="min-w-44" aria-label="Filter jobs by status" value={filter} onChange={setFilter} options={['all', 'queued', 'running', 'completed', 'failed', 'cancelled'].map(value => ({ value, label: value === 'all' ? 'All jobs' : value }))} /><span className="text-xs text-[#94a3b8]">{jobs.filter(j => j.status === 'running').length} running · {jobs.filter(j => j.status === 'queued').length} queued{updated ? ` · Last updated ${updated}` : ''}</span></div>
     {loading && !updated ? <div role="status" className="p-12 text-center"><Spin /><p>Loading jobs…</p></div> : !filtered.length && !error ? <Empty description="No jobs match this filter" /> : null}
     <div className="space-y-3">{pagination.items.map(job => <article key={job.id} className={featurePanel}>

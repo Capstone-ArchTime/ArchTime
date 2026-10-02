@@ -1,4 +1,4 @@
-@layer antd, base, components, utilities;
+@layer theme, base, antd, components, utilities;
 @import "tailwindcss";
 @source "./src";
 @import "tw-animate-css";

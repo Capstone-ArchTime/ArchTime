@@ -321,13 +321,13 @@ const Projects: React.FC = () => {
                   </defs>
                   
                   <g fill="none" strokeWidth="1" opacity="0.6">
-                    {project.links.map((link, i) => (
+                    {project.links.map((link: { d: string; color: string }, i: number) => (
                       <path key={i} d={link.d} stroke={link.color} />
                     ))}
                   </g>
                   
                   <g>
-                    {project.nodes.map((node, i) => (
+                    {project.nodes.map((node: { cx: number; cy: number; r: number; color: string; glow?: boolean }, i: number) => (
                       <circle 
                         key={i} 
                         cx={node.cx} 
