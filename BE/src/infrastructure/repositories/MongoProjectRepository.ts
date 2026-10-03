@@ -53,8 +53,23 @@ export class MongoProjectRepository implements IProjectRepository {
     };
   }
 
-  async delete(id: string, userId: string): Promise<boolean> {
-    const result = await ProjectModel.deleteOne({ _id: id, userId });
-    return result.deletedCount > 0;
+  async delete(id: string, userId?: string): Promise<boolean> {
+    const filter: Record<string, unknown> = { _id: id };
+    if (userId) filter.userId = userId;
+    const result = await ProjectModel.deleteOne(filter);
+    if (result.deletedCount > 0) {
+      // Clean up project members
+      try {
+        const { ProjectMemberModel } = await import(
+          "../database/models/ProjectMemberModel.js"
+        );
+        await ProjectMemberModel.deleteMany({ projectId: id });
+      } catch {
+        // ignore if model not ready
+      }
+      return true;
+    }
+    return false;
   }
 }
+

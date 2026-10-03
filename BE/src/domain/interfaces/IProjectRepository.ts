@@ -9,5 +9,6 @@ export interface IProjectRepository {
     skip: number,
     limit: number,
   ): Promise<{ items: IProject[]; total: number }>;
-  delete(id: string, userId: string): Promise<boolean>;
+  delete(id: string, userId?: string): Promise<boolean>;
 }
+

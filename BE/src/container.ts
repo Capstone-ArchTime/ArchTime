@@ -30,12 +30,23 @@ import { GetEvidencesUseCase } from "./application/use-cases/projects/GetEvidenc
 import { AuthController } from "./presentation/controllers/AuthController.js";
 import { ProjectController } from "./presentation/controllers/ProjectController.js";
 
+// ── Member / Team ──
+import { MongoProjectMemberRepository } from "./infrastructure/repositories/MongoProjectMemberRepository.js";
+import { InviteProjectMemberUseCase } from "./application/use-cases/members/InviteProjectMemberUseCase.js";
+import { GetProjectMembersUseCase } from "./application/use-cases/members/GetProjectMembersUseCase.js";
+import { UpdateProjectMemberRoleUseCase } from "./application/use-cases/members/UpdateProjectMemberRoleUseCase.js";
+import { RemoveProjectMemberUseCase } from "./application/use-cases/members/RemoveProjectMemberUseCase.js";
+import { GetTeamMembersUseCase } from "./application/use-cases/members/GetTeamMembersUseCase.js";
+import { MemberController } from "./presentation/controllers/MemberController.js";
+import { createProjectRoleMiddleware } from "./presentation/middlewares/projectRole.js";
+
 // ─────────────────────────────────────────
 // Infrastructure instances
 // ─────────────────────────────────────────
-const userRepository = new MongoUserRepository();
-const otpRepository = new MongoOtpRepository();
-const projectRepository = new MongoProjectRepository();
+export const userRepository = new MongoUserRepository();
+export const otpRepository = new MongoOtpRepository();
+export const projectRepository = new MongoProjectRepository();
+export const memberRepository = new MongoProjectMemberRepository();
 const bcryptHasher = new BcryptHasher();
 const jwtTokenService = new JwtTokenService(
   env.jwtSecret,
@@ -88,8 +99,30 @@ const getMiningJobsUseCase = new GetMiningJobsUseCase();
 const compareSnapshotsUseCase = new CompareSnapshotsUseCase();
 const getEvidencesUseCase = new GetEvidencesUseCase();
 
+const inviteProjectMemberUseCase = new InviteProjectMemberUseCase(
+  memberRepository,
+  projectRepository,
+  userRepository,
+);
+const getProjectMembersUseCase = new GetProjectMembersUseCase(
+  memberRepository,
+  projectRepository,
+  userRepository,
+);
+const updateProjectMemberRoleUseCase = new UpdateProjectMemberRoleUseCase(
+  memberRepository,
+);
+const removeProjectMemberUseCase = new RemoveProjectMemberUseCase(
+  memberRepository,
+  projectRepository,
+);
+const getTeamMembersUseCase = new GetTeamMembersUseCase(
+  memberRepository,
+  projectRepository,
+);
+
 // ─────────────────────────────────────────
-// Controllers
+// Controllers & Middlewares
 // ─────────────────────────────────────────
 export const authController = new AuthController(
   registerUseCase,
@@ -113,4 +146,18 @@ export const projectController = new ProjectController(
   getEvidencesUseCase,
 );
 
+export const memberController = new MemberController(
+  inviteProjectMemberUseCase,
+  getProjectMembersUseCase,
+  updateProjectMemberRoleUseCase,
+  removeProjectMemberUseCase,
+  getTeamMembersUseCase,
+);
+
+export const projectRoleMiddleware = createProjectRoleMiddleware(
+  projectRepository,
+  memberRepository,
+);
+
 export { jwtTokenService };
+
