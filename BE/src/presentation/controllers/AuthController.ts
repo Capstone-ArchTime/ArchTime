@@ -5,10 +5,10 @@ import type { ResendOtpUseCase } from "../../application/use-cases/ResendOtpUseC
 import type { LoginUseCase } from "../../application/use-cases/LoginUseCase.js";
 import type { RefreshTokenUseCase } from "../../application/use-cases/RefreshTokenUseCase.js";
 import type { GetCurrentUserUseCase } from "../../application/use-cases/GetCurrentUserUseCase.js";
-import { BadRequestError } from "../../shared/errors/AppError.js";
-
 import type { PasswordResetUseCase } from "../../application/use-cases/PasswordResetUseCase.js";
 import type { ChangePasswordUseCase } from "../../application/use-cases/ChangePasswordUseCase.js";
+import { BadRequestError } from "../../shared/errors/AppError.js";
+import { sendSuccess } from "../../shared/utils/apiResponse.js";
 import { validatePassword } from "../../shared/utils/validators.js";
 
 export class AuthController {
@@ -24,21 +24,43 @@ export class AuthController {
   ) {}
 
   forgotPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try { res.json(await this.passwordResetUC.request(req.body ?? {})); } catch (err) { next(err); }
+    try {
+      const result = await this.passwordResetUC.request(req.body ?? {});
+      sendSuccess(res, result);
+    } catch (err) { next(err); }
   };
+
   resetPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try { res.json(await this.passwordResetUC.reset(req.body ?? {})); } catch (err) { next(err); }
+    try {
+      const result = await this.passwordResetUC.reset(req.body ?? {});
+      sendSuccess(res, result, { message: "Password reset successfully." });
+    } catch (err) { next(err); }
   };
+
   changePassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { oldPassword, newPassword, confirmNewPassword } = req.body ?? {};
-      if (typeof oldPassword !== "string" || !oldPassword || typeof newPassword !== "string" || !newPassword) {
-        throw new BadRequestError("Fields required: oldPassword, newPassword, confirmNewPassword.");
+      if (
+        typeof oldPassword !== "string" || !oldPassword ||
+        typeof newPassword !== "string" || !newPassword
+      ) {
+        throw new BadRequestError(
+          "Fields required: oldPassword, newPassword, confirmNewPassword.",
+          "VALIDATION_ERROR",
+        );
       }
-      if (newPassword !== confirmNewPassword) throw new BadRequestError("New passwords do not match.");
-      res.json(await this.changePasswordUC.execute({ userId: req.user!.userId, oldPassword, newPassword }));
+      if (newPassword !== confirmNewPassword) {
+        throw new BadRequestError("New passwords do not match.", "VALIDATION_ERROR");
+      }
+      const result = await this.changePasswordUC.execute({
+        userId: req.user!.userId,
+        oldPassword,
+        newPassword,
+      });
+      sendSuccess(res, result, { message: "Password changed successfully." });
     } catch (err) { next(err); }
   };
+
   register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { name, email, password, confirmPassword } = req.body as {
@@ -49,15 +71,21 @@ export class AuthController {
       };
 
       if (!name || !email || !password || !confirmPassword) {
-        throw new BadRequestError("All fields are required: name, email, password, confirmPassword.");
+        throw new BadRequestError(
+          "All fields are required: name, email, password, confirmPassword.",
+          "VALIDATION_ERROR",
+        );
       }
       if (password !== confirmPassword) {
-        throw new BadRequestError("Passwords do not match.");
+        throw new BadRequestError("Passwords do not match.", "VALIDATION_ERROR");
       }
 
       validatePassword(password);
       const result = await this.registerUC.execute({ name, email, password });
-      res.status(201).json(result);
+      sendSuccess(res, result, {
+        statusCode: 201,
+        message: "Account created. Please check your email for OTP.",
+      });
     } catch (err) {
       next(err);
     }
@@ -68,11 +96,11 @@ export class AuthController {
       const { email, otp } = req.body as { email?: string; otp?: string };
 
       if (!email || !otp) {
-        throw new BadRequestError("Fields required: email, otp.");
+        throw new BadRequestError("Fields required: email, otp.", "VALIDATION_ERROR");
       }
 
       const { user, tokens } = await this.verifyEmailUC.execute({ email, otp });
-      res.status(200).json({ user, ...tokens });
+      sendSuccess(res, { user, ...tokens }, { message: "Email verified successfully." });
     } catch (err) {
       next(err);
     }
@@ -83,11 +111,11 @@ export class AuthController {
       const { email } = req.body as { email?: string };
 
       if (!email) {
-        throw new BadRequestError("Field required: email.");
+        throw new BadRequestError("Field required: email.", "VALIDATION_ERROR");
       }
 
       const result = await this.resendOtpUC.execute({ email });
-      res.status(200).json(result);
+      sendSuccess(res, result, { message: "OTP sent successfully." });
     } catch (err) {
       next(err);
     }
@@ -98,11 +126,11 @@ export class AuthController {
       const { email, password } = req.body as { email?: string; password?: string };
 
       if (!email || !password) {
-        throw new BadRequestError("Fields required: email, password.");
+        throw new BadRequestError("Fields required: email, password.", "VALIDATION_ERROR");
       }
 
       const { user, tokens } = await this.loginUC.execute({ email, password });
-      res.status(200).json({ user, ...tokens });
+      sendSuccess(res, { user, ...tokens }, { message: "Login successful." });
     } catch (err) {
       next(err);
     }
@@ -113,11 +141,11 @@ export class AuthController {
       const { refreshToken } = req.body as { refreshToken?: string };
 
       if (!refreshToken) {
-        throw new BadRequestError("Field required: refreshToken.");
+        throw new BadRequestError("Field required: refreshToken.", "VALIDATION_ERROR");
       }
 
       const result = await this.refreshUC.execute({ refreshToken });
-      res.status(200).json(result);
+      sendSuccess(res, result);
     } catch (err) {
       next(err);
     }
@@ -127,7 +155,7 @@ export class AuthController {
     try {
       const userId = req.user!.userId;
       const user = await this.getMeUC.execute({ userId });
-      res.status(200).json({ user });
+      sendSuccess(res, { user });
     } catch (err) {
       next(err);
     }

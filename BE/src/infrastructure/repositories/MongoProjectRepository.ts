@@ -34,6 +34,25 @@ export class MongoProjectRepository implements IProjectRepository {
     return docs.map(doc => this.toEntity(doc as Record<string, unknown>));
   }
 
+  async findByUserIdPaginated(
+    userId: string,
+    skip: number,
+    limit: number,
+  ): Promise<{ items: IProject[]; total: number }> {
+    const [docs, total] = await Promise.all([
+      ProjectModel.find({ userId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      ProjectModel.countDocuments({ userId }),
+    ]);
+    return {
+      items: docs.map(doc => this.toEntity(doc as Record<string, unknown>)),
+      total,
+    };
+  }
+
   async delete(id: string, userId: string): Promise<boolean> {
     const result = await ProjectModel.deleteOne({ _id: id, userId });
     return result.deletedCount > 0;
