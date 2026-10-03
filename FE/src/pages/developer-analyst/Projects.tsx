@@ -271,9 +271,12 @@ const Projects: React.FC = () => {
               <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-1"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Total Projects</h4>
               <div className="text-2xl font-bold text-[#f4f4f6] font-mono"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>03</div>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                {String(projectsList.length).padStart(2, '0')}
+              </div>
             </div>
           </div>
+
 
           <div className="flex items-center gap-4 bg-[#161d24] border border-[#222c37] p-5">
             <div className="w-12 h-12 bg-[#080b0e] border border-[#222c37] flex items-center justify-center">
@@ -397,8 +400,24 @@ const Projects: React.FC = () => {
                   </div>
                 </div>
                 
-                {project.id === 1 ? <Link to="/project" className="w-full h-11 bg-[#161d24] hover:bg-[#222c37] border border-[#222c37] text-sm flex items-center justify-center gap-2 mt-auto">Open project <ArrowRight size={14} aria-hidden="true" /></Link> : <button disabled className="w-full h-11 bg-[#161d24] border border-[#222c37] text-xs mt-auto" title="No architecture snapshot has been connected for this sample project">Snapshot unavailable</button>}
+                {(project.id === 1 || typeof project.id === 'string') ? (
+                  <Link
+                    to={typeof project.id === 'string' ? `/project?projectId=${project.id}` : "/project"}
+                    className="w-full h-11 bg-[#161d24] hover:bg-[#222c37] border border-[#222c37] text-sm flex items-center justify-center gap-2 mt-auto"
+                  >
+                    Open project <ArrowRight size={14} aria-hidden="true" />
+                  </Link>
+                ) : (
+                  <button
+                    disabled
+                    className="w-full h-11 bg-[#161d24] border border-[#222c37] text-xs mt-auto"
+                    title="No architecture snapshot has been connected for this sample project"
+                  >
+                    Snapshot unavailable
+                  </button>
+                )}
               </div>
+
               
             </div>
           ))}

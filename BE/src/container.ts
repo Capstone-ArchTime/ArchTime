@@ -90,8 +90,21 @@ const refreshTokenUseCase = new RefreshTokenUseCase(
   jwtTokenService,
 );
 const getCurrentUserUseCase = new GetCurrentUserUseCase(userRepository);
-const registerProjectUseCase = new RegisterProjectUseCase(projectRepository);
-const getAllProjectsUseCase = new GetAllProjectsUseCase(projectRepository);
+import { GetProjectByIdUseCase } from "./application/use-cases/projects/GetProjectByIdUseCase.js";
+
+const registerProjectUseCase = new RegisterProjectUseCase(
+  projectRepository,
+  memberRepository,
+  userRepository,
+);
+const getAllProjectsUseCase = new GetAllProjectsUseCase(
+  projectRepository,
+  memberRepository,
+);
+const getProjectByIdUseCase = new GetProjectByIdUseCase(
+  projectRepository,
+  memberRepository,
+);
 const deleteProjectUseCase = new DeleteProjectUseCase(projectRepository);
 const mineProjectUseCase = new MineProjectUseCase();
 const getSnapshotsUseCase = new GetSnapshotsUseCase();
@@ -144,7 +157,9 @@ export const projectController = new ProjectController(
   getMiningJobsUseCase,
   compareSnapshotsUseCase,
   getEvidencesUseCase,
+  getProjectByIdUseCase,
 );
+
 
 export const memberController = new MemberController(
   inviteProjectMemberUseCase,
