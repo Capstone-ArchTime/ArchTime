@@ -1,5 +1,5 @@
 import mongoose, { type Document, type Model, Schema } from "mongoose";
-import { UserRole, type IUser } from "../../../domain/entities/User.js";
+import { UserRole, UserStatus, type IUser } from "../../../domain/entities/User.js";
 
 export interface IUserDocument extends Omit<IUser, "id">, Document {
   resetTokenHash?: string;
@@ -23,6 +23,11 @@ const UserSchema = new Schema<IUserDocument>(
       type: String,
       enum: Object.values(UserRole),
       default: UserRole.DEVELOPER_ANALYST,
+    },
+    status: {
+      type: String,
+      enum: Object.values(UserStatus),
+      default: UserStatus.ACTIVE,
     },
     tokenVersion: { type: Number, default: 0 },
     resetTokenHash: { type: String, select: false },

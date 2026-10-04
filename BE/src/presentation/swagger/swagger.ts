@@ -102,9 +102,71 @@ const options: swaggerJsdoc.Options = {
               ],
               example: "developer-analyst",
             },
+            status: {
+              type: "string",
+              enum: ["active", "suspended"],
+              example: "active",
+            },
             isVerified: { type: "boolean", example: true },
             createdAt: { type: "string", format: "date-time" },
             updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+        AdminUser: {
+          type: "object",
+          properties: {
+            id: { type: "string", example: "64f1a2b3c4d5e6f7a8b9c0d1" },
+            name: { type: "string", example: "Jane Doe" },
+            email: { type: "string", format: "email", example: "dev@archtime.io" },
+            role: {
+              type: "string",
+              enum: [
+                "developer-analyst",
+                "project-maintainer",
+                "system-administrator",
+              ],
+              example: "developer-analyst",
+            },
+            status: {
+              type: "string",
+              enum: ["active", "suspended"],
+              example: "active",
+            },
+            isVerified: { type: "boolean", example: true },
+            tokenVersion: { type: "integer", example: 1 },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+        InviteUserRequest: {
+          type: "object",
+          required: ["name", "email", "role"],
+          properties: {
+            name: { type: "string", example: "Jane Doe" },
+            email: { type: "string", format: "email", example: "jane.doe@example.com" },
+            role: {
+              type: "string",
+              enum: ["developer-analyst", "project-maintainer", "system-administrator"],
+              example: "developer-analyst",
+            },
+            temporaryPassword: { type: "string", example: "ArchTime#2026!" },
+          },
+        },
+        UpdateRoleRequest: {
+          type: "object",
+          required: ["role"],
+          properties: {
+            role: {
+              type: "string",
+              enum: ["developer-analyst", "project-maintainer", "system-administrator"],
+              example: "project-maintainer",
+            },
+          },
+        },
+        SuspendUserRequest: {
+          type: "object",
+          properties: {
+            reason: { type: "string", example: "Policy violation" },
           },
         },
         Tokens: {
@@ -438,6 +500,7 @@ const options: swaggerJsdoc.Options = {
       { name: "Auth", description: "Xác thực và quản lý tài khoản" },
       { name: "GitHub OAuth", description: "Đăng nhập qua GitHub" },
       { name: "Projects", description: "Quản lý dự án và kho code" },
+      { name: "Admin - User Management", description: "Quản trị người dùng hệ thống (System Administrator)" },
       { name: "Health", description: "Kiểm tra trạng thái server" },
     ],
   },

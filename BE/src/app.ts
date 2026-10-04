@@ -7,6 +7,7 @@ import healthRouter from "./presentation/routes/health.routes.js";
 import { createAuthRouter } from "./presentation/routes/auth.routes.js";
 import { createProjectRouter } from "./presentation/routes/project.routes.js";
 import { setupSwagger } from "./presentation/swagger/swagger.js";
+import { createAdminRouter } from "./presentation/routes/admin.routes.js";
 import {
   authController,
   projectController,
@@ -14,6 +15,7 @@ import {
   memberController,
   projectRoleMiddleware,
   workspaceController,
+  adminUserController,
 } from "./container.js";
 import { createGitHubRouter } from './presentation/routes/github.routes.js';
 import { GitHubIdentityService } from './infrastructure/services/GitHubIdentityService.js';
@@ -49,6 +51,7 @@ app.get(
   createAuthenticateMiddleware(jwtTokenService),
   memberController.getTeamMembers,
 );
+app.use("/api/admin", createAdminRouter(adminUserController, jwtTokenService));
 
 
 // ── Error Handling ──

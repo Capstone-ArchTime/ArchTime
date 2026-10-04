@@ -288,8 +288,11 @@ async function testSwagger() {
     "WorkspaceDiagram",
     "WorkspaceRule",
     "WorkspaceDecision",
+    "AdminUser",
+    "InviteUserRequest",
+    "UpdateRoleRequest",
+    "SuspendUserRequest",
   ];
-
 
   for (const s of requiredSchemas) {
     test(
@@ -327,7 +330,54 @@ async function testSwagger() {
 }
 
 // ────────────────────────────────────────────────────────────
-// 6. 404 handler
+// 6. Admin User Management Endpoints (SA-02)
+// ────────────────────────────────────────────────────────────
+async function testAdminEndpoints() {
+  // Test unauthenticated access to admin routes
+  const r1 = await req("GET", "/api/admin/users");
+  test(
+    "GET /api/admin/users: no token → 401 UNAUTHORIZED",
+    r1.status === 401 && r1.body.success === false,
+    `status=${r1.status} code=${r1.body.error?.code}`,
+  );
+
+  const r2 = await req("POST", "/api/admin/users/invite", {
+    name: "Test",
+    email: "test@example.com",
+    role: "developer-analyst",
+  });
+  test(
+    "POST /api/admin/users/invite: no token → 401 UNAUTHORIZED",
+    r2.status === 401 && r2.body.success === false,
+    `status=${r2.status} code=${r2.body.error?.code}`,
+  );
+
+  const r3 = await req("PATCH", "/api/admin/users/someid/role", {
+    role: "project-maintainer",
+  });
+  test(
+    "PATCH /api/admin/users/:id/role: no token → 401 UNAUTHORIZED",
+    r3.status === 401 && r3.body.success === false,
+    `status=${r3.status} code=${r3.body.error?.code}`,
+  );
+
+  const r4 = await req("PATCH", "/api/admin/users/someid/suspend", {});
+  test(
+    "PATCH /api/admin/users/:id/suspend: no token → 401 UNAUTHORIZED",
+    r4.status === 401 && r4.body.success === false,
+    `status=${r4.status} code=${r4.body.error?.code}`,
+  );
+
+  const r5 = await req("PATCH", "/api/admin/users/someid/reactivate", {});
+  test(
+    "PATCH /api/admin/users/:id/reactivate: no token → 401 UNAUTHORIZED",
+    r5.status === 401 && r5.body.success === false,
+    `status=${r5.status} code=${r5.body.error?.code}`,
+  );
+}
+
+// ────────────────────────────────────────────────────────────
+// 7. 404 handler
 // ────────────────────────────────────────────────────────────
 async function test404() {
   const r = await req("GET", "/api/nonexistent");
@@ -343,7 +393,7 @@ async function test404() {
 // ────────────────────────────────────────────────────────────
 async function main() {
   console.log("=" .repeat(60));
-  console.log("CORE-01 API Integration Tests");
+  console.log("CORE & SA-02 API Integration Tests");
   console.log("=".repeat(60));
   console.log();
 
@@ -365,6 +415,8 @@ async function main() {
   await testProjectsWithAuth();
   console.log();
   await testSwagger();
+  console.log();
+  await testAdminEndpoints();
   console.log();
   await test404();
 

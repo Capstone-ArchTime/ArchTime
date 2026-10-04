@@ -1,4 +1,4 @@
-import type { IUser } from "../../domain/entities/User.js";
+import { UserStatus, type IUser } from "../../domain/entities/User.js";
 import type { IUserRepository } from "../../domain/interfaces/IUserRepository.js";
 import type { ITokenPair } from "../../domain/interfaces/IAuthService.js";
 import type { BcryptHasher } from "../../infrastructure/services/BcryptHasher.js";
@@ -37,6 +37,13 @@ export class LoginUseCase {
     if (!user.isVerified) {
       throw new ForbiddenError(
         "Email not verified. Please check your inbox for the OTP.",
+      );
+    }
+
+    // Block login if account suspended
+    if (user.status === UserStatus.SUSPENDED) {
+      throw new ForbiddenError(
+        "Account has been suspended. Please contact administrator.",
       );
     }
 

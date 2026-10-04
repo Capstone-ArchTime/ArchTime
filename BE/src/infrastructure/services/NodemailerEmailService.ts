@@ -33,6 +33,15 @@ export class NodemailerEmailService implements IEmailService {
     });
   }
 
+  async sendInvitation(to: string, temporaryPassword: string, role: string): Promise<void> {
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject: "Welcome to ArchTime — Account Invitation",
+      text: `You have been invited to ArchTime as a ${role}.\n\nYour temporary password is:\n${temporaryPassword}\n\nPlease sign in and update your password immediately.`,
+    });
+  }
+
   private buildOtpEmail(otp: string): string {
     return `
 <!DOCTYPE html>

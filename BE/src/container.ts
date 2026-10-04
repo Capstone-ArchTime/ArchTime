@@ -195,6 +195,33 @@ export const projectRoleMiddleware = createProjectRoleMiddleware(
   memberRepository,
 );
 
+// ── Admin ──
+import { GetAdminUsersUseCase } from "./application/use-cases/admin/GetAdminUsersUseCase.js";
+import { UpdateUserRoleUseCase } from "./application/use-cases/admin/UpdateUserRoleUseCase.js";
+import { SuspendUserUseCase } from "./application/use-cases/admin/SuspendUserUseCase.js";
+import { ReactivateUserUseCase } from "./application/use-cases/admin/ReactivateUserUseCase.js";
+import { InviteUserUseCase } from "./application/use-cases/admin/InviteUserUseCase.js";
+import { AdminUserController } from "./presentation/controllers/AdminUserController.js";
+
+const getAdminUsersUseCase = new GetAdminUsersUseCase(userRepository);
+const updateUserRoleUseCase = new UpdateUserRoleUseCase(userRepository);
+const suspendUserUseCase = new SuspendUserUseCase(userRepository);
+const reactivateUserUseCase = new ReactivateUserUseCase(userRepository);
+const inviteUserUseCase = new InviteUserUseCase(
+  userRepository,
+  bcryptHasher,
+  emailService,
+);
+
+export const adminUserController = new AdminUserController(
+  getAdminUsersUseCase,
+  updateUserRoleUseCase,
+  suspendUserUseCase,
+  reactivateUserUseCase,
+  inviteUserUseCase,
+);
+
 export { jwtTokenService };
+
 
 

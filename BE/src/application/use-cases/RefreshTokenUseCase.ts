@@ -1,3 +1,4 @@
+import { UserStatus } from "../../domain/entities/User.js";
 import type { IUserRepository } from "../../domain/interfaces/IUserRepository.js";
 import type { JwtTokenService } from "../../infrastructure/services/JwtTokenService.js";
 import { NotFoundError, UnauthorizedError } from "../../shared/errors/AppError.js";
@@ -18,7 +19,14 @@ export class RefreshTokenUseCase {
       throw new NotFoundError("User associated with this token no longer exists.");
     }
 
-    if (!user.isVerified || version !== (user.tokenVersion ?? 0)) throw new UnauthorizedError("Session revoked. Please sign in again.");
+    if (!user.isVerified || version !== (user.tokenVersion ?? 0)) {
+      throw new UnauthorizedError("Session revoked. Please sign in again.");
+    }
+
+    if (user.status === UserStatus.SUSPENDED) {
+      throw new UnauthorizedError("Account has been suspended.");
+    }
+
     const accessToken = this.jwtService.generateAccessToken(user.id, user.role, user.tokenVersion ?? 0);
     return { accessToken };
   }

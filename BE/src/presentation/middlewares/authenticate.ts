@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import type { JwtTokenService } from "../../infrastructure/services/JwtTokenService.js";
-import { UnauthorizedError } from "../../shared/errors/AppError.js";
-
+import { AppError, UnauthorizedError } from "../../shared/errors/AppError.js";
+import { UserStatus, type UserRole } from "../../domain/entities/User.js";
 import { MongoUserRepository } from "../../infrastructure/repositories/MongoUserRepository.js";
 
 export function createAuthenticateMiddleware(jwtService: JwtTokenService) {
@@ -19,10 +19,22 @@ export function createAuthenticateMiddleware(jwtService: JwtTokenService) {
     try {
       const payload = jwtService.verifyAccessToken(token);
       const user = await users.findById(payload.userId);
-      if (!user || !user.isVerified || (user.tokenVersion ?? 0) !== payload.version) throw new UnauthorizedError("Session revoked.");
-      req.user = { userId: payload.userId, role: payload.role as import("../../domain/entities/User.js").UserRole };
+      if (!user || (user.tokenVersion ?? 0) !== payload.version) {
+        throw new UnauthorizedError("Session revoked.");
+      }
+      if (user.status === UserStatus.SUSPENDED) {
+        throw new UnauthorizedError("Account has been suspended.");
+      }
+      if (!user.isVerified) {
+        throw new UnauthorizedError("Email not verified.");
+      }
+      req.user = { userId: payload.userId, role: payload.role as UserRole };
       next();
-    } catch {
+    } catch (err) {
+      if (err instanceof AppError) {
+        next(err);
+        return;
+      }
       next(new UnauthorizedError("Invalid or expired access token."));
     }
   };
