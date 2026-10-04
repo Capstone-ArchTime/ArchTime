@@ -292,6 +292,12 @@ async function testSwagger() {
     "InviteUserRequest",
     "UpdateRoleRequest",
     "SuspendUserRequest",
+    "AdminMiningJob",
+    "AuditLog",
+    "ApiKey",
+    "SystemSettings",
+    "SystemMetrics",
+    "ServicesStatus",
   ];
 
   for (const s of requiredSchemas) {
@@ -330,10 +336,10 @@ async function testSwagger() {
 }
 
 // ────────────────────────────────────────────────────────────
-// 6. Admin User Management Endpoints (SA-02)
+// 6. Admin Endpoints (SA-01, SA-02, SA-03, SA-04, SA-05)
 // ────────────────────────────────────────────────────────────
 async function testAdminEndpoints() {
-  // Test unauthenticated access to admin routes
+  // SA-02: User Management
   const r1 = await req("GET", "/api/admin/users");
   test(
     "GET /api/admin/users: no token → 401 UNAUTHORIZED",
@@ -373,6 +379,80 @@ async function testAdminEndpoints() {
     "PATCH /api/admin/users/:id/reactivate: no token → 401 UNAUTHORIZED",
     r5.status === 401 && r5.body.success === false,
     `status=${r5.status} code=${r5.body.error?.code}`,
+  );
+
+  // SA-03: Mining Jobs Monitor
+  const rJobs = await req("GET", "/api/admin/jobs");
+  test(
+    "GET /api/admin/jobs: no token → 401 UNAUTHORIZED",
+    rJobs.status === 401 && rJobs.body.success === false,
+    `status=${rJobs.status} code=${rJobs.body.error?.code}`,
+  );
+
+  const rCancelJob = await req("POST", "/api/admin/jobs/someid/cancel", {});
+  test(
+    "POST /api/admin/jobs/:id/cancel: no token → 401 UNAUTHORIZED",
+    rCancelJob.status === 401 && rCancelJob.body.success === false,
+    `status=${rCancelJob.status} code=${rCancelJob.body.error?.code}`,
+  );
+
+  // SA-04: System Settings
+  const rSettings = await req("GET", "/api/admin/settings");
+  test(
+    "GET /api/admin/settings: no token → 401 UNAUTHORIZED",
+    rSettings.status === 401 && rSettings.body.success === false,
+    `status=${rSettings.status} code=${rSettings.body.error?.code}`,
+  );
+
+  const rUpdateSettings = await req("PUT", "/api/admin/settings", { maxConcurrentJobs: 5 });
+  test(
+    "PUT /api/admin/settings: no token → 401 UNAUTHORIZED",
+    rUpdateSettings.status === 401 && rUpdateSettings.body.success === false,
+    `status=${rUpdateSettings.status} code=${rUpdateSettings.body.error?.code}`,
+  );
+
+  const rCreateApiKey = await req("POST", "/api/admin/settings/api-keys", { name: "Test Key" });
+  test(
+    "POST /api/admin/settings/api-keys: no token → 401 UNAUTHORIZED",
+    rCreateApiKey.status === 401 && rCreateApiKey.body.success === false,
+    `status=${rCreateApiKey.status} code=${rCreateApiKey.body.error?.code}`,
+  );
+
+  const rRevokeApiKey = await req("DELETE", "/api/admin/settings/api-keys/someid");
+  test(
+    "DELETE /api/admin/settings/api-keys/:id: no token → 401 UNAUTHORIZED",
+    rRevokeApiKey.status === 401 && rRevokeApiKey.body.success === false,
+    `status=${rRevokeApiKey.status} code=${rRevokeApiKey.body.error?.code}`,
+  );
+
+  // SA-05: Audit Log
+  const rAudit = await req("GET", "/api/admin/audit-logs");
+  test(
+    "GET /api/admin/audit-logs: no token → 401 UNAUTHORIZED",
+    rAudit.status === 401 && rAudit.body.success === false,
+    `status=${rAudit.status} code=${rAudit.body.error?.code}`,
+  );
+
+  // SA-01: Metrics & Health
+  const rMetrics = await req("GET", "/api/admin/metrics");
+  test(
+    "GET /api/admin/metrics: no token → 401 UNAUTHORIZED",
+    rMetrics.status === 401 && rMetrics.body.success === false,
+    `status=${rMetrics.status} code=${rMetrics.body.error?.code}`,
+  );
+
+  const rServices = await req("GET", "/api/admin/services/status");
+  test(
+    "GET /api/admin/services/status: no token → 401 UNAUTHORIZED",
+    rServices.status === 401 && rServices.body.success === false,
+    `status=${rServices.status} code=${rServices.body.error?.code}`,
+  );
+
+  const rLogs = await req("GET", "/api/admin/logs");
+  test(
+    "GET /api/admin/logs: no token → 401 UNAUTHORIZED",
+    rLogs.status === 401 && rLogs.body.success === false,
+    `status=${rLogs.status} code=${rLogs.body.error?.code}`,
   );
 }
 

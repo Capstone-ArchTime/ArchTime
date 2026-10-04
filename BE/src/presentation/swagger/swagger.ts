@@ -427,6 +427,143 @@ const options: swaggerJsdoc.Options = {
             updatedAt: { type: "string", format: "date-time" },
           },
         },
+        // ── Admin SA Schemas ───────────────────────────────────────────────
+        AdminMiningJob: {
+          type: "object",
+          properties: {
+            id: { type: "string", example: "64f1a2b3c4d5e6f7a8b9c0d1" },
+            projectId: { type: "string", example: "64f1a2b3c4d5e6f7a8b9c0d0" },
+            projectName: { type: "string", example: "backend-core" },
+            requestedBy: { type: "string", example: "64f1a2b3c4d5e6f7a8b9c0d2" },
+            requestedByEmail: { type: "string", example: "dev@archtime.io" },
+            kind: { type: "string", enum: ["scan", "mine", "abstract"], example: "mine" },
+            status: { type: "string", enum: ["queued", "running", "completed", "failed", "cancelled"], example: "running" },
+            progress: { type: "number", example: 45 },
+            stage: { type: "string", example: "Cloning repository" },
+            startedAt: { type: "string", format: "date-time" },
+            finishedAt: { type: "string", format: "date-time" },
+            cancelledAt: { type: "string", format: "date-time" },
+            cancelledBy: { type: "string", example: "admin@archtime.io" },
+            errorMessage: { type: "string" },
+            createdAt: { type: "string", format: "date-time" },
+          },
+        },
+        AuditLog: {
+          type: "object",
+          properties: {
+            id: { type: "string", example: "64f1a2b3c4d5e6f7a8b9c0d1" },
+            action: { type: "string", example: "USER_INVITED" },
+            userId: { type: "string", example: "64f1a2b3c4d5e6f7a8b9c0d0" },
+            userEmail: { type: "string", example: "admin@archtime.io" },
+            targetType: { type: "string", example: "USER" },
+            targetId: { type: "string", example: "64f1a2b3c4d5e6f7a8b9c0d2" },
+            details: { type: "object" },
+            ipAddress: { type: "string", example: "127.0.0.1" },
+            userAgent: { type: "string" },
+            createdAt: { type: "string", format: "date-time" },
+          },
+        },
+        ApiKey: {
+          type: "object",
+          properties: {
+            id: { type: "string", example: "64f1a2b3c4d5e6f7a8b9c0d1" },
+            name: { type: "string", example: "CI Production Pipeline" },
+            keyPrefix: { type: "string", example: "arch_live_a1b2..." },
+            createdAt: { type: "string", format: "date-time" },
+            lastUsedAt: { type: "string", format: "date-time" },
+            revokedAt: { type: "string", format: "date-time" },
+            createdBy: { type: "string", example: "admin@archtime.io" },
+          },
+        },
+        SystemSettings: {
+          type: "object",
+          properties: {
+            maxConcurrentJobs: { type: "integer", example: 5 },
+            maxRepoSizeMb: { type: "integer", example: 500 },
+            miningTimeoutMinutes: { type: "integer", example: 60 },
+            defaultLlmProvider: { type: "string", enum: ["gemini", "claude", "openai", "none"], example: "gemini" },
+            maintenanceMode: { type: "boolean", example: false },
+            allowPublicRegistration: { type: "boolean", example: true },
+            apiKeys: {
+              type: "array",
+              items: { $ref: "#/components/schemas/ApiKey" },
+            },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+        SystemMetrics: {
+          type: "object",
+          properties: {
+            server: {
+              type: "object",
+              properties: {
+                cpuUsagePercent: { type: "number", example: 12.5 },
+                cpuCores: { type: "integer", example: 8 },
+                memoryUsageMb: { type: "number", example: 142.5 },
+                totalMemoryMb: { type: "number", example: 16384 },
+                memoryUsagePercent: { type: "number", example: 55.2 },
+                nodeUptimeSeconds: { type: "number", example: 3600 },
+                osUptimeSeconds: { type: "number", example: 86400 },
+                platform: { type: "string", example: "win32" },
+                nodeVersion: { type: "string", example: "v20.10.0" },
+              },
+            },
+            database: {
+              type: "object",
+              properties: {
+                totalProjects: { type: "integer", example: 15 },
+                totalUsers: { type: "integer", example: 42 },
+                activeUsers: { type: "integer", example: 38 },
+                suspendedUsers: { type: "integer", example: 4 },
+                totalSnapshots: { type: "integer", example: 120 },
+                jobs: {
+                  type: "object",
+                  properties: {
+                    total: { type: "integer", example: 50 },
+                    queued: { type: "integer", example: 2 },
+                    running: { type: "integer", example: 1 },
+                    completed: { type: "integer", example: 45 },
+                    failed: { type: "integer", example: 2 },
+                  },
+                },
+              },
+            },
+          },
+        },
+        ServicesStatus: {
+          type: "object",
+          properties: {
+            database: {
+              type: "object",
+              properties: {
+                status: { type: "string", enum: ["connected", "disconnected"], example: "connected" },
+                latencyMs: { type: "number", example: 4.2 },
+              },
+            },
+            git: {
+              type: "object",
+              properties: {
+                status: { type: "string", enum: ["operational", "degraded"], example: "operational" },
+                version: { type: "string", example: "git version 2.43.0" },
+              },
+            },
+            smtp: {
+              type: "object",
+              properties: {
+                status: { type: "string", enum: ["configured", "not_configured"], example: "configured" },
+                host: { type: "string", example: "smtp.sendgrid.net" },
+              },
+            },
+            aiProviders: {
+              type: "object",
+              properties: {
+                gemini: { type: "string", enum: ["configured", "not_configured"], example: "configured" },
+                claude: { type: "string", enum: ["configured", "not_configured"], example: "not_configured" },
+                openai: { type: "string", enum: ["configured", "not_configured"], example: "not_configured" },
+              },
+            },
+          },
+        },
       },
 
       // ── Responses tái sử dụng ─────────────────────────────────────────────
@@ -501,6 +638,10 @@ const options: swaggerJsdoc.Options = {
       { name: "GitHub OAuth", description: "Đăng nhập qua GitHub" },
       { name: "Projects", description: "Quản lý dự án và kho code" },
       { name: "Admin - User Management", description: "Quản trị người dùng hệ thống (System Administrator)" },
+      { name: "Admin - Mining Jobs", description: "Giám sát và quản lý các tác vụ mining toàn hệ thống" },
+      { name: "Admin - Audit Logs", description: "Nhật ký kiểm toán hoạt động hệ thống" },
+      { name: "Admin - System Settings", description: "Cấu hình tham số hệ thống và quản lý API keys" },
+      { name: "Admin - Metrics & Health", description: "Giám sát tài nguyên máy chủ và tình trạng các dịch vụ" },
       { name: "Health", description: "Kiểm tra trạng thái server" },
     ],
   },

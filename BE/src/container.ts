@@ -206,6 +206,25 @@ import { ReactivateUserUseCase } from "./application/use-cases/admin/ReactivateU
 import { InviteUserUseCase } from "./application/use-cases/admin/InviteUserUseCase.js";
 import { AdminUserController } from "./presentation/controllers/AdminUserController.js";
 
+import { GetAdminJobsUseCase } from "./application/use-cases/admin/GetAdminJobsUseCase.js";
+import { CancelAdminJobUseCase } from "./application/use-cases/admin/CancelAdminJobUseCase.js";
+import { AdminJobController } from "./presentation/controllers/AdminJobController.js";
+
+import { GetAdminAuditLogsUseCase } from "./application/use-cases/admin/GetAdminAuditLogsUseCase.js";
+import { AdminAuditController } from "./presentation/controllers/AdminAuditController.js";
+
+import { GetAdminSettingsUseCase } from "./application/use-cases/admin/GetAdminSettingsUseCase.js";
+import { UpdateAdminSettingsUseCase } from "./application/use-cases/admin/UpdateAdminSettingsUseCase.js";
+import { CreateAdminApiKeyUseCase } from "./application/use-cases/admin/CreateAdminApiKeyUseCase.js";
+import { RevokeAdminApiKeyUseCase } from "./application/use-cases/admin/RevokeAdminApiKeyUseCase.js";
+import { AdminSettingsController } from "./presentation/controllers/AdminSettingsController.js";
+
+import { GetAdminMetricsUseCase } from "./application/use-cases/admin/GetAdminMetricsUseCase.js";
+import { GetAdminServicesStatusUseCase } from "./application/use-cases/admin/GetAdminServicesStatusUseCase.js";
+import { GetAdminLogsUseCase } from "./application/use-cases/admin/GetAdminLogsUseCase.js";
+import { AdminMetricsController } from "./presentation/controllers/AdminMetricsController.js";
+import type { AdminControllersConfig } from "./presentation/routes/admin.routes.js";
+
 const getAdminUsersUseCase = new GetAdminUsersUseCase(userRepository);
 const updateUserRoleUseCase = new UpdateUserRoleUseCase(userRepository);
 const suspendUserUseCase = new SuspendUserUseCase(userRepository);
@@ -224,7 +243,38 @@ export const adminUserController = new AdminUserController(
   inviteUserUseCase,
 );
 
+export const adminJobController = new AdminJobController(
+  new GetAdminJobsUseCase(),
+  new CancelAdminJobUseCase(),
+);
+
+export const adminAuditController = new AdminAuditController(
+  new GetAdminAuditLogsUseCase(),
+);
+
+export const adminSettingsController = new AdminSettingsController(
+  new GetAdminSettingsUseCase(),
+  new UpdateAdminSettingsUseCase(),
+  new CreateAdminApiKeyUseCase(),
+  new RevokeAdminApiKeyUseCase(),
+);
+
+export const adminMetricsController = new AdminMetricsController(
+  new GetAdminMetricsUseCase(),
+  new GetAdminServicesStatusUseCase(),
+  new GetAdminLogsUseCase(),
+);
+
+export const adminControllersConfig: AdminControllersConfig = {
+  userController: adminUserController,
+  jobController: adminJobController,
+  auditController: adminAuditController,
+  settingsController: adminSettingsController,
+  metricsController: adminMetricsController,
+};
+
 export { jwtTokenService };
+
 
 
 

@@ -15,7 +15,7 @@ import {
   memberController,
   projectRoleMiddleware,
   workspaceController,
-  adminUserController,
+  adminControllersConfig,
 } from "./container.js";
 import { createGitHubRouter } from './presentation/routes/github.routes.js';
 import { GitHubIdentityService } from './infrastructure/services/GitHubIdentityService.js';
@@ -51,7 +51,7 @@ app.get(
   createAuthenticateMiddleware(jwtTokenService),
   memberController.getTeamMembers,
 );
-app.use("/api/admin", createAdminRouter(adminUserController, jwtTokenService));
+app.use("/api/admin", createAdminRouter(adminControllersConfig, jwtTokenService));
 
 
 // ── Error Handling ──

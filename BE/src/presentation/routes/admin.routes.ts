@@ -1,81 +1,160 @@
 import { Router } from "express";
 import type { AdminUserController } from "../controllers/AdminUserController.js";
+import type { AdminJobController } from "../controllers/AdminJobController.js";
+import type { AdminAuditController } from "../controllers/AdminAuditController.js";
+import type { AdminSettingsController } from "../controllers/AdminSettingsController.js";
+import type { AdminMetricsController } from "../controllers/AdminMetricsController.js";
 import type { JwtTokenService } from "../../infrastructure/services/JwtTokenService.js";
 import { createAuthenticateMiddleware } from "../middlewares/authenticate.js";
 import { authorize } from "../middlewares/authorize.js";
 import { UserRole } from "../../domain/entities/User.js";
 
+export interface AdminControllersConfig {
+  userController: AdminUserController;
+  jobController: AdminJobController;
+  auditController: AdminAuditController;
+  settingsController: AdminSettingsController;
+  metricsController: AdminMetricsController;
+}
+
 export function createAdminRouter(
-  adminUserController: AdminUserController,
+  controllers: AdminControllersConfig,
   jwtTokenService: JwtTokenService,
 ): Router {
   const router = Router();
+  const {
+    userController,
+    jobController,
+    auditController,
+    settingsController,
+    metricsController,
+  } = controllers;
 
   // All admin routes require authentication and SYSTEM_ADMINISTRATOR role
   router.use(createAuthenticateMiddleware(jwtTokenService));
   router.use(authorize(UserRole.SYSTEM_ADMINISTRATOR));
 
-  /**
-   * @swagger
-   * tags:
-   *   name: Admin - User Management
-   *   description: Quản trị người dùng hệ thống (System Administrator)
-   */
+  // ────────────────────────────────────────────────────────────
+  // 1. User Management (SA-02)
+  // ────────────────────────────────────────────────────────────
+  router.get("/users", userController.getUsers);
+  router.post("/users/invite", userController.inviteUser);
+  router.patch("/users/:id/role", userController.updateRole);
+  router.patch("/users/:id/suspend", userController.suspendUser);
+  router.patch("/users/:id/reactivate", userController.reactivateUser);
 
+  // ────────────────────────────────────────────────────────────
+  // 2. Mining Jobs Monitor (SA-03)
+  // ────────────────────────────────────────────────────────────
   /**
    * @swagger
-   * /api/admin/users:
+   * /api/admin/jobs:
    *   get:
-   *     tags: [Admin - User Management]
-   *     summary: Lấy danh sách người dùng (phân trang, tìm kiếm, lọc)
+   *     tags: [Admin - Mining Jobs]
+   *     summary: Lấy toàn bộ danh sách mining jobs của hệ thống
    *     security:
    *       - BearerAuth: []
    *     parameters:
    *       - in: query
    *         name: page
-   *         schema:
-   *           type: integer
-   *           default: 1
-   *         description: Số trang
+   *         schema: { type: integer, default: 1 }
    *       - in: query
    *         name: limit
-   *         schema:
-   *           type: integer
-   *           default: 10
-   *         description: Số bản ghi mỗi trang (tối đa 100)
-   *       - in: query
-   *         name: search
-   *         schema:
-   *           type: string
-   *         description: Tìm kiếm theo tên hoặc email
-   *       - in: query
-   *         name: role
-   *         schema:
-   *           type: string
-   *           enum: [developer-analyst, project-maintainer, system-administrator]
-   *         description: Lọc theo vai trò hệ thống
+   *         schema: { type: integer, default: 10 }
    *       - in: query
    *         name: status
-   *         schema:
-   *           type: string
-   *           enum: [active, suspended]
-   *         description: Lọc theo trạng thái tài khoản
+   *         schema: { type: string, enum: [queued, running, completed, failed, cancelled] }
+   *       - in: query
+   *         name: kind
+   *         schema: { type: string, enum: [scan, mine, abstract] }
+   *       - in: query
+   *         name: projectId
+   *         schema: { type: string }
+   *       - in: query
+   *         name: search
+   *         schema: { type: string }
+   *         description: Tìm theo tên dự án hoặc email người yêu cầu
    *     responses:
    *       200:
-   *         description: Danh sách người dùng thành công
-   *       401:
-   *         description: Chưa xác thực
-   *       403:
-   *         description: Không có quyền truy cập (yêu cầu System Administrator)
+   *         description: Danh sách mining jobs thành công
    */
-  router.get("/users", adminUserController.getUsers);
+  router.get("/jobs", jobController.getJobs);
 
   /**
    * @swagger
-   * /api/admin/users/invite:
+   * /api/admin/jobs/{id}/cancel:
    *   post:
-   *     tags: [Admin - User Management]
-   *     summary: Mời người dùng mới vào hệ thống
+   *     tags: [Admin - Mining Jobs]
+   *     summary: Quản trị viên hủy một mining job đang chạy hoặc trong hàng đợi
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema: { type: string }
+   *     responses:
+   *       200:
+   *         description: Hủy job thành công
+   */
+  router.post("/jobs/:id/cancel", jobController.cancelJob);
+
+  // ────────────────────────────────────────────────────────────
+  // 3. Audit Log (SA-05)
+  // ────────────────────────────────────────────────────────────
+  /**
+   * @swagger
+   * /api/admin/audit-logs:
+   *   get:
+   *     tags: [Admin - Audit Logs]
+   *     summary: Lấy nhật ký kiểm toán hệ thống
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: page
+   *         schema: { type: integer, default: 1 }
+   *       - in: query
+   *         name: limit
+   *         schema: { type: integer, default: 20 }
+   *       - in: query
+   *         name: action
+   *         schema: { type: string }
+   *       - in: query
+   *         name: userId
+   *         schema: { type: string }
+   *       - in: query
+   *         name: targetType
+   *         schema: { type: string }
+   *       - in: query
+   *         name: from
+   *         schema: { type: string, format: date-time }
+   *       - in: query
+   *         name: to
+   *         schema: { type: string, format: date-time }
+   *     responses:
+   *       200:
+   *         description: Danh sách sự kiện kiểm toán
+   */
+  router.get("/audit-logs", auditController.getAuditLogs);
+
+  // ────────────────────────────────────────────────────────────
+  // 4. System Settings (SA-04)
+  // ────────────────────────────────────────────────────────────
+  /**
+   * @swagger
+   * /api/admin/settings:
+   *   get:
+   *     tags: [Admin - System Settings]
+   *     summary: Lấy thông tin cấu hình hệ thống
+   *     security:
+   *       - BearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Cấu hình hệ thống hiện tại
+   *   put:
+   *     tags: [Admin - System Settings]
+   *     summary: Cập nhật cấu hình hệ thống
    *     security:
    *       - BearerAuth: []
    *     requestBody:
@@ -84,125 +163,119 @@ export function createAdminRouter(
    *         application/json:
    *           schema:
    *             type: object
-   *             required: [name, email, role]
    *             properties:
-   *               name:
-   *                 type: string
-   *                 example: Jane Doe
-   *               email:
-   *                 type: string
-   *                 format: email
-   *                 example: jane.doe@example.com
-   *               role:
-   *                 type: string
-   *                 enum: [developer-analyst, project-maintainer, system-administrator]
-   *                 example: project-maintainer
-   *               temporaryPassword:
-   *                 type: string
-   *                 example: P@ssw0rd123!
+   *               maxConcurrentJobs: { type: integer, example: 5 }
+   *               maxRepoSizeMb: { type: integer, example: 500 }
+   *               miningTimeoutMinutes: { type: integer, example: 60 }
+   *               defaultLlmProvider: { type: string, enum: [gemini, claude, openai, none] }
+   *               maintenanceMode: { type: boolean }
+   *               allowPublicRegistration: { type: boolean }
+   *     responses:
+   *       200:
+   *         description: Cập nhật cấu hình thành công
+   */
+  router.get("/settings", settingsController.getSettings);
+  router.put("/settings", settingsController.updateSettings);
+
+  /**
+   * @swagger
+   * /api/admin/settings/api-keys:
+   *   post:
+   *     tags: [Admin - System Settings]
+   *     summary: Tạo API key mới
+   *     security:
+   *       - BearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [name]
+   *             properties:
+   *               name: { type: string, example: "CI Integration Key" }
    *     responses:
    *       201:
-   *         description: Người dùng được tạo thành công
-   *       400:
-   *         description: Dữ liệu không hợp lệ
-   *       409:
-   *         description: Email đã tồn tại trong hệ thống
+   *         description: API key tạo thành công
    */
-  router.post("/users/invite", adminUserController.inviteUser);
+  router.post("/settings/api-keys", settingsController.createApiKey);
 
   /**
    * @swagger
-   * /api/admin/users/{id}/role:
-   *   patch:
-   *     tags: [Admin - User Management]
-   *     summary: Cập nhật vai trò hệ thống của người dùng
+   * /api/admin/settings/api-keys/{id}:
+   *   delete:
+   *     tags: [Admin - System Settings]
+   *     summary: Thu hồi API key
    *     security:
    *       - BearerAuth: []
    *     parameters:
    *       - in: path
    *         name: id
    *         required: true
-   *         schema:
-   *           type: string
-   *         description: ID người dùng
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             required: [role]
-   *             properties:
-   *               role:
-   *                 type: string
-   *                 enum: [developer-analyst, project-maintainer, system-administrator]
-   *                 example: project-maintainer
+   *         schema: { type: string }
    *     responses:
    *       200:
-   *         description: Cập nhật vai trò thành công
-   *       400:
-   *         description: Vai trò không hợp lệ hoặc không thể hạ quyền Quản trị viên cuối cùng
-   *       404:
-   *         description: Không tìm thấy người dùng
+   *         description: Thu hồi API key thành công
    */
-  router.patch("/users/:id/role", adminUserController.updateRole);
+  router.delete("/settings/api-keys/:id", settingsController.revokeApiKey);
+
+  // ────────────────────────────────────────────────────────────
+  // 5. Dashboard Metrics & Services Status (SA-01)
+  // ────────────────────────────────────────────────────────────
+  /**
+   * @swagger
+   * /api/admin/metrics:
+   *   get:
+   *     tags: [Admin - Metrics & Health]
+   *     summary: Lấy số liệu tài nguyên server và thống kê ứng dụng
+   *     security:
+   *       - BearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Metrics hệ thống
+   */
+  router.get("/metrics", metricsController.getMetrics);
 
   /**
    * @swagger
-   * /api/admin/users/{id}/suspend:
-   *   patch:
-   *     tags: [Admin - User Management]
-   *     summary: Khóa / đình chỉ tài khoản người dùng
+   * /api/admin/services/status:
+   *   get:
+   *     tags: [Admin - Metrics & Health]
+   *     summary: Kiểm tra tình trạng kết nối các dịch vụ (DB, Git, SMTP, AI)
    *     security:
    *       - BearerAuth: []
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         required: true
-   *         schema:
-   *           type: string
-   *         description: ID người dùng
-   *     requestBody:
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             properties:
-   *               reason:
-   *                 type: string
-   *                 example: Vi phạm điều khoản sử dụng
    *     responses:
    *       200:
-   *         description: Đình chỉ tài khoản thành công
-   *       400:
-   *         description: Không thể tự đình chỉ chính mình hoặc quản trị viên cuối cùng
-   *       404:
-   *         description: Không tìm thấy người dùng
+   *         description: Trạng thái các dịch vụ
    */
-  router.patch("/users/:id/suspend", adminUserController.suspendUser);
+  router.get("/services/status", metricsController.getServicesStatus);
 
   /**
    * @swagger
-   * /api/admin/users/{id}/reactivate:
-   *   patch:
-   *     tags: [Admin - User Management]
-   *     summary: Kích hoạt lại tài khoản người dùng bị đình chỉ
+   * /api/admin/logs:
+   *   get:
+   *     tags: [Admin - Metrics & Health]
+   *     summary: Xem logs hệ thống phân trang
    *     security:
    *       - BearerAuth: []
    *     parameters:
-   *       - in: path
-   *         name: id
-   *         required: true
-   *         schema:
-   *           type: string
-   *         description: ID người dùng
+   *       - in: query
+   *         name: page
+   *         schema: { type: integer, default: 1 }
+   *       - in: query
+   *         name: limit
+   *         schema: { type: integer, default: 25 }
+   *       - in: query
+   *         name: level
+   *         schema: { type: string, enum: [info, warn, error] }
+   *       - in: query
+   *         name: search
+   *         schema: { type: string }
    *     responses:
    *       200:
-   *         description: Kích hoạt lại tài khoản thành công
-   *       404:
-   *         description: Không tìm thấy người dùng
+   *         description: Logs hệ thống
    */
-  router.patch("/users/:id/reactivate", adminUserController.reactivateUser);
+  router.get("/logs", metricsController.getLogs);
 
   return router;
 }

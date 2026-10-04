@@ -38,6 +38,8 @@ export interface IMiningJob {
   batchCount: number;
   startedAt?: Date;
   finishedAt?: Date;
+  cancelledAt?: Date;
+  cancelledBy?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -70,6 +72,8 @@ const MiningJobSchema = new Schema<IMiningJobDocument>(
     batchCount: { type: Number, default: 0 },
     startedAt: { type: Date },
     finishedAt: { type: Date },
+    cancelledAt: { type: Date },
+    cancelledBy: { type: String },
   },
   {
     timestamps: true,

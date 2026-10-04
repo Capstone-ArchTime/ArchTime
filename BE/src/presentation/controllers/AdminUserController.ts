@@ -7,6 +7,8 @@ import type { InviteUserUseCase } from "../../application/use-cases/admin/Invite
 import type { UserRole, UserStatus } from "../../domain/entities/User.js";
 import { UnauthorizedError } from "../../shared/errors/AppError.js";
 import { sendSuccess } from "../../shared/utils/apiResponse.js";
+import { AuditService } from "../../infrastructure/services/AuditService.js";
+import { AuditAction } from "../../domain/entities/AuditLog.js";
 
 export class AdminUserController {
   constructor(
@@ -58,6 +60,15 @@ export class AdminUserController {
         temporaryPassword,
       });
 
+      await AuditService.log({
+        action: AuditAction.USER_INVITE,
+        userId: req.user?.userId,
+        targetType: "user",
+        targetId: result.user.id,
+        details: { email: result.user.email, role: result.user.role },
+        ipAddress: req.ip,
+      });
+
       sendSuccess(res, result, {
         statusCode: 201,
         message: "User invited successfully.",
@@ -85,6 +96,15 @@ export class AdminUserController {
         currentUserId,
         targetUserId,
         newRole: newRole as UserRole,
+      });
+
+      await AuditService.log({
+        action: AuditAction.USER_ROLE_CHANGE,
+        userId: currentUserId,
+        targetType: "user",
+        targetId: targetUserId,
+        details: { newRole },
+        ipAddress: req.ip,
       });
 
       sendSuccess(res, { user: updatedUser }, {
@@ -115,6 +135,15 @@ export class AdminUserController {
         reason,
       });
 
+      await AuditService.log({
+        action: AuditAction.USER_SUSPEND,
+        userId: currentUserId,
+        targetType: "user",
+        targetId: targetUserId,
+        details: { reason },
+        ipAddress: req.ip,
+      });
+
       sendSuccess(res, { user: updatedUser }, {
         message: "User suspended successfully.",
       });
@@ -133,6 +162,14 @@ export class AdminUserController {
 
       const updatedUser = await this.reactivateUserUseCase.execute({
         targetUserId,
+      });
+
+      await AuditService.log({
+        action: AuditAction.USER_REACTIVATE,
+        userId: req.user?.userId,
+        targetType: "user",
+        targetId: targetUserId,
+        ipAddress: req.ip,
       });
 
       sendSuccess(res, { user: updatedUser }, {
