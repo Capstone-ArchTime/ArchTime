@@ -24,6 +24,8 @@ import { DeleteProjectUseCase } from "./application/use-cases/projects/DeletePro
 import { MineProjectUseCase } from "./application/use-cases/projects/MineProjectUseCase.js";
 import { GetSnapshotsUseCase } from "./application/use-cases/projects/GetSnapshotsUseCase.js";
 import { GetMiningJobsUseCase } from "./application/use-cases/projects/GetMiningJobsUseCase.js";
+import { MiningWorkflowUseCase } from "./application/use-cases/projects/MiningWorkflowUseCase.js";
+import { ArchitectureUseCase } from "./application/use-cases/projects/ArchitectureUseCase.js";
 import { GetEvidencesUseCase } from "./application/use-cases/projects/GetEvidencesUseCase.js";
 
 // ── Presentation ──
@@ -158,8 +160,9 @@ export const projectController = new ProjectController(
   compareSnapshotsUseCase,
   getEvidencesUseCase,
   getProjectByIdUseCase,
+  new MiningWorkflowUseCase(),
+  new ArchitectureUseCase(),
 );
-
 
 // ── Workspace ──
 import { MongoWorkspaceRepository } from "./infrastructure/repositories/MongoWorkspaceRepository.js";
@@ -222,6 +225,7 @@ export const adminUserController = new AdminUserController(
 );
 
 export { jwtTokenService };
+
 
 
 

@@ -2,9 +2,11 @@ import { app } from "./app.js";
 import { env } from "./config/env.js";
 import { connectDb } from "./config/db.js";
 import open from "open";
+import { MiningService } from "./infrastructure/services/MiningService.js";
 
 async function start(): Promise<void> {
   await connectDb();
+  await MiningService.recoverInterruptedJobs();
   const url = `http://localhost:${env.port}`;
   app.listen(env.port, async () => {
     console.log(`ArchTime BE listening on ${url}`);

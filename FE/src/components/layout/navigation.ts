@@ -1,10 +1,11 @@
-import { LayoutDashboard, FolderKanban, History, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, FileText, Users2, SlidersHorizontal, ScrollText, Activity } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, History, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, FileText, Users2, SlidersHorizontal, ScrollText, Activity, Boxes } from 'lucide-react';
 
 export const navItemsByRole = {
   'developer-analyst': [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/projects', label: 'Projects', icon: FolderKanban },
     { path: '/history', label: 'Architecture History', icon: History },
+    { path: '/architecture', label: 'Architecture Map', icon: Boxes },
     { path: '/compare', label: 'Compare', icon: GitCompare },
     { path: '/evidence', label: 'Changes & Evidence', icon: FileSearch },
     { path: '/insights', label: 'AI Insights', icon: Sparkles },
