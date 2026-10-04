@@ -1,6 +1,7 @@
 import { Router, type RequestHandler } from "express";
 import type { ProjectController } from "../controllers/ProjectController.js";
 import type { MemberController } from "../controllers/MemberController.js";
+import type { WorkspaceController } from "../controllers/WorkspaceController.js";
 import { createAuthenticateMiddleware } from "../middlewares/authenticate.js";
 import type { JwtTokenService } from "../../infrastructure/services/JwtTokenService.js";
 import type { ProjectAction } from "../middlewares/projectRole.js";
@@ -10,7 +11,9 @@ export function createProjectRouter(
   jwtTokenService: JwtTokenService,
   memberController?: MemberController,
   projectRoleMiddleware?: (action: ProjectAction) => RequestHandler,
+  workspaceController?: WorkspaceController,
 ): Router {
+
   const router = Router();
 
   // Apply auth middleware to all project routes
@@ -543,6 +546,120 @@ export function createProjectRouter(
       "/:id/members/:memberId",
       checkRole("admin"),
       memberController.removeMember,
+    );
+  }
+
+  if (workspaceController) {
+    /**
+     * @swagger
+     * /api/projects/{id}/workspace:
+     *   get:
+     *     tags: [Workspace]
+     *     summary: Lấy dữ liệu kiến trúc workspace của dự án (diagram, rules, decisions)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *         description: Project ID
+     *     responses:
+     *       200:
+     *         description: Dữ liệu workspace của dự án
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/SuccessResponse'
+     *             example:
+     *               success: true
+     *               data:
+     *                 workspace:
+     *                   id: "64f1a2b3c4d5e6f7a8b9c0d1"
+     *                   projectId: "64f1a2b3c4d5e6f7a8b9c0d1"
+     *                   revision: 1
+     *                   diagram:
+     *                     components: []
+     *                     dependencies: []
+     *                     revision: 1
+     *                     confirmedAt: null
+     *                   rules: []
+     *                   decisions: []
+     *       401:
+     *         $ref: '#/components/responses/Unauthorized'
+     *       403:
+     *         $ref: '#/components/responses/Forbidden'
+     *       404:
+     *         $ref: '#/components/responses/NotFound'
+     *   put:
+     *     tags: [Workspace]
+     *     summary: Lưu dữ liệu kiến trúc workspace (kiểm soát revision - Optimistic Concurrency Control)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *         description: Project ID
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required: [diagram]
+     *             properties:
+     *               expectedRevision:
+     *                 type: integer
+     *                 example: 1
+     *                 description: Revision hiện tại mà client đang có để kiểm tra xung đột
+     *               diagram:
+     *                 $ref: '#/components/schemas/WorkspaceDiagram'
+     *               rules:
+     *                 type: array
+     *                 items:
+     *                   $ref: '#/components/schemas/WorkspaceRule'
+     *               decisions:
+     *                 type: array
+     *                 items:
+     *                   $ref: '#/components/schemas/WorkspaceDecision'
+     *     responses:
+     *       200:
+     *         description: Lưu dữ liệu workspace thành công
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/SuccessResponse'
+     *       400:
+     *         $ref: '#/components/responses/ValidationError'
+     *       401:
+     *         $ref: '#/components/responses/Unauthorized'
+     *       403:
+     *         $ref: '#/components/responses/Forbidden'
+     *       404:
+     *         $ref: '#/components/responses/NotFound'
+     *       409:
+     *         description: Xung đột revision (Optimistic Concurrency Control)
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/ErrorResponse'
+     *             example:
+     *               success: false
+     *               error:
+     *                 code: CONFLICT
+     *                 message: "Workspace revision conflict: expected revision 1, but current revision on server is 2. Please reload to avoid overwriting newer changes."
+     */
+    router.get(
+      "/:id/workspace",
+      checkRole("read"),
+      workspaceController.getWorkspace,
+    );
+    router.put(
+      "/:id/workspace",
+      checkRole("write"),
+      workspaceController.saveWorkspace,
     );
   }
 

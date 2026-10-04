@@ -2,7 +2,12 @@ import { API_BASE_URL, readTokens, tokenStorage, verifySession } from '../auth/s
 
 export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) { super(message); this.status = status; }
+  code?: string;
+  constructor(message: string, status: number, code?: string) {
+    super(message);
+    this.status = status;
+    this.code = code;
+  }
 }
 
 let renewal: Promise<string> | null = null;
@@ -33,8 +38,18 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
     }
     const body = response.status === 204 ? undefined : await response.json().catch(() => null);
     if (!response.ok) {
-      const detail = body?.message ?? body?.error;
-      throw new ApiError(typeof detail === 'string' ? detail : response.status === 403 ? 'You do not have permission to view this data.' : `Request failed (${response.status}). Please retry.`, response.status);
+      const code = typeof body?.error === 'object' && body?.error !== null ? body.error.code : undefined;
+      const serverMsg = typeof body?.error === 'object' && body?.error !== null
+        ? body.error.message
+        : (typeof body?.error === 'string' ? body.error : body?.message);
+      const detail = typeof serverMsg === 'string' && serverMsg.trim()
+        ? serverMsg
+        : response.status === 403
+          ? 'You do not have permission to view this data.'
+          : response.status === 409
+            ? 'Revision conflict: This workspace has been modified by someone else. Please reload before saving.'
+            : `Request failed (${response.status}). Please retry.`;
+      throw new ApiError(detail, response.status, code);
     }
     if (body === null) throw new Error('The server returned an invalid response.');
     return body as T;
