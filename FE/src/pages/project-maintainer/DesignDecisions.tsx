@@ -1,6 +1,6 @@
 import { downloadText } from '@/features/download';
 import { useState } from 'react';
-import { App, Button, Empty, Form, Input, Modal, Select, Tag } from 'antd';
+import { Alert, App, Button, Empty, Form, Input, Modal, Select, Tag } from 'antd';
 import { Plus, BookOpen } from 'lucide-react';
 import { WorkspacePage, StorageError } from './workspace';
 import { panel, useWorkspace } from './workspace-store';
@@ -17,7 +17,7 @@ function exportDecision(d: Decision, project: string) {
 }
 
 function DecisionEditor({ project }: { project: string }) {
-  const { data, save, loadError } = useWorkspace(project);
+  const { data, save, loadError, conflictError, reload } = useWorkspace(project);
   const { message } = App.useApp();
   const [editing, setEditing] = useState<Decision | null | undefined>();
   const [viewing, setViewing] = useState<Decision | null>(null);
@@ -35,6 +35,21 @@ function DecisionEditor({ project }: { project: string }) {
   }
   return <div className="space-y-5">
     <StorageError visible={loadError} />
+    {conflictError && (
+      <Alert
+        type="error"
+        showIcon
+        message="Workspace Revision Conflict"
+        description={
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-1">
+            <span>{conflictError}</span>
+            <Button size="small" danger onClick={() => reload()}>
+              Reload latest
+            </Button>
+          </div>
+        }
+      />
+    )}
     <div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-3"><BookOpen size={20} className="text-[#38bdf8]" /><span className="text-sm">{data.decisions.length} recorded decisions</span></div><Button type="primary" icon={<Plus size={14} />} disabled={loadError} onClick={() => open(null)}>Record decision</Button></div>
     <div className="flex flex-col sm:flex-row gap-3"><Input.Search aria-label="Search design decisions" placeholder="Search decisions, context, or ADR number" value={search} onChange={e => setSearch(e.target.value)} allowClear className="max-w-lg" /><Select aria-label="Filter by decision status" value={status} onChange={setStatus} className="w-full sm:w-44" options={['All', ...statuses].map(value => ({ value, label: value === 'All' ? 'All statuses' : value }))} /></div>
     {!filtered.length && <div className={panel}><Empty description={search || status !== 'All' ? 'No matching decisions.' : 'Record your first decision to preserve the reasoning behind your architecture.'} /></div>}
@@ -43,10 +58,11 @@ function DecisionEditor({ project }: { project: string }) {
     </article>)}</div>
     <PaginationBar {...pagination} />
     <Modal title={editing ? `Edit ${adr(editing.number)}` : 'Record design decision'} width={720} open={editing !== undefined} onCancel={() => setEditing(undefined)} onOk={() => form.submit()} okText="Save decision">
-      <Form form={form} layout="vertical" onFinish={values => {
+      <Form form={form} layout="vertical" onFinish={async values => {
         const now = new Date().toISOString();
         const decision: Decision = { ...values, title: values.title.trim(), context: values.context.trim(), decision: values.decision.trim(), alternatives: values.alternatives?.trim() ?? '', consequences: values.consequences.trim(), componentIds: values.componentIds ?? [], id: editing?.id ?? crypto.randomUUID(), number: editing?.number ?? Math.max(0, ...data.decisions.map(d => d.number)) + 1, createdAt: editing?.createdAt ?? now, updatedAt: now };
-        if (save({ ...data, decisions: editing ? data.decisions.map(d => d.id === editing.id ? decision : d) : [decision, ...data.decisions] })) { message.success('Design decision recorded.'); setEditing(undefined); }
+        const ok = await save({ ...data, decisions: editing ? data.decisions.map(d => d.id === editing.id ? decision : d) : [decision, ...data.decisions] });
+        if (ok) { message.success('Design decision recorded.'); setEditing(undefined); }
       }}>
         <Form.Item name="title" label="Title" rules={[{ required: true, whitespace: true }]}><Input maxLength={160} placeholder="Use asynchronous events for notifications" /></Form.Item>
         <div className="grid sm:grid-cols-2 gap-x-4"><Form.Item name="status" label="Status" rules={[{ required: true }]}><Select options={statuses.map(value => ({ value, label: value }))} /></Form.Item><Form.Item name="componentIds" label="Related components"><Select mode="multiple" options={componentOptions} placeholder="Optional" /></Form.Item></div>

@@ -13,6 +13,7 @@ import {
   jwtTokenService,
   memberController,
   projectRoleMiddleware,
+  workspaceController,
 } from "./container.js";
 import { createGitHubRouter } from './presentation/routes/github.routes.js';
 import { GitHubIdentityService } from './infrastructure/services/GitHubIdentityService.js';
@@ -40,6 +41,7 @@ app.use(
     jwtTokenService,
     memberController,
     projectRoleMiddleware,
+    workspaceController,
   ),
 );
 app.get(

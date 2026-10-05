@@ -164,6 +164,26 @@ export const projectController = new ProjectController(
   new ArchitectureUseCase(),
 );
 
+// ── Workspace ──
+import { MongoWorkspaceRepository } from "./infrastructure/repositories/MongoWorkspaceRepository.js";
+import { GetProjectWorkspaceUseCase } from "./application/use-cases/workspace/GetProjectWorkspaceUseCase.js";
+import { SaveProjectWorkspaceUseCase } from "./application/use-cases/workspace/SaveProjectWorkspaceUseCase.js";
+import { WorkspaceController } from "./presentation/controllers/WorkspaceController.js";
+
+export const workspaceRepository = new MongoWorkspaceRepository();
+const getProjectWorkspaceUseCase = new GetProjectWorkspaceUseCase(
+  workspaceRepository,
+  projectRepository,
+);
+const saveProjectWorkspaceUseCase = new SaveProjectWorkspaceUseCase(
+  workspaceRepository,
+  projectRepository,
+);
+
+export const workspaceController = new WorkspaceController(
+  getProjectWorkspaceUseCase,
+  saveProjectWorkspaceUseCase,
+);
 
 export const memberController = new MemberController(
   inviteProjectMemberUseCase,

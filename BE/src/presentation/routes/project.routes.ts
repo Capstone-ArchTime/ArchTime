@@ -1,6 +1,7 @@
 import { Router, type RequestHandler } from "express";
 import type { ProjectController } from "../controllers/ProjectController.js";
 import type { MemberController } from "../controllers/MemberController.js";
+import type { WorkspaceController } from "../controllers/WorkspaceController.js";
 import { createAuthenticateMiddleware } from "../middlewares/authenticate.js";
 import type { JwtTokenService } from "../../infrastructure/services/JwtTokenService.js";
 import type { ProjectAction } from "../middlewares/projectRole.js";
@@ -10,7 +11,9 @@ export function createProjectRouter(
   jwtTokenService: JwtTokenService,
   memberController?: MemberController,
   projectRoleMiddleware?: (action: ProjectAction) => RequestHandler,
+  workspaceController?: WorkspaceController,
 ): Router {
+
   const router = Router();
 
   // Apply auth middleware to all project routes
@@ -153,30 +156,30 @@ export function createProjectRouter(
     /**
      * @swagger
      * /api/projects/team/members:
-     *   get:
-     *     tags: [Projects]
-     *     summary: Lấy danh sách thành viên nhóm tổng hợp (theo quyền quản trị hoặc dự án)
-     *     security:
-     *       - BearerAuth: []
-     *     parameters:
-     *       - in: query
-     *         name: project
-     *         schema: { type: string }
-     *         description: ID dự án hoặc "all"
-     *       - in: query
-     *         name: q
-     *         schema: { type: string }
-     *         description: Tìm kiếm theo tên hoặc email
-     *     responses:
-     *       200:
-     *         description: Danh sách thành viên nhóm
-     *         content:
-     *           application/json:
-     *             schema:
-     *               $ref: '#/components/schemas/SuccessResponse'
-     *       401:
-     *         $ref: '#/components/responses/Unauthorized'
-     */
+   *   get:
+   *     tags: [Projects]
+   *     summary: Lấy danh sách thành viên nhóm tổng hợp (theo quyền quản trị hoặc dự án)
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: project
+   *         schema: { type: string }
+   *         description: ID dự án hoặc "all"
+   *       - in: query
+   *         name: q
+   *         schema: { type: string }
+   *         description: Tìm kiếm theo tên hoặc email
+   *     responses:
+   *       200:
+   *         description: Danh sách thành viên nhóm
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/SuccessResponse'
+   *       401:
+   *         $ref: '#/components/responses/Unauthorized'
+   */
     router.get("/team/members", memberController.getTeamMembers);
   }
 
@@ -237,7 +240,6 @@ export function createProjectRouter(
   /**
    * @swagger
    * /api/projects/{id}:
-
    *   delete:
    *     tags: [Projects]
    *     summary: Xóa dự án (Chỉ Owner / Maintainer / Admin)
@@ -541,49 +543,49 @@ export function createProjectRouter(
      *         $ref: '#/components/responses/Unauthorized'
      *       403:
      *         $ref: '#/components/responses/Forbidden'
-     *   post:
-     *     tags: [Projects]
-     *     summary: Mời thành viên mới vào dự án (Chỉ Maintainer / Admin)
-     *     security:
-     *       - BearerAuth: []
-     *     parameters:
-     *       - in: path
-     *         name: id
-     *         required: true
-     *         schema: { type: string }
-     *     requestBody:
-     *       required: true
-     *       content:
-     *         application/json:
-     *           schema:
-     *             type: object
-     *             required: [email, name]
-     *             properties:
-     *               email:
-     *                 type: string
-     *                 format: email
-     *                 example: dev@example.com
-     *               name:
-     *                 type: string
-     *                 example: Alice Developer
-     *               role:
-     *                 type: string
-     *                 enum: [developer-analyst, project-maintainer]
-     *                 default: developer-analyst
-     *     responses:
-     *       201:
-     *         description: Đã mời thành viên thành công
-     *         content:
-     *           application/json:
-     *             schema:
-     *               $ref: '#/components/schemas/SuccessResponse'
-     *       400:
-     *         $ref: '#/components/responses/ValidationError'
-     *       401:
-     *         $ref: '#/components/responses/Unauthorized'
-     *       403:
-     *         $ref: '#/components/responses/Forbidden'
-     */
+   *   post:
+   *     tags: [Projects]
+   *     summary: Mời thành viên mới vào dự án (Chỉ Maintainer / Admin)
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema: { type: string }
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [email, name]
+   *             properties:
+   *               email:
+   *                 type: string
+   *                 format: email
+   *                 example: dev@example.com
+   *               name:
+   *                 type: string
+   *                 example: Alice Developer
+   *               role:
+   *                 type: string
+   *                 enum: [developer-analyst, project-maintainer]
+   *                 default: developer-analyst
+   *     responses:
+   *       201:
+   *         description: Đã mời thành viên thành công
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/SuccessResponse'
+   *       400:
+   *         $ref: '#/components/responses/ValidationError'
+   *       401:
+   *         $ref: '#/components/responses/Unauthorized'
+   *       403:
+   *         $ref: '#/components/responses/Forbidden'
+   */
     router.get("/:id/members", checkRole("read"), memberController.getProjectMembers);
     router.post("/:id/members", checkRole("admin"), memberController.inviteMember);
 
@@ -618,6 +620,132 @@ export function createProjectRouter(
      *     responses:
      *       200:
      *         description: Đã cập nhật vai trò thành công
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/SuccessResponse'
+   *       400:
+   *         $ref: '#/components/responses/ValidationError'
+   *       401:
+   *         $ref: '#/components/responses/Unauthorized'
+   *       403:
+   *         $ref: '#/components/responses/Forbidden'
+   *   delete:
+   *     tags: [Projects]
+   *     summary: Xóa thành viên hoặc thu hồi lời mời (Chỉ Maintainer / Admin)
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema: { type: string }
+   *       - in: path
+   *         name: memberId
+   *         required: true
+   *         schema: { type: string }
+   *     responses:
+   *       200:
+   *         description: Đã xóa thành viên thành công
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/SuccessResponse'
+   *       401:
+   *         $ref: '#/components/responses/Unauthorized'
+   *       403:
+   *         $ref: '#/components/responses/Forbidden'
+   */
+    router.patch(
+      "/:id/members/:memberId",
+      checkRole("admin"),
+      memberController.updateMemberRole,
+    );
+    router.delete(
+      "/:id/members/:memberId",
+      checkRole("admin"),
+      memberController.removeMember,
+    );
+  }
+
+  if (workspaceController) {
+    /**
+     * @swagger
+     * /api/projects/{id}/workspace:
+     *   get:
+     *     tags: [Workspace]
+     *     summary: Lấy dữ liệu kiến trúc workspace của dự án (diagram, rules, decisions)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *         description: Project ID
+     *     responses:
+     *       200:
+     *         description: Dữ liệu workspace của dự án
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/SuccessResponse'
+     *             example:
+     *               success: true
+     *               data:
+     *                 workspace:
+     *                   id: "64f1a2b3c4d5e6f7a8b9c0d1"
+     *                   projectId: "64f1a2b3c4d5e6f7a8b9c0d1"
+     *                   revision: 1
+     *                   diagram:
+     *                     components: []
+     *                     dependencies: []
+     *                     revision: 1
+     *                     confirmedAt: null
+     *                   rules: []
+     *                   decisions: []
+     *       401:
+     *         $ref: '#/components/responses/Unauthorized'
+     *       403:
+     *         $ref: '#/components/responses/Forbidden'
+     *       404:
+     *         $ref: '#/components/responses/NotFound'
+     *   put:
+     *     tags: [Workspace]
+     *     summary: Lưu dữ liệu kiến trúc workspace (kiểm soát revision - Optimistic Concurrency Control)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *         description: Project ID
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required: [diagram]
+     *             properties:
+     *               expectedRevision:
+     *                 type: integer
+     *                 example: 1
+     *                 description: Revision hiện tại mà client đang có để kiểm tra xung đột
+     *               diagram:
+     *                 $ref: '#/components/schemas/WorkspaceDiagram'
+     *               rules:
+     *                 type: array
+     *                 items:
+     *                   $ref: '#/components/schemas/WorkspaceRule'
+     *               decisions:
+     *                 type: array
+     *                 items:
+     *                   $ref: '#/components/schemas/WorkspaceDecision'
+     *     responses:
+     *       200:
+     *         description: Lưu dữ liệu workspace thành công
      *         content:
      *           application/json:
      *             schema:
@@ -628,41 +756,29 @@ export function createProjectRouter(
      *         $ref: '#/components/responses/Unauthorized'
      *       403:
      *         $ref: '#/components/responses/Forbidden'
-     *   delete:
-     *     tags: [Projects]
-     *     summary: Xóa thành viên hoặc thu hồi lời mời (Chỉ Maintainer / Admin)
-     *     security:
-     *       - BearerAuth: []
-     *     parameters:
-     *       - in: path
-     *         name: id
-     *         required: true
-     *         schema: { type: string }
-     *       - in: path
-     *         name: memberId
-     *         required: true
-     *         schema: { type: string }
-     *     responses:
-     *       200:
-     *         description: Đã xóa thành viên thành công
+     *       404:
+     *         $ref: '#/components/responses/NotFound'
+     *       409:
+     *         description: Xung đột revision (Optimistic Concurrency Control)
      *         content:
      *           application/json:
      *             schema:
-     *               $ref: '#/components/schemas/SuccessResponse'
-     *       401:
-     *         $ref: '#/components/responses/Unauthorized'
-     *       403:
-     *         $ref: '#/components/responses/Forbidden'
+     *               $ref: '#/components/schemas/ErrorResponse'
+     *             example:
+     *               success: false
+     *               error:
+     *                 code: CONFLICT
+     *                 message: "Workspace revision conflict: expected revision 1, but current revision on server is 2. Please reload to avoid overwriting newer changes."
      */
-    router.patch(
-      "/:id/members/:memberId",
-      checkRole("admin"),
-      memberController.updateMemberRole,
+    router.get(
+      "/:id/workspace",
+      checkRole("read"),
+      workspaceController.getWorkspace,
     );
-    router.delete(
-      "/:id/members/:memberId",
-      checkRole("admin"),
-      memberController.removeMember,
+    router.put(
+      "/:id/workspace",
+      checkRole("write"),
+      workspaceController.saveWorkspace,
     );
   }
 
@@ -686,21 +802,6 @@ export function createProjectRouter(
    *     responses:
    *       200:
    *         description: Architecture map data
-   *       401:
-   *         $ref: '#/components/responses/Unauthorized'
-   *   post:
-   *     tags: [Projects]
-   *     summary: Tạo (generate) bản đồ kiến trúc từ snapshot
-   *     security:
-   *       - BearerAuth: []
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         required: true
-   *         schema: { type: string }
-   *     responses:
-   *       200:
-   *         description: Architecture map đã được tạo
    *       401:
    *         $ref: '#/components/responses/Unauthorized'
    */

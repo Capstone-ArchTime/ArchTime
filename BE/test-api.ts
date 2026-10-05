@@ -176,6 +176,8 @@ async function testProjectsNoAuth() {
     { method: "DELETE", path: "/api/projects/fake-id/members/m1" },
     { method: "GET", path: "/api/projects/team/members" },
     { method: "GET", path: "/api/team/members" },
+    { method: "GET", path: "/api/projects/fake-id/workspace" },
+    { method: "PUT", path: "/api/projects/fake-id/workspace" },
   ];
 
 
@@ -282,6 +284,10 @@ async function testSwagger() {
     "Evidence",
     "ProjectMember",
     "TeamMember",
+    "Workspace",
+    "WorkspaceDiagram",
+    "WorkspaceRule",
+    "WorkspaceDecision",
   ];
 
 

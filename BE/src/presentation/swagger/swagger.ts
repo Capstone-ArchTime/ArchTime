@@ -272,6 +272,99 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        WorkspaceComponent: {
+          type: "object",
+          required: ["id", "name", "kind", "description"],
+          properties: {
+            id: { type: "string", example: "web" },
+            name: { type: "string", example: "Web Application" },
+            kind: { type: "string", example: "UI" },
+            description: { type: "string", example: "User-facing application interface" },
+          },
+        },
+        WorkspaceDependency: {
+          type: "object",
+          required: ["id", "source", "target", "label"],
+          properties: {
+            id: { type: "string", example: "e1" },
+            source: { type: "string", example: "web" },
+            target: { type: "string", example: "api" },
+            label: { type: "string", example: "HTTPS" },
+          },
+        },
+        WorkspaceDiagram: {
+          type: "object",
+          required: ["components", "dependencies", "revision"],
+          properties: {
+            components: {
+              type: "array",
+              items: { $ref: "#/components/schemas/WorkspaceComponent" },
+            },
+            dependencies: {
+              type: "array",
+              items: { $ref: "#/components/schemas/WorkspaceDependency" },
+            },
+            revision: { type: "integer", example: 1 },
+            confirmedAt: { type: "string", format: "date-time", nullable: true },
+            confirmedBy: { type: "string", nullable: true },
+          },
+        },
+        WorkspaceRule: {
+          type: "object",
+          required: ["id", "name", "source", "target", "constraint", "severity", "rationale", "enabled"],
+          properties: {
+            id: { type: "string", example: "r1" },
+            name: { type: "string", example: "UI should not access DB directly" },
+            source: { type: "string", example: "web" },
+            target: { type: "string", example: "db" },
+            constraint: { type: "string", enum: ["forbidden", "required"], example: "forbidden" },
+            severity: { type: "string", enum: ["error", "warning"], example: "error" },
+            rationale: { type: "string", example: "Presentation layer must call backend APIs." },
+            enabled: { type: "boolean", example: true },
+          },
+        },
+        WorkspaceDecision: {
+          type: "object",
+          required: ["id", "number", "title", "status", "context", "decision", "alternatives", "consequences", "componentIds"],
+          properties: {
+            id: { type: "string", example: "d1" },
+            number: { type: "integer", example: 1 },
+            title: { type: "string", example: "Use PostgreSQL for transactional datastore" },
+            status: { type: "string", enum: ["Proposed", "Accepted", "Deprecated"], example: "Accepted" },
+            context: { type: "string", example: "Need ACID transactions for billing" },
+            decision: { type: "string", example: "Adopt PostgreSQL as the primary RDBMS" },
+            alternatives: { type: "string", example: "MongoDB, MySQL" },
+            consequences: { type: "string", example: "Requires relational schema migrations" },
+            componentIds: {
+              type: "array",
+              items: { type: "string" },
+              example: ["db"],
+            },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+        Workspace: {
+          type: "object",
+          description: "Dữ liệu kiến trúc workspace của một dự án",
+          properties: {
+            id: { type: "string", example: "64f1a2b3c4d5e6f7a8b9c0d1" },
+            projectId: { type: "string", example: "64f1a2b3c4d5e6f7a8b9c0d1" },
+            revision: { type: "integer", example: 1 },
+            diagram: { $ref: "#/components/schemas/WorkspaceDiagram" },
+            rules: {
+              type: "array",
+              items: { $ref: "#/components/schemas/WorkspaceRule" },
+            },
+            decisions: {
+              type: "array",
+              items: { $ref: "#/components/schemas/WorkspaceDecision" },
+            },
+            updatedBy: { type: "string", example: "64f1a2b3c4d5e6f7a8b9c0d0" },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
       },
 
       // ── Responses tái sử dụng ─────────────────────────────────────────────
