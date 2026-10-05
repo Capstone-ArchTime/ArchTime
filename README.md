@@ -191,6 +191,24 @@ BE/src/
 
 The backend groups workflows into use cases, persistence into repositories, and HTTP handling into controllers and routes. Dependencies are assembled in `container.ts`.
 
+### Batch mining
+
+Large repositories are mined in steps instead of one long run:
+
+1. **Scan** (`POST /api/projects/:id/scan`) clones (or fetches) the repository into `BE/mining-cache/<projectId>` and records the commit history. Nothing is analyzed yet.
+2. **Choose what to mine** (`POST /api/projects/:id/mine`):
+   - `{ "mode": "range", "since": "2024-02-01", "until": "2024-02-29" }` mines only that author-date range (a date-only `until` includes the whole day; add `"force": true` to re-mine commits already mined);
+   - `{ "mode": "remaining" }` (also the default with no body) mines every commit not yet mined, so it doubles as "continue".
+3. **Monitor / stop**: `GET /api/projects/:id/mining` returns coverage (history vs. mined per month, remaining, active job); `GET /api/projects/:id/mining/estimate?since=&until=` returns exact commit counts for a range; `POST /api/projects/jobs/:jobId/cancel` stops a job.
+
+Commits are analyzed in batches (`MINING_BATCH_SIZE`, default 50) and each batch is saved before the next starts, so cancelling, a failure or a server restart keeps everything finished so far. Jobs expose `total`, `processed`, `batchIndex`/`batchCount` and `progress`. A project has one active job at a time; `MINING_MAX_CONCURRENT` (default 2) limits jobs running across projects. Project status is `PARTIAL` until every commit is mined, then `COMPLETED`.
+
+Each snapshot is compared with the closest earlier *mined* snapshot, so after mining non-adjacent ranges the dependency counts at a gap reflect the whole gap; filling a gap recomputes the snapshot right after it. Private-repository tokens are sent as an HTTP header for the git process and are not written into the clone's remote URL. The FE entry point is **Manage mining** on each project card in Projects.
+
+### AI-assisted architecture components
+
+The Architecture Map groups a snapshot's files into 8-15 components with deterministic clustering. An AI model can then name and refine the grouping, but only after the server is configured for it: set `ANTHROPIC_API_KEY` in `BE/.env` (Claude, default model `claude-opus-5-5`), or `GEMINI_API_KEY` (Google Gemini, default model `gemini-3.6-flash`), or point `LLM_PROVIDER=openai-compatible`, `LLM_BASE_URL` and `LLM_MODEL` at a model you host (for example Ollama). Only file paths and import relations are sent, never source code; for an external provider the UI asks before sending. Every answer is verified and the clustering result is kept when it fails. Details and all variables: `FE/src/features/architecture/README.md`.
+
 ### Authentication merge compatibility
 
 The auth branch is integrated with Develop's existing GitHub flow (browser-bound state, PKCE, and one-use token exchange), password-reset payload (`email`, `token`, `password`, `confirmPassword`), and session revocation. Its alternative Passport routes and OTP-based password-reset implementation are superseded by these existing flows; the proposed Passport account-link endpoints are not exposed.

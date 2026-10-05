@@ -2,3 +2,5 @@ node_modules/
 dist/
 .env
 *.log
+mining-cache/
+tmp-workspace/
