@@ -273,4 +273,90 @@ export const adminControllersConfig: AdminControllersConfig = {
   metricsController: adminMetricsController,
 };
 
+// ── Project Maintainer (PM) ──
+import { GetProjectDashboardUseCase } from "./application/use-cases/pm/GetProjectDashboardUseCase.js";
+import { GetProjectDiagramUseCase } from "./application/use-cases/pm/GetProjectDiagramUseCase.js";
+import {
+  SaveProjectDiagramUseCase,
+  ConfirmProjectDiagramUseCase,
+} from "./application/use-cases/pm/SaveProjectDiagramUseCase.js";
+import {
+  GetProjectRulesUseCase,
+  CreateProjectRuleUseCase,
+  UpdateProjectRuleUseCase,
+  DeleteProjectRuleUseCase,
+  ToggleProjectRuleUseCase,
+  EvaluateProjectRulesUseCase,
+} from "./application/use-cases/pm/ProjectRulesUseCases.js";
+import {
+  GetProjectDecisionsUseCase,
+  CreateProjectDecisionUseCase,
+  GetProjectDecisionDetailUseCase,
+  UpdateProjectDecisionUseCase,
+  DeleteProjectDecisionUseCase,
+} from "./application/use-cases/pm/ProjectDecisionUseCases.js";
+import {
+  GetProjectApprovalsUseCase,
+  CreateApprovalRequestUseCase,
+  GetApprovalDetailUseCase,
+  ApproveRequestUseCase,
+  RejectRequestUseCase,
+} from "./application/use-cases/pm/ApprovalQueueUseCases.js";
+import {
+  InviteProjectMemberTokenUseCase,
+  GetProjectInvitationsUseCase,
+  CancelProjectInvitationUseCase,
+  AcceptProjectInvitationUseCase,
+  DeclineProjectInvitationUseCase,
+} from "./application/use-cases/pm/ProjectInvitationUseCases.js";
+import {
+  GetProjectReportsUseCase,
+  GenerateProjectReportUseCase,
+  GetProjectReportDetailUseCase,
+} from "./application/use-cases/pm/ProjectReportUseCases.js";
+import { ProjectMaintainerController } from "./presentation/controllers/ProjectMaintainerController.js";
+
+const evaluateRulesUseCase = new EvaluateProjectRulesUseCase(workspaceRepository, projectRepository);
+
+export const projectMaintainerController = new ProjectMaintainerController({
+  dashboardUseCase: new GetProjectDashboardUseCase(
+    projectRepository,
+    workspaceRepository,
+    memberRepository,
+    evaluateRulesUseCase,
+  ),
+  getDiagramUseCase: new GetProjectDiagramUseCase(workspaceRepository, projectRepository),
+  saveDiagramUseCase: new SaveProjectDiagramUseCase(workspaceRepository, projectRepository),
+  confirmDiagramUseCase: new ConfirmProjectDiagramUseCase(workspaceRepository, projectRepository),
+  getRulesUseCase: new GetProjectRulesUseCase(workspaceRepository, projectRepository),
+  createRuleUseCase: new CreateProjectRuleUseCase(workspaceRepository, projectRepository),
+  updateRuleUseCase: new UpdateProjectRuleUseCase(workspaceRepository, projectRepository),
+  deleteRuleUseCase: new DeleteProjectRuleUseCase(workspaceRepository, projectRepository),
+  toggleRuleUseCase: new ToggleProjectRuleUseCase(workspaceRepository, projectRepository),
+  evaluateRulesUseCase,
+  getDecisionsUseCase: new GetProjectDecisionsUseCase(workspaceRepository, projectRepository),
+  createDecisionUseCase: new CreateProjectDecisionUseCase(workspaceRepository, projectRepository),
+  getDecisionDetailUseCase: new GetProjectDecisionDetailUseCase(workspaceRepository, projectRepository),
+  updateDecisionUseCase: new UpdateProjectDecisionUseCase(workspaceRepository, projectRepository),
+  deleteDecisionUseCase: new DeleteProjectDecisionUseCase(workspaceRepository, projectRepository),
+  getApprovalsUseCase: new GetProjectApprovalsUseCase(projectRepository),
+  createApprovalUseCase: new CreateApprovalRequestUseCase(projectRepository),
+  getApprovalDetailUseCase: new GetApprovalDetailUseCase(),
+  approveRequestUseCase: new ApproveRequestUseCase(),
+  rejectRequestUseCase: new RejectRequestUseCase(),
+  inviteMemberTokenUseCase: new InviteProjectMemberTokenUseCase(
+    projectRepository,
+    memberRepository,
+    userRepository,
+    emailService,
+  ),
+  getInvitationsUseCase: new GetProjectInvitationsUseCase(),
+  cancelInvitationUseCase: new CancelProjectInvitationUseCase(),
+  acceptInvitationUseCase: new AcceptProjectInvitationUseCase(memberRepository, userRepository),
+  declineInvitationUseCase: new DeclineProjectInvitationUseCase(),
+  getReportsUseCase: new GetProjectReportsUseCase(projectRepository),
+  generateReportUseCase: new GenerateProjectReportUseCase(projectRepository, workspaceRepository),
+  getReportDetailUseCase: new GetProjectReportDetailUseCase(),
+});
+
 export { jwtTokenService };

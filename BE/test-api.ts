@@ -178,6 +178,21 @@ async function testProjectsNoAuth() {
     { method: "GET", path: "/api/team/members" },
     { method: "GET", path: "/api/projects/fake-id/workspace" },
     { method: "PUT", path: "/api/projects/fake-id/workspace" },
+    { method: "GET", path: "/api/projects/fake-id/dashboard" },
+    { method: "GET", path: "/api/projects/fake-id/diagram" },
+    { method: "PUT", path: "/api/projects/fake-id/diagram" },
+    { method: "POST", path: "/api/projects/fake-id/diagram/confirm" },
+    { method: "GET", path: "/api/projects/fake-id/rules" },
+    { method: "POST", path: "/api/projects/fake-id/rules" },
+    { method: "GET", path: "/api/projects/fake-id/rules/evaluate" },
+    { method: "GET", path: "/api/projects/fake-id/decisions" },
+    { method: "POST", path: "/api/projects/fake-id/decisions" },
+    { method: "GET", path: "/api/projects/fake-id/approvals" },
+    { method: "POST", path: "/api/projects/fake-id/approvals" },
+    { method: "POST", path: "/api/projects/fake-id/members/invite" },
+    { method: "GET", path: "/api/projects/fake-id/invitations" },
+    { method: "GET", path: "/api/projects/fake-id/reports" },
+    { method: "POST", path: "/api/projects/fake-id/reports/generate" },
   ];
 
   for (const ep of endpoints) {
@@ -294,6 +309,11 @@ async function testSwagger() {
     "SystemSettings",
     "SystemMetrics",
     "ServicesStatus",
+    "ProjectDashboard",
+    "RuleEvaluationSummary",
+    "ApprovalRequest",
+    "ProjectInvitation",
+    "ProjectReport",
   ];
 
   for (const s of requiredSchemas) {
