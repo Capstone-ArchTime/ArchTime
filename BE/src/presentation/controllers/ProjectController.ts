@@ -7,8 +7,8 @@ import type { MineProjectUseCase } from "../../application/use-cases/projects/Mi
 import type { GetSnapshotsUseCase } from "../../application/use-cases/projects/GetSnapshotsUseCase.js";
 import type { GetMiningJobsUseCase } from "../../application/use-cases/projects/GetMiningJobsUseCase.js";
 import type { CompareSnapshotsUseCase } from "../../application/use-cases/projects/CompareSnapshotsUseCase.js";
-import type { MiningWorkflowUseCase } from "../../application/use-cases/projects/MiningWorkflowUseCase.js";
-import type { ArchitectureUseCase } from "../../application/use-cases/projects/ArchitectureUseCase.js";
+import { MiningWorkflowUseCase } from "../../application/use-cases/projects/MiningWorkflowUseCase.js";
+import { ArchitectureUseCase } from "../../application/use-cases/projects/ArchitectureUseCase.js";
 import type { GetEvidencesUseCase } from "../../application/use-cases/projects/GetEvidencesUseCase.js";
 import { BadRequestError, NotFoundError, UnauthorizedError } from "../../shared/errors/AppError.js";
 import { sendSuccess, parsePaginationParams, buildPaginationMeta } from "../../shared/utils/apiResponse.js";
@@ -24,8 +24,8 @@ export class ProjectController {
     private readonly compareSnapshotsUseCase: CompareSnapshotsUseCase,
     private readonly getEvidencesUseCase: GetEvidencesUseCase,
     private readonly getProjectByIdUseCase: GetProjectByIdUseCase | undefined,
-    private readonly miningWorkflowUseCase: MiningWorkflowUseCase,
-    private readonly architectureUseCase: ArchitectureUseCase,
+    private readonly miningWorkflowUseCase: MiningWorkflowUseCase = new MiningWorkflowUseCase(),
+    private readonly architectureUseCase: ArchitectureUseCase = new ArchitectureUseCase(),
   ) {}
 
   public registerProject = async (
@@ -115,7 +115,6 @@ export class ProjectController {
     }
   };
 
-
   public deleteProject = async (
     req: Request,
     res: Response,
@@ -139,7 +138,6 @@ export class ProjectController {
       next(error);
     }
   };
-
 
   public mineProject = async (
     req: Request,
@@ -184,7 +182,11 @@ export class ProjectController {
           meta: buildPaginationMeta(result.total, page, limit),
         });
       } else {
-        const snapshots = await this.getSnapshotsUseCase.execute(id, userId, summary);
+        const snapshots = (await this.getSnapshotsUseCase.execute(
+          id,
+          userId,
+          summary,
+        )) as any[];
         sendSuccess(res, { snapshots });
       }
     } catch (error) {

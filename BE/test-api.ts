@@ -1,6 +1,6 @@
 /**
- * CORE-01 API Integration Test
- * Kiểm tra tất cả endpoints: response format, error codes, pagination, validation
+ * CORE-01 & SA-02 API Integration Test
+ * Kiểm tra tất cả endpoints: response format, error codes, pagination, validation, admin endpoints
  * Chạy: npx tsx test-api.ts
  */
 
@@ -180,7 +180,6 @@ async function testProjectsNoAuth() {
     { method: "PUT", path: "/api/projects/fake-id/workspace" },
   ];
 
-
   for (const ep of endpoints) {
     const r = await req(ep.method, ep.path);
     test(
@@ -209,8 +208,6 @@ async function testProjectsWithAuth() {
   });
 
   if (reg.status !== 201) {
-    // Nếu register thành công thì cần verify, nhưng ta ko có OTP
-    // Thay vào đó thử login với credentials invalid để test response format
     const r = await req("POST", "/api/auth/login", {
       email: "nonexistent@test.com",
       password: "Test1234!",
@@ -231,7 +228,6 @@ async function testProjectsWithAuth() {
       `status=${reg.status} success=${reg.body.success}`,
     );
 
-    // Login invalid creds
     const r = await req("POST", "/api/auth/login", {
       email: "nonexistent@test.com",
       password: "Test1234!",
@@ -288,8 +284,17 @@ async function testSwagger() {
     "WorkspaceDiagram",
     "WorkspaceRule",
     "WorkspaceDecision",
+    "AdminUser",
+    "InviteUserRequest",
+    "UpdateRoleRequest",
+    "SuspendUserRequest",
+    "AdminMiningJob",
+    "AuditLog",
+    "ApiKey",
+    "SystemSettings",
+    "SystemMetrics",
+    "ServicesStatus",
   ];
-
 
   for (const s of requiredSchemas) {
     test(
@@ -327,7 +332,128 @@ async function testSwagger() {
 }
 
 // ────────────────────────────────────────────────────────────
-// 6. 404 handler
+// 6. Admin Endpoints (SA-01, SA-02, SA-03, SA-04, SA-05)
+// ────────────────────────────────────────────────────────────
+async function testAdminEndpoints() {
+  // SA-02: User Management
+  const r1 = await req("GET", "/api/admin/users");
+  test(
+    "GET /api/admin/users: no token → 401 UNAUTHORIZED",
+    r1.status === 401 && r1.body.success === false,
+    `status=${r1.status} code=${r1.body.error?.code}`,
+  );
+
+  const r2 = await req("POST", "/api/admin/users/invite", {
+    name: "Test",
+    email: "test@example.com",
+    role: "developer-analyst",
+  });
+  test(
+    "POST /api/admin/users/invite: no token → 401 UNAUTHORIZED",
+    r2.status === 401 && r2.body.success === false,
+    `status=${r2.status} code=${r2.body.error?.code}`,
+  );
+
+  const r3 = await req("PATCH", "/api/admin/users/someid/role", {
+    role: "project-maintainer",
+  });
+  test(
+    "PATCH /api/admin/users/:id/role: no token → 401 UNAUTHORIZED",
+    r3.status === 401 && r3.body.success === false,
+    `status=${r3.status} code=${r3.body.error?.code}`,
+  );
+
+  const r4 = await req("PATCH", "/api/admin/users/someid/suspend", {});
+  test(
+    "PATCH /api/admin/users/:id/suspend: no token → 401 UNAUTHORIZED",
+    r4.status === 401 && r4.body.success === false,
+    `status=${r4.status} code=${r4.body.error?.code}`,
+  );
+
+  const r5 = await req("PATCH", "/api/admin/users/someid/reactivate", {});
+  test(
+    "PATCH /api/admin/users/:id/reactivate: no token → 401 UNAUTHORIZED",
+    r5.status === 401 && r5.body.success === false,
+    `status=${r5.status} code=${r5.body.error?.code}`,
+  );
+
+  // SA-03: Mining Jobs Monitor
+  const rJobs = await req("GET", "/api/admin/jobs");
+  test(
+    "GET /api/admin/jobs: no token → 401 UNAUTHORIZED",
+    rJobs.status === 401 && rJobs.body.success === false,
+    `status=${rJobs.status} code=${rJobs.body.error?.code}`,
+  );
+
+  const rCancelJob = await req("POST", "/api/admin/jobs/someid/cancel", {});
+  test(
+    "POST /api/admin/jobs/:id/cancel: no token → 401 UNAUTHORIZED",
+    rCancelJob.status === 401 && rCancelJob.body.success === false,
+    `status=${rCancelJob.status} code=${rCancelJob.body.error?.code}`,
+  );
+
+  // SA-04: System Settings
+  const rSettings = await req("GET", "/api/admin/settings");
+  test(
+    "GET /api/admin/settings: no token → 401 UNAUTHORIZED",
+    rSettings.status === 401 && rSettings.body.success === false,
+    `status=${rSettings.status} code=${rSettings.body.error?.code}`,
+  );
+
+  const rUpdateSettings = await req("PUT", "/api/admin/settings", { maxConcurrentJobs: 5 });
+  test(
+    "PUT /api/admin/settings: no token → 401 UNAUTHORIZED",
+    rUpdateSettings.status === 401 && rUpdateSettings.body.success === false,
+    `status=${rUpdateSettings.status} code=${rUpdateSettings.body.error?.code}`,
+  );
+
+  const rCreateApiKey = await req("POST", "/api/admin/settings/api-keys", { name: "Test Key" });
+  test(
+    "POST /api/admin/settings/api-keys: no token → 401 UNAUTHORIZED",
+    rCreateApiKey.status === 401 && rCreateApiKey.body.success === false,
+    `status=${rCreateApiKey.status} code=${rCreateApiKey.body.error?.code}`,
+  );
+
+  const rRevokeApiKey = await req("DELETE", "/api/admin/settings/api-keys/someid");
+  test(
+    "DELETE /api/admin/settings/api-keys/:id: no token → 401 UNAUTHORIZED",
+    rRevokeApiKey.status === 401 && rRevokeApiKey.body.success === false,
+    `status=${rRevokeApiKey.status} code=${rRevokeApiKey.body.error?.code}`,
+  );
+
+  // SA-05: Audit Log
+  const rAudit = await req("GET", "/api/admin/audit-logs");
+  test(
+    "GET /api/admin/audit-logs: no token → 401 UNAUTHORIZED",
+    rAudit.status === 401 && rAudit.body.success === false,
+    `status=${rAudit.status} code=${rAudit.body.error?.code}`,
+  );
+
+  // SA-01: Metrics & Health
+  const rMetrics = await req("GET", "/api/admin/metrics");
+  test(
+    "GET /api/admin/metrics: no token → 401 UNAUTHORIZED",
+    rMetrics.status === 401 && rMetrics.body.success === false,
+    `status=${rMetrics.status} code=${rMetrics.body.error?.code}`,
+  );
+
+  const rServices = await req("GET", "/api/admin/services/status");
+  test(
+    "GET /api/admin/services/status: no token → 401 UNAUTHORIZED",
+    rServices.status === 401 && rServices.body.success === false,
+    `status=${rServices.status} code=${rServices.body.error?.code}`,
+  );
+
+  const rLogs = await req("GET", "/api/admin/logs");
+  test(
+    "GET /api/admin/logs: no token → 401 UNAUTHORIZED",
+    rLogs.status === 401 && rLogs.body.success === false,
+    `status=${rLogs.status} code=${rLogs.body.error?.code}`,
+  );
+}
+
+// ────────────────────────────────────────────────────────────
+// 7. 404 handler
 // ────────────────────────────────────────────────────────────
 async function test404() {
   const r = await req("GET", "/api/nonexistent");
@@ -342,8 +468,8 @@ async function test404() {
 // Main
 // ────────────────────────────────────────────────────────────
 async function main() {
-  console.log("=" .repeat(60));
-  console.log("CORE-01 API Integration Tests");
+  console.log("=".repeat(60));
+  console.log("CORE & SA-02 API Integration Tests");
   console.log("=".repeat(60));
   console.log();
 
@@ -365,6 +491,8 @@ async function main() {
   await testProjectsWithAuth();
   console.log();
   await testSwagger();
+  console.log();
+  await testAdminEndpoints();
   console.log();
   await test404();
 

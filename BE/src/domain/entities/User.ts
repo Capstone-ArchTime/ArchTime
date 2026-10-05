@@ -4,6 +4,11 @@ export enum UserRole {
   SYSTEM_ADMINISTRATOR = "system-administrator",
 }
 
+export enum UserStatus {
+  ACTIVE = "active",
+  SUSPENDED = "suspended",
+}
+
 export interface IUser {
   id: string;
   name: string;
@@ -11,6 +16,7 @@ export interface IUser {
   passwordHash: string;
   githubId?: string;
   role: UserRole;
+  status: UserStatus;
   isVerified: boolean;
   tokenVersion?: number;
   createdAt: Date;

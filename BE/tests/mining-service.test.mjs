@@ -164,4 +164,8 @@ test('cancelling stops at a batch boundary and keeps finished batches', async ()
   assert.deepEqual([resumed.status, resumed.total, fakes.snap.rows.length], ['completed', 4, 6]);
 });
 
-test.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+test.after(() => {
+  try {
+    fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  } catch {}
+});
