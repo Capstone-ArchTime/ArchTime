@@ -163,6 +163,7 @@ async function testProjectsNoAuth() {
   const endpoints = [
     { method: "GET", path: "/api/projects" },
     { method: "POST", path: "/api/projects" },
+    { method: "GET", path: "/api/projects/fake-id" },
     { method: "DELETE", path: "/api/projects/fake-id" },
     { method: "POST", path: "/api/projects/fake-id/mine" },
     { method: "GET", path: "/api/projects/fake-id/snapshots" },

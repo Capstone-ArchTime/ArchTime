@@ -91,6 +91,14 @@ export function createProjectRouter(
    *         name: limit
    *         schema: { type: integer, default: 10, maximum: 100 }
    *         description: Số bản ghi mỗi trang
+   *       - in: query
+   *         name: scope
+   *         schema: { type: string, enum: [all, managed, participating, owned], default: all }
+   *         description: Phạm vi dự án cần lấy (managed = quản lý, participating = tham gia, owned = sở hữu, all = tất cả)
+   *       - in: query
+   *         name: search
+   *         schema: { type: string }
+   *         description: Từ khóa tìm kiếm theo tên hoặc mô tả dự án
    *     responses:
    *       200:
    *         description: Danh sách dự án
@@ -107,6 +115,7 @@ export function createProjectRouter(
    */
   router.post("/", projectController.registerProject);
   router.get("/", projectController.getProjects);
+
 
   /**
    * @swagger
@@ -198,6 +207,37 @@ export function createProjectRouter(
   /**
    * @swagger
    * /api/projects/{id}:
+   *   get:
+   *     tags: [Projects]
+   *     summary: Lấy thông tin chi tiết một dự án
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema: { type: string }
+   *         description: ID của project
+   *     responses:
+   *       200:
+   *         description: Thông tin chi tiết dự án kèm quyền người dùng
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/SuccessResponse'
+   *       401:
+   *         $ref: '#/components/responses/Unauthorized'
+   *       403:
+   *         $ref: '#/components/responses/Forbidden'
+   *       404:
+   *         $ref: '#/components/responses/NotFound'
+   */
+  router.get("/:id", checkRole("read"), projectController.getProjectById);
+
+  /**
+   * @swagger
+   * /api/projects/{id}:
+
    *   delete:
    *     tags: [Projects]
    *     summary: Xóa dự án (Chỉ Owner / Maintainer / Admin)

@@ -54,6 +54,59 @@ export class MongoProjectRepository implements IProjectRepository {
     };
   }
 
+  async findAccessibleProjectsPaginated(
+    filter: import("../../domain/interfaces/IProjectRepository.js").AccessibleProjectsFilter,
+  ): Promise<{ items: IProject[]; total: number }> {
+    const conditions: Record<string, unknown>[] = [];
+
+    if (!filter.matchAll) {
+      const orClauses: Record<string, unknown>[] = [];
+      if (filter.userId) {
+        orClauses.push({ userId: filter.userId });
+      }
+      if (filter.projectIds && filter.projectIds.length > 0) {
+        orClauses.push({ _id: { $in: filter.projectIds } });
+      }
+      if (orClauses.length > 0) {
+        conditions.push({ $or: orClauses });
+      } else {
+        return { items: [], total: 0 };
+      }
+    }
+
+    if (filter.search?.trim()) {
+      const q = filter.search.trim();
+      conditions.push({
+        $or: [
+          { name: { $regex: q, $options: "i" } },
+          { description: { $regex: q, $options: "i" } },
+        ],
+      });
+    }
+
+    const query =
+      conditions.length > 1
+        ? { $and: conditions }
+        : conditions.length === 1
+          ? conditions[0]
+          : {};
+
+    const [docs, total] = await Promise.all([
+      ProjectModel.find(query)
+        .sort({ createdAt: -1 })
+        .skip(filter.skip ?? 0)
+        .limit(filter.limit ?? 10)
+        .lean(),
+      ProjectModel.countDocuments(query),
+    ]);
+
+    return {
+      items: docs.map((doc) => this.toEntity(doc as Record<string, unknown>)),
+      total,
+    };
+  }
+
+
   async delete(id: string, userId?: string): Promise<boolean> {
     const filter: Record<string, unknown> = { _id: id };
     if (userId) filter.userId = userId;

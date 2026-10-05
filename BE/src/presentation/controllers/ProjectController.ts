@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import type { RegisterProjectUseCase } from "../../application/use-cases/projects/RegisterProjectUseCase.js";
 import type { GetAllProjectsUseCase } from "../../application/use-cases/projects/GetAllProjectsUseCase.js";
+import type { GetProjectByIdUseCase } from "../../application/use-cases/projects/GetProjectByIdUseCase.js";
 import type { DeleteProjectUseCase } from "../../application/use-cases/projects/DeleteProjectUseCase.js";
 import type { MineProjectUseCase } from "../../application/use-cases/projects/MineProjectUseCase.js";
 import type { GetSnapshotsUseCase } from "../../application/use-cases/projects/GetSnapshotsUseCase.js";
@@ -22,6 +23,7 @@ export class ProjectController {
     private readonly getMiningJobsUseCase: GetMiningJobsUseCase,
     private readonly compareSnapshotsUseCase: CompareSnapshotsUseCase,
     private readonly getEvidencesUseCase: GetEvidencesUseCase,
+    private readonly getProjectByIdUseCase: GetProjectByIdUseCase | undefined,
     private readonly miningWorkflowUseCase: MiningWorkflowUseCase,
     private readonly architectureUseCase: ArchitectureUseCase,
   ) {}
@@ -65,11 +67,17 @@ export class ProjectController {
       if (!userId) throw new UnauthorizedError();
 
       const { page, limit, skip } = parsePaginationParams(req.query);
-      const { items, total } = await this.getAllProjectsUseCase.execute(
+      const scope = req.query.scope as any;
+      const search = (req.query.search ?? req.query.q) as string | undefined;
+
+      const { items, total } = await this.getAllProjectsUseCase.execute({
         userId,
+        userRole: req.user?.role,
+        scope,
+        search,
         skip,
         limit,
-      );
+      });
 
       sendSuccess(res, { projects: items }, {
         meta: buildPaginationMeta(total, page, limit),
@@ -78,6 +86,35 @@ export class ProjectController {
       next(error);
     }
   };
+
+  public getProjectById = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) throw new UnauthorizedError();
+
+      const { id } = req.params;
+      if (this.getProjectByIdUseCase) {
+        const project = await this.getProjectByIdUseCase.execute(
+          id,
+          userId,
+          req.user?.role,
+        );
+        sendSuccess(res, { project });
+      } else {
+        // Fallback to repository
+        const project = req.project;
+        if (!project) throw new NotFoundError("Project not found.");
+        sendSuccess(res, { project });
+      }
+    } catch (error) {
+      next(error);
+    }
+  };
+
 
   public deleteProject = async (
     req: Request,

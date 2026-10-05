@@ -1,6 +1,7 @@
 import SampleDataNotice from '@/components/SampleDataNotice';
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { API_BASE_URL, readTokens } from '@/auth/session';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   FolderGit2,
@@ -18,10 +19,40 @@ import {
 import { Icon } from '@iconify/react';
 
 const ProjectDetail: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const projectId = searchParams.get('projectId');
+  const [projectData, setProjectData] = useState<{
+    name: string;
+    description?: string;
+    repoUrl?: string;
+    status?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!projectId) return;
+    const token = readTokens().accessToken;
+    if (!token) return;
+
+    fetch(`${API_BASE_URL}/projects/${projectId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data?.project) {
+          setProjectData(data.data.project);
+        }
+      })
+      .catch(console.error);
+  }, [projectId]);
+
+  const displayName = projectData?.name ?? 'E-Commerce Platform';
+  const displayDescription =
+    projectData?.description ?? 'Cloud-native multi-tenant commerce engine.';
+
   return (
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto flex flex-col min-h-0 pb-12">
-        <SampleDataNotice />
+        {!projectId && <SampleDataNotice />}
         
         {/* HEADER */}
         <div className="shrink-0 space-y-6 pt-2">
@@ -39,14 +70,15 @@ const ProjectDetail: React.FC = () => {
                  <span>/</span>
                  <Link to="/projects" className="hover:text-[#f4f4f6] transition-colors">Projects</Link>
                  <span>/</span>
-                 <span className="text-[#38bdf8]">E-Commerce Platform</span>
+                 <span className="text-[#38bdf8]">{displayName}</span>
               </div>
               
-              <h2 className="text-4xl font-bold tracking-tight text-[#f4f4f6] mb-2">E-Commerce Platform</h2>
+              <h2 className="text-4xl font-bold tracking-tight text-[#f4f4f6] mb-2">{displayName}</h2>
               <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
-                Cloud-native multi-tenant commerce engine.
+                {displayDescription}
               </p>
             </div>
+
             
             <div className="flex items-center gap-3 shrink-0">
                <Link to="/reports" className="h-10 px-5 bg-[#11161b] border border-[#222c37] hover:border-[#38bdf8]/50 text-[#38bdf8] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.05)] uppercase tracking-wider">
