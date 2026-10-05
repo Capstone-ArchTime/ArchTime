@@ -682,45 +682,688 @@ export function createProjectRouter(
   // Project Maintainer Routes (PM-01 to PM-07)
   // ────────────────────────────────────────────────────────────
   if (pmController) {
-    // PM-01: Dashboard
+    /**
+     * @swagger
+     * /api/projects/{id}/dashboard:
+     *   get:
+     *     tags: [Projects - Dashboard]
+     *     summary: Lấy dữ liệu tổng quan và chỉ số sức khỏe dự án (PM-01)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *     responses:
+     *       200:
+     *         description: Dữ liệu dashboard dự án
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/ProjectDashboard'
+     */
     router.get("/:id/dashboard", checkRole("read"), pmController.getDashboard);
 
-    // PM-02: Diagram
+    /**
+     * @swagger
+     * /api/projects/{id}/diagram:
+     *   get:
+     *     tags: [Projects - Diagram & Rules]
+     *     summary: Lấy sơ đồ thành phần kiến trúc dự án (PM-02)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *     responses:
+     *       200:
+     *         description: Sơ đồ thành phần hiện tại
+     *   put:
+     *     tags: [Projects - Diagram & Rules]
+     *     summary: Lưu bản nháp sơ đồ thành phần kiến trúc (PM-02)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required: [diagram]
+     *             properties:
+     *               expectedRevision: { type: integer, example: 1 }
+     *               diagram: { $ref: '#/components/schemas/WorkspaceDiagram' }
+     *     responses:
+     *       200:
+     *         description: Lưu sơ đồ thành công
+     */
     router.get("/:id/diagram", checkRole("read"), pmController.getDiagram);
     router.put("/:id/diagram", checkRole("write"), pmController.saveDiagram);
+
+    /**
+     * @swagger
+     * /api/projects/{id}/diagram/confirm:
+     *   post:
+     *     tags: [Projects - Diagram & Rules]
+     *     summary: Xác nhận sơ đồ kiến trúc chính thức (PM-02)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *     responses:
+     *       200:
+     *         description: Sơ đồ đã được xác nhận
+     */
     router.post("/:id/diagram/confirm", checkRole("write"), pmController.confirmDiagram);
 
-    // PM-03: Architecture Rules & Evaluation
+    /**
+     * @swagger
+     * /api/projects/{id}/rules:
+     *   get:
+     *     tags: [Projects - Diagram & Rules]
+     *     summary: Lấy danh sách quy tắc kiến trúc (PM-03)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *       - in: query
+     *         name: search
+     *         schema: { type: string }
+     *       - in: query
+     *         name: enabled
+     *         schema: { type: boolean }
+     *       - in: query
+     *         name: constraint
+     *         schema: { type: string, enum: [forbidden, required] }
+     *       - in: query
+     *         name: severity
+     *         schema: { type: string, enum: [error, warning] }
+     *     responses:
+     *       200:
+     *         description: Danh sách quy tắc
+     *   post:
+     *     tags: [Projects - Diagram & Rules]
+     *     summary: Tạo quy tắc kiến trúc mới (PM-03)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required: [name, source, target, constraint]
+     *             properties:
+     *               name: { type: string, example: "Web cannot call DB directly" }
+     *               source: { type: string, example: "web" }
+     *               target: { type: string, example: "db" }
+     *               constraint: { type: string, enum: [forbidden, required], example: "forbidden" }
+     *               severity: { type: string, enum: [error, warning], default: "error" }
+     *               rationale: { type: string, example: "Must go through API gateway" }
+     *               enabled: { type: boolean, default: true }
+     *     responses:
+     *       201:
+     *         description: Quy tắc đã tạo
+     */
     router.get("/:id/rules", checkRole("read"), pmController.getRules);
     router.post("/:id/rules", checkRole("write"), pmController.createRule);
+
+    /**
+     * @swagger
+     * /api/projects/{id}/rules/{ruleId}:
+     *   put:
+     *     tags: [Projects - Diagram & Rules]
+     *     summary: Cập nhật quy tắc kiến trúc (PM-03)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *       - in: path
+     *         name: ruleId
+     *         required: true
+     *         schema: { type: string }
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               name: { type: string }
+     *               source: { type: string }
+     *               target: { type: string }
+     *               constraint: { type: string, enum: [forbidden, required] }
+     *               severity: { type: string, enum: [error, warning] }
+     *               rationale: { type: string }
+     *               enabled: { type: boolean }
+     *     responses:
+     *       200:
+     *         description: Quy tắc đã cập nhật
+     *   delete:
+     *     tags: [Projects - Diagram & Rules]
+     *     summary: Xóa quy tắc kiến trúc (PM-03)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *       - in: path
+     *         name: ruleId
+     *         required: true
+     *         schema: { type: string }
+     *     responses:
+     *       200:
+     *         description: Quy tắc đã xóa
+     */
     router.put("/:id/rules/:ruleId", checkRole("write"), pmController.updateRule);
     router.delete("/:id/rules/:ruleId", checkRole("write"), pmController.deleteRule);
+
+    /**
+     * @swagger
+     * /api/projects/{id}/rules/{ruleId}/toggle:
+     *   patch:
+     *     tags: [Projects - Diagram & Rules]
+     *     summary: Bật hoặc tắt quy tắc kiến trúc (PM-03)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *       - in: path
+     *         name: ruleId
+     *         required: true
+     *         schema: { type: string }
+     *     responses:
+     *       200:
+     *         description: Trạng thái quy tắc đã thay đổi
+     */
     router.patch("/:id/rules/:ruleId/toggle", checkRole("write"), pmController.toggleRule);
+
+    /**
+     * @swagger
+     * /api/projects/{id}/rules/evaluate:
+     *   get:
+     *     tags: [Projects - Diagram & Rules]
+     *     summary: Đánh giá tự động mức độ tuân thủ quy tắc kiến trúc (PM-03)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *     responses:
+     *       200:
+     *         description: Kết quả đánh giá tuân thủ quy tắc
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/RuleEvaluationSummary'
+     */
     router.get("/:id/rules/evaluate", checkRole("read"), pmController.evaluateRules);
 
-    // PM-04: Design Decisions (ADR)
+    /**
+     * @swagger
+     * /api/projects/{id}/decisions:
+     *   get:
+     *     tags: [Projects - Decisions (ADR)]
+     *     summary: Lấy danh sách quyết định thiết kế kiến trúc (ADR) (PM-04)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *       - in: query
+     *         name: search
+     *         schema: { type: string }
+     *       - in: query
+     *         name: status
+     *         schema: { type: string, enum: [Proposed, Accepted, Deprecated] }
+     *       - in: query
+     *         name: page
+     *         schema: { type: integer, default: 1 }
+     *       - in: query
+     *         name: limit
+     *         schema: { type: integer, default: 10 }
+     *     responses:
+     *       200:
+     *         description: Danh sách quyết định kiến trúc
+     *   post:
+     *     tags: [Projects - Decisions (ADR)]
+     *     summary: Tạo quyết định thiết kế kiến trúc mới (PM-04)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required: [title, context, decision]
+     *             properties:
+     *               title: { type: string, example: "Use PostgreSQL for Datastore" }
+     *               context: { type: string, example: "Need transactional ACID guarantees" }
+     *               decision: { type: string, example: "Adopt PostgreSQL 16" }
+     *               alternatives: { type: string, example: "MongoDB, MySQL" }
+     *               consequences: { type: string, example: "Requires schema migrations" }
+     *               status: { type: string, enum: [Proposed, Accepted, Deprecated], default: "Proposed" }
+     *               componentIds: { type: array, items: { type: string }, example: ["db"] }
+     *     responses:
+     *       201:
+     *         description: Quyết định thiết kế đã tạo
+     */
     router.get("/:id/decisions", checkRole("read"), pmController.getDecisions);
     router.post("/:id/decisions", checkRole("write"), pmController.createDecision);
+
+    /**
+     * @swagger
+     * /api/projects/{id}/decisions/{decisionId}:
+     *   get:
+     *     tags: [Projects - Decisions (ADR)]
+     *     summary: Xem chi tiết quyết định thiết kế kiến trúc (PM-04)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *       - in: path
+     *         name: decisionId
+     *         required: true
+     *         schema: { type: string }
+     *     responses:
+     *       200:
+     *         description: Chi tiết quyết định thiết kế
+     *   put:
+     *     tags: [Projects - Decisions (ADR)]
+     *     summary: Cập nhật quyết định thiết kế kiến trúc (PM-04)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *       - in: path
+     *         name: decisionId
+     *         required: true
+     *         schema: { type: string }
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               title: { type: string }
+     *               context: { type: string }
+     *               decision: { type: string }
+     *               alternatives: { type: string }
+     *               consequences: { type: string }
+     *               status: { type: string, enum: [Proposed, Accepted, Deprecated] }
+     *               componentIds: { type: array, items: { type: string } }
+     *     responses:
+     *       200:
+     *         description: Quyết định đã được cập nhật
+     *   delete:
+     *     tags: [Projects - Decisions (ADR)]
+     *     summary: Xóa quyết định thiết kế kiến trúc (PM-04)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *       - in: path
+     *         name: decisionId
+     *         required: true
+     *         schema: { type: string }
+     *     responses:
+     *       200:
+     *         description: Quyết định đã bị xóa
+     */
     router.get("/:id/decisions/:decisionId", checkRole("read"), pmController.getDecisionDetail);
     router.put("/:id/decisions/:decisionId", checkRole("write"), pmController.updateDecision);
     router.delete("/:id/decisions/:decisionId", checkRole("write"), pmController.deleteDecision);
 
-    // PM-05: Approval Queue
+    /**
+     * @swagger
+     * /api/projects/{id}/approvals:
+     *   get:
+     *     tags: [Projects - Approvals]
+     *     summary: Lấy danh sách yêu cầu xét duyệt kiến trúc (PM-05)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *       - in: query
+     *         name: status
+     *         schema: { type: string, enum: [pending, approved, rejected] }
+     *       - in: query
+     *         name: type
+     *         schema: { type: string, enum: [architecture_change, rule_exception, snapshot_baseline, member_invite] }
+     *       - in: query
+     *         name: page
+     *         schema: { type: integer, default: 1 }
+     *       - in: query
+     *         name: limit
+     *         schema: { type: integer, default: 10 }
+     *     responses:
+     *       200:
+     *         description: Danh sách yêu cầu xét duyệt
+     *   post:
+     *     tags: [Projects - Approvals]
+     *     summary: Gửi yêu cầu xét duyệt mới (PM-05)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required: [title]
+     *             properties:
+     *               title: { type: string, example: "Refactor order processing module" }
+     *               description: { type: string }
+     *               type: { type: string, enum: [architecture_change, rule_exception, snapshot_baseline, member_invite], default: "architecture_change" }
+     *               data: { type: object }
+     *     responses:
+     *       201:
+     *         description: Yêu cầu xét duyệt đã tạo
+     */
     router.get("/:id/approvals", checkRole("read"), pmController.getApprovals);
     router.post("/:id/approvals", checkRole("write"), pmController.createApproval);
+
+    /**
+     * @swagger
+     * /api/projects/{id}/approvals/{approvalId}:
+     *   get:
+     *     tags: [Projects - Approvals]
+     *     summary: Xem chi tiết yêu cầu xét duyệt (PM-05)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *       - in: path
+     *         name: approvalId
+     *         required: true
+     *         schema: { type: string }
+     *     responses:
+     *       200:
+     *         description: Chi tiết yêu cầu xét duyệt
+     */
     router.get("/:id/approvals/:approvalId", checkRole("read"), pmController.getApprovalDetail);
+
+    /**
+     * @swagger
+     * /api/projects/{id}/approvals/{approvalId}/approve:
+     *   post:
+     *     tags: [Projects - Approvals]
+     *     summary: Chấp thuận yêu cầu xét duyệt kiến trúc (PM-05)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *       - in: path
+     *         name: approvalId
+     *         required: true
+     *         schema: { type: string }
+     *     requestBody:
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               reviewNote: { type: string, example: "Approved after verifying test coverage" }
+     *     responses:
+     *       200:
+     *         description: Yêu cầu đã được chấp thuận
+     */
     router.post("/:id/approvals/:approvalId/approve", checkRole("admin"), pmController.approveRequest);
+
+    /**
+     * @swagger
+     * /api/projects/{id}/approvals/{approvalId}/reject:
+     *   post:
+     *     tags: [Projects - Approvals]
+     *     summary: Từ chối yêu cầu xét duyệt kiến trúc (PM-05)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *       - in: path
+     *         name: approvalId
+     *         required: true
+     *         schema: { type: string }
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required: [reviewNote]
+     *             properties:
+     *               reviewNote: { type: string, example: "Violates architecture layering rules" }
+     *     responses:
+     *       200:
+     *         description: Yêu cầu đã bị từ chối
+     */
     router.post("/:id/approvals/:approvalId/reject", checkRole("admin"), pmController.rejectRequest);
 
-    // PM-06: Team Invitations
+    /**
+     * @swagger
+     * /api/projects/{id}/members/invite:
+     *   post:
+     *     tags: [Projects - Invitations]
+     *     summary: Gửi lời mời tham gia dự án qua email (PM-06)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required: [email]
+     *             properties:
+     *               email: { type: string, format: email, example: "architect@archtime.io" }
+     *               role: { type: string, enum: [project-maintainer, developer-analyst], default: "developer-analyst" }
+     *     responses:
+     *       201:
+     *         description: Lời mời đã được gửi
+     */
     router.post("/:id/members/invite", checkRole("admin"), pmController.inviteMember);
+
+    /**
+     * @swagger
+     * /api/projects/{id}/invitations:
+     *   get:
+     *     tags: [Projects - Invitations]
+     *     summary: Lấy danh sách lời mời đang chờ xử lý của dự án (PM-06)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *     responses:
+     *       200:
+     *         description: Danh sách lời mời
+     */
     router.get("/:id/invitations", checkRole("admin"), pmController.getInvitations);
+
+    /**
+     * @swagger
+     * /api/projects/{id}/invitations/{invitationId}:
+     *   delete:
+     *     tags: [Projects - Invitations]
+     *     summary: Hủy lời mời tham gia dự án (PM-06)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *       - in: path
+     *         name: invitationId
+     *         required: true
+     *         schema: { type: string }
+     *     responses:
+     *       200:
+     *         description: Lời mời đã hủy
+     */
     router.delete("/:id/invitations/:invitationId", checkRole("admin"), pmController.cancelInvitation);
 
-    // PM-07: Reports
+    /**
+     * @swagger
+     * /api/projects/{id}/reports:
+     *   get:
+     *     tags: [Projects - Reports]
+     *     summary: Lấy lịch sử báo cáo tổng hợp kiến trúc dự án (PM-07)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *     responses:
+     *       200:
+     *         description: Lịch sử báo cáo
+     */
     router.get("/:id/reports", checkRole("read"), pmController.getReports);
+
+    /**
+     * @swagger
+     * /api/projects/{id}/reports/generate:
+     *   post:
+     *     tags: [Projects - Reports]
+     *     summary: Tạo báo cáo tổng hợp kiến trúc dự án (PM-07)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *     requestBody:
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               title: { type: string, example: "Monthly Architecture Compliance" }
+     *               type: { type: string, enum: [architecture_summary, rules_compliance, evolution_history, full_audit], default: "architecture_summary" }
+     *     responses:
+     *       201:
+     *         description: Báo cáo đã tạo thành công
+     */
     router.post("/:id/reports/generate", checkRole("write"), pmController.generateReport);
+
+    /**
+     * @swagger
+     * /api/projects/{id}/reports/{reportId}:
+     *   get:
+     *     tags: [Projects - Reports]
+     *     summary: Xem chi tiết báo cáo kiến trúc (PM-07)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *       - in: path
+     *         name: reportId
+     *         required: true
+     *         schema: { type: string }
+     *     responses:
+     *       200:
+     *         description: Chi tiết báo cáo
+     */
     router.get("/:id/reports/:reportId", checkRole("read"), pmController.getReportDetail);
+
+    /**
+     * @swagger
+     * /api/projects/{id}/reports/{reportId}/download:
+     *   get:
+     *     tags: [Projects - Reports]
+     *     summary: Tải báo cáo kiến trúc định dạng Markdown (PM-07)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *       - in: path
+     *         name: reportId
+     *         required: true
+     *         schema: { type: string }
+     *     responses:
+     *       200:
+     *         description: File markdown của báo cáo
+     */
     router.get("/:id/reports/:reportId/download", checkRole("read"), pmController.downloadReport);
   }
 
