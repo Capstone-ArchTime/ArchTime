@@ -89,7 +89,11 @@ export class ProjectController {
       if (!userId) throw new UnauthorizedError();
 
       const { id } = req.params;
-      const deleted = await this.deleteProjectUseCase.execute(id, userId);
+      const isAdmin = req.user?.role === "system-administrator";
+      const deleted = await this.deleteProjectUseCase.execute(
+        id,
+        isAdmin ? undefined : userId,
+      );
 
       if (!deleted) throw new NotFoundError("Project not found or unauthorized.");
 
@@ -98,6 +102,7 @@ export class ProjectController {
       next(error);
     }
   };
+
 
   public mineProject = async (
     req: Request,

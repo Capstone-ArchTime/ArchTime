@@ -169,7 +169,14 @@ async function testProjectsNoAuth() {
     { method: "GET", path: "/api/projects/jobs" },
     { method: "GET", path: "/api/projects/fake-id/snapshots/compare?baseId=a&targetId=b" },
     { method: "GET", path: "/api/projects/fake-id/evidences" },
+    { method: "GET", path: "/api/projects/fake-id/members" },
+    { method: "POST", path: "/api/projects/fake-id/members" },
+    { method: "PATCH", path: "/api/projects/fake-id/members/m1" },
+    { method: "DELETE", path: "/api/projects/fake-id/members/m1" },
+    { method: "GET", path: "/api/projects/team/members" },
+    { method: "GET", path: "/api/team/members" },
   ];
+
 
   for (const ep of endpoints) {
     const r = await req(ep.method, ep.path);
@@ -272,7 +279,10 @@ async function testSwagger() {
     "MiningJob",
     "Snapshot",
     "Evidence",
+    "ProjectMember",
+    "TeamMember",
   ];
+
 
   for (const s of requiredSchemas) {
     test(

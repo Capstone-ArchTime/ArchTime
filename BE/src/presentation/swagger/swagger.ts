@@ -224,7 +224,56 @@ const options: swaggerJsdoc.Options = {
             diffAfter: { type: "string", example: "+ import com.payment.service.*;" },
           },
         },
+        ProjectMember: {
+          type: "object",
+          description: "Thành viên dự án với vai trò cụ thể",
+          properties: {
+            id: { type: "string", example: "64f1a2b3c4d5e6f7a8b9c0d5" },
+            projectId: { type: "string", example: "64f1a2b3c4d5e6f7a8b9c0d1" },
+            userId: { type: "string", example: "64f1a2b3c4d5e6f7a8b9c0d0" },
+            email: { type: "string", format: "email", example: "dev@archtime.io" },
+            name: { type: "string", example: "Alice Dev" },
+            role: {
+              type: "string",
+              enum: ["developer-analyst", "project-maintainer"],
+              example: "developer-analyst",
+            },
+            status: {
+              type: "string",
+              enum: ["active", "invited"],
+              example: "active",
+            },
+            invitedBy: { type: "string", example: "64f1a2b3c4d5e6f7a8b9c0d0" },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+        TeamMember: {
+          type: "object",
+          description: "Thông tin thành viên nhóm tổng hợp qua các dự án",
+          properties: {
+            id: { type: "string", example: "64f1a2b3c4d5e6f7a8b9c0d5" },
+            name: { type: "string", example: "Alice Dev" },
+            email: { type: "string", format: "email", example: "dev@archtime.io" },
+            role: {
+              type: "string",
+              enum: ["developer-analyst", "project-maintainer"],
+              example: "developer-analyst",
+            },
+            status: {
+              type: "string",
+              enum: ["active", "invited"],
+              example: "active",
+            },
+            projects: {
+              type: "array",
+              items: { type: "string" },
+              example: ["64f1a2b3c4d5e6f7a8b9c0d1"],
+            },
+          },
+        },
       },
+
       // ── Responses tái sử dụng ─────────────────────────────────────────────
       responses: {
         Unauthorized: {

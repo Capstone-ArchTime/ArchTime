@@ -1,22 +1,32 @@
-import { Router } from "express";
+import { Router, type RequestHandler } from "express";
 import type { ProjectController } from "../controllers/ProjectController.js";
+import type { MemberController } from "../controllers/MemberController.js";
 import { createAuthenticateMiddleware } from "../middlewares/authenticate.js";
 import type { JwtTokenService } from "../../infrastructure/services/JwtTokenService.js";
+import type { ProjectAction } from "../middlewares/projectRole.js";
 
 export function createProjectRouter(
   projectController: ProjectController,
-  jwtTokenService: JwtTokenService
+  jwtTokenService: JwtTokenService,
+  memberController?: MemberController,
+  projectRoleMiddleware?: (action: ProjectAction) => RequestHandler,
 ): Router {
   const router = Router();
 
   // Apply auth middleware to all project routes
   router.use(createAuthenticateMiddleware(jwtTokenService));
 
+  const checkRole = (action: ProjectAction): RequestHandler => {
+    return projectRoleMiddleware
+      ? projectRoleMiddleware(action)
+      : (_req, _res, next) => next();
+  };
+
   /**
    * @swagger
    * tags:
    *   name: Projects
-   *   description: Quản lý dự án và kho code
+   *   description: Quản lý dự án, kho code và thành viên
    */
 
   /**
@@ -103,7 +113,7 @@ export function createProjectRouter(
    * /api/projects/jobs:
    *   get:
    *     tags: [Projects]
-   *     summary: Lấy danh sách tất cả mining jobs (có phân trang)
+   *     summary: Lấy danh sách mining jobs (có phân trang)
    *     security:
    *       - BearerAuth: []
    *     parameters:
@@ -128,6 +138,38 @@ export function createProjectRouter(
    *         $ref: '#/components/responses/Unauthorized'
    */
   router.get("/jobs", projectController.getMiningJobs); // must be before /:id
+
+  // ── Team Member Routes (for Maintainer dashboard) ──
+  if (memberController) {
+    /**
+     * @swagger
+     * /api/projects/team/members:
+     *   get:
+     *     tags: [Projects]
+     *     summary: Lấy danh sách thành viên nhóm tổng hợp (theo quyền quản trị hoặc dự án)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: query
+     *         name: project
+     *         schema: { type: string }
+     *         description: ID dự án hoặc "all"
+     *       - in: query
+     *         name: q
+     *         schema: { type: string }
+     *         description: Tìm kiếm theo tên hoặc email
+     *     responses:
+     *       200:
+     *         description: Danh sách thành viên nhóm
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/SuccessResponse'
+     *       401:
+     *         $ref: '#/components/responses/Unauthorized'
+     */
+    router.get("/team/members", memberController.getTeamMembers);
+  }
 
   /**
    * @swagger
@@ -158,7 +200,7 @@ export function createProjectRouter(
    * /api/projects/{id}:
    *   delete:
    *     tags: [Projects]
-   *     summary: Xóa dự án
+   *     summary: Xóa dự án (Chỉ Owner / Maintainer / Admin)
    *     security:
    *       - BearerAuth: []
    *     parameters:
@@ -180,10 +222,12 @@ export function createProjectRouter(
    *               message: "Project deleted successfully."
    *       401:
    *         $ref: '#/components/responses/Unauthorized'
+   *       403:
+   *         $ref: '#/components/responses/Forbidden'
    *       404:
    *         $ref: '#/components/responses/NotFound'
    */
-  router.delete("/:id", projectController.deleteProject);
+  router.delete("/:id", checkRole("admin"), projectController.deleteProject);
 
   /**
    * @swagger
@@ -213,7 +257,7 @@ export function createProjectRouter(
    * /api/projects/{id}/mine:
    *   post:
    *     tags: [Projects]
-   *     summary: Bắt đầu mining Git history của dự án
+   *     summary: Bắt đầu mining Git history của dự án (Chỉ Maintainer / Admin)
    *     security:
    *       - BearerAuth: []
    *     parameters:
@@ -255,10 +299,12 @@ export function createProjectRouter(
    *               message: "Mining job started."
    *       401:
    *         $ref: '#/components/responses/Unauthorized'
+   *       403:
+   *         $ref: '#/components/responses/Forbidden'
    *       404:
    *         $ref: '#/components/responses/NotFound'
    */
-  router.post("/:id/mine", projectController.mineProject);
+  router.post("/:id/mine", checkRole("write"), projectController.mineProject);
 
   /**
    * @swagger
@@ -344,8 +390,10 @@ export function createProjectRouter(
    *               meta: { page: 1, limit: 10, total: 0, totalPages: 0 }
    *       401:
    *         $ref: '#/components/responses/Unauthorized'
+   *       403:
+   *         $ref: '#/components/responses/Forbidden'
    */
-  router.get("/:id/snapshots", projectController.getSnapshots);
+  router.get("/:id/snapshots", checkRole("read"), projectController.getSnapshots);
 
   /**
    * @swagger
@@ -381,8 +429,14 @@ export function createProjectRouter(
    *         $ref: '#/components/responses/ValidationError'
    *       401:
    *         $ref: '#/components/responses/Unauthorized'
+   *       403:
+   *         $ref: '#/components/responses/Forbidden'
    */
-  router.get("/:id/snapshots/compare", projectController.compareSnapshots);
+  router.get(
+    "/:id/snapshots/compare",
+    checkRole("read"),
+    projectController.compareSnapshots,
+  );
 
   /**
    * @swagger
@@ -416,8 +470,161 @@ export function createProjectRouter(
    *               meta: { page: 1, limit: 10, total: 0, totalPages: 0 }
    *       401:
    *         $ref: '#/components/responses/Unauthorized'
+   *       403:
+   *         $ref: '#/components/responses/Forbidden'
    */
-  router.get("/:id/evidences", projectController.getEvidences);
+  router.get("/:id/evidences", checkRole("read"), projectController.getEvidences);
+
+  // ── Project Member Management Endpoints ──
+  if (memberController) {
+    /**
+     * @swagger
+     * /api/projects/{id}/members:
+     *   get:
+     *     tags: [Projects]
+     *     summary: Lấy danh sách thành viên của dự án
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *     responses:
+     *       200:
+     *         description: Danh sách thành viên dự án
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/SuccessResponse'
+     *       401:
+     *         $ref: '#/components/responses/Unauthorized'
+     *       403:
+     *         $ref: '#/components/responses/Forbidden'
+     *   post:
+     *     tags: [Projects]
+     *     summary: Mời thành viên mới vào dự án (Chỉ Maintainer / Admin)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required: [email, name]
+     *             properties:
+     *               email:
+     *                 type: string
+     *                 format: email
+     *                 example: dev@example.com
+     *               name:
+     *                 type: string
+     *                 example: Alice Developer
+     *               role:
+     *                 type: string
+     *                 enum: [developer-analyst, project-maintainer]
+     *                 default: developer-analyst
+     *     responses:
+     *       201:
+     *         description: Đã mời thành viên thành công
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/SuccessResponse'
+     *       400:
+     *         $ref: '#/components/responses/ValidationError'
+     *       401:
+     *         $ref: '#/components/responses/Unauthorized'
+     *       403:
+     *         $ref: '#/components/responses/Forbidden'
+     */
+    router.get("/:id/members", checkRole("read"), memberController.getProjectMembers);
+    router.post("/:id/members", checkRole("admin"), memberController.inviteMember);
+
+    /**
+     * @swagger
+     * /api/projects/{id}/members/{memberId}:
+     *   patch:
+     *     tags: [Projects]
+     *     summary: Cập nhật vai trò thành viên trong dự án (Chỉ Maintainer / Admin)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *       - in: path
+     *         name: memberId
+     *         required: true
+     *         schema: { type: string }
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required: [role]
+     *             properties:
+     *               role:
+     *                 type: string
+     *                 enum: [developer-analyst, project-maintainer]
+     *     responses:
+     *       200:
+     *         description: Đã cập nhật vai trò thành công
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/SuccessResponse'
+     *       400:
+     *         $ref: '#/components/responses/ValidationError'
+     *       401:
+     *         $ref: '#/components/responses/Unauthorized'
+     *       403:
+     *         $ref: '#/components/responses/Forbidden'
+     *   delete:
+     *     tags: [Projects]
+     *     summary: Xóa thành viên hoặc thu hồi lời mời (Chỉ Maintainer / Admin)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *       - in: path
+     *         name: memberId
+     *         required: true
+     *         schema: { type: string }
+     *     responses:
+     *       200:
+     *         description: Đã xóa thành viên thành công
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/SuccessResponse'
+     *       401:
+     *         $ref: '#/components/responses/Unauthorized'
+     *       403:
+     *         $ref: '#/components/responses/Forbidden'
+     */
+    router.patch(
+      "/:id/members/:memberId",
+      checkRole("admin"),
+      memberController.updateMemberRole,
+    );
+    router.delete(
+      "/:id/members/:memberId",
+      checkRole("admin"),
+      memberController.removeMember,
+    );
+  }
 
   /**
    * @swagger

@@ -4,12 +4,13 @@ import type { IProjectRepository } from "../../../domain/interfaces/IProjectRepo
 export class DeleteProjectUseCase {
   constructor(private readonly projectRepository: IProjectRepository) {}
 
-  async execute(projectId: string, userId: string): Promise<boolean> {
-    if (!projectId || !userId) {
-      throw new Error("Missing required parameters");
+  async execute(projectId: string, userId?: string): Promise<boolean> {
+    if (!projectId) {
+      throw new Error("Missing required parameters: projectId");
     }
     const deleted = await this.projectRepository.delete(projectId, userId);
     if (deleted) await MiningService.purgeProject(projectId);
     return deleted;
   }
 }
+
