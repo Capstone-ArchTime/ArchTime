@@ -19,6 +19,18 @@ const ProjectSchema = new Schema<IProjectDocument>(
       enum: Object.values(ProjectStatus),
       default: ProjectStatus.PENDING,
     },
+    history: {
+      type: new Schema(
+        {
+          totalCommits: { type: Number, default: 0 },
+          firstCommitDate: { type: Date },
+          lastCommitDate: { type: Date },
+          monthly: [{ _id: false, month: String, commits: Number }],
+          scannedAt: { type: Date },
+        },
+        { _id: false },
+      ),
+    },
     userId: { type: String, required: true, ref: "User" },
   },
   {

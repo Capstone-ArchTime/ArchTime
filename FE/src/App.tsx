@@ -17,6 +17,7 @@ const HomePage = lazy(() => import("@/pages/HomePage"));
 const Dashboard = lazy(() => import("@/pages/developer-analyst/Dashboard"));
 const Projects = lazy(() => import("@/pages/developer-analyst/Projects"));
 const ArchitectureHistory = lazy(() => import("@/pages/developer-analyst/ArchitectureHistory"));
+const ArchitectureMap = lazy(() => import("@/pages/developer-analyst/ArchitectureMap"));
 const Compare = lazy(() => import("@/pages/developer-analyst/Compare"));
 const Evidence = lazy(() => import("@/pages/developer-analyst/Evidence"));
 const Insights = lazy(() => import("@/pages/developer-analyst/Insights"));
@@ -56,6 +57,7 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/projects" element={<Projects />} />
       <Route path="/history" element={<ArchitectureHistory />} />
+      <Route path="/architecture" element={<ArchitectureMap />} />
       <Route path="/compare" element={<Compare />} />
       <Route path="/evidence" element={<Evidence />} />
       <Route path="/insights" element={<Insights />} />
