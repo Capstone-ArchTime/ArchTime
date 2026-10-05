@@ -21,11 +21,13 @@ import { Icon } from '@iconify/react';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationBar from '@/components/PaginationBar';
+import MiningPanel from '@/components/MiningPanel';
 import { Link } from 'react-router-dom';
 
 const Projects: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const closeModal = useCallback(() => setIsModalOpen(false), []);
+  const [miningProject, setMiningProject] = useState<{ id: string; name: string } | null>(null);
   const modalRef = useFocusTrap(isModalOpen, closeModal);
   const { message } = App.useApp();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -173,13 +175,14 @@ const Projects: React.FC = () => {
         const data = await response.json();
         const projectId = data.data.project.id;
         
-        // Trigger mining
-        await fetch(`${API_BASE_URL}/projects/${projectId}/mine`, {
+        // Only read the commit history here; the user chooses what to mine (a date range or everything).
+        await fetch(`${API_BASE_URL}/projects/${projectId}/scan`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${readTokens().accessToken}` }
         });
 
-        message.success('Repository successfully registered and queued for analysis.');
+        message.success('Repository registered. Choose which part of its history to mine.');
+        setMiningProject({ id: projectId, name: data.data.project.name ?? projectName });
         fetchProjects();
         closeModal();
         setVisibility('public');
@@ -400,6 +403,15 @@ const Projects: React.FC = () => {
                   </div>
                 </div>
                 
+                {typeof project.id === 'string' && (
+                  <button
+                    type="button"
+                    onClick={() => setMiningProject({ id: project.id, name: project.name })}
+                    className="w-full h-11 mb-3 bg-[#38bdf8]/10 hover:bg-[#38bdf8]/20 border border-[#38bdf8]/40 text-[#38bdf8] text-xs font-bold flex items-center justify-center gap-2"
+                  >
+                    MANAGE MINING
+                  </button>
+                )}
                 {(project.id === 1 || typeof project.id === 'string') ? (
                   <Link
                     to={typeof project.id === 'string' ? `/project?projectId=${project.id}` : "/project"}
@@ -428,6 +440,8 @@ const Projects: React.FC = () => {
         <div className="h-10"></div>
         
       </div>
+
+      {miningProject && <MiningPanel project={miningProject} open onClose={() => setMiningProject(null)} onChanged={fetchProjects} />}
 
       {/* NEW PROJECT MODAL OVERLAY */}
       <AnimatePresence>
