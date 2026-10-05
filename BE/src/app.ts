@@ -53,7 +53,6 @@ app.get(
 );
 app.use("/api/admin", createAdminRouter(adminControllersConfig, jwtTokenService));
 
-
 // ── Error Handling ──
 app.use(notFoundHandler);
 app.use(errorHandler);

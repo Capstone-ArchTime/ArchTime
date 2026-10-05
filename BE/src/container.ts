@@ -274,8 +274,3 @@ export const adminControllersConfig: AdminControllersConfig = {
 };
 
 export { jwtTokenService };
-
-
-
-
-

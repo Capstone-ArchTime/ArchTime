@@ -1,6 +1,6 @@
 /**
- * CORE-01 API Integration Test
- * Kiểm tra tất cả endpoints: response format, error codes, pagination, validation
+ * CORE-01 & SA-02 API Integration Test
+ * Kiểm tra tất cả endpoints: response format, error codes, pagination, validation, admin endpoints
  * Chạy: npx tsx test-api.ts
  */
 
@@ -180,7 +180,6 @@ async function testProjectsNoAuth() {
     { method: "PUT", path: "/api/projects/fake-id/workspace" },
   ];
 
-
   for (const ep of endpoints) {
     const r = await req(ep.method, ep.path);
     test(
@@ -209,8 +208,6 @@ async function testProjectsWithAuth() {
   });
 
   if (reg.status !== 201) {
-    // Nếu register thành công thì cần verify, nhưng ta ko có OTP
-    // Thay vào đó thử login với credentials invalid để test response format
     const r = await req("POST", "/api/auth/login", {
       email: "nonexistent@test.com",
       password: "Test1234!",
@@ -231,7 +228,6 @@ async function testProjectsWithAuth() {
       `status=${reg.status} success=${reg.body.success}`,
     );
 
-    // Login invalid creds
     const r = await req("POST", "/api/auth/login", {
       email: "nonexistent@test.com",
       password: "Test1234!",
@@ -472,7 +468,7 @@ async function test404() {
 // Main
 // ────────────────────────────────────────────────────────────
 async function main() {
-  console.log("=" .repeat(60));
+  console.log("=".repeat(60));
   console.log("CORE & SA-02 API Integration Tests");
   console.log("=".repeat(60));
   console.log();

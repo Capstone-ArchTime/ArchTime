@@ -23,7 +23,7 @@ export class ProjectController {
     private readonly getMiningJobsUseCase: GetMiningJobsUseCase,
     private readonly compareSnapshotsUseCase: CompareSnapshotsUseCase,
     private readonly getEvidencesUseCase: GetEvidencesUseCase,
-    private readonly getProjectByIdUseCase?: GetProjectByIdUseCase,
+    private readonly getProjectByIdUseCase: GetProjectByIdUseCase | undefined,
     private readonly miningWorkflowUseCase: MiningWorkflowUseCase = new MiningWorkflowUseCase(),
     private readonly architectureUseCase: ArchitectureUseCase = new ArchitectureUseCase(),
   ) {}
@@ -115,7 +115,6 @@ export class ProjectController {
     }
   };
 
-
   public deleteProject = async (
     req: Request,
     res: Response,
@@ -139,7 +138,6 @@ export class ProjectController {
       next(error);
     }
   };
-
 
   public mineProject = async (
     req: Request,

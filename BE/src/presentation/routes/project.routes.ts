@@ -119,7 +119,6 @@ export function createProjectRouter(
   router.post("/", projectController.registerProject);
   router.get("/", projectController.getProjects);
 
-
   /**
    * @swagger
    * /api/projects/jobs:
@@ -185,6 +184,30 @@ export function createProjectRouter(
 
   /**
    * @swagger
+   * /api/projects/jobs/{jobId}/cancel:
+   *   post:
+   *     tags: [Projects]
+   *     summary: Hủy một mining job đang chạy
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: jobId
+   *         required: true
+   *         schema: { type: string }
+   *         description: ID của mining job
+   *     responses:
+   *       200:
+   *         description: Job đã được hủy
+   *       401:
+   *         $ref: '#/components/responses/Unauthorized'
+   *       404:
+   *         $ref: '#/components/responses/NotFound'
+   */
+  router.post("/jobs/:jobId/cancel", projectController.cancelMiningJob);
+
+  /**
+   * @swagger
    * /api/projects/{id}:
    *   get:
    *     tags: [Projects]
@@ -216,7 +239,6 @@ export function createProjectRouter(
   /**
    * @swagger
    * /api/projects/{id}:
-
    *   delete:
    *     tags: [Projects]
    *     summary: Xóa dự án (Chỉ Owner / Maintainer / Admin)
@@ -250,6 +272,29 @@ export function createProjectRouter(
 
   /**
    * @swagger
+   * /api/projects/{id}/scan:
+   *   post:
+   *     tags: [Projects]
+   *     summary: Quét (clone/fetch) repository và ghi nhận lịch sử commit
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema: { type: string }
+   *     responses:
+   *       202:
+   *         description: Scan job đã được tạo
+   *       401:
+   *         $ref: '#/components/responses/Unauthorized'
+   *       404:
+   *         $ref: '#/components/responses/NotFound'
+   */
+  router.post("/:id/scan", projectController.scanProject);
+
+  /**
+   * @swagger
    * /api/projects/{id}/mine:
    *   post:
    *     tags: [Projects]
@@ -261,6 +306,27 @@ export function createProjectRouter(
    *         name: id
    *         required: true
    *         schema: { type: string }
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               mode:
+   *                 type: string
+   *                 enum: [range, remaining]
+   *                 example: remaining
+   *               since:
+   *                 type: string
+   *                 format: date
+   *                 example: "2024-02-01"
+   *               until:
+   *                 type: string
+   *                 format: date
+   *                 example: "2024-02-29"
+   *               force:
+   *                 type: boolean
+   *                 example: false
    *     responses:
    *       200:
    *         description: Mining job đã được tạo
@@ -283,10 +349,58 @@ export function createProjectRouter(
 
   /**
    * @swagger
+   * /api/projects/{id}/mining:
+   *   get:
+   *     tags: [Projects]
+   *     summary: Tổng quan tiến trình mining (coverage, remaining, active job)
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema: { type: string }
+   *     responses:
+   *       200:
+   *         description: Mining overview
+   *       401:
+   *         $ref: '#/components/responses/Unauthorized'
+   */
+  router.get("/:id/mining", projectController.getMiningOverview);
+
+  /**
+   * @swagger
+   * /api/projects/{id}/mining/estimate:
+   *   get:
+   *     tags: [Projects]
+   *     summary: Ước tính số commit trong khoảng thời gian chỉ định
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema: { type: string }
+   *       - in: query
+   *         name: since
+   *         schema: { type: string, format: date }
+   *       - in: query
+   *         name: until
+   *         schema: { type: string, format: date }
+   *     responses:
+   *       200:
+   *         description: Kết quả ước tính
+   *       401:
+   *         $ref: '#/components/responses/Unauthorized'
+   */
+  router.get("/:id/mining/estimate", projectController.estimateMining);
+
+  /**
+   * @swagger
    * /api/projects/{id}/snapshots:
    *   get:
    *     tags: [Projects]
-   *     summary: Lấy danh sách snapshots của dự án (có phân trang)
+   *     summary: Lấy danh sách snapshots của dự án (có phân trang, hỗ trợ summary)
    *     security:
    *       - BearerAuth: []
    *     parameters:
@@ -300,6 +414,10 @@ export function createProjectRouter(
    *       - in: query
    *         name: limit
    *         schema: { type: integer, default: 10, maximum: 100 }
+   *       - in: query
+   *         name: summary
+   *         schema: { type: string, enum: ["1", "true"] }
+   *         description: Nếu "1" hoặc "true", loại bỏ nodes/edges để giảm dung lượng
    *     responses:
    *       200:
    *         description: Danh sách snapshots
@@ -591,66 +709,66 @@ export function createProjectRouter(
      *         $ref: '#/components/responses/Forbidden'
      *       404:
      *         $ref: '#/components/responses/NotFound'
-     *   put:
-     *     tags: [Workspace]
-     *     summary: Lưu dữ liệu kiến trúc workspace (kiểm soát revision - Optimistic Concurrency Control)
-     *     security:
-     *       - BearerAuth: []
-     *     parameters:
-     *       - in: path
-     *         name: id
-     *         required: true
-     *         schema: { type: string }
-     *         description: Project ID
-     *     requestBody:
-     *       required: true
-     *       content:
-     *         application/json:
-     *           schema:
-     *             type: object
-     *             required: [diagram]
-     *             properties:
-     *               expectedRevision:
-     *                 type: integer
-     *                 example: 1
-     *                 description: Revision hiện tại mà client đang có để kiểm tra xung đột
-     *               diagram:
-     *                 $ref: '#/components/schemas/WorkspaceDiagram'
-     *               rules:
-     *                 type: array
-     *                 items:
-     *                   $ref: '#/components/schemas/WorkspaceRule'
-     *               decisions:
-     *                 type: array
-     *                 items:
-     *                   $ref: '#/components/schemas/WorkspaceDecision'
-     *     responses:
-     *       200:
-     *         description: Lưu dữ liệu workspace thành công
-     *         content:
-     *           application/json:
-     *             schema:
-     *               $ref: '#/components/schemas/SuccessResponse'
-     *       400:
-     *         $ref: '#/components/responses/ValidationError'
-     *       401:
-     *         $ref: '#/components/responses/Unauthorized'
-     *       403:
-     *         $ref: '#/components/responses/Forbidden'
-     *       404:
-     *         $ref: '#/components/responses/NotFound'
-     *       409:
-     *         description: Xung đột revision (Optimistic Concurrency Control)
-     *         content:
-     *           application/json:
-     *             schema:
-     *               $ref: '#/components/schemas/ErrorResponse'
-     *             example:
-     *               success: false
-     *               error:
-     *                 code: CONFLICT
-     *                 message: "Workspace revision conflict: expected revision 1, but current revision on server is 2. Please reload to avoid overwriting newer changes."
-     */
+   *   put:
+   *     tags: [Workspace]
+   *     summary: Lưu dữ liệu kiến trúc workspace (kiểm soát revision - Optimistic Concurrency Control)
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema: { type: string }
+   *         description: Project ID
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [diagram]
+   *             properties:
+   *               expectedRevision:
+   *                 type: integer
+   *                 example: 1
+   *                 description: Revision hiện tại mà client đang có để kiểm tra xung đột
+   *               diagram:
+   *                 $ref: '#/components/schemas/WorkspaceDiagram'
+   *               rules:
+   *                 type: array
+   *                 items:
+   *                   $ref: '#/components/schemas/WorkspaceRule'
+   *               decisions:
+   *                 type: array
+   *                 items:
+   *                   $ref: '#/components/schemas/WorkspaceDecision'
+   *     responses:
+   *       200:
+   *         description: Lưu dữ liệu workspace thành công
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/SuccessResponse'
+   *       400:
+   *         $ref: '#/components/responses/ValidationError'
+   *       401:
+   *         $ref: '#/components/responses/Unauthorized'
+   *       403:
+   *         $ref: '#/components/responses/Forbidden'
+   *       404:
+   *         $ref: '#/components/responses/NotFound'
+   *       409:
+   *         description: Xung đột revision (Optimistic Concurrency Control)
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *             example:
+   *               success: false
+   *               error:
+   *                 code: CONFLICT
+   *                 message: "Workspace revision conflict: expected revision 1, but current revision on server is 2. Please reload to avoid overwriting newer changes."
+   */
     router.get(
       "/:id/workspace",
       checkRole("read"),
@@ -663,17 +781,51 @@ export function createProjectRouter(
     );
   }
 
-  router.post("/jobs/:jobId/cancel", projectController.cancelMiningJob);
-  router.delete("/:id", projectController.deleteProject);
-  router.post("/:id/scan", projectController.scanProject);
-  router.post("/:id/mine", projectController.mineProject);
-  router.get("/:id/mining", projectController.getMiningOverview);
-  router.get("/:id/mining/estimate", projectController.estimateMining);
-  router.get("/:id/snapshots", projectController.getSnapshots);
-  router.get("/:id/snapshots/compare", projectController.compareSnapshots);
-  router.get("/:id/evidences", projectController.getEvidences);
+  /**
+   * @swagger
+   * /api/projects/{id}/architecture:
+   *   get:
+   *     tags: [Projects]
+   *     summary: Lấy bản đồ kiến trúc (architecture map) của snapshot
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema: { type: string }
+   *       - in: query
+   *         name: snapshotId
+   *         schema: { type: string }
+   *         description: ID snapshot cần xem (mặc định snapshot mới nhất)
+   *     responses:
+   *       200:
+   *         description: Architecture map data
+   *       401:
+   *         $ref: '#/components/responses/Unauthorized'
+   */
   router.get("/:id/architecture", projectController.getArchitecture);
   router.post("/:id/architecture", projectController.generateArchitecture);
+
+  /**
+   * @swagger
+   * /api/projects/{id}/architecture/refine:
+   *   post:
+   *     tags: [Projects]
+   *     summary: Tinh chỉnh bản đồ kiến trúc bằng AI
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema: { type: string }
+   *     responses:
+   *       202:
+   *         description: Refine job đã được tạo
+   *       401:
+   *         $ref: '#/components/responses/Unauthorized'
+   */
   router.post("/:id/architecture/refine", projectController.refineArchitecture);
 
   return router;
