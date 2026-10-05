@@ -14,7 +14,7 @@ export function createAuthRouter(
    * @swagger
    * tags:
    *   name: Auth
-   *   description: Authentication and account management
+   *   description: Xác thực và quản lý tài khoản
    */
 
   /**
@@ -22,8 +22,8 @@ export function createAuthRouter(
    * /api/auth/register:
    *   post:
    *     tags: [Auth]
-   *     summary: Register a new account
-   *     description: Creates a new user account and sends a 6-digit OTP to the provided email for verification. The account is inactive until the OTP is verified.
+   *     summary: Đăng ký tài khoản mới
+   *     description: Tạo tài khoản và gửi mã OTP 6 chữ số về email. Tài khoản chưa kích hoạt cho đến khi xác minh OTP.
    *     requestBody:
    *       required: true
    *       content:
@@ -48,18 +48,26 @@ export function createAuthRouter(
    *                 example: Test1234!
    *     responses:
    *       201:
-   *         description: Account created. OTP sent to email.
+   *         description: Tài khoản đã được tạo. OTP gửi về email.
    *         content:
    *           application/json:
    *             schema:
-   *               type: object
-   *               properties:
-   *                 message: { type: string }
-   *                 email: { type: string }
+   *               $ref: '#/components/schemas/SuccessResponse'
+   *             example:
+   *               success: true
+   *               data: { message: "Account created.", email: "dev@archtime.io" }
+   *               message: "Account created. Please check your email for OTP."
    *       400:
-   *         description: Validation error (missing fields, passwords don't match)
+   *         $ref: '#/components/responses/ValidationError'
    *       409:
-   *         description: Email already registered
+   *         description: Email đã được đăng ký
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *             example:
+   *               success: false
+   *               error: { code: "ALREADY_EXISTS", message: "Email already registered." }
    */
   router.post("/register", authController.register);
 
@@ -68,8 +76,8 @@ export function createAuthRouter(
    * /api/auth/verify-email:
    *   post:
    *     tags: [Auth]
-   *     summary: Verify email with OTP
-   *     description: Validates the 6-digit OTP sent to the user's email. On success, activates the account and returns JWT tokens.
+   *     summary: Xác minh email bằng OTP
+   *     description: Kiểm tra mã OTP 6 chữ số. Thành công sẽ kích hoạt tài khoản và trả về JWT tokens.
    *     requestBody:
    *       required: true
    *       content:
@@ -87,18 +95,20 @@ export function createAuthRouter(
    *                 example: "482913"
    *     responses:
    *       200:
-   *         description: Email verified. Returns user and JWT tokens.
+   *         description: Email đã xác minh. Trả về user và JWT tokens.
    *         content:
    *           application/json:
    *             schema:
-   *               type: object
-   *               properties:
-   *                 user:
-   *                   $ref: '#/components/schemas/User'
-   *                 accessToken: { type: string }
-   *                 refreshToken: { type: string }
+   *               $ref: '#/components/schemas/SuccessResponse'
+   *             example:
+   *               success: true
+   *               data:
+   *                 user: { id: "64f1...", name: "Jane Doe", email: "dev@archtime.io", role: "developer-analyst" }
+   *                 accessToken: "eyJhbGci..."
+   *                 refreshToken: "eyJhbGci..."
+   *               message: "Email verified successfully."
    *       400:
-   *         description: Invalid OTP, expired OTP, or no OTP found
+   *         $ref: '#/components/responses/ValidationError'
    */
   router.post("/verify-email", authController.verifyEmail);
 
@@ -107,8 +117,8 @@ export function createAuthRouter(
    * /api/auth/resend-otp:
    *   post:
    *     tags: [Auth]
-   *     summary: Resend OTP verification email
-   *     description: Invalidates any previous OTP and sends a fresh 6-digit code to the email address.
+   *     summary: Gửi lại OTP
+   *     description: Hủy OTP cũ và gửi mã 6 chữ số mới về email.
    *     requestBody:
    *       required: true
    *       content:
@@ -123,11 +133,26 @@ export function createAuthRouter(
    *                 example: dev@archtime.io
    *     responses:
    *       200:
-   *         description: New OTP sent
+   *         description: OTP mới đã được gửi
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/SuccessResponse'
+   *             example:
+   *               success: true
+   *               data: {}
+   *               message: "OTP sent successfully."
    *       400:
-   *         description: Email already verified
+   *         description: Email đã xác minh
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *             example:
+   *               success: false
+   *               error: { code: "EMAIL_ALREADY_VERIFIED", message: "Email already verified." }
    *       404:
-   *         description: No account found with this email
+   *         $ref: '#/components/responses/NotFound'
    */
   router.post("/resend-otp", authController.resendOtp);
 
@@ -136,8 +161,8 @@ export function createAuthRouter(
    * /api/auth/login:
    *   post:
    *     tags: [Auth]
-   *     summary: Login with email and password
-   *     description: Authenticates a verified user and returns JWT access + refresh tokens.
+   *     summary: Đăng nhập bằng email và mật khẩu
+   *     description: Xác thực người dùng và trả về access token + refresh token.
    *     requestBody:
    *       required: true
    *       content:
@@ -155,20 +180,38 @@ export function createAuthRouter(
    *                 example: Test1234!
    *     responses:
    *       200:
-   *         description: Login successful
+   *         description: Đăng nhập thành công
    *         content:
    *           application/json:
    *             schema:
-   *               type: object
-   *               properties:
-   *                 user:
-   *                   $ref: '#/components/schemas/User'
-   *                 accessToken: { type: string }
-   *                 refreshToken: { type: string }
+   *               $ref: '#/components/schemas/SuccessResponse'
+   *             example:
+   *               success: true
+   *               data:
+   *                 user: { id: "64f1...", name: "Jane Doe", email: "dev@archtime.io", role: "developer-analyst" }
+   *                 accessToken: "eyJhbGci..."
+   *                 refreshToken: "eyJhbGci..."
+   *               message: "Login successful."
+   *       400:
+   *         $ref: '#/components/responses/ValidationError'
    *       401:
-   *         description: Invalid email or password
+   *         description: Sai email hoặc mật khẩu
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *             example:
+   *               success: false
+   *               error: { code: "INVALID_CREDENTIALS", message: "Invalid email or password." }
    *       403:
-   *         description: Email not verified — check your inbox for OTP
+   *         description: Email chưa xác minh
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *             example:
+   *               success: false
+   *               error: { code: "EMAIL_NOT_VERIFIED", message: "Please verify your email first." }
    */
   router.post("/login", authController.login);
 
@@ -177,8 +220,8 @@ export function createAuthRouter(
    * /api/auth/refresh:
    *   post:
    *     tags: [Auth]
-   *     summary: Refresh access token
-   *     description: Exchanges a valid refresh token for a new short-lived access token.
+   *     summary: Làm mới access token
+   *     description: Đổi refresh token hợp lệ lấy access token mới.
    *     requestBody:
    *       required: true
    *       content:
@@ -191,15 +234,16 @@ export function createAuthRouter(
    *                 type: string
    *     responses:
    *       200:
-   *         description: New access token issued
+   *         description: Access token mới đã cấp
    *         content:
    *           application/json:
    *             schema:
-   *               type: object
-   *               properties:
-   *                 accessToken: { type: string }
+   *               $ref: '#/components/schemas/SuccessResponse'
+   *             example:
+   *               success: true
+   *               data: { accessToken: "eyJhbGci..." }
    *       401:
-   *         description: Invalid or expired refresh token
+   *         $ref: '#/components/responses/Unauthorized'
    */
   router.post("/refresh", authController.refresh);
 
@@ -208,22 +252,23 @@ export function createAuthRouter(
    * /api/auth/me:
    *   get:
    *     tags: [Auth]
-   *     summary: Get current authenticated user
-   *     description: Returns the profile of the currently authenticated user. Requires a valid Bearer token.
+   *     summary: Lấy thông tin người dùng hiện tại
+   *     description: Trả về profile của user đang đăng nhập. Yêu cầu Bearer token hợp lệ.
    *     security:
    *       - BearerAuth: []
    *     responses:
    *       200:
-   *         description: Current user profile
+   *         description: Thông tin user hiện tại
    *         content:
    *           application/json:
    *             schema:
-   *               type: object
-   *               properties:
-   *                 user:
-   *                   $ref: '#/components/schemas/User'
+   *               $ref: '#/components/schemas/SuccessResponse'
+   *             example:
+   *               success: true
+   *               data:
+   *                 user: { id: "64f1...", name: "Jane Doe", email: "dev@archtime.io", role: "developer-analyst" }
    *       401:
-   *         description: Missing or invalid Bearer token
+   *         $ref: '#/components/responses/Unauthorized'
    */
   router.get("/me", authenticate, authController.me);
 
@@ -232,7 +277,7 @@ export function createAuthRouter(
    * /api/auth/forgot-password:
    *   post:
    *     tags: [Auth]
-   *     summary: Email a single-use reset code valid for 10 minutes
+   *     summary: Gửi mã đặt lại mật khẩu qua email (có hiệu lực 10 phút)
    *     requestBody:
    *       required: true
    *       content:
@@ -241,16 +286,20 @@ export function createAuthRouter(
    *             type: object
    *             required: [email]
    *             properties:
-   *               email: { type: string, format: email }
+   *               email: { type: string, format: email, example: dev@archtime.io }
    *     responses:
    *       200:
-   *         description: Generic response; at most one email per account per minute
+   *         description: Yêu cầu đã được ghi nhận; tối đa 1 email mỗi phút cho mỗi tài khoản
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/SuccessResponse'
    *       400:
-   *         description: Invalid email
+   *         $ref: '#/components/responses/ValidationError'
    * /api/auth/reset-password:
    *   post:
    *     tags: [Auth]
-   *     summary: Reset password and revoke existing sessions
+   *     summary: Đặt lại mật khẩu và thu hồi phiên đăng nhập hiện tại
    *     requestBody:
    *       required: true
    *       content:
@@ -265,9 +314,45 @@ export function createAuthRouter(
    *               confirmPassword: { type: string }
    *     responses:
    *       200:
-   *         description: Password updated; sign in again
+   *         description: Mật khẩu đã đổi; vui lòng đăng nhập lại
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/SuccessResponse'
    *       400:
-   *         description: Invalid fields or invalid, expired, or used code
+   *         description: Dữ liệu không hợp lệ hoặc mã đặt lại đã hết hạn / đã dùng
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   * /api/auth/change-password:
+   *   post:
+   *     tags: [Auth]
+   *     summary: Thay đổi mật khẩu (khi đang đăng nhập)
+   *     security:
+   *       - BearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [oldPassword, newPassword, confirmNewPassword]
+   *             properties:
+   *               oldPassword: { type: string }
+   *               newPassword: { type: string, minLength: 8, maxLength: 72 }
+   *               confirmNewPassword: { type: string }
+   *     responses:
+   *       200:
+   *         description: Mật khẩu đã thay đổi thành công
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/SuccessResponse'
+   *       400:
+   *         $ref: '#/components/responses/ValidationError'
+   *       401:
+   *         $ref: '#/components/responses/Unauthorized'
    */
   router.post("/forgot-password", authController.forgotPassword);
   router.post("/reset-password", authController.resetPassword);

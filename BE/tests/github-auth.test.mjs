@@ -39,7 +39,9 @@ test('OAuth binds state and one-use exchange to the initiating browser', async (
     assert.equal((await exchange()).status, 401);
     assert.equal((await exchange({ cookie, origin: 'https://evil.example' })).status, 403);
     const tokens = await exchange({ cookie }); assert.equal(tokens.status, 200);
-    assert.equal((await tokens.json()).accessToken, 'user1:developer-analyst:3');
+    const tokensBody = await tokens.json();
+    assert.equal(tokensBody.success, true);
+    assert.equal(tokensBody.data.accessToken, 'user1:developer-analyst:3');
     assert.equal((await exchange({ cookie })).status, 401);
     const again = await request('/');
     const nextState = new URL(again.headers.get('location')).searchParams.get('state');

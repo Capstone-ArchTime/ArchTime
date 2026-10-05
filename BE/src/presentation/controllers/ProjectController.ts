@@ -9,6 +9,8 @@ import type { CompareSnapshotsUseCase } from "../../application/use-cases/projec
 import type { MiningWorkflowUseCase } from "../../application/use-cases/projects/MiningWorkflowUseCase.js";
 import type { ArchitectureUseCase } from "../../application/use-cases/projects/ArchitectureUseCase.js";
 import type { GetEvidencesUseCase } from "../../application/use-cases/projects/GetEvidencesUseCase.js";
+import { BadRequestError, NotFoundError, UnauthorizedError } from "../../shared/errors/AppError.js";
+import { sendSuccess, parsePaginationParams, buildPaginationMeta } from "../../shared/utils/apiResponse.js";
 
 export class ProjectController {
   constructor(
@@ -30,13 +32,10 @@ export class ProjectController {
     next: NextFunction,
   ): Promise<void> => {
     try {
+      const userId = req.user?.userId;
+      if (!userId) throw new UnauthorizedError();
+
       const { name, description, repoUrl, visibility, token } = req.body;
-      const userId = (req as any).user?.userId;
-      
-      if (!userId) {
-        res.status(401).json({ success: false, message: "Unauthorized" });
-        return;
-      }
 
       const project = await this.registerProjectUseCase.execute({
         name,
@@ -47,12 +46,11 @@ export class ProjectController {
         userId,
       });
 
-      res.status(201).json({
-        success: true,
-        message: "Project registered successfully",
-        data: { project },
+      sendSuccess(res, { project }, {
+        statusCode: 201,
+        message: "Project registered successfully.",
       });
-    } catch (error: any) {
+    } catch (error) {
       next(error);
     }
   };
@@ -63,19 +61,20 @@ export class ProjectController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const userId = (req as any).user?.userId;
-      if (!userId) {
-        res.status(401).json({ success: false, message: "Unauthorized" });
-        return;
-      }
+      const userId = req.user?.userId;
+      if (!userId) throw new UnauthorizedError();
 
-      const projects = await this.getAllProjectsUseCase.execute(userId);
+      const { page, limit, skip } = parsePaginationParams(req.query);
+      const { items, total } = await this.getAllProjectsUseCase.execute(
+        userId,
+        skip,
+        limit,
+      );
 
-      res.status(200).json({
-        success: true,
-        data: { projects },
+      sendSuccess(res, { projects: items }, {
+        meta: buildPaginationMeta(total, page, limit),
       });
-    } catch (error: any) {
+    } catch (error) {
       next(error);
     }
   };
@@ -86,22 +85,16 @@ export class ProjectController {
     next: NextFunction,
   ): Promise<void> => {
     try {
+      const userId = req.user?.userId;
+      if (!userId) throw new UnauthorizedError();
+
       const { id } = req.params;
-      const userId = (req as any).user?.userId;
-      
-      if (!userId) {
-        res.status(401).json({ success: false, message: "Unauthorized" });
-        return;
-      }
+      const deleted = await this.deleteProjectUseCase.execute(id, userId);
 
-      const success = await this.deleteProjectUseCase.execute(id, userId);
+      if (!deleted) throw new NotFoundError("Project not found or unauthorized.");
 
-      if (success) {
-        res.status(200).json({ success: true, message: "Project deleted successfully" });
-      } else {
-        res.status(404).json({ success: false, message: "Project not found or unauthorized" });
-      }
-    } catch (error: any) {
+      sendSuccess(res, null, { message: "Project deleted successfully." });
+    } catch (error) {
       next(error);
     }
   };
@@ -112,16 +105,14 @@ export class ProjectController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const { id } = req.params;
-      const userId = (req as any).user?.userId;
-      if (!userId) {
-        res.status(401).json({ success: false, message: "Unauthorized" });
-        return;
-      }
+      const userId = req.user?.userId;
+      if (!userId) throw new UnauthorizedError();
 
+      const { id } = req.params;
       const jobId = await this.mineProjectUseCase.execute(id, userId, req.body);
-      res.status(200).json({ success: true, data: { jobId } });
-    } catch (error: any) {
+
+      sendSuccess(res, { jobId }, { message: "Mining job started." });
+    } catch (error) {
       next(error);
     }
   };
@@ -133,14 +124,28 @@ export class ProjectController {
   ): Promise<void> => {
     try {
       const { id } = req.params;
-      const userId = (req as any).user?.userId;
-      if (!userId) {
-        res.status(401).json({ success: false, message: "Unauthorized" });
-        return;
+      const userId = req.user?.userId;
+      if (!userId) throw new UnauthorizedError();
+
+      const summary = req.query.summary === "1" || req.query.summary === "true";
+      const hasPagination = req.query.page !== undefined || req.query.limit !== undefined;
+
+      if (hasPagination) {
+        const { page, limit, skip } = parsePaginationParams(req.query);
+        const result = (await this.getSnapshotsUseCase.execute(id, userId, {
+          summary,
+          skip,
+          limit,
+        })) as { items: any[]; total: number };
+
+        sendSuccess(res, { snapshots: result.items }, {
+          meta: buildPaginationMeta(result.total, page, limit),
+        });
+      } else {
+        const snapshots = await this.getSnapshotsUseCase.execute(id, userId, summary);
+        sendSuccess(res, { snapshots });
       }
-      const snapshots = await this.getSnapshotsUseCase.execute(id, userId, req.query.summary === "1");
-      res.status(200).json({ success: true, data: { snapshots } });
-    } catch (error: any) {
+    } catch (error) {
       next(error);
     }
   };
@@ -151,9 +156,16 @@ export class ProjectController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const jobs = await this.getMiningJobsUseCase.execute();
-      res.status(200).json({ success: true, data: { jobs } });
-    } catch (error: any) {
+      const { page, limit, skip } = parsePaginationParams(req.query);
+      const { items, total } = await this.getMiningJobsUseCase.execute(
+        skip,
+        limit,
+      );
+
+      sendSuccess(res, { jobs: items }, {
+        meta: buildPaginationMeta(total, page, limit),
+      });
+    } catch (error) {
       next(error);
     }
   };
@@ -165,16 +177,24 @@ export class ProjectController {
   ): Promise<void> => {
     try {
       const { baseId, targetId } = req.query;
-      if (!baseId || !targetId || typeof baseId !== 'string' || typeof targetId !== 'string') {
-        res.status(400).json({ success: false, message: "Missing baseId or targetId query parameters" });
-        return;
+      if (
+        !baseId || !targetId ||
+        typeof baseId !== "string" ||
+        typeof targetId !== "string"
+      ) {
+        throw new BadRequestError(
+          "Missing required query parameters: baseId, targetId.",
+          "VALIDATION_ERROR",
+        );
       }
+
       const result = await this.compareSnapshotsUseCase.execute(baseId, targetId);
-      res.status(200).json({ success: true, data: result });
-    } catch (error: any) {
+      sendSuccess(res, result);
+    } catch (error) {
       next(error);
     }
   };
+
   public getEvidences = async (
     req: Request,
     res: Response,
@@ -182,9 +202,17 @@ export class ProjectController {
   ): Promise<void> => {
     try {
       const { id } = req.params;
-      const evidences = await this.getEvidencesUseCase.execute(id);
-      res.status(200).json({ success: true, data: { evidences } });
-    } catch (error: any) {
+      const { page, limit, skip } = parsePaginationParams(req.query);
+      const { items, total } = await this.getEvidencesUseCase.execute(
+        id,
+        skip,
+        limit,
+      );
+
+      sendSuccess(res, { evidences: items }, {
+        meta: buildPaginationMeta(total, page, limit),
+      });
+    } catch (error) {
       next(error);
     }
   };

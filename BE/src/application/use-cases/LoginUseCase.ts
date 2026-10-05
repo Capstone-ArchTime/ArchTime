@@ -22,7 +22,7 @@ export class LoginUseCase {
     const user = await this.userRepo.findByEmail(input.email);
     if (!user) {
       // Deliberate vague message to prevent email enumeration
-      throw new UnauthorizedError("Invalid email or password.");
+      throw new UnauthorizedError("Invalid email or password.", "INVALID_CREDENTIALS");
     }
 
     const passwordMatch = await this.hasher.comparePassword(
@@ -30,7 +30,7 @@ export class LoginUseCase {
       user.passwordHash,
     );
     if (!passwordMatch) {
-      throw new UnauthorizedError("Invalid email or password.");
+      throw new UnauthorizedError("Invalid email or password.", "INVALID_CREDENTIALS");
     }
 
     // Block login if email not verified
