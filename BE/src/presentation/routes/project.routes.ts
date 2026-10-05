@@ -2,6 +2,7 @@ import { Router, type RequestHandler } from "express";
 import type { ProjectController } from "../controllers/ProjectController.js";
 import type { MemberController } from "../controllers/MemberController.js";
 import type { WorkspaceController } from "../controllers/WorkspaceController.js";
+import type { ProjectMaintainerController } from "../controllers/ProjectMaintainerController.js";
 import { createAuthenticateMiddleware } from "../middlewares/authenticate.js";
 import type { JwtTokenService } from "../../infrastructure/services/JwtTokenService.js";
 import type { ProjectAction } from "../middlewares/projectRole.js";
@@ -12,6 +13,7 @@ export function createProjectRouter(
   memberController?: MemberController,
   projectRoleMiddleware?: (action: ProjectAction) => RequestHandler,
   workspaceController?: WorkspaceController,
+  pmController?: ProjectMaintainerController,
 ): Router {
 
   const router = Router();
@@ -675,6 +677,52 @@ export function createProjectRouter(
   router.get("/:id/architecture", projectController.getArchitecture);
   router.post("/:id/architecture", projectController.generateArchitecture);
   router.post("/:id/architecture/refine", projectController.refineArchitecture);
+
+  // ────────────────────────────────────────────────────────────
+  // Project Maintainer Routes (PM-01 to PM-07)
+  // ────────────────────────────────────────────────────────────
+  if (pmController) {
+    // PM-01: Dashboard
+    router.get("/:id/dashboard", checkRole("read"), pmController.getDashboard);
+
+    // PM-02: Diagram
+    router.get("/:id/diagram", checkRole("read"), pmController.getDiagram);
+    router.put("/:id/diagram", checkRole("write"), pmController.saveDiagram);
+    router.post("/:id/diagram/confirm", checkRole("write"), pmController.confirmDiagram);
+
+    // PM-03: Architecture Rules & Evaluation
+    router.get("/:id/rules", checkRole("read"), pmController.getRules);
+    router.post("/:id/rules", checkRole("write"), pmController.createRule);
+    router.put("/:id/rules/:ruleId", checkRole("write"), pmController.updateRule);
+    router.delete("/:id/rules/:ruleId", checkRole("write"), pmController.deleteRule);
+    router.patch("/:id/rules/:ruleId/toggle", checkRole("write"), pmController.toggleRule);
+    router.get("/:id/rules/evaluate", checkRole("read"), pmController.evaluateRules);
+
+    // PM-04: Design Decisions (ADR)
+    router.get("/:id/decisions", checkRole("read"), pmController.getDecisions);
+    router.post("/:id/decisions", checkRole("write"), pmController.createDecision);
+    router.get("/:id/decisions/:decisionId", checkRole("read"), pmController.getDecisionDetail);
+    router.put("/:id/decisions/:decisionId", checkRole("write"), pmController.updateDecision);
+    router.delete("/:id/decisions/:decisionId", checkRole("write"), pmController.deleteDecision);
+
+    // PM-05: Approval Queue
+    router.get("/:id/approvals", checkRole("read"), pmController.getApprovals);
+    router.post("/:id/approvals", checkRole("write"), pmController.createApproval);
+    router.get("/:id/approvals/:approvalId", checkRole("read"), pmController.getApprovalDetail);
+    router.post("/:id/approvals/:approvalId/approve", checkRole("admin"), pmController.approveRequest);
+    router.post("/:id/approvals/:approvalId/reject", checkRole("admin"), pmController.rejectRequest);
+
+    // PM-06: Team Invitations
+    router.post("/:id/members/invite", checkRole("admin"), pmController.inviteMember);
+    router.get("/:id/invitations", checkRole("admin"), pmController.getInvitations);
+    router.delete("/:id/invitations/:invitationId", checkRole("admin"), pmController.cancelInvitation);
+
+    // PM-07: Reports
+    router.get("/:id/reports", checkRole("read"), pmController.getReports);
+    router.post("/:id/reports/generate", checkRole("write"), pmController.generateReport);
+    router.get("/:id/reports/:reportId", checkRole("read"), pmController.getReportDetail);
+    router.get("/:id/reports/:reportId/download", checkRole("read"), pmController.downloadReport);
+  }
 
   return router;
 }

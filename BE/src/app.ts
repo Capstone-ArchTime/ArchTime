@@ -16,12 +16,14 @@ import {
   projectRoleMiddleware,
   workspaceController,
   adminControllersConfig,
+  projectMaintainerController,
 } from "./container.js";
 import { createGitHubRouter } from './presentation/routes/github.routes.js';
 import { GitHubIdentityService } from './infrastructure/services/GitHubIdentityService.js';
 import { GitHubLoginUseCase } from './application/use-cases/GitHubLoginUseCase.js';
 import { MongoUserRepository } from './infrastructure/repositories/MongoUserRepository.js';
 import { createAuthenticateMiddleware } from "./presentation/middlewares/authenticate.js";
+import { createInvitationRouter } from "./presentation/routes/invitation.routes.js";
 
 export const app = express();
 
@@ -44,8 +46,10 @@ app.use(
     memberController,
     projectRoleMiddleware,
     workspaceController,
+    projectMaintainerController,
   ),
 );
+app.use("/api/invitations", createInvitationRouter(projectMaintainerController));
 app.get(
   "/api/team/members",
   createAuthenticateMiddleware(jwtTokenService),

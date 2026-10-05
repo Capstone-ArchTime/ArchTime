@@ -564,6 +564,145 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        // ── Project Maintainer (PM) Schemas ────────────────────────────────
+        ProjectDashboard: {
+          type: "object",
+          properties: {
+            project: {
+              type: "object",
+              properties: {
+                id: { type: "string" },
+                name: { type: "string" },
+                description: { type: "string" },
+                repoUrl: { type: "string" },
+                visibility: { type: "string" },
+                status: { type: "string" },
+              },
+            },
+            healthScore: { type: "integer", example: 85 },
+            architecture: {
+              type: "object",
+              properties: {
+                revision: { type: "integer" },
+                componentsCount: { type: "integer" },
+                dependenciesCount: { type: "integer" },
+                isConfirmed: { type: "boolean" },
+                confirmedAt: { type: "string", format: "date-time" },
+              },
+            },
+            rules: {
+              type: "object",
+              properties: {
+                total: { type: "integer" },
+                active: { type: "integer" },
+                compliancePercent: { type: "number", example: 92 },
+                violationsCount: { type: "integer" },
+              },
+            },
+            decisions: {
+              type: "object",
+              properties: {
+                total: { type: "integer" },
+                accepted: { type: "integer" },
+                proposed: { type: "integer" },
+              },
+            },
+            approvals: {
+              type: "object",
+              properties: {
+                pendingCount: { type: "integer" },
+                totalCount: { type: "integer" },
+              },
+            },
+            team: {
+              type: "object",
+              properties: {
+                totalMembers: { type: "integer" },
+                maintainersCount: { type: "integer" },
+                membersCount: { type: "integer" },
+              },
+            },
+          },
+        },
+        RuleEvaluationSummary: {
+          type: "object",
+          properties: {
+            totalRules: { type: "integer", example: 5 },
+            evaluatedRules: { type: "integer", example: 4 },
+            satisfiedCount: { type: "integer", example: 3 },
+            violationCount: { type: "integer", example: 1 },
+            errorCount: { type: "integer", example: 1 },
+            warningCount: { type: "integer", example: 0 },
+            compliancePercent: { type: "number", example: 75 },
+            results: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  ruleId: { type: "string" },
+                  ruleName: { type: "string" },
+                  source: { type: "string" },
+                  target: { type: "string" },
+                  constraint: { type: "string", enum: ["forbidden", "required"] },
+                  severity: { type: "string", enum: ["error", "warning"] },
+                  status: { type: "string", enum: ["satisfied", "violation"] },
+                  message: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+        ApprovalRequest: {
+          type: "object",
+          properties: {
+            id: { type: "string", example: "appr-123" },
+            projectId: { type: "string" },
+            title: { type: "string", example: "Approve microservices split" },
+            description: { type: "string" },
+            type: {
+              type: "string",
+              enum: ["architecture_change", "rule_exception", "snapshot_baseline", "member_invite"],
+            },
+            status: { type: "string", enum: ["pending", "approved", "rejected"] },
+            requestedBy: { type: "string" },
+            reviewedBy: { type: "string" },
+            reviewedAt: { type: "string", format: "date-time" },
+            reviewNote: { type: "string" },
+            data: { type: "object" },
+            createdAt: { type: "string", format: "date-time" },
+          },
+        },
+        ProjectInvitation: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            projectId: { type: "string" },
+            email: { type: "string", format: "email" },
+            role: { type: "string", enum: ["maintainer", "member"] },
+            token: { type: "string" },
+            invitedBy: { type: "string" },
+            status: { type: "string", enum: ["pending", "accepted", "declined", "expired"] },
+            expiresAt: { type: "string", format: "date-time" },
+            createdAt: { type: "string", format: "date-time" },
+          },
+        },
+        ProjectReport: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            projectId: { type: "string" },
+            title: { type: "string" },
+            type: {
+              type: "string",
+              enum: ["architecture_summary", "rules_compliance", "evolution_history", "full_audit"],
+            },
+            generatedBy: { type: "string" },
+            status: { type: "string", enum: ["ready", "generating", "failed"] },
+            summary: { type: "string" },
+            data: { type: "object" },
+            createdAt: { type: "string", format: "date-time" },
+          },
+        },
       },
 
       // ── Responses tái sử dụng ─────────────────────────────────────────────
@@ -637,6 +776,12 @@ const options: swaggerJsdoc.Options = {
       { name: "Auth", description: "Xác thực và quản lý tài khoản" },
       { name: "GitHub OAuth", description: "Đăng nhập qua GitHub" },
       { name: "Projects", description: "Quản lý dự án và kho code" },
+      { name: "Projects - Dashboard", description: "Tổng quan chỉ số sức khỏe và hoạt động dự án (PM-01)" },
+      { name: "Projects - Diagram & Rules", description: "Quản lý Component Diagram và Architecture Rules (PM-02, PM-03)" },
+      { name: "Projects - Decisions (ADR)", description: "Hồ sơ quyết định thiết kế kiến trúc (PM-04)" },
+      { name: "Projects - Approvals", description: "Hàng đợi xét duyệt các thay đổi kiến trúc (PM-05)" },
+      { name: "Projects - Invitations", description: "Mời thành viên và quản lý lời mời dự án (PM-06)" },
+      { name: "Projects - Reports", description: "Tạo và tải báo cáo tổng hợp kiến trúc dự án (PM-07)" },
       { name: "Admin - User Management", description: "Quản trị người dùng hệ thống (System Administrator)" },
       { name: "Admin - Mining Jobs", description: "Giám sát và quản lý các tác vụ mining toàn hệ thống" },
       { name: "Admin - Audit Logs", description: "Nhật ký kiểm toán hoạt động hệ thống" },

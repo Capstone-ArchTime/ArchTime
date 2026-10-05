@@ -42,6 +42,17 @@ export class NodemailerEmailService implements IEmailService {
     });
   }
 
+  async sendProjectInvitation(to: string, projectName: string, role: string, inviteUrl: string): Promise<void> {
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject: `ArchTime — Invitation to join ${projectName}`,
+      html: `<p>You have been invited to join <strong>${projectName}</strong> as a <strong>${role}</strong>.</p>
+             <p><a href="${inviteUrl}">Click here to accept the invitation</a></p>
+             <p>This invitation will expire in 7 days.</p>`,
+    });
+  }
+
   private buildOtpEmail(otp: string): string {
     return `
 <!DOCTYPE html>
