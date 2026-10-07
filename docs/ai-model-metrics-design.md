@@ -171,6 +171,11 @@ Các thay đổi:
 
 **Thay đổi hành vi cần biết:** với định dạng delta, model **chuyển ít file hơn hẳn**. Gemini có M (giữ gắn kết) 11–25% → 92–98%, nhưng mức khớp với kiến trúc tham chiếu (bản nháp chia theo tầng) giảm 61–65% → 33–37%. Q tăng chủ yếu vì Q đánh giá cao việc giữ gắn kết phụ thuộc. Sơ đồ giờ bám sát cấu trúc phụ thuộc thật hơn, nhưng ít giống cách nhìn "theo tầng/thư mục" hơn. Mẫu đo còn nhỏ (Gemini 3 lần, Groq 1 lần; cùng model dao động khoảng ±5 điểm Q), nên cần chạy thêm Benchmark trước khi kết luận chắc chắn.
 
+**Quyết định (2026-10-08): giữ hành vi mới, ưu tiên phụ thuộc thật.** Đúng với nguyên tắc của ArchTime: sơ đồ phải dựa trên bằng chứng trong code (`types.ts`: *"nothing in a view is allowed to exist only because a model said so"*). AI dùng để đặt tên, gán vai trò và chỉ chuyển những file mà phụ thuộc hoặc thư mục cho thấy rõ là nằm sai chỗ; AI không gom lại toàn bộ theo thư mục hay tầng. Vì vậy:
+- Điểm **M (giữ gắn kết)** là kỳ vọng chính khi so sánh model.
+- **Agreement** với kiến trúc tham chiếu vẫn được báo để tham khảo, nhưng không đưa vào Q. Mức khớp thấp với một bản tham chiếu chia theo tầng không có nghĩa là sơ đồ sai.
+- Nếu sau này cần một góc nhìn "theo tầng", nên thêm thành **một chế độ xem riêng**, không đổi prompt mặc định.
+
 ## 3. Thay đổi database (MongoDB)
 
 ### 3.1 Collection mới `llmmodels` (Model registry)
