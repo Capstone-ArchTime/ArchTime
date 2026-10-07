@@ -15,9 +15,11 @@ export async function authRequest(endpoint: 'login' | 'register' | 'verify-email
       throw new Error(typeof detail === 'string' ? detail : `Request failed (${response.status}). Please try again.`);
     }
     if (!result || typeof result !== 'object' || Array.isArray(result)) throw new Error('The server returned an invalid response. Please try again.');
-    // The server wraps answers as { success, data, message }; older endpoints answered with the fields at the top level.
-    const data = result.data && typeof result.data === 'object' && !Array.isArray(result.data) ? result.data : {};
-    return { ...data, ...result };
+    // BE wraps response in { success, data, message } - unwrap if needed
+    if (result.success && result.data) {
+      return { ...result.data, message: result.message };
+    }
+    return result;
   } catch (error) {
     if (signal?.aborted) throw error;
     if (timeout.aborted) throw new Error('The request timed out. Check your connection and try again.');

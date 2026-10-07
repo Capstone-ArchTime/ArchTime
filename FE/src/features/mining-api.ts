@@ -14,7 +14,7 @@ export type MiningOverview = {
   lastJob: MiningJobState | null;
 };
 export type MiningEstimate = { inRange: number; alreadyMined: number; toMine: number; batchSize: number; batchCount: number };
-export type MineRequest = { mode: 'remaining' } | { mode: 'range'; since: string; until: string; force?: boolean };
+export type MineRequest = { mode: 'remaining'; model?: string } | { mode: 'range'; since: string; until: string; force?: boolean; model?: string };
 
 export const ACTIVE_STATUSES = ['queued', 'running'];
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
