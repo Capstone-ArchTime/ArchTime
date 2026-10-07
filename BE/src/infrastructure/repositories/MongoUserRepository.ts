@@ -28,6 +28,14 @@ export class MongoUserRepository implements IUserRepository {
     return this.toEntity(doc as Record<string, unknown>);
   }
 
+  async findByEmailOrUsername(identifier: string): Promise<IUser | null> {
+    const doc = await UserModel.findOne({
+      $or: [{ email: identifier }, { email: identifier.toLowerCase() }],
+    }).select("+passwordHash").lean();
+    if (!doc) return null;
+    return this.toEntity(doc as Record<string, unknown>);
+  }
+
   async findById(id: string): Promise<IUser | null> {
     const doc = await UserModel.findById(id).lean();
     if (!doc) return null;

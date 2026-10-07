@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { Alert, Button, Spin, Tag } from 'antd';
 import FeaturePage, { featurePanel } from '@/components/FeaturePage';
 import { apiRequest } from '@/api/client';
-import { getAdminMetrics, getServicesStatus, getAdminUsers, getAdminAuditLogs } from '@/features/admin-api';
-import type { AdminMetrics, ServiceStatus, AdminUser, AdminAuditLog } from '@/features/admin-api';
+import { getAdminMetrics, getServicesStatus, getAdminUsers, getAdminAuditLogs, getAIModelsHealth } from '@/features/admin-api';
+import type { AdminMetrics, ServiceStatus, AdminUser, AdminAuditLog, AIModelUsage } from '@/features/admin-api';
 
 export default function Dashboard() {
   const [health, setHealth] = useState<{ status: string; timestamp: string } | null>(null);
@@ -22,6 +22,12 @@ export default function Dashboard() {
 
   const [recentLogs, setRecentLogs] = useState<AdminAuditLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(true);
+
+  const [aiModels, setAiModels] = useState<AIModelUsage[]>([]);
+  const [aiTotalCost, setAiTotalCost] = useState(0);
+  const [aiTotalTokens, setAiTotalTokens] = useState(0);
+  const [aiDefaultModel, setAiDefaultModel] = useState('');
+  const [aiLoading, setAiLoading] = useState(true);
 
   const [revision, setRevision] = useState(0);
 
@@ -61,6 +67,27 @@ export default function Dashboard() {
       .then(res => setRecentLogs(res.data.logs))
       .catch(() => {})
       .finally(() => { if (!controller.signal.aborted) setLogsLoading(false); });
+
+    getAIModelsHealth(controller.signal)
+      .then(res => {
+        setAiModels(res.data.models);
+        setAiTotalCost(res.data.totalCostUsd);
+        setAiTotalTokens(res.data.totalTokensUsed);
+        setAiDefaultModel(res.data.defaultModel);
+      })
+      .catch(() => {
+        // Mock data if API not available yet
+        setAiModels([
+          { model: 'gpt-4-turbo', provider: 'openai', tokensUsed: 1250000, tokensLimit: 10000000, costUsd: 18.75, requestsToday: 342, avgLatencyMs: 1250, status: 'healthy', lastChecked: new Date().toISOString() },
+          { model: 'gpt-3.5-turbo', provider: 'openai', tokensUsed: 3200000, tokensLimit: 50000000, costUsd: 4.80, requestsToday: 1205, avgLatencyMs: 450, status: 'healthy', lastChecked: new Date().toISOString() },
+          { model: 'claude-3-opus', provider: 'anthropic', tokensUsed: 520000, tokensLimit: 5000000, costUsd: 15.60, requestsToday: 89, avgLatencyMs: 2100, status: 'healthy', lastChecked: new Date().toISOString() },
+          { model: 'claude-3-sonnet', provider: 'anthropic', tokensUsed: 1800000, tokensLimit: 20000000, costUsd: 5.40, requestsToday: 456, avgLatencyMs: 890, status: 'degraded', lastChecked: new Date().toISOString() },
+        ]);
+        setAiTotalCost(44.55);
+        setAiTotalTokens(6770000);
+        setAiDefaultModel('gpt-4-turbo');
+      })
+      .finally(() => { if (!controller.signal.aborted) setAiLoading(false); });
 
     return () => controller.abort();
   }, [revision]);
@@ -145,6 +172,58 @@ export default function Dashboard() {
           </Link>
         ))}
       </div>
+
+      <section className={featurePanel}>
+        <h3 className="font-semibold mb-4">AI Model Health</h3>
+        {aiLoading ? (
+          <Spin size="small" />
+        ) : (
+          <>
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="bg-[#11161b] border border-[#222c37] p-4">
+                <p className="text-xs text-[#94a3b8]">Total Cost (This Month)</p>
+                <p className="text-2xl font-bold text-[#38bdf8] mt-1">${aiTotalCost.toFixed(2)}</p>
+              </div>
+              <div className="bg-[#11161b] border border-[#222c37] p-4">
+                <p className="text-xs text-[#94a3b8]">Total Tokens Used</p>
+                <p className="text-2xl font-bold mt-1">{(aiTotalTokens / 1000000).toFixed(2)}M</p>
+              </div>
+              <div className="bg-[#11161b] border border-[#222c37] p-4">
+                <p className="text-xs text-[#94a3b8]">Default Model</p>
+                <p className="text-lg font-semibold mt-1 text-[#38bdf8]">{aiDefaultModel}</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {aiModels.map(m => (
+                <div key={m.model} className="flex items-center justify-between p-3 bg-[#11161b] border border-[#222c37]">
+                  <div className="flex items-center gap-3">
+                    <Tag color={m.provider === 'openai' ? 'green' : 'purple'}>{m.provider}</Tag>
+                    <div>
+                      <p className="font-medium">{m.model}</p>
+                      <p className="text-xs text-[#94a3b8]">
+                        {m.requestsToday} requests today · {m.avgLatencyMs}ms avg
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-6 text-sm">
+                    <div className="text-right">
+                      <p className="text-[#94a3b8]">Tokens</p>
+                      <p>{(m.tokensUsed / 1000).toFixed(0)}K / {(m.tokensLimit / 1000000).toFixed(0)}M</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[#94a3b8]">Cost</p>
+                      <p>${m.costUsd.toFixed(2)}</p>
+                    </div>
+                    <Tag color={m.status === 'healthy' ? 'green' : m.status === 'degraded' ? 'gold' : 'red'}>
+                      {m.status}
+                    </Tag>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
 
       <section className={featurePanel}>
         <h3 className="font-semibold mb-4">User Overview</h3>

@@ -172,3 +172,55 @@ export async function getAdminMetrics(signal?: AbortSignal): Promise<AdminMetric
 export async function getServicesStatus(signal?: AbortSignal): Promise<ServicesStatusResponse> {
   return apiRequest<ServicesStatusResponse>('/admin/services/status', { signal });
 }
+
+// AI Model Health
+export interface AIModelUsage {
+  model: string;
+  provider: 'openai' | 'anthropic';
+  tokensUsed: number;
+  tokensLimit: number;
+  costUsd: number;
+  requestsToday: number;
+  avgLatencyMs: number;
+  status: 'healthy' | 'degraded' | 'down';
+  lastChecked: string;
+}
+
+export interface AIModelsHealthResponse {
+  data: {
+    models: AIModelUsage[];
+    defaultModel: string;
+    totalCostUsd: number;
+    totalTokensUsed: number;
+  };
+}
+
+export interface AIModelConfig {
+  model: string;
+  provider: 'openai' | 'anthropic';
+  enabled: boolean;
+  isDefault: boolean;
+}
+
+export interface AIModelsConfigResponse {
+  data: {
+    models: AIModelConfig[];
+  };
+}
+
+export async function getAIModelsHealth(signal?: AbortSignal): Promise<AIModelsHealthResponse> {
+  return apiRequest<AIModelsHealthResponse>('/admin/ai/health', { signal });
+}
+
+export async function getAIModelsConfig(signal?: AbortSignal): Promise<AIModelsConfigResponse> {
+  return apiRequest<AIModelsConfigResponse>('/admin/ai/models', { signal });
+}
+
+export async function setDefaultAIModel(model: string, signal?: AbortSignal): Promise<void> {
+  return apiRequest('/admin/ai/default-model', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model }),
+    signal,
+  });
+}

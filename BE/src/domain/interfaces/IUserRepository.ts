@@ -11,6 +11,7 @@ export interface UserFilter {
 
 export interface IUserRepository {
   findByEmail(email: string): Promise<IUser | null>;
+  findByEmailOrUsername(identifier: string): Promise<IUser | null>;
   findById(id: string): Promise<IUser | null>;
   create(data: {
     name: string;
