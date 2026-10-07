@@ -1,28 +1,54 @@
 import { useEffect, useRef, useState } from 'react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
-import { Maximize2, Minus, Plus } from 'lucide-react';
+import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
+import { ConfigProvider } from 'antd';
 import DiagramSvg from './DiagramSvg';
 import type { DiagramSvgProps } from './DiagramSvg';
+import Minimap from './Minimap';
+import { boundsOf, centerOn, fitAll, frame, visibleRect, wheel, zoomAt } from '@/features/architecture/viewport';
+import type { Size, Transform } from '@/features/architecture/viewport';
 
-type Transform = { k: number; tx: number; ty: number };
-const MIN_K = 0.25;
-const MAX_K = 2.5;
-const clamp = (k: number) => Math.min(MAX_K, Math.max(MIN_K, k));
+const isTyping = (target: EventTarget | null) => target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 
-function fit(box: { w: number; h: number }, content: { width: number; height: number }): Transform {
-  if (!box.w || !box.h) return { k: 1, tx: 0, ty: 0 };
-  const k = clamp(Math.min((box.w - 24) / content.width, (box.h - 24) / content.height, 1.15));
-  return { k, tx: (box.w - content.width * k) / 2, ty: Math.max(12, (box.h - content.height * k) / 2) };
+/** What the floating controls drawn over the artboard can read and do. */
+export interface Viewport {
+  zoom: number;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  /** Whole diagram. */
+  fit: () => void;
+  /** The selection (focused node and what it highlights), or the whole diagram when nothing is selected. */
+  frameSelection: () => void;
+  /** Brings these nodes into view, zooming out if they do not fit. */
+  reveal: (ids: string[]) => void;
+  minimap: boolean;
+  toggleMinimap: () => void;
+  fullscreen: boolean;
+  toggleFullscreen: () => void;
+  setZoom: (k: number) => void;
+  /** Where popups go, so they stay visible in full screen. */
+  container: () => HTMLElement;
 }
 
-/** Pannable, zoomable viewer around DiagramSvg. Drag to pan, Ctrl/Cmd + wheel (or the buttons) to zoom. */
-export default function ArchitectureDiagram(props: Omit<DiagramSvgProps, 'interactive' | 'svgRef'> & { className?: string }) {
-  const { className, ...svgProps } = props;
-  const { layout } = svgProps;
+/**
+ * The artboard: the diagram on a dotted canvas that fills the space, with design-tool navigation. Scroll or two-finger
+ * swipe pans, Ctrl/Cmd + scroll or pinch zooms at the cursor, dragging the background pans, and +, -, 0, F, M work from the
+ * keyboard. Controls are drawn by the caller through `overlay`, on top of the canvas.
+ */
+export default function ArchitectureDiagram(props: Omit<DiagramSvgProps, 'interactive' | 'svgRef'> & {
+  className?: string;
+  gridColor?: string;
+  overlay?: (viewport: Viewport) => ReactNode;
+}) {
+  const { className, gridColor = '#1e2732', overlay, ...svgProps } = props;
+  const { layout, highlight, selectedNode, theme, scene } = svgProps;
+  const shell = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState({ w: 0, h: 0 });
+  const [size, setSize] = useState<Size>({ w: 0, h: 0 });
   const [manual, setManual] = useState<(Transform & { key: string }) | null>(null);
-  const drag = useRef<{ x: number; y: number; tx: number; ty: number; moved: boolean } | null>(null);
+  const [minimap, setMinimap] = useState(true);
+  const [fullscreen, setFullscreen] = useState(false);
+  const drag = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
+  const [dragging, setDragging] = useState(false);
 
   useEffect(() => {
     const el = box.current;
@@ -32,63 +58,118 @@ export default function ArchitectureDiagram(props: Omit<DiagramSvgProps, 'intera
     return () => observer.disconnect();
   }, []);
 
-  // A manual pan/zoom only applies to the layout it was made for; a different diagram is fitted again.
-  const key = `${layout.width}x${layout.height}:${layout.nodes.length}`;
-  const t: Transform = manual && manual.key === key ? manual : fit(size, layout);
-  const update = (next: Transform) => setManual({ ...next, key });
-  const [dragging, setDragging] = useState(false);
+  useEffect(() => {
+    const sync = () => setFullscreen(document.fullscreenElement === shell.current);
+    document.addEventListener('fullscreenchange', sync);
+    return () => document.removeEventListener('fullscreenchange', sync);
+  }, []);
 
-  const zoomAt = (factor: number, cx = size.w / 2, cy = size.h / 2) => {
-    const k = clamp(t.k * factor);
-    update({ k, tx: cx - ((cx - t.tx) / t.k) * k, ty: cy - ((cy - t.ty) / t.k) * k });
+  // A manual pan/zoom belongs to the layout it was made for; another diagram (or the inner view) is fitted again.
+  const key = `${layout.width}x${layout.height}:${layout.nodes.length}`;
+  const t: Transform = manual && manual.key === key ? manual : fitAll(size, layout);
+  const update = (next: Transform) => setManual({ ...next, key });
+
+  const placed = (ids: Iterable<string>) => {
+    const want = new Set(ids);
+    return layout.nodes.filter(n => want.has(n.id));
   };
+
+  const viewport: Viewport = {
+    zoom: t.k,
+    zoomIn: () => update(zoomAt(t, 1.25, size.w / 2, size.h / 2)),
+    zoomOut: () => update(zoomAt(t, 0.8, size.w / 2, size.h / 2)),
+    fit: () => setManual(null),
+    frameSelection: () => {
+      const ids = highlight?.nodes ? [...highlight.nodes] : selectedNode ? [selectedNode] : [];
+      const rect = boundsOf(placed(ids));
+      if (rect) update(frame(size, rect)); else setManual(null);
+    },
+    reveal: ids => {
+      const nodes = placed(ids);
+      const rect = boundsOf(nodes);
+      if (!rect) return;
+      const seen = visibleRect(t, size);
+      const inside = rect.x >= seen.x && rect.y >= seen.y && rect.x + rect.width <= seen.x + seen.width && rect.y + rect.height <= seen.y + seen.height;
+      if (inside) return;
+      // Keep the zoom when the nodes fit at it; otherwise zoom out just enough.
+      const fits = rect.width * t.k <= size.w - 48 && rect.height * t.k <= size.h - 144;
+      update(fits ? centerOn(t, size, rect.x + rect.width / 2, rect.y + rect.height / 2) : frame(size, rect, { maxZoom: t.k }));
+    },
+    minimap,
+    toggleMinimap: () => setMinimap(v => !v),
+    fullscreen,
+    toggleFullscreen: () => {
+      if (document.fullscreenElement) void document.exitFullscreen();
+      else void shell.current?.requestFullscreen?.();
+    },
+    setZoom: k => update(zoomAt(t, k / t.k, size.w / 2, size.h / 2)),
+    container: () => shell.current ?? document.body,
+  };
+  // Keyboard shortcuts read the latest viewport without re-binding the listener on every render.
+  const vp = useRef(viewport);
+  useEffect(() => { vp.current = viewport; });
 
   useEffect(() => {
     const el = box.current;
     if (!el) return;
     const onWheel = (event: WheelEvent) => {
-      if (!event.ctrlKey && !event.metaKey) return; // plain scrolling keeps scrolling the page
-      event.preventDefault();
+      event.preventDefault(); // the artboard owns the wheel; the page scrolls from outside it
       const rect = el.getBoundingClientRect();
-      zoomAt(Math.exp(-event.deltaY * 0.0015), event.clientX - rect.left, event.clientY - rect.top);
+      update(wheel(t, event, { x: event.clientX - rect.left, y: event.clientY - rect.top }));
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
   });
 
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (isTyping(event.target) || event.ctrlKey || event.metaKey || event.altKey) return;
+      const v = vp.current;
+      if (event.key === '+' || event.key === '=') v.zoomIn();
+      else if (event.key === '-' || event.key === '_') v.zoomOut();
+      else if (event.key === '0') v.fit();
+      else if (event.key.toLowerCase() === 'f') v.frameSelection();
+      else if (event.key.toLowerCase() === 'm') v.toggleMinimap();
+      else return;
+      event.preventDefault();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const onPointerDown = (event: ReactPointerEvent) => {
-    if ((event.target as Element).closest('[data-node],[data-edge],button')) return;
-    drag.current = { x: event.clientX, y: event.clientY, tx: t.tx, ty: t.ty, moved: false };
+    if (event.button !== 0 || (event.target as Element).closest('[data-node],[data-edge],[data-overlay]')) return;
+    drag.current = { x: event.clientX, y: event.clientY, tx: t.tx, ty: t.ty };
     setDragging(true);
     (event.currentTarget as Element).setPointerCapture(event.pointerId);
   };
   const onPointerMove = (event: ReactPointerEvent) => {
     const d = drag.current;
-    if (!d) return;
-    const dx = event.clientX - d.x, dy = event.clientY - d.y;
-    if (Math.abs(dx) + Math.abs(dy) > 3) d.moved = true;
-    update({ k: t.k, tx: d.tx + dx, ty: d.ty + dy });
+    if (d) update({ k: t.k, tx: d.tx + event.clientX - d.x, ty: d.ty + event.clientY - d.y });
   };
   const onPointerUp = () => { drag.current = null; setDragging(false); };
 
-  const fitNow = () => setManual(null);
+  const grid = 24 * t.k;
   return (
-    <div className={`relative overflow-hidden border border-[#222c37] bg-[#080b0e] touch-none ${className ?? ''}`} ref={box} style={{ cursor: dragging ? 'grabbing' : 'grab' }}
-      onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
-      <div style={{ transform: `translate(${t.tx}px, ${t.ty}px) scale(${t.k})`, transformOrigin: '0 0', width: layout.width, height: layout.height }}>
-        <DiagramSvg {...svgProps} interactive />
+    <div ref={shell} className={`relative ${fullscreen ? 'h-screen w-screen' : className ?? ''}`} style={{ background: theme.background }}>
+      <div ref={box} className="absolute inset-0 overflow-hidden touch-none select-none"
+        style={{
+          cursor: dragging ? 'grabbing' : 'grab',
+          backgroundImage: grid >= 6 ? `radial-gradient(circle, ${gridColor} ${Math.max(0.8, t.k)}px, transparent ${Math.max(0.8, t.k)}px)` : undefined,
+          backgroundSize: `${grid}px ${grid}px`,
+          backgroundPosition: `${t.tx}px ${t.ty}px`,
+        }}
+        onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
+        role="application" aria-label="Architecture diagram. Scroll to pan, Ctrl and scroll to zoom.">
+        <div style={{ transform: `translate(${t.tx}px, ${t.ty}px) scale(${t.k})`, transformOrigin: '0 0', width: layout.width, height: layout.height }}>
+          <DiagramSvg {...svgProps} interactive />
+        </div>
       </div>
-      <div className="absolute top-3 right-3 flex flex-col gap-1">
-        {[
-          { label: 'Zoom in', icon: <Plus size={14} />, run: () => zoomAt(1.25) },
-          { label: 'Zoom out', icon: <Minus size={14} />, run: () => zoomAt(0.8) },
-          { label: 'Fit diagram to view', icon: <Maximize2 size={14} />, run: fitNow },
-        ].map(b => (
-          <button key={b.label} type="button" aria-label={b.label} title={b.label} onClick={b.run}
-            className="h-8 w-8 flex items-center justify-center bg-[#161d24] border border-[#2a3441] text-[#cbd5e1] hover:border-[#38bdf8] hover:text-white">{b.icon}</button>
-        ))}
-      </div>
-      <p className="absolute bottom-3 left-3 text-[10px] text-[#64748b] pointer-events-none">{Math.round(t.k * 100)}% · drag to pan · Ctrl + scroll to zoom</p>
+      {minimap && size.w > 0 && (layout.width * t.k > size.w || layout.height * t.k > size.h) && (
+        <Minimap scene={scene} layout={layout} theme={theme} highlight={highlight} view={visibleRect(t, size)}
+          onMove={(x, y) => update(centerOn(t, size, x, y))} />
+      )}
+      <ConfigProvider getPopupContainer={viewport.container}>{overlay?.(viewport)}</ConfigProvider>
     </div>
   );
 }
