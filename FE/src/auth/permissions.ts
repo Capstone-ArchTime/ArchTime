@@ -9,9 +9,9 @@ export const roleHome: Record<Role, string> = {
 };
 
 const routes: Record<Role, readonly string[]> = {
-  'developer-analyst': ['/dashboard', '/projects', '/project', '/history', '/architecture', '/compare', '/evidence', '/insights', '/reports'],
+  'developer-analyst': ['/dashboard', '/projects', '/project', '/history', '/architecture', '/compare', '/evidence', '/insights', '/reports', '/ai-usage'],
   'project-maintainer': ['/project-maintainer', '/project-maintainer/approvals', '/project-maintainer/team', '/project-maintainer/reports', '/project-maintainer/component-diagram', '/project-maintainer/architecture-rules', '/project-maintainer/design-decisions'],
-  'system-administrator': ['/system-administrator', '/system-administrator/users', '/system-administrator/audit-log', '/system-administrator/settings', '/system-administrator/mining-jobs'],
+  'system-administrator': ['/system-administrator', '/system-administrator/users', '/system-administrator/audit-log', '/system-administrator/settings', '/system-administrator/mining-jobs', '/system-administrator/ai-models', '/system-administrator/ai-metrics'],
 };
 
 export function canAccess(role: Role, path: string) {

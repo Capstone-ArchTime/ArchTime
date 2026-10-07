@@ -11,6 +11,9 @@ import { getMiningOverview } from '@/features/mining-api';
 import { getProjects } from '@/features/project-data';
 import type { ProjectSummary } from '@/features/project-data';
 import { parseHash, serializeHash } from '@/features/architecture/url-state';
+import ModelPicker, { RunUsage } from '@/components/architecture/ModelPicker';
+import { getUserModels, selectedModel } from '@/features/llm-api';
+import type { UserModels } from '@/features/llm-api';
 import type { ViewerState } from '@/features/architecture/url-state';
 
 const SAMPLE_IDS = new Set(FIXTURES.map(f => f.id));
@@ -49,6 +52,8 @@ export default function ArchitectureMap() {
   const [generating, setGenerating] = useState(false);
   const [refining, setRefining] = useState<{ stage: string; progress: number } | null>(null);
   const request = useRef(0);
+  const [models, setModels] = useState<UserModels | null>(null);
+  const [modelChoice, setModelChoice] = useState<string | undefined>();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -62,6 +67,14 @@ export default function ArchitectureMap() {
     getSnapshotSummaries(projectId, controller.signal).then(rows => setSnapshots({ projectId, rows })).catch(() => { if (!controller.signal.aborted) setSnapshots({ projectId, rows: [] }); });
     return () => controller.abort();
   }, [projectId, reloads]);
+
+  // The models the user may pick, with estimates for this snapshot's size. Optional: the default model works without it.
+  useEffect(() => {
+    if (!projectId) return;
+    const controller = new AbortController();
+    getUserModels(projectId, snapshotParam, controller.signal).then(setModels).catch(() => { if (!controller.signal.aborted) setModels(null); });
+    return () => controller.abort();
+  }, [projectId, snapshotParam, reloads]);
 
   const key = projectId ? `${projectId}:${snapshotParam ?? 'latest'}:${reloads}` : '';
   useEffect(() => {
@@ -99,17 +112,20 @@ export default function ArchitectureMap() {
     if (!projectId || !payload) return;
     try {
       const id = payload.snapshot?.id ?? snapshotParam;
-      await refineArchitecture(projectId, id);
+      await refineArchitecture(projectId, id, models?.allowUserModelChoice ? modelChoice : undefined);
       setRefining({ stage: 'Queued', progress: 0 });
     } catch (cause) { message.error(cause instanceof Error ? cause.message : 'Could not start the refinement.'); }
   }
   function confirmRefine() {
     const llm = payload?.llm;
     if (!llm?.enabled) return;
-    if (!llm.external) { void startRefine(); return; }
+    const chosen = selectedModel(models, modelChoice);
+    const target = chosen ? { host: chosen.host, model: chosen.displayName, external: chosen.external } : { host: llm.host, model: llm.displayName ?? llm.model, external: llm.external };
+    if (!target.external) { void startRefine(); return; }
+    const estimate = chosen?.estimate ? ` Expected use: about ${chosen.estimate.tokens.toLocaleString('en-US')} tokens.` : '';
     modal.confirm({
       title: 'Send file paths to an external AI service?',
-      content: `ArchTime will send this snapshot's file paths and which files import which to ${llm.host} (model ${llm.model}). It never sends source code, commit messages, or access tokens. The answer is checked before it is used, and the dependency-based result is kept if it fails.`,
+      content: `ArchTime will send this snapshot's file paths and which files import which to ${target.host} (model ${target.model}). It never sends source code, commit messages, or access tokens. The answer is checked before it is used, and the dependency-based result is kept if it fails.${estimate}`,
       okText: 'Send and refine', cancelText: 'Cancel',
       onOk: () => startRefine(),
     });
@@ -131,7 +147,14 @@ export default function ArchitectureMap() {
     const button = <Button icon={<Sparkles size={14} />} disabled={!llm?.enabled || !!refining || generating} loading={!!refining} onClick={confirmRefine}>
       {payload?.status === 'ready' ? 'Refine with AI' : 'Group with AI'}
     </Button>;
-    if (llm?.enabled) return <Tooltip title={llm.external ? `Sends file paths to ${llm.host} (${llm.model}); asks first` : `Uses ${llm.model} on ${llm.host}; nothing leaves your network`}>{button}</Tooltip>;
+    if (llm?.enabled) {
+      const chosen = selectedModel(models, modelChoice);
+      const t = chosen ? { host: chosen.host, model: chosen.displayName, external: chosen.external } : { host: llm.host, model: llm.displayName ?? llm.model, external: llm.external };
+      return <>
+        <ModelPicker models={models} value={modelChoice} onChange={setModelChoice} disabled={!!refining || generating} />
+        <Tooltip title={t.external ? `Sends file paths to ${t.host} (${t.model}); asks first` : `Uses ${t.model} on ${t.host}; nothing leaves your network`}>{button}</Tooltip>
+      </>;
+    }
     return <Tooltip title={llm?.reason ?? 'AI refinement is not available'}><span>{button}</span></Tooltip>;
   }
   function receiptNote(receipt: RefineReceipt | null) {
@@ -139,11 +162,12 @@ export default function ArchitectureMap() {
     const failed = receipt.attempts.filter(a => !a.ok).length;
     const notes = receipt.notes?.length ? <ul className="list-disc pl-5 text-xs text-[#94a3b8]">{receipt.notes.map((n, i) => <li key={i}>{n}</li>)}</ul> : null;
     if (receipt.accepted) {
-      return <div className="space-y-1"><p className="text-xs text-[#94a3b8]" role="status">AI refinement by <code>{receipt.model}</code> was accepted after {failed + 1} attempt{failed ? 's' : ''}{receipt.mode === 'name-only' ? ' (names only: the repository was too large to regroup)' : receipt.movedRatio !== undefined ? `; ${Math.round(receipt.movedRatio * 100)}% of files moved from the dependency grouping` : ''}.</p>{notes}</div>;
+      return <div className="space-y-1"><RunUsage key={receipt.runId ?? receipt.model} receipt={receipt} /><p className="text-xs text-[#94a3b8]" role="status">AI refinement by <code>{receipt.model}</code> was accepted after {failed + 1} attempt{failed ? 's' : ''}{receipt.mode === 'name-only' ? ' (names only: the repository was too large to regroup)' : receipt.movedRatio !== undefined ? `; ${Math.round(receipt.movedRatio * 100)}% of files moved from the dependency grouping` : ''}.</p>{notes}</div>;
     }
     return <Alert type="warning" showIcon title="AI refinement did not produce a usable answer"
       description={<div className="space-y-2">
         <p>{receipt.fallbackReason ?? 'No answer passed verification.'} The grouping by dependencies is shown instead.</p>
+        <RunUsage key={receipt.runId ?? receipt.model} receipt={receipt} />
         <ol className="list-decimal pl-5 text-xs space-y-1">{receipt.attempts.map(a => <li key={a.n}>Attempt {a.n}: {a.issues.length ? a.issues.slice(0, 3).map((i, k) => <span key={k} className="block"><code>{i.code}</code> {i.message}</span>) : 'no answer'}</li>)}</ol>
         {notes}
       </div>} />;

@@ -26,6 +26,12 @@ export interface IMiningJob {
   kind: JobKind;
   /** What the job works on when that is not the whole repository (the snapshot id for an abstract job). */
   target?: string;
+  /** Abstract jobs: the model chosen by the user (registry id); the default model when absent. */
+  modelId?: string;
+  /** Abstract jobs: "benchmark" runs every model in benchmarkModels on the target snapshot and leaves the stored components alone. */
+  purpose?: "user" | "benchmark";
+  benchmarkId?: string;
+  benchmarkModels?: string[];
   mode?: "range" | "remaining";
   rangeSince?: Date;
   rangeUntil?: Date;
@@ -60,6 +66,10 @@ const MiningJobSchema = new Schema<IMiningJobDocument>(
     error: { type: String },
     kind: { type: String, enum: Object.values(JobKind), default: JobKind.MINE },
     target: { type: String },
+    modelId: { type: String, ref: "LlmModel" },
+    purpose: { type: String, enum: ["user", "benchmark"] },
+    benchmarkId: { type: String },
+    benchmarkModels: { type: [String], default: undefined },
     mode: { type: String, enum: ["range", "remaining"] },
     rangeSince: { type: Date },
     rangeUntil: { type: Date },

@@ -43,6 +43,8 @@ export class AdminSettingsController {
         defaultLlmProvider,
         maintenanceMode,
         allowPublicRegistration,
+        allowUserModelChoice,
+        scoring,
       } = req.body;
 
       const settings = await this.updateAdminSettingsUseCase.execute({
@@ -52,6 +54,8 @@ export class AdminSettingsController {
         defaultLlmProvider,
         maintenanceMode,
         allowPublicRegistration,
+        allowUserModelChoice,
+        scoring,
         adminUserId,
       });
 

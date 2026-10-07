@@ -52,9 +52,16 @@ export class MiningService {
     return this.enqueue(projectId, userId, { kind: JobKind.SCAN, stage: 'Queued for scan' });
   }
 
-  /** Groups a snapshot into components and refines the result with the configured AI model. */
-  public static async startAbstractJob(projectId: string, userId: string, snapshotId?: string): Promise<string> {
-    return this.enqueue(projectId, userId, { kind: JobKind.ABSTRACT, stage: 'Queued', ...(snapshotId ? { target: snapshotId } : {}) });
+  /** Groups a snapshot into components and refines the result with the chosen (else the default) AI model. */
+  public static async startAbstractJob(projectId: string, userId: string, snapshotId?: string, modelId?: string): Promise<string> {
+    return this.enqueue(projectId, userId, { kind: JobKind.ABSTRACT, stage: 'Queued', ...(snapshotId ? { target: snapshotId } : {}), ...(modelId ? { modelId } : {}) });
+  }
+
+  /** Runs each model on the same snapshot, one after another, for comparison. The project's stored components are not changed. */
+  public static async startBenchmarkJob(projectId: string, userId: string, snapshotId: string, modelIds: string[], benchmarkId: string): Promise<string> {
+    return this.enqueue(projectId, userId, {
+      kind: JobKind.ABSTRACT, stage: 'Queued for benchmark', target: snapshotId, purpose: 'benchmark', benchmarkId, benchmarkModels: modelIds,
+    });
   }
 
   public static async startMiningJob(projectId: string, userId: string, request?: MineRequest): Promise<string> {
@@ -219,7 +226,10 @@ export class MiningService {
 
     if (job.kind === JobKind.ABSTRACT) {
       // Not a repository job: no clone, no project status change.
-      await runArchitectureJob({ id: jobId, projectId: String(job.projectId), target: job.target }, () => this.cancelled.has(jobId));
+      await runArchitectureJob({
+        id: jobId, projectId: String(job.projectId), target: job.target, requestedBy: String(job.requestedBy), modelId: job.modelId,
+        purpose: job.purpose, benchmarkId: job.benchmarkId, benchmarkModels: job.benchmarkModels,
+      }, () => this.cancelled.has(jobId));
       return;
     }
 

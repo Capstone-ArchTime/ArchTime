@@ -822,13 +822,43 @@ export function createProjectRouter(
    *         name: id
    *         required: true
    *         schema: { type: string }
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               snapshotId: { type: string, description: "Snapshot cần vẽ (mặc định snapshot mới nhất)" }
+   *               modelId: { type: string, description: "Model AI (GET /api/llm/models); bỏ trống = model mặc định do Admin chọn" }
    *     responses:
    *       202:
    *         description: Refine job đã được tạo
+   *       400:
+   *         description: Model không tồn tại, bị tắt hoặc không dành cho user
    *       401:
    *         $ref: '#/components/responses/Unauthorized'
+   *       403:
+   *         description: Admin đã tắt quyền chọn model
    */
   router.post("/:id/architecture/refine", projectController.refineArchitecture);
+
+  /**
+   * @swagger
+   * /api/projects/{id}/architecture/runs:
+   *   get:
+   *     tags: [Projects]
+   *     summary: Lịch sử các lần AI vẽ kiến trúc của project (model, token input/output/total, latency, cost, chất lượng)
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - { in: path, name: id, required: true, schema: { type: string } }
+   *       - { in: query, name: page, schema: { type: integer, default: 1 } }
+   *       - { in: query, name: limit, schema: { type: integer, default: 20 } }
+   *     responses:
+   *       200:
+   *         description: "{ runs, totals, meta }"
+   */
+  router.get("/:id/architecture/runs", projectController.getArchitectureRuns);
 
   // ────────────────────────────────────────────────────────────
   // Project Maintainer Routes (PM-01 to PM-07)

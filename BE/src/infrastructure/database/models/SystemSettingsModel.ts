@@ -27,6 +27,13 @@ const SystemSettingsSchema = new Schema<ISystemSettingsDocument>(
     maintenanceMode: { type: Boolean, default: false },
     allowPublicRegistration: { type: Boolean, default: true },
     apiKeys: [ApiKeySchema],
+    defaultModelId: { type: String, ref: "LlmModel", default: null },
+    allowUserModelChoice: { type: Boolean, default: true },
+    scoring: {
+      preset: { type: String, enum: ["balanced", "quality", "budget", "custom"], default: "balanced" },
+      weights: { type: Schema.Types.Mixed },
+      windowDays: { type: Number, default: 30, min: 1, max: 365 },
+    },
     updatedBy: { type: String },
   },
   {

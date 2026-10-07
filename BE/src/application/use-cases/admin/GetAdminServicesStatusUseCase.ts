@@ -1,6 +1,8 @@
 import { execSync } from "node:child_process";
 import mongoose from "mongoose";
 import { env } from "../../../config/env.js";
+import { LlmModelModel } from "../../../infrastructure/database/models/LlmModelModel.js";
+import { getLlmRuntime } from "../../../infrastructure/llm/runtime.js";
 
 export interface ServiceStatusItem {
   name: string;
@@ -73,23 +75,31 @@ export class GetAdminServicesStatusUseCase {
       },
     };
 
-    // 4. AI Providers
-    const providers = {
-      gemini: Boolean(process.env.GEMINI_API_KEY),
-      anthropic: Boolean(process.env.ANTHROPIC_API_KEY),
-      openai: Boolean(process.env.OPENAI_API_KEY),
-    };
-    const anyAi = Object.values(providers).some(Boolean);
-    services.aiProviders = {
-      name: "AI LLM Providers",
-      status: anyAi ? "healthy" : "degraded",
-      details: {
-        configuredProviders: Object.entries(providers)
-          .filter(([_, enabled]) => enabled)
-          .map(([p]) => p),
-        available: anyAi,
-      },
-    };
+    // 4. AI models: the registry's last health checks (see /api/admin/llm-models/:id/test), else the server's configured model.
+    try {
+      const models = await LlmModelModel.find({ enabled: true }, { displayName: 1, provider: 1, isDefault: 1, health: 1 }).lean();
+      const env = getLlmRuntime().capability;
+      const down = models.filter(m => m.health?.status === "down");
+      const degraded = models.filter(m => m.health?.status === "degraded");
+      const defaultModel = models.find(m => m.isDefault);
+      const available = models.length > 0 || env.enabled;
+      services.aiProviders = {
+        name: "AI Models",
+        status: !available ? "degraded" : defaultModel?.health?.status === "down" ? "unhealthy" : down.length || degraded.length ? "degraded" : "healthy",
+        ...(defaultModel?.health?.latencyMs !== undefined ? { latencyMs: defaultModel.health.latencyMs } : {}),
+        details: {
+          available,
+          enabledModels: models.length,
+          configuredProviders: [...new Set(models.map(m => m.provider))],
+          defaultModel: defaultModel?.displayName ?? (env.enabled ? `${env.model} (server config)` : null),
+          down: down.map(m => m.displayName),
+          degraded: degraded.map(m => m.displayName),
+          unchecked: models.filter(m => !m.health || m.health.status === "unknown").length,
+        },
+      };
+    } catch (err: any) {
+      services.aiProviders = { name: "AI Models", status: "degraded", details: { error: err.message } };
+    }
 
     // Overall status
     const allHealthy = Object.values(services).every((s) => s.status === "healthy");

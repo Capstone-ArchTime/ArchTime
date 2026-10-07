@@ -17,7 +17,9 @@ import {
   workspaceController,
   adminControllersConfig,
   projectMaintainerController,
+  llmController,
 } from "./container.js";
+import { createLlmRouter } from "./presentation/routes/llm.routes.js";
 import { createGitHubRouter } from './presentation/routes/github.routes.js';
 import { GitHubIdentityService } from './infrastructure/services/GitHubIdentityService.js';
 import { GitHubLoginUseCase } from './application/use-cases/GitHubLoginUseCase.js';
@@ -55,6 +57,7 @@ app.get(
   createAuthenticateMiddleware(jwtTokenService),
   memberController.getTeamMembers,
 );
+app.use("/api/llm", createLlmRouter(llmController, jwtTokenService));
 app.use("/api/admin", createAdminRouter(adminControllersConfig, jwtTokenService));
 
 // ── Error Handling ──

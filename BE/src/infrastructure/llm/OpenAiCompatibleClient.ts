@@ -1,5 +1,5 @@
-import { LlmError } from '../../domain/architecture/llm/types.js';
-import type { CompleteOptions, LlmClient, LlmInfo, LlmMessage } from '../../domain/architecture/llm/types.js';
+import { estimateTokens, LlmError } from '../../domain/architecture/llm/types.js';
+import type { CompleteOptions, LlmClient, LlmInfo, LlmMessage, LlmUsage } from '../../domain/architecture/llm/types.js';
 import { isPrivateHost } from './ClaudeClient.js';
 
 export interface OpenAiCompatibleConfig {
@@ -51,6 +51,7 @@ export class OpenAiCompatibleClient implements LlmClient {
     const timeout = AbortSignal.timeout(this.config.timeoutMs);
     const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
     let response: Response;
+    const started = performance.now();
     try {
       response = await fetch(`${this.config.baseUrl.replace(/\/+$/, '')}/chat/completions`, {
         method: 'POST',
@@ -70,12 +71,27 @@ export class OpenAiCompatibleClient implements LlmClient {
       throw new LlmError('network', `Could not reach ${this.info.host}: ${error instanceof Error ? error.message : 'connection failed'}`);
     }
     if (!response.ok) throw await failure(response);
-    const body = await response.json().catch(() => null) as { choices?: { message?: { content?: unknown }; finish_reason?: string }[] } | null;
+    const body = await response.json().catch(() => null) as { choices?: { message?: { content?: unknown }; finish_reason?: string }[]; usage?: unknown } | null;
     const choice = body?.choices?.[0];
+    const content = typeof choice?.message?.content === 'string' ? choice.message.content : '';
+    options.onUsage?.(usageOf(body?.usage, messages, content), Math.round(performance.now() - started));
     if (choice?.finish_reason === 'length') throw new LlmError('truncated', 'The answer was cut off before it finished.');
     if (typeof choice?.message?.content !== 'string' || !choice.message.content.trim()) throw new LlmError('other', 'The server returned no text.');
     return choice.message.content;
   }
+}
+
+/** Chat-completions `usage`; servers that leave it out (some local ones) get an estimate. */
+function usageOf(usage: unknown, messages: LlmMessage[], text: string): LlmUsage {
+  const u = (usage ?? {}) as { prompt_tokens?: unknown; completion_tokens?: unknown; prompt_tokens_details?: { cached_tokens?: unknown }; completion_tokens_details?: { reasoning_tokens?: unknown } };
+  const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : 0);
+  if (typeof u.prompt_tokens !== 'number' || typeof u.completion_tokens !== 'number') {
+    return { inputTokens: estimateTokens(messages.map(m => m.content).join('\n')), outputTokens: estimateTokens(text), estimated: true };
+  }
+  return {
+    inputTokens: n(u.prompt_tokens), outputTokens: n(u.completion_tokens),
+    cacheReadTokens: n(u.prompt_tokens_details?.cached_tokens), reasoningTokens: n(u.completion_tokens_details?.reasoning_tokens), estimated: false,
+  };
 }
 
 /** The server's own explanation: OpenAI-style `{error:{message}}`, Google-style `[{error:{message}}]`, or plain text. */

@@ -8,13 +8,19 @@ export interface RefineReceipt {
   model: string;
   external: boolean;
   filesSent: number;
-  attempts: { n: number; ok: boolean; issues: { code: string; message: string }[] }[];
+  attempts: { n: number; ok: boolean; issues: { code: string; message: string }[]; usage?: { inputTokens: number; outputTokens: number }; latencyMs?: number }[];
   accepted: boolean;
   fallbackReason?: string;
   movedRatio?: number;
   notes?: string[];
+  /** Summed over every attempt (failed ones were paid for too). Absent on results made before usage was recorded. */
+  usage?: { inputTokens: number; outputTokens: number; cacheReadTokens?: number; reasoningTokens?: number; totalTokens: number; estimated?: boolean };
+  latencyMs?: number;
+  cost?: { amount: number; currency: string };
+  runId?: string;
+  modelId?: string;
 }
-export interface LlmCapability { enabled: boolean; provider: string | null; model: string | null; host: string | null; external: boolean; reason?: string }
+export interface LlmCapability { enabled: boolean; provider: string | null; model: string | null; host: string | null; external: boolean; reason?: string; modelId?: string | null; displayName?: string | null }
 export interface ArchitecturePayload {
   status: 'ready' | 'missing';
   snapshot: SnapshotSummary | null;
@@ -52,10 +58,10 @@ export async function generateArchitecture(projectId: string, snapshotId?: strin
   }));
 }
 
-/** Starts the background job that groups the snapshot and asks the configured AI model to name and refine it. */
-export async function refineArchitecture(projectId: string, snapshotId?: string, signal?: AbortSignal): Promise<string> {
+/** Starts the background job that groups the snapshot and asks an AI model (the chosen one, else the default) to name and refine it. */
+export async function refineArchitecture(projectId: string, snapshotId?: string, modelId?: string, signal?: AbortSignal): Promise<string> {
   const body = await apiRequest<{ data?: { jobId?: string } }>(`${base(projectId)}/architecture/refine`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(snapshotId ? { snapshotId } : {}), signal,
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...(snapshotId ? { snapshotId } : {}), ...(modelId ? { modelId } : {}) }), signal,
   });
   if (typeof body?.data?.jobId !== 'string') throw new Error('The server did not start the job.');
   return body.data.jobId;
