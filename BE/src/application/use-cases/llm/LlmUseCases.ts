@@ -7,7 +7,8 @@ import { SnapshotModel } from "../../../infrastructure/database/models/SnapshotM
 import { ProjectModel } from "../../../infrastructure/database/models/ProjectModel.js";
 import { LlmModelRegistry } from "../../../infrastructure/llm/registry.js";
 import { getLlmRuntime, refineOptionsFromEnv } from "../../../infrastructure/llm/runtime.js";
-import { seal } from "../../../infrastructure/llm/secrets.js";
+import { seal, unseal } from "../../../infrastructure/llm/secrets.js";
+import { discoverModels, DiscoveryError } from "../../../infrastructure/llm/discover.js";
 import { probeModel } from "../../../infrastructure/services/LlmHealthService.js";
 import { LlmRunService } from "../../../infrastructure/services/LlmRunService.js";
 import type { LeaderboardQuery } from "../../../infrastructure/services/LlmRunService.js";
@@ -209,6 +210,12 @@ export class AdminLlmUseCases {
   async create(body: unknown, adminId: string) {
     const input = asBody(body);
     const set = modelPatch(input, false);
+    // Adding several models from one provider: reuse the key already stored for another model instead of sending it again.
+    if (set.apiKey === undefined && typeof input.apiKeyFrom === "string" && input.apiKeyFrom) {
+      const source = await LlmModelModel.findById(objectId(input.apiKeyFrom, "model ID to copy the key from")).select(WITH_SECRET).lean();
+      if (!source?.apiKey?.ciphertext) throw new BadRequestError("The model to copy the API key from has no key.");
+      set.apiKey = source.apiKey;
+    }
     set.key = (set.key as string | undefined) ?? slug(`${set.provider}-${set.model}`);
     if (await LlmModelModel.exists({ key: set.key })) throw new ConflictError(`A model with key "${set.key}" already exists.`);
     const first = (await LlmModelModel.estimatedDocumentCount()) === 0;
@@ -271,6 +278,37 @@ export class AdminLlmUseCases {
   private async clearDefault() {
     await LlmModelModel.updateMany({ isDefault: true }, { $set: { isDefault: false } });
     await SystemSettingsModel.updateOne({}, { $set: { defaultModelId: null } });
+  }
+
+  /**
+   * Lists the models a provider offers for a key: chat models first, the rest marked with why they cannot draw
+   * architectures, free ones flagged. The key is used for this request only; `fromModelId` reuses a stored key.
+   */
+  async discover(body: unknown) {
+    const input = asBody(body);
+    if (!LLM_PROVIDERS.includes(input.provider as LlmProvider)) throw new BadRequestError(`provider must be one of: ${LLM_PROVIDERS.join(", ")}.`);
+    const provider = input.provider as LlmProvider;
+    let baseUrl: string | undefined;
+    if (typeof input.baseUrl === "string" && input.baseUrl.trim()) {
+      try { const u = new URL(input.baseUrl.trim()); if (!/^https?:$/.test(u.protocol)) throw new Error(); } catch { throw new BadRequestError("baseUrl must be an http(s) URL."); }
+      baseUrl = input.baseUrl.trim();
+    }
+    let apiKey = typeof input.apiKey === "string" && input.apiKey.trim() ? input.apiKey.trim() : undefined;
+    if (!apiKey && typeof input.fromModelId === "string" && input.fromModelId) {
+      const source = await LlmModelModel.findById(objectId(input.fromModelId, "model ID")).select(WITH_SECRET).lean();
+      if (!source) throw new NotFoundError("Model not found");
+      if (source.apiKey?.ciphertext) apiKey = unseal(source.apiKey as { ciphertext: string; iv: string; tag: string });
+    }
+    let models;
+    try {
+      models = await discoverModels({ provider, baseUrl, apiKey });
+    } catch (error) {
+      if (error instanceof DiscoveryError) throw new BadRequestError(error.message);
+      throw error;
+    }
+    const registered = await LlmModelModel.find({ provider, ...(baseUrl ? { baseUrl } : {}) }, { model: 1 }).lean();
+    const have = new Set(registered.map(r => r.model));
+    return { models: models.map(m => ({ ...m, registered: have.has(m.id) })) };
   }
 
   /** Sends a tiny request to the model and stores the outcome as its health. */

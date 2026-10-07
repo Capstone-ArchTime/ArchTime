@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Alert, App, Button, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { Activity, Pencil, Plus, Star, Trash2 } from 'lucide-react';
+import { Activity, Pencil, Plus, Search, Star, Trash2 } from 'lucide-react';
+import FindModelsModal from './FindModelsModal';
+import type { FindModelsStart } from './FindModelsModal';
 import FeaturePage, { featurePanel } from '@/components/FeaturePage';
 import {
   createAdminModel, deleteAdminModel, formatCost, formatMs, formatTokens, getAdminModels, healthColor, setDefaultAdminModel, testAdminModel,
   testAllAdminModels, updateAdminModel, updateLlmSettings,
+  PROVIDER_PRESETS,
 } from '@/features/llm-api';
 import type { AdminModel, AdminModelList, LlmProvider, ModelInput } from '@/features/llm-api';
 
@@ -57,6 +60,7 @@ export default function AiModels() {
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [form] = Form.useForm<FormValues>();
+  const [finding, setFinding] = useState<FindModelsStart | null>(null);
   const provider = Form.useWatch('provider', form);
 
   useEffect(() => {
@@ -135,6 +139,7 @@ export default function AiModels() {
     { title: 'Users can pick', render: (_, m) => <Switch size="small" checked={m.visibleToUsers} disabled={!m.enabled} aria-label={`Offer ${m.displayName} to users`} onChange={on => void act(m.id, () => updateAdminModel(m.id, { visibleToUsers: on }), 'Saved.')} /> },
     { title: '', align: 'right', render: (_, m) => <Space size={4} wrap>
       <Button size="small" icon={<Activity size={13} />} loading={busy === m.id} onClick={() => void test(m)}>Test</Button>
+      <Tooltip title="List the other models this provider offers, reusing this model's key"><Button size="small" icon={<Search size={13} />} onClick={() => setFinding({ fromModel: m })}>Find more</Button></Tooltip>
       {!m.isDefault && <Button size="small" disabled={!m.enabled} onClick={() => void act(m.id, () => setDefaultAdminModel(m.id), `${m.displayName} is now the default.`)}>Make default</Button>}
       <Button size="small" icon={<Pencil size={13} />} aria-label={`Edit ${m.displayName}`} onClick={() => openForm(m)} />
       <Popconfirm title={`Remove ${m.displayName}?`} description="A model with recorded runs is turned off and hidden instead, so its history stays readable." onConfirm={() => void act(m.id, () => deleteAdminModel(m.id), 'Model removed.')}>
@@ -147,7 +152,8 @@ export default function AiModels() {
   return <FeaturePage title="AI Models" description="Models users can choose from to draw architectures. API keys are stored encrypted and never shown again." demo={false}
     actions={<Space wrap>
       <Button loading={busy === 'all'} icon={<Activity size={14} />} onClick={() => void testAll()}>Check all</Button>
-      <Button type="primary" icon={<Plus size={14} />} onClick={() => openForm(null)}>Add model</Button>
+      <Button icon={<Plus size={14} />} onClick={() => openForm(null)}>Add manually</Button>
+      <Button type="primary" icon={<Search size={14} />} onClick={() => setFinding({})}>Find models</Button>
     </Space>}>
     {error && <Alert type="error" showIcon title={error} action={<Button onClick={reload}>Retry</Button>} />}
     {list && !list.models.length && <Alert type="info" showIcon title="No models registered"
@@ -161,8 +167,14 @@ export default function AiModels() {
       <Table<AdminModel> rowKey="id" size="small" loading={loading} columns={columns} dataSource={list?.models ?? []} pagination={false} scroll={{ x: 1100 }} />
     </div>
 
+    {finding && <FindModelsModal start={finding} models={list?.models ?? []} onClose={() => setFinding(null)} onAdded={reload} />}
+
     <Modal open={open} title={editing ? `Edit ${editing.displayName}` : 'Add model'} okText={editing ? 'Save' : 'Add'} confirmLoading={saving} onOk={() => void save()} onCancel={() => setOpen(false)} width={640} destroyOnHidden>
       <Form form={form} layout="vertical" requiredMark="optional">
+        {!editing && <Form.Item label="Start from a provider" extra="Fills in the provider and base URL. Use Find models to pick the model id from a list.">
+          <Select placeholder="Choose a provider (optional)" options={PROVIDER_PRESETS.map(p => ({ value: p.id, label: p.label }))}
+            onChange={(id: string) => { const p = PROVIDER_PRESETS.find(x => x.id === id)!; form.setFieldsValue({ provider: p.provider, baseUrl: p.baseUrl }); }} />
+        </Form.Item>}
         <div className="grid gap-x-4 sm:grid-cols-2">
           <Form.Item name="displayName" label="Name shown to users" rules={[{ required: true, max: 80 }]}><Input placeholder="Claude Sonnet 5.5" /></Form.Item>
           <Form.Item name="key" label="Key" tooltip="Unique id; made from provider and model when left blank."><Input placeholder="claude-sonnet-5-5" /></Form.Item>

@@ -58,6 +58,8 @@ export class AdminLlmController {
 
   public testAll = handle(async (req, res) => { sendSuccess(res, await this.useCases.testAll(userIdOf(req))); });
 
+  public discover = handle(async (req, res) => { sendSuccess(res, await this.useCases.discover(req.body)); });
+
   public usage = handle(async (req, res) => { sendSuccess(res, await this.useCases.usage(req.query as Record<string, unknown>)); });
 
   public leaderboard = handle(async (req, res) => { sendSuccess(res, await this.useCases.leaderboard(req.query as Record<string, unknown>)); });

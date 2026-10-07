@@ -95,7 +95,32 @@ export interface AdminModelList {
 export interface ModelInput {
   key?: string; displayName: string; provider: LlmProvider; model: string; baseUrl?: string | null; apiKey?: string | null;
   pricing?: Partial<Pricing>; options?: AdminModel['options']; enabled?: boolean; visibleToUsers?: boolean; isDefault?: boolean;
+  /** Copy the stored API key of this registered model instead of sending one. */
+  apiKeyFrom?: string;
 }
+
+export interface DiscoveredModel {
+  id: string; name?: string; ownedBy?: string; contextWindow?: number;
+  chat: boolean; reason?: string; free: boolean; pricing?: { inputPerMTok: number; outputPerMTok: number }; registered: boolean;
+}
+/** Asks a provider which models a key can use. The key is used for this request only. */
+export const discoverModels = async (input: { provider: LlmProvider; baseUrl?: string; apiKey?: string; fromModelId?: string }) =>
+  data(await apiRequest<Envelope<{ models: DiscoveredModel[] }>>('/admin/llm-models/discover', json('POST', input)), 'model list').models;
+
+/** Providers with a ready-made configuration. Free tiers change; the hint says what was true when this was written. */
+export interface ProviderPreset { id: string; label: string; provider: LlmProvider; baseUrl?: string; keyUrl?: string; keyOptional?: boolean; hint: string }
+export const PROVIDER_PRESETS: ProviderPreset[] = [
+  { id: 'groq', label: 'Groq', provider: 'openai-compatible', baseUrl: 'https://api.groq.com/openai/v1', keyUrl: 'https://console.groq.com/keys', hint: 'Free tier with rate limits. Very fast Llama, Qwen and gpt-oss models.' },
+  { id: 'gemini', label: 'Google Gemini', provider: 'gemini', keyUrl: 'https://aistudio.google.com/apikey', hint: 'Free tier with daily limits (Google AI Studio key).' },
+  { id: 'openrouter', label: 'OpenRouter', provider: 'openai-compatible', baseUrl: 'https://openrouter.ai/api/v1', keyUrl: 'https://openrouter.ai/keys', hint: 'Hundreds of models; those ending in ":free" cost nothing.' },
+  { id: 'cerebras', label: 'Cerebras', provider: 'openai-compatible', baseUrl: 'https://api.cerebras.ai/v1', keyUrl: 'https://cloud.cerebras.ai', hint: 'Free tier with rate limits.' },
+  { id: 'mistral', label: 'Mistral', provider: 'openai-compatible', baseUrl: 'https://api.mistral.ai/v1', keyUrl: 'https://console.mistral.ai/api-keys', hint: 'Free "Experiment" plan.' },
+  { id: 'ollama', label: 'Ollama (this machine)', provider: 'openai-compatible', baseUrl: 'http://localhost:11434/v1', keyOptional: true, hint: 'Free and private: nothing leaves this machine. Pull a model first, e.g. "ollama pull llama3.1".' },
+  { id: 'anthropic', label: 'Anthropic Claude', provider: 'anthropic', keyUrl: 'https://console.anthropic.com/settings/keys', hint: 'Paid (prepaid credit).' },
+  { id: 'custom', label: 'Other OpenAI-compatible server', provider: 'openai-compatible', keyOptional: true, hint: 'Any server that speaks /v1/chat/completions. Base URL usually ends with /v1.' },
+];
+export const presetFor = (provider: string, baseUrl?: string) =>
+  PROVIDER_PRESETS.find(p => p.provider === provider && (p.baseUrl ?? '') === (baseUrl ?? '').replace(/\/+$/, '')) ?? PROVIDER_PRESETS.find(p => p.provider === provider && provider !== 'openai-compatible');
 
 export const getAdminModels = async (signal?: AbortSignal) => data(await apiRequest<Envelope<AdminModelList>>('/admin/llm-models', { signal }), 'model list');
 export const createAdminModel = async (input: ModelInput) => data(await apiRequest<Envelope<{ model: AdminModel }>>('/admin/llm-models', json('POST', input)), 'model').model;

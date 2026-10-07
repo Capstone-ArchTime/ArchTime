@@ -345,6 +345,29 @@ export function createAdminRouter(
 
   /**
    * @swagger
+   * /api/admin/llm-models/discover:
+   *   post:
+   *     tags: [Admin - AI Models]
+   *     summary: Liệt kê model nhà cung cấp có cho một API key (đánh dấu model chat / miễn phí / đã thêm). Key chỉ dùng cho request này
+   *     security: [{ BearerAuth: [] }]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [provider]
+   *             properties:
+   *               provider: { type: string, enum: [anthropic, gemini, openai-compatible] }
+   *               baseUrl: { type: string, example: "https://api.groq.com/openai/v1" }
+   *               apiKey: { type: string }
+   *               fromModelId: { type: string, description: "Dùng key đã lưu của model này" }
+   *     responses: { 200: { description: "{ models: [{ id, chat, reason, free, pricing, contextWindow, registered }] }" } }
+   */
+  router.post("/llm-models/discover", llmController.discover);
+
+  /**
+   * @swagger
    * /api/admin/llm-models/{id}:
    *   patch:
    *     tags: [Admin - AI Models]
