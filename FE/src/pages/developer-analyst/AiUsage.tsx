@@ -48,7 +48,7 @@ export default function AiUsage() {
     { title: 'Time', align: 'right', render: (_, r) => formatMs(r.latencyMs) },
     { title: 'Cost', align: 'right', render: (_, r) => formatCost(r.cost?.amount, r.cost?.currency) },
     { title: 'Result', render: (_, r) => <Tooltip title={r.fallbackReason}><Tag color={statusColor[r.status]}>{statusLabel[r.status]}</Tag></Tooltip> },
-    { title: 'Quality', align: 'right', render: (_, r) => <Tooltip title={`Attempts ${r.quality.attemptsUsed} · validity ${formatPercent(r.quality.V)} · cohesion ${formatPercent(r.quality.M)} · roles ${formatPercent(r.quality.R)}`}>{r.status === 'accepted' ? formatPercent(r.quality.score) : '–'}</Tooltip> },
+    { title: 'Quality', align: 'right', render: (_, r) => <Tooltip title={`Attempts ${r.quality.attemptsUsed} · validity ${formatPercent(r.quality.V)} · cohesion ${formatPercent(r.quality.M)} · roles ${formatPercent(r.quality.R)}${r.quality.G !== undefined ? ` · grounded names ${formatPercent(r.quality.G)} · no cycles ${formatPercent(r.quality.C)} · layering ${formatPercent(r.quality.L)} · balance ${formatPercent(r.quality.Bal)}` : ''}${r.quality.agreement !== undefined ? ` · matches reference ${formatPercent(Math.max(0, r.quality.agreement))}` : ''}`}>{r.status === 'accepted' ? formatPercent(r.quality.score) : '–'}</Tooltip> },
   ];
 
   const t = result?.totals;

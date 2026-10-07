@@ -99,8 +99,12 @@ function translate(error: unknown, model: string): LlmError | unknown {
   if (error instanceof LlmError) return error;
   if (error instanceof Anthropic.AuthenticationError || error instanceof Anthropic.PermissionDeniedError) return new LlmError('auth', 'The API key was rejected or is not allowed to use this model.');
   if (error instanceof Anthropic.NotFoundError) return new LlmError('request', `Model "${model}" was not found, or this API key cannot use it. Check LLM_MODEL. (${reasonOf(error)})`);
+  if ((error instanceof Anthropic.BadRequestError || error instanceof Anthropic.UnprocessableEntityError) && /prompt is too long|too many tokens|context/i.test(reasonOf(error))) return new LlmError('too_large', `The request is too large for this model: ${reasonOf(error)}`);
   if (error instanceof Anthropic.BadRequestError || error instanceof Anthropic.UnprocessableEntityError) return new LlmError('request', `The provider rejected the request: ${reasonOf(error)}`);
-  if (error instanceof Anthropic.RateLimitError) return new LlmError('rate_limit', 'Rate limited by the provider.');
+  if (error instanceof Anthropic.RateLimitError) {
+    const seconds = Number((error.headers as { get?: (n: string) => string | null } | undefined)?.get?.('retry-after'));
+    return new LlmError('rate_limit', 'Rate limited by the provider.', Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : undefined);
+  }
   if (error instanceof Anthropic.APIConnectionTimeoutError) return new LlmError('timeout', 'The request timed out. Raise LLM_TIMEOUT_MS or lower LLM_EFFORT.');
   if (error instanceof Anthropic.APIUserAbortError) return new LlmError('other', 'The request was cancelled.');
   if (error instanceof Anthropic.APIConnectionError) return new LlmError('network', `Could not reach the provider${error.cause instanceof Error ? ` (${error.cause.message})` : ''}. Check network access to the API host.`);

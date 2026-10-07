@@ -29,6 +29,9 @@ export interface ILlmRun {
   quality: {
     score: number; pass: number; V: number; M: number; R: number; E: number; B: number;
     errors: number; warnings: number; modularity: number; baselineModularity: number; movedRatio?: number; attemptsUsed: number; components: number;
+    /** v2: name grounding, acyclicity, layering, size balance (0..1), what they found, and agreement with the reference / previous snapshot (ARI). */
+    version?: number; G?: number; C?: number; L?: number; Bal?: number;
+    ungrounded?: string[]; cycles?: number; layerViolations?: number; agreement?: number; stability?: number;
   };
   feedback?: { rating: 0 | 1; at: Date };
   createdAt: Date;

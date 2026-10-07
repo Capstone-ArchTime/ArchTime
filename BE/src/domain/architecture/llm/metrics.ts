@@ -44,18 +44,27 @@ export interface RunQualityInput {
   roles: ComponentRole[];
   movedRatio?: number;
   maxMoveRatio: number;
+  /** Structure of the result (see domain/architecture/quality.ts); each 0..1. Left out when not measured. */
+  grounding?: number;
+  acyclicity?: number;
+  layering?: number;
+  balance?: number;
 }
 
 export interface RunQuality {
   /** 0..1; 0 when no answer passed verification. */
   score: number;
   pass: 0 | 1;
-  /** validity, structural cohesion, role coverage, attempt efficiency, boundedness: each 0..1 */
+  /** Formula version: 1 = V,M,R,E,B only; 2 adds G,C,L,Bal. */
+  version: 2;
+  /** validity, cohesion kept, role coverage, attempt efficiency, boundedness, name grounding, acyclicity, layering, size balance */
   V: number; M: number; R: number; E: number; B: number;
+  G?: number; C?: number; L?: number; Bal?: number;
 }
 
 const clamp01 = (x: number) => (Number.isFinite(x) ? Math.min(1, Math.max(0, x)) : 0);
-const QUALITY_WEIGHTS = { V: 0.30, M: 0.25, R: 0.20, E: 0.15, B: 0.10 };
+/** Weights of the quality parts (sum 1). Parts that do not apply to a run are dropped and the rest scaled up. */
+export const QUALITY_WEIGHTS = { V: 0.20, M: 0.15, R: 0.10, E: 0.10, B: 0.05, G: 0.20, C: 0.08, L: 0.07, Bal: 0.05 } as const;
 
 export function runQuality(input: RunQualityInput): RunQuality {
   const V = clamp01(1 - 0.25 * input.validation.errors - 0.05 * input.validation.warnings);
@@ -66,11 +75,22 @@ export function runQuality(input: RunQualityInput): RunQuality {
   const M = !refine ? 1 : input.baselineModularity > 0 ? clamp01(input.modularity / input.baselineModularity) : input.modularity >= 0 ? 1 : 0;
   const half = input.maxMoveRatio / 2;
   const B = !refine || input.movedRatio === undefined || half <= 0 ? 1 : clamp01(1 - Math.max(0, input.movedRatio - half) / half);
-  const w = refine ? QUALITY_WEIGHTS : { V: 0.30, M: 0, R: 0.20, E: 0.15, B: 0 };
-  const total = w.V + w.M + w.R + w.E + w.B;
+  const parts: Partial<Record<keyof typeof QUALITY_WEIGHTS, number>> = { V, R, E };
+  if (refine) { parts.M = M; parts.B = B; }
+  if (input.grounding !== undefined) parts.G = clamp01(input.grounding);
+  if (input.acyclicity !== undefined) parts.C = clamp01(input.acyclicity);
+  if (input.layering !== undefined) parts.L = clamp01(input.layering);
+  if (input.balance !== undefined) parts.Bal = clamp01(input.balance);
+  let weighted = 0, total = 0;
+  for (const [k, v] of Object.entries(parts) as [keyof typeof QUALITY_WEIGHTS, number][]) { weighted += QUALITY_WEIGHTS[k] * v; total += QUALITY_WEIGHTS[k]; }
   const pass = input.accepted ? 1 : 0;
-  const score = pass * (w.V * V + w.M * M + w.R * R + w.E * E + w.B * B) / total;
-  return { score: round(score, 4), pass, V: round(V, 4), M: round(M, 4), R: round(R, 4), E: round(E, 4), B: round(B, 4) };
+  const score = total ? pass * weighted / total : 0;
+  const r4 = (x: number | undefined) => (x === undefined ? undefined : round(x, 4));
+  return {
+    score: round(score, 4), pass, version: 2, V: round(V, 4), M: round(M, 4), R: round(R, 4), E: round(E, 4), B: round(B, 4),
+    ...(parts.G !== undefined ? { G: r4(parts.G) } : {}), ...(parts.C !== undefined ? { C: r4(parts.C) } : {}),
+    ...(parts.L !== undefined ? { L: r4(parts.L) } : {}), ...(parts.Bal !== undefined ? { Bal: r4(parts.Bal) } : {}),
+  };
 }
 
 export interface Pricing { inputPerMTok: number; outputPerMTok: number; cacheReadPerMTok?: number; currency: string }
@@ -99,6 +119,10 @@ export interface RunSample {
   latencyMs: number;
   totalTokens: number;
   cost: number;
+  /** Quality v2 parts of the run, when measured (0..1; agreement and stability are ARI, can dip below 0). */
+  grounding?: number;
+  agreement?: number;
+  stability?: number;
 }
 
 export interface ModelStats {
@@ -117,6 +141,10 @@ export interface ModelStats {
   costPerSuccess: number;
   totalCost: number;
   totalTokens: number;
+  /** Means over accepted runs that measured them; null when none did. */
+  groundingMean: number | null;
+  agreementMean: number | null;
+  stabilityMean: number | null;
 }
 
 const median = (xs: number[]) => {
@@ -131,6 +159,10 @@ const percentile = (xs: number[], p: number) => {
   return s[Math.min(s.length - 1, Math.ceil((p / 100) * s.length) - 1)];
 };
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
+const meanOf = <T>(xs: T[], pick: (x: T) => number | undefined) => {
+  const vs = xs.map(pick).filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+  return vs.length ? round(mean(vs), 4) : null;
+};
 
 /** Runs the user cancelled say nothing about the model and are left out. Speed and token use are measured on accepted runs only. */
 export function modelStats(runs: RunSample[]): ModelStats {
@@ -157,6 +189,9 @@ export function modelStats(runs: RunSample[]): ModelStats {
     costPerSuccess: accepted.length ? totalCost / accepted.length : totalCost > 0 ? Infinity : 0,
     totalCost: round(totalCost, 6),
     totalTokens: rs.reduce((s, r) => s + r.totalTokens, 0),
+    groundingMean: meanOf(accepted, r => r.grounding),
+    agreementMean: meanOf(accepted, r => r.agreement),
+    stabilityMean: meanOf(accepted, r => r.stability),
   };
 }
 

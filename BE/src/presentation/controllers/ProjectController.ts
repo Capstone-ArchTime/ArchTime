@@ -359,6 +359,32 @@ export class ProjectController {
     }
   };
 
+  public getArchitectureReference = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        res.status(401).json({ success: false, message: "Unauthorized" });
+        return;
+      }
+      res.status(200).json({ success: true, data: { components: await this.architectureUseCase.getReference(req.params.id, userId) } });
+    } catch (error: any) {
+      next(error);
+    }
+  };
+
+  public saveArchitectureReference = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        res.status(401).json({ success: false, message: "Unauthorized" });
+        return;
+      }
+      res.status(200).json({ success: true, data: { components: await this.architectureUseCase.saveReference(req.params.id, userId, req.body) } });
+    } catch (error: any) {
+      next(error);
+    }
+  };
+
   public getArchitectureRuns = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = (req as any).user?.userId;

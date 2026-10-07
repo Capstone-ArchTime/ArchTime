@@ -12,14 +12,17 @@ export interface LlmInfo {
   external: boolean;
 }
 
-export type LlmErrorKind = 'auth' | 'billing' | 'request' | 'rate_limit' | 'timeout' | 'refusal' | 'truncated' | 'network' | 'other';
+export type LlmErrorKind = 'auth' | 'billing' | 'request' | 'rate_limit' | 'too_large' | 'timeout' | 'refusal' | 'truncated' | 'network' | 'other';
 
 export class LlmError extends Error {
   readonly kind: LlmErrorKind;
-  constructor(kind: LlmErrorKind, message: string) {
+  /** How long the provider asked us to wait before trying again (rate limits). */
+  readonly retryAfterMs?: number;
+  constructor(kind: LlmErrorKind, message: string, retryAfterMs?: number) {
     super(message);
     this.name = 'LlmError';
     this.kind = kind;
+    if (retryAfterMs !== undefined && Number.isFinite(retryAfterMs) && retryAfterMs >= 0) this.retryAfterMs = retryAfterMs;
   }
   /** Errors that another attempt cannot fix. */
   get fatal(): boolean {
@@ -68,7 +71,16 @@ export interface RefineOptions {
   maxRefineFiles: number;
   /** Total attempts including the first. */
   maxAttempts: number;
+  /**
+   * Largest request (prompt + answer budget) the provider accepts, e.g. a free tier's tokens per minute. When set, the answer
+   * budget is sized to fit and an oversized prompt is sent in name-only mode. Unset: no limit, the client's own output budget.
+   */
+  maxRequestTokens?: number;
 }
+
+/** Rate-limit waits and request-size retreats per run; they do not use up attempts. */
+export const MAX_RATE_LIMIT_WAITS = 2;
+export const MAX_WAIT_MS = 65_000;
 
 export const DEFAULT_REFINE_OPTIONS: RefineOptions = { minComponents: 8, maxComponents: 15, minSize: 2, maxMoveRatio: 0.4, maxRefineFiles: 400, maxAttempts: 3 };
 
@@ -77,6 +89,8 @@ export interface RefineAttempt {
   n: number;
   ok: boolean;
   issues: RefineIssue[];
+  /** Time spent waiting for the provider's rate limit to reset after this attempt. */
+  waitedMs?: number;
   usage?: LlmUsage;
   latencyMs?: number;
   /** LlmError kind when the provider, not the answer, failed. */
@@ -93,6 +107,10 @@ export interface UsageTotals {
 }
 export interface RefineReceipt {
   mode: 'refine' | 'name-only';
+  /** "delta": the model returned names and moves only (since quality v2); absent for older full-list answers. */
+  format?: 'delta';
+  /** Why a refinement fell back to naming only (prompt too large for the model's limit). */
+  narrowed?: string;
   provider: string;
   model: string;
   external: boolean;

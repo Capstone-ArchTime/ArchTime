@@ -107,3 +107,48 @@ export function verifyNaming(raw: unknown, ctx: { clusterIds: string[] }): Verif
   checkText(parsed, issues);
   return issues.length ? { ok: false, issues } : { ok: true, issues, value: parsed };
 }
+
+/**
+ * Rebuilds the full grouping from a refine answer that lists only names and moves ({ clusters, newClusters, moves }), so
+ * the same rules (verifyRefine) judge it. Reports what cannot be rebuilt: unknown files or clusters, files moved twice,
+ * clusters left with files but no name.
+ */
+export function expandDelta(raw: unknown, ctx: { fileCount: number; clusters: { id: string; files: number[] }[] }): VerifyResult<{ components: { name: string; role: string; description: string; files: number[] }[] }> {
+  const issues: RefineIssue[] = [];
+  // A model that lists every component with all its files (the older, longer format) is judged as it is.
+  if (isRec(raw) && Array.isArray(raw.components) && !Array.isArray(raw.clusters)) return { ok: true, issues, value: { components: raw.components as never } };
+  if (!isRec(raw) || !Array.isArray(raw.clusters)) return { ok: false, issues: [{ code: 'M001', message: 'The answer must be an object with "clusters", "newClusters" and "moves" arrays.' }] };
+  const moves = Array.isArray(raw.moves) ? raw.moves : [];
+  const created = Array.isArray(raw.newClusters) ? raw.newClusters : [];
+  const known = new Set(ctx.clusters.map(c => c.id));
+  const names = new Map<string, { name: string; role: string; description: string }>();
+  const take = (list: unknown[], where: string, isNew: boolean) => list.forEach((c, i) => {
+    if (!isRec(c) || typeof c.cluster !== 'string' || typeof c.name !== 'string' || typeof c.role !== 'string' || typeof c.description !== 'string') {
+      issues.push({ code: 'M001', message: `${where}[${i}] needs a string cluster, name, role and description.` });
+      return;
+    }
+    if (isNew ? known.has(c.cluster) : !known.has(c.cluster)) issues.push({ code: 'M002', message: isNew ? `New cluster id "${c.cluster}" is already used by an existing cluster; use "n1", "n2", ….` : `Unknown cluster id "${c.cluster}".` });
+    else if (names.has(c.cluster)) issues.push({ code: 'M005', message: `Cluster "${c.cluster}" is named more than once.` });
+    else names.set(c.cluster, { name: c.name, role: c.role, description: c.description });
+  });
+  take(raw.clusters, 'clusters', false);
+  take(created, 'newClusters', true);
+  const home = new Array<string | undefined>(ctx.fileCount);
+  ctx.clusters.forEach(c => c.files.forEach(f => { home[f] = c.id; }));
+  const moved = new Set<number>();
+  const targets = new Set([...known, ...names.keys()]);
+  moves.forEach((m, i) => {
+    if (!isRec(m) || typeof m.file !== 'number' || typeof m.to !== 'string') { issues.push({ code: 'M001', message: `moves[${i}] needs a number "file" and a string "to".` }); return; }
+    if (!Number.isInteger(m.file) || m.file < 0 || m.file >= ctx.fileCount) { issues.push({ code: 'M002', message: `moves[${i}]: unknown file number ${m.file}. Valid numbers are 0 to ${ctx.fileCount - 1}.` }); return; }
+    if (!targets.has(m.to)) { issues.push({ code: 'M002', message: `moves[${i}]: unknown cluster "${m.to}". Declare new clusters in "newClusters".` }); return; }
+    if (moved.has(m.file)) { issues.push({ code: 'M002', message: `File ${m.file} is moved more than once.` }); return; }
+    moved.add(m.file);
+    home[m.file] = m.to;
+  });
+  if (issues.length) return { ok: false, issues };
+  const groups = new Map<string, number[]>();
+  home.forEach((c, f) => { if (c !== undefined) { if (!groups.has(c)) groups.set(c, []); groups.get(c)!.push(f); } });
+  const unnamed = [...groups.keys()].filter(c => !names.has(c));
+  if (unnamed.length) return { ok: false, issues: [{ code: 'M005', message: `These clusters keep files but have no entry in "clusters" or "newClusters": ${unnamed.slice(0, 8).join(', ')}.` }] };
+  return { ok: true, issues, value: { components: [...groups].map(([c, files]) => ({ ...names.get(c)!, files })) } };
+}

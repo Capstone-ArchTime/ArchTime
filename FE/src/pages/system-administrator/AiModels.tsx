@@ -21,7 +21,7 @@ const PROVIDERS: { value: LlmProvider; label: string; hint: string }[] = [
 type FormValues = {
   displayName: string; key?: string; provider: LlmProvider; model: string; baseUrl?: string; apiKey?: string;
   inputPerMTok?: number; outputPerMTok?: number; cacheReadPerMTok?: number;
-  effort?: 'low' | 'medium' | 'high'; maxTokens?: number; timeoutMs?: number; temperature?: number; jsonMode?: boolean;
+  effort?: 'low' | 'medium' | 'high'; maxTokens?: number; timeoutMs?: number; temperature?: number; jsonMode?: boolean; maxRequestTokens?: number;
   enabled: boolean; visibleToUsers: boolean;
 };
 
@@ -29,7 +29,7 @@ function toInput(v: FormValues, editing: AdminModel | null): ModelInput {
   const input: ModelInput = {
     displayName: v.displayName, provider: v.provider, model: v.model, baseUrl: v.baseUrl?.trim() || null,
     pricing: { inputPerMTok: v.inputPerMTok ?? 0, outputPerMTok: v.outputPerMTok ?? 0, ...(v.cacheReadPerMTok !== undefined && v.cacheReadPerMTok !== null ? { cacheReadPerMTok: v.cacheReadPerMTok } : {}) },
-    options: { ...(v.effort ? { effort: v.effort } : {}), ...(v.maxTokens ? { maxTokens: v.maxTokens } : {}), ...(v.timeoutMs ? { timeoutMs: v.timeoutMs } : {}), ...(v.temperature !== undefined && v.temperature !== null ? { temperature: v.temperature } : {}), jsonMode: v.jsonMode !== false },
+    options: { ...(v.effort ? { effort: v.effort } : {}), ...(v.maxTokens ? { maxTokens: v.maxTokens } : {}), ...(v.timeoutMs ? { timeoutMs: v.timeoutMs } : {}), ...(v.maxRequestTokens ? { maxRequestTokens: v.maxRequestTokens } : {}), ...(v.temperature !== undefined && v.temperature !== null ? { temperature: v.temperature } : {}), jsonMode: v.jsonMode !== false },
     enabled: v.enabled, visibleToUsers: v.visibleToUsers,
   };
   if (v.key?.trim()) input.key = v.key.trim();
@@ -43,7 +43,7 @@ function fromModel(m: AdminModel): FormValues {
   return {
     displayName: m.displayName, key: m.key, provider: m.provider, model: m.model, baseUrl: m.baseUrl,
     inputPerMTok: m.pricing?.inputPerMTok, outputPerMTok: m.pricing?.outputPerMTok, cacheReadPerMTok: m.pricing?.cacheReadPerMTok,
-    effort: m.options?.effort, maxTokens: m.options?.maxTokens, timeoutMs: m.options?.timeoutMs, temperature: m.options?.temperature ?? undefined, jsonMode: m.options?.jsonMode !== false,
+    effort: m.options?.effort, maxTokens: m.options?.maxTokens, timeoutMs: m.options?.timeoutMs, maxRequestTokens: m.options?.maxRequestTokens, temperature: m.options?.temperature ?? undefined, jsonMode: m.options?.jsonMode !== false,
     enabled: m.enabled, visibleToUsers: m.visibleToUsers,
   };
 }
@@ -194,6 +194,9 @@ export default function AiModels() {
         <div className="grid gap-x-4 sm:grid-cols-3">
           {provider === 'anthropic' && <Form.Item name="effort" label="Effort"><Select allowClear placeholder="medium" options={['low', 'medium', 'high'].map(v => ({ value: v, label: v }))} /></Form.Item>}
           <Form.Item name="maxTokens" label="Max output tokens"><InputNumber min={256} max={64000} step={1000} className="!w-full" /></Form.Item>
+          <Form.Item name="maxRequestTokens" label="Token limit per request" tooltip="The largest request the provider accepts, prompt and answer together, e.g. a free tier's tokens per minute (Groq: see its Limits page). The answer budget is sized to fit; a repository too big for it is named only, not regrouped. Leave empty for no limit.">
+            <InputNumber min={2000} max={2000000} step={1000} className="!w-full" placeholder="No limit" />
+          </Form.Item>
           <Form.Item name="timeoutMs" label="Timeout (ms)"><InputNumber min={5000} max={900000} step={10000} className="!w-full" placeholder="180000" /></Form.Item>
           {provider !== 'anthropic' && <Form.Item name="temperature" label="Temperature"><InputNumber min={0} max={2} step={0.1} className="!w-full" placeholder="default" /></Form.Item>}
           {provider !== 'anthropic' && <Form.Item name="jsonMode" label="JSON mode" valuePropName="checked"><Switch /></Form.Item>}

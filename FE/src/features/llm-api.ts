@@ -24,7 +24,11 @@ export interface UserModels {
   serverDefault: { enabled: boolean; model: string | null; host: string | null; external: boolean } | null;
 }
 
-export interface RunQuality { score: number; pass: number; V: number; M: number; R: number; E: number; B: number; errors: number; warnings: number; attemptsUsed: number; components: number; movedRatio?: number }
+export interface RunQuality {
+  score: number; pass: number; V: number; M: number; R: number; E: number; B: number; errors: number; warnings: number; attemptsUsed: number; components: number; movedRatio?: number;
+  /** v2: grounding, acyclicity, layering, balance; agreement with the reference and stability vs the previous snapshot (ARI). */
+  version?: number; G?: number; C?: number; L?: number; Bal?: number; ungrounded?: string[]; cycles?: number; layerViolations?: number; agreement?: number; stability?: number;
+}
 export interface LlmRun {
   id: string; project: { id: string; name?: string }; snapshotId?: string; modelId: string | null; modelKey: string; provider: string; model: string;
   purpose: 'user' | 'benchmark'; mode: 'refine' | 'name-only'; filesSent: number; status: 'accepted' | 'fallback' | 'failed' | 'cancelled';
@@ -78,7 +82,7 @@ export async function sendRunFeedback(runId: string, rating: 0 | 1) {
 export interface AdminModel {
   id: string; key: string; displayName: string; provider: LlmProvider; model: string; baseUrl?: string;
   hasApiKey: boolean; apiKeyLast4: string | null;
-  options: { effort?: 'low' | 'medium' | 'high'; maxTokens?: number; temperature?: number | null; jsonMode?: boolean; timeoutMs?: number };
+  options: { effort?: 'low' | 'medium' | 'high'; maxTokens?: number; temperature?: number | null; jsonMode?: boolean; timeoutMs?: number; maxRequestTokens?: number };
   pricing: Pricing; enabled: boolean; visibleToUsers: boolean; isDefault: boolean;
   health: { status: HealthStatus; checkedAt?: string; latencyMs?: number; lastError?: string };
   host: string; external: boolean;
@@ -146,6 +150,7 @@ export const getLlmUsage = async (params: { from?: string; to?: string; modelId?
 export interface ModelStats {
   n: number; accepted: number; successRate: number; firstPassRate: number; providerErrorRate: number; qualityMean: number;
   latencyPer100: number; tokensPer100: number; latencyP95Ms: number; latencyCV: number; costPerSuccess: number | null; totalCost: number; totalTokens: number;
+  groundingMean?: number | null; agreementMean?: number | null; stabilityMean?: number | null;
 }
 export interface LeaderboardRow {
   id: string; modelId: string | null; key: string; displayName: string; provider: string; model: string; enabled: boolean; health: HealthStatus;
