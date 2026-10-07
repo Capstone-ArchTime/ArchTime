@@ -39,13 +39,16 @@ export async function verifySession(tokens: Tokens, signal: AbortSignal) {
     if ([400, 401, 403, 404].includes(refresh.status)) throw new InvalidSessionError('Your session has expired. Please sign in again.');
     if (!refresh.ok) throw new Error('Unable to renew your session. Please retry.');
     const body = await refresh.json();
-    if (typeof body.accessToken !== 'string' || !body.accessToken) throw new Error('Invalid session response.');
-    accessToken = body.accessToken;
+    // The server wraps answers as { success, data }; older versions put the fields at the top level.
+    const renewed = body?.data?.accessToken ?? body?.accessToken;
+    if (typeof renewed !== 'string' || !renewed) throw new Error('Invalid session response.');
+    accessToken = renewed;
     response = await fetch(`${API_BASE_URL}/auth/me`, { headers: { Authorization: `Bearer ${accessToken}` }, signal });
   }
   if ([401, 403, 404].includes(response.status)) throw new InvalidSessionError('Your session has expired or access was revoked.');
   if (!response.ok) throw new Error('Unable to verify your session. Please retry.');
-  const { user } = await response.json();
+  const me = await response.json();
+  const user = me?.data?.user ?? me?.user;
   if (!isAuthUser(user)) throw new InvalidSessionError('This account does not have a supported role.');
   return { user, accessToken };
 }
