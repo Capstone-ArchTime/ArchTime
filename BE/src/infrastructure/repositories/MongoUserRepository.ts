@@ -11,6 +11,7 @@ export class MongoUserRepository implements IUserRepository {
     return {
       id: String(doc._id),
       name: doc.name as string,
+      username: doc.username as string | undefined,
       email: doc.email as string,
       passwordHash: (doc.passwordHash as string) ?? "",
       role: doc.role as UserRole,
@@ -30,7 +31,12 @@ export class MongoUserRepository implements IUserRepository {
 
   async findByEmailOrUsername(identifier: string): Promise<IUser | null> {
     const doc = await UserModel.findOne({
-      $or: [{ email: identifier }, { email: identifier.toLowerCase() }],
+      $or: [
+        { email: identifier },
+        { email: identifier.toLowerCase() },
+        { username: identifier },
+        { username: identifier.toLowerCase() }
+      ],
     }).select("+passwordHash").lean();
     if (!doc) return null;
     return this.toEntity(doc as Record<string, unknown>);

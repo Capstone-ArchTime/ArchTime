@@ -33,6 +33,8 @@ const mockCommits = [
     archChanges: 0,
     depAdded: 12,
     depRemoved: 0,
+    linesAdded: 1250,
+    linesRemoved: 0,
     nodes: [],
     edges: []
   }
@@ -95,6 +97,8 @@ const ArchitectureHistory: React.FC = () => {
               archChanges: s.archChanges,
               depAdded: s.depAdded,
               depRemoved: s.depRemoved,
+              linesAdded: s.linesAdded || 0,
+              linesRemoved: s.linesRemoved || 0,
               nodes: s.nodes || [],
               edges: s.edges || []
             })).reverse();
@@ -519,6 +523,42 @@ const ArchitectureHistory: React.FC = () => {
                   </div>
                   <div className="text-lg font-mono font-bold text-[#f4f4f6]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>{currentCommit?.files}</div>
+                </div>
+
+                <div className="h-[1px] w-full bg-[#222c37]"></div>
+
+                {/* Code Changes */}
+                <div>
+                  <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider flex items-center gap-1.5 mb-3"
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                    <GitCommit size={12} /> Code Changes
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-[#22c55e]/10 border border-[#22c55e]/20 p-3">
+                      <div className="text-[10px] font-mono text-[#22c55e] mb-1"
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Lines Added</div>
+                      <div className="text-lg font-mono text-[#22c55e] font-bold"
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>+{currentCommit?.linesAdded || 0}</div>
+                    </div>
+                    <div className="bg-[#ef4444]/10 border border-[#ef4444]/20 p-3">
+                      <div className="text-[10px] font-mono text-[#ef4444] mb-1"
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Lines Removed</div>
+                      <div className="text-lg font-mono text-[#ef4444] font-bold"
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>-{currentCommit?.linesRemoved || 0}</div>
+                    </div>
+                  </div>
+                  {(currentCommit?.linesAdded || currentCommit?.linesRemoved) ? (
+                    <div className="mt-3 h-2 bg-[#222c37] overflow-hidden flex">
+                      <div
+                        className="h-full bg-[#22c55e]"
+                        style={{ width: `${(currentCommit.linesAdded / (currentCommit.linesAdded + currentCommit.linesRemoved)) * 100}%` }}
+                      />
+                      <div
+                        className="h-full bg-[#ef4444]"
+                        style={{ width: `${(currentCommit.linesRemoved / (currentCommit.linesAdded + currentCommit.linesRemoved)) * 100}%` }}
+                      />
+                    </div>
+                  ) : null}
                 </div>
 
               </div>
