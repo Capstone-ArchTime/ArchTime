@@ -433,24 +433,34 @@ const Compare: React.FC = () => {
               
               {compareData.diff.nodesAdded.map((node: any) => (
                 <div key={`na-${node.id}`} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[#161d24]/50 transition-colors">
-                  <div>
+                  <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="px-2 py-0.5 bg-[#22c55e]/10 border border-[#22c55e]/20 text-[#22c55e] text-[9px] font-mono font-bold uppercase tracking-widest"
               style={{ fontFamily: '"JetBrains Mono", monospace' }}>Module Added</span>
                     </div>
-                    <div className="text-sm font-bold text-[#f4f4f6] mb-1">{node.name} module was introduced</div>
+                    <div className="text-sm font-bold text-[#f4f4f6] mb-1">{node.name}</div>
+                    <p className="text-xs text-[#94a3b8]">New module introduced in the target revision. This component adds new functionality to the system architecture.</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-[#94a3b8]">Impact</div>
+                    <div className="text-sm font-mono text-[#22c55e]">+1 Component</div>
                   </div>
                 </div>
               ))}
               
               {compareData.diff.nodesRemoved.map((node: any) => (
                 <div key={`nr-${node.id}`} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[#161d24]/50 transition-colors">
-                  <div>
+                  <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="px-2 py-0.5 bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444] text-[9px] font-mono font-bold uppercase tracking-widest"
               style={{ fontFamily: '"JetBrains Mono", monospace' }}>Module Removed</span>
                     </div>
-                    <div className="text-sm font-bold text-[#f4f4f6] mb-1">{node.name} module was removed</div>
+                    <div className="text-sm font-bold text-[#f4f4f6] mb-1">{node.name}</div>
+                    <p className="text-xs text-[#94a3b8]">Module was removed or refactored out of the architecture. Check if functionality was merged into other components.</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-[#94a3b8]">Impact</div>
+                    <div className="text-sm font-mono text-[#ef4444]">-1 Component</div>
                   </div>
                 </div>
               ))}
@@ -460,12 +470,15 @@ const Compare: React.FC = () => {
                 const tgt = compareData.targetSnapshot.nodes.find((n: any) => n.id === edge.target)?.name || edge.target;
                 return (
                   <div key={`ea-${i}`} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[#161d24]/50 transition-colors">
-                    <div>
+                    <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="px-2 py-0.5 bg-[#38bdf8]/10 border border-[#38bdf8]/20 text-[#38bdf8] text-[9px] font-mono font-bold uppercase tracking-widest"
                 style={{ fontFamily: '"JetBrains Mono", monospace' }}>Dependency Added</span>
+                        <span className="px-2 py-0.5 bg-[#161d24] border border-[#222c37] text-[#94a3b8] text-[9px] font-mono"
+                style={{ fontFamily: '"JetBrains Mono", monospace' }}>{edge.type || 'imports'}</span>
                       </div>
-                      <div className="text-sm font-bold text-[#f4f4f6] mb-1">{src} <ArrowRight size={12} className="inline text-[#94a3b8]" /> {tgt}</div>
+                      <div className="text-sm font-bold text-[#f4f4f6] mb-1 flex items-center gap-2">{src} <ArrowRight size={14} className="text-[#38bdf8]" /> {tgt}</div>
+                      <p className="text-xs text-[#94a3b8]">New dependency relationship established. This may indicate coupling or integration between components.</p>
                     </div>
                   </div>
                 );
@@ -476,12 +489,15 @@ const Compare: React.FC = () => {
                 const tgt = compareData.baseSnapshot.nodes.find((n: any) => n.id === edge.target)?.name || edge.target;
                 return (
                   <div key={`er-${i}`} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[#161d24]/50 transition-colors">
-                    <div>
+                    <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="px-2 py-0.5 bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444] text-[9px] font-mono font-bold uppercase tracking-widest"
                 style={{ fontFamily: '"JetBrains Mono", monospace' }}>Dependency Removed</span>
+                        <span className="px-2 py-0.5 bg-[#161d24] border border-[#222c37] text-[#94a3b8] text-[9px] font-mono"
+                style={{ fontFamily: '"JetBrains Mono", monospace' }}>{edge.type || 'imports'}</span>
                       </div>
-                      <div className="text-sm font-bold text-[#f4f4f6] mb-1">{src} <ArrowRight size={12} className="inline text-[#94a3b8]" /> {tgt}</div>
+                      <div className="text-sm font-bold text-[#f4f4f6] mb-1 flex items-center gap-2 line-through opacity-70">{src} <ArrowRight size={14} className="text-[#ef4444]" /> {tgt}</div>
+                      <p className="text-xs text-[#94a3b8]">Dependency was removed. This may indicate decoupling or refactoring of module relationships.</p>
                     </div>
                   </div>
                 );

@@ -1,9 +1,9 @@
 import SampleDataNotice from '@/components/SampleDataNotice';
 import { Link } from 'react-router-dom';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { 
-  FolderKanban, 
+import {
+  FolderKanban,
   Activity,
   GitCommit,
   GitBranch,
@@ -12,11 +12,70 @@ import {
   Box,
   Sparkles,
   ArrowRight,
-  ChevronDown
+  ChevronDown,
+  Loader2
 } from 'lucide-react';
 import { Icon } from '@iconify/react';
+import { useAuth } from '@/auth/auth-context';
+import { apiRequest } from '@/api/client';
+
+interface DashboardStats {
+  projects: number;
+  repositories: number;
+  analysisJobs: number;
+  runningJobs: number;
+  architecturalChanges: number;
+  recentChanges: number;
+}
+
+interface RecentProject {
+  id: string;
+  name: string;
+  repositoryCount: number;
+  changesCount: number;
+}
 
 const Dashboard: React.FC = () => {
+  const { user } = useAuth();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadDashboardData() {
+      try {
+        const data = await apiRequest<{ stats: DashboardStats; recentProjects: RecentProject[] }>('/dashboard/developer');
+        setStats(data.stats);
+        setRecentProjects(data.recentProjects);
+      } catch {
+        // Use mock data if API not available
+        setStats({
+          projects: 3,
+          repositories: 7,
+          analysisJobs: 18,
+          runningJobs: 1,
+          architecturalChanges: 64,
+          recentChanges: 12
+        });
+        setRecentProjects([
+          { id: '1', name: 'E-Commerce Platform', repositoryCount: 4, changesCount: 38 },
+          { id: '2', name: 'Payment Platform', repositoryCount: 2, changesCount: 21 }
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadDashboardData();
+  }, []);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const displayName = user?.name?.split(' ')[0] || 'Developer';
   return (
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-10">
@@ -32,7 +91,7 @@ const Dashboard: React.FC = () => {
           
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Good morning, Alex</h2>
+              <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">{getGreeting()}, {displayName}</h2>
               <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
                 Reconstruct and trace how your software architecture evolves across repository history.
               </p>
@@ -47,14 +106,16 @@ const Dashboard: React.FC = () => {
 
         {/* SECTION 01 - PERSONAL OVERVIEW */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          
+
           <div className="bg-[#161d24] border border-[#222c37] p-5 hover:border-[#5f636b] transition-colors relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <FolderKanban size={48} className="text-[#f4f4f6]" />
             </div>
             <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-4"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>My Projects</h4>
-            <div className="text-4xl font-bold text-[#f4f4f6] mb-1">03</div>
+            <div className="text-4xl font-bold text-[#f4f4f6] mb-1">
+              {loading ? <Loader2 size={32} className="animate-spin" /> : String(stats?.projects ?? 0).padStart(2, '0')}
+            </div>
             <p className="text-xs text-[#94a3b8] mb-4">Active projects</p>
             <div className="flex items-center gap-2 text-[10px] font-mono text-[#22c55e]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -69,7 +130,9 @@ const Dashboard: React.FC = () => {
             </div>
             <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-4"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repositories</h4>
-            <div className="text-4xl font-bold text-[#f4f4f6] mb-1">07</div>
+            <div className="text-4xl font-bold text-[#f4f4f6] mb-1">
+              {loading ? <Loader2 size={32} className="animate-spin" /> : String(stats?.repositories ?? 0).padStart(2, '0')}
+            </div>
             <p className="text-xs text-[#94a3b8] mb-4">Connected repositories</p>
             <div className="flex items-center gap-2 text-[10px] font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -84,12 +147,14 @@ const Dashboard: React.FC = () => {
             </div>
             <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-4"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Analysis Jobs</h4>
-            <div className="text-4xl font-bold text-[#f4f4f6] mb-1">18</div>
+            <div className="text-4xl font-bold text-[#f4f4f6] mb-1">
+              {loading ? <Loader2 size={32} className="animate-spin" /> : String(stats?.analysisJobs ?? 0).padStart(2, '0')}
+            </div>
             <p className="text-xs text-[#94a3b8] mb-4">Completed analyses</p>
             <div className="flex items-center gap-2 text-[10px] font-mono text-[#38bdf8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
               <div className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] shadow-[0_0_5px_#38bdf8]"></div>
-              1 running currently
+              {stats?.runningJobs ?? 0} running currently
             </div>
           </div>
 
@@ -99,12 +164,14 @@ const Dashboard: React.FC = () => {
             </div>
             <h4 className="text-[10px] font-mono font-semibold text-[#ffb03a] tracking-widest uppercase mb-4"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Architectural Changes</h4>
-            <div className="text-4xl font-bold text-[#f4f4f6] mb-1">64</div>
+            <div className="text-4xl font-bold text-[#f4f4f6] mb-1">
+              {loading ? <Loader2 size={32} className="animate-spin" /> : String(stats?.architecturalChanges ?? 0).padStart(2, '0')}
+            </div>
             <p className="text-xs text-[#94a3b8] mb-4">Detected structural changes</p>
             <div className="flex items-center gap-2 text-[10px] font-mono text-[#ffb03a]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
               <div className="w-1.5 h-1.5 rounded-full bg-[#ffb03a]"></div>
-              +12 in last 7 days
+              +{stats?.recentChanges ?? 0} in last 7 days
             </div>
           </div>
 
@@ -553,41 +620,40 @@ const Dashboard: React.FC = () => {
                 <div>
                   <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase">Recent Projects</h3>
                 </div>
+                <Link to="/developer-analyst/projects" className="text-xs text-[#38bdf8] hover:underline">View all</Link>
               </div>
               <div className="space-y-3">
-                  
-                  <div className="bg-[#11161b] border border-[#222c37] hover:border-[#5f636b] p-4 transition-colors cursor-pointer group flex gap-4 items-center">
-                    <div className="w-12 h-12 bg-[#161d24] border border-[#222c37] flex items-center justify-center shrink-0 group-hover:border-[#38bdf8]/50 transition-colors">
-                        <FolderKanban size={20} className="text-[#94a3b8] group-hover:text-[#38bdf8] transition-colors" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <h4 className="text-[#f4f4f6] text-sm font-bold truncate mb-1">E-Commerce Platform</h4>
-                        <div className="flex items-center gap-3 text-[10px] font-mono text-[#94a3b8]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                          <span>4 repos</span>
-                          <span>•</span>
-                          <span className="text-[#ffb03a]">38 changes</span>
-                        </div>
-                    </div>
-                    <ArrowRight size={16} className="text-[#94a3b8] group-hover:text-[#f4f4f6] opacity-0 group-hover:opacity-100 transition-[color,background-color,border-color,box-shadow,opacity,transform] -translate-x-2 group-hover:translate-x-0" />
+                {loading ? (
+                  <div className="flex items-center justify-center p-8">
+                    <Loader2 size={24} className="animate-spin text-[#38bdf8]" />
                   </div>
-
-                  <div className="bg-[#11161b] border border-[#222c37] hover:border-[#5f636b] p-4 transition-colors cursor-pointer group flex gap-4 items-center">
-                    <div className="w-12 h-12 bg-[#161d24] border border-[#222c37] flex items-center justify-center shrink-0 group-hover:border-[#38bdf8]/50 transition-colors">
-                        <FolderKanban size={20} className="text-[#94a3b8] group-hover:text-[#38bdf8] transition-colors" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <h4 className="text-[#f4f4f6] text-sm font-bold truncate mb-1">Payment Platform</h4>
-                        <div className="flex items-center gap-3 text-[10px] font-mono text-[#94a3b8]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                          <span>2 repos</span>
-                          <span>•</span>
-                          <span className="text-[#ffb03a]">21 changes</span>
-                        </div>
-                    </div>
-                    <ArrowRight size={16} className="text-[#94a3b8] group-hover:text-[#f4f4f6] opacity-0 group-hover:opacity-100 transition-[color,background-color,border-color,box-shadow,opacity,transform] -translate-x-2 group-hover:translate-x-0" />
+                ) : recentProjects.length === 0 ? (
+                  <div className="bg-[#11161b] border border-[#222c37] p-6 text-center">
+                    <p className="text-sm text-[#94a3b8]">No projects yet. Create your first project to get started.</p>
                   </div>
-
+                ) : (
+                  recentProjects.map(project => (
+                    <Link
+                      key={project.id}
+                      to={`/developer-analyst/projects/${project.id}`}
+                      className="bg-[#11161b] border border-[#222c37] hover:border-[#5f636b] p-4 transition-colors cursor-pointer group flex gap-4 items-center"
+                    >
+                      <div className="w-12 h-12 bg-[#161d24] border border-[#222c37] flex items-center justify-center shrink-0 group-hover:border-[#38bdf8]/50 transition-colors">
+                        <FolderKanban size={20} className="text-[#94a3b8] group-hover:text-[#38bdf8] transition-colors" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-[#f4f4f6] text-sm font-bold truncate mb-1">{project.name}</h4>
+                        <div className="flex items-center gap-3 text-[10px] font-mono text-[#94a3b8]"
+                          style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                          <span>{project.repositoryCount} repos</span>
+                          <span>•</span>
+                          <span className="text-[#ffb03a]">{project.changesCount} changes</span>
+                        </div>
+                      </div>
+                      <ArrowRight size={16} className="text-[#94a3b8] group-hover:text-[#f4f4f6] opacity-0 group-hover:opacity-100 transition-[color,background-color,border-color,box-shadow,opacity,transform] -translate-x-2 group-hover:translate-x-0" />
+                    </Link>
+                  ))
+                )}
               </div>
             </section>
 

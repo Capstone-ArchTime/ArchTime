@@ -242,14 +242,14 @@ const Projects: React.FC = () => {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#161d24] border border-[#222c37] mb-4">
             <div className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] shadow-[0_0_5px_#38bdf8]"></div>
             <span className="text-[10px] font-mono text-[#38bdf8] tracking-wider font-semibold uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Project Workspace</span>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository Workspace</span>
           </div>
           
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Projects</h2>
+              <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Repository Projects</h2>
               <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
-                Explore and analyze the software systems connected to your ArchTime workspace.
+                Manage repositories and their architecture analysis. Each project contains one or more connected repositories.
               </p>
             </div>
             <button 
@@ -272,7 +272,7 @@ const Projects: React.FC = () => {
             </div>
             <div>
               <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-1"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Total Projects</h4>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Total Repositories</h4>
               <div className="text-2xl font-bold text-[#f4f4f6] font-mono"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                 {String(projectsList.length).padStart(2, '0')}
@@ -485,7 +485,7 @@ const Projects: React.FC = () => {
 
               <div className="p-6 space-y-6">
                 <p role="status" className="text-sm text-[#94a3b8]">
-                  Register a new Git repository. Public and private repositories are supported.
+                  Connect a Git repository to analyze its architecture evolution. Public and private repositories are supported.
                 </p>
                 <div className="space-y-1.5">
                   <label htmlFor="project-name" className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
