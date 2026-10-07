@@ -260,7 +260,8 @@ const AuthPage: React.FC = () => {
                         placeholder="••••••••"
                         aria-invalid={!!fieldErrors.password}
                         aria-describedby={fieldErrors.password ? 'auth-password-error' : undefined}
-                        className={`w-full h-11 bg-[#11161b] border pl-10 pr-10 text-sm text-white placeholder:text-slate-600 focus:outline-none transition-colors tracking-wide disabled:opacity-50 ${
+                        data-ms-reveal="false"
+                        className={`w-full h-11 bg-[#11161b] border pl-10 pr-10 text-sm text-white placeholder:text-slate-600 focus:outline-none transition-colors tracking-wide disabled:opacity-50 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-textfield-decoration-container]:hidden [&::-webkit-credentials-auto-fill-button]:hidden [&::-webkit-contacts-auto-fill-button]:hidden ${
                           fieldErrors.password ? 'border-red-500/60 focus:border-red-500' : 'border-[#222c37] focus:border-[#38bdf8]'
                         }`}
                       />
@@ -674,6 +675,14 @@ const AuthPage: React.FC = () => {
         }
         ::-webkit-scrollbar-thumb:hover {
           background: #5f636b;
+        }
+        input[type="password"]::-ms-reveal,
+        input[type="password"]::-ms-clear,
+        input[type="password"]::-webkit-textfield-decoration-container,
+        input[type="password"]::-webkit-credentials-auto-fill-button,
+        input[type="password"]::-webkit-contacts-auto-fill-button {
+          display: none !important;
+          visibility: hidden !important;
         }
       `}</style>
     </div>

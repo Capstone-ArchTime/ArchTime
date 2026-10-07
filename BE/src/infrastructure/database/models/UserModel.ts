@@ -10,6 +10,13 @@ export interface IUserDocument extends Omit<IUser, "id">, Document {
 const UserSchema = new Schema<IUserDocument>(
   {
     name: { type: String, required: true, trim: true },
+    username: {
+      type: String,
+      unique: true,
+      sparse: true,
+      lowercase: true,
+      trim: true,
+    },
     email: {
       type: String,
       required: true,
