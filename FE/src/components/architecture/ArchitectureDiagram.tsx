@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { MutableRefObject, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
-import { ConfigProvider } from 'antd';
+import { App, ConfigProvider } from 'antd';
 import DiagramSvg from './DiagramSvg';
 import type { DiagramSvgProps } from './DiagramSvg';
 import Minimap from './Minimap';
@@ -45,6 +45,7 @@ export default function ArchitectureDiagram(props: Omit<DiagramSvgProps, 'intera
 }) {
   const { className, gridColor = '#1e2732', overlay, apiRef, ...svgProps } = props;
   const { layout, highlight, selectedNode, theme, scene } = svgProps;
+  const { message } = App.useApp();
   const shell = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<Size>({ w: 0, h: 0 });
@@ -57,6 +58,9 @@ export default function ArchitectureDiagram(props: Omit<DiagramSvgProps, 'intera
   useEffect(() => {
     const el = box.current;
     if (!el) return;
+    // Measure at once: the observer only reports on the next rendered frame, and controls depend on the width.
+    const first = el.getBoundingClientRect();
+    setSize({ w: first.width, h: first.height });
     const observer = new ResizeObserver(([entry]) => setSize({ w: entry.contentRect.width, h: entry.contentRect.height }));
     observer.observe(el);
     return () => observer.disconnect();
@@ -105,7 +109,8 @@ export default function ArchitectureDiagram(props: Omit<DiagramSvgProps, 'intera
     fullscreen,
     toggleFullscreen: () => {
       if (document.fullscreenElement) void document.exitFullscreen();
-      else void shell.current?.requestFullscreen?.();
+      else if (!shell.current?.requestFullscreen) message.warning('This browser cannot show the diagram in full screen. Ctrl + \\ hides the side panels instead.');
+      else shell.current.requestFullscreen().catch(() => message.warning('Full screen was refused by the browser (it needs a click in a focused window). Ctrl + \\ hides the side panels instead.'));
     },
     setZoom: k => update(zoomAt(t, k / t.k, size.w / 2, size.h / 2)),
     container: () => shell.current ?? document.body,

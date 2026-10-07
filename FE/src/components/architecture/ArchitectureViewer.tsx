@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Alert, App, Button, Modal } from 'antd';
-import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Layers, PanelRight } from 'lucide-react';
 import ArchitectureDiagram from './ArchitectureDiagram';
 import type { Viewport } from './ArchitectureDiagram';
 import FloatingToolbar from './FloatingToolbar';
@@ -23,6 +23,8 @@ import type { SnapshotSummary } from '@/features/architecture/api';
 
 const isTyping = (target: EventTarget | null) => target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 const sectionTitle = 'text-[10px] font-mono uppercase tracking-wider text-[#94a3b8]';
+/** Below this width the side panels would squeeze the artboard, so they become drawers over it, closed by default. */
+const WIDE = 1100;
 
 /**
  * The workspace around one verified view, laid out like a design tool: layers on the left, the artboard in the middle
@@ -46,8 +48,23 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
   const [hoverEdge, setHoverEdge] = useState<string | undefined>();
   const [helpOpen, setHelpOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [left, setLeft] = useState(true);
-  const [right, setRight] = useState(true);
+  const root = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(() => window.innerWidth);
+  useEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const wide = width >= WIDE;
+  // null = follow the layout (open when wide, closed when narrow); a choice sticks until the layout changes.
+  const [leftChoice, setLeftChoice] = useState<{ open: boolean; wide: boolean } | null>(null);
+  const [rightChoice, setRightChoice] = useState<{ open: boolean; wide: boolean } | null>(null);
+  const left = leftChoice && leftChoice.wide === wide ? leftChoice.open : wide;
+  const right = rightChoice && rightChoice.wide === wide ? rightChoice.open : wide;
+  const setLeft = (open: boolean) => setLeftChoice({ open, wide });
+  const setRight = (open: boolean) => setRightChoice({ open, wide });
   const [legend, setLegend] = useState(false);
   const searchRef = useRef<{ focus: () => void } | null>(null);
   const viewport = useRef<Viewport | null>(null);
@@ -73,7 +90,11 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
   const clearSelection = useCallback(() => commit({ ...base, ...(detailId ? { detail: detailId } : {}), ...(state.lens ? { lens: state.lens } : {}) }), [commit, base, detailId, state.lens]);
 
   const focusNode = (id: string) => (state.focus === id && !state.route ? clearSelection() : go({ focus: id, ...(state.lens ? { lens: state.lens } : {}) }));
-  const selectLayer = (id: string) => { go({ focus: id, ...(state.lens ? { lens: state.lens } : {}) }); viewport.current?.reveal([id]); };
+  const selectLayer = (id: string) => {
+    go({ focus: id, ...(state.lens ? { lens: state.lens } : {}) });
+    if (!wide) setLeft(false); // a drawer would hide what was just selected
+    viewport.current?.reveal([id]);
+  };
   const selectEdge = (id: string) => go({ edge: id, ...(state.lens ? { lens: state.lens } : {}) });
   const openDetail = (id: string) => { if (scene.mode === 'components') commit({ ...base, detail: id }, true); };
   const closeDetail = useCallback(() => commit({ ...base }, true), [commit, base]);
@@ -111,8 +132,10 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
   if (errors.length > 0) {
     return <div className="p-6"><Alert type="error" showIcon title="This view failed verification and is not drawn" description={<ul className="list-disc pl-5">{errors.slice(0, 8).map((i, n) => <li key={n}><code>{i.code}</code> {i.message}</li>)}</ul>} /></div>;
   }
-  return <div className="flex h-full min-h-0">
-    {left && <aside aria-label="Layers" className="w-60 shrink-0 border-r border-[#222c37] bg-[#0d1116]">
+  const drawer = wide ? '' : 'absolute inset-y-0 z-20 shadow-[0_0_40px_rgba(0,0,0,0.6)]';
+  return <div ref={root} className="relative flex h-full min-h-0">
+    {left && <aside aria-label="Layers" className={`${drawer} left-0 w-60 max-w-[85%] shrink-0 border-r border-[#222c37] bg-[#0d1116]`}>
+      {!wide && <div className="flex justify-end border-b border-[#222c37] px-2 py-1"><Button size="small" type="text" onClick={() => setLeft(false)}>Close</Button></div>}
       <LayersPanel scene={scene} theme={theme} highlight={highlight} selected={state.focus} onSelect={selectLayer} onOpen={openDetail}
         snapshots={snapshots} snapshotId={snapshotId} onSnapshot={onSnapshot} />
     </aside>}
@@ -123,6 +146,7 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
       onNodeClick={focusNode} onNodeOpen={openDetail} onEdgeClick={selectEdge} onEdgeHover={setHoverEdge}
       overlay={vp => <>
         <div data-overlay className="absolute left-3 top-3 z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap items-start gap-2">
+          {!wide && !left && <Button size="small" icon={<Layers size={14} />} onClick={() => setLeft(true)}>Layers</Button>}
           {detailId && <Button size="small" icon={<ArrowLeft size={14} />} onClick={closeDetail}>All components{detailName ? ` · inside ${detailName}` : ''}</Button>}
           <div className={`${panel} text-xs`}>
             <button type="button" className="flex items-center gap-1.5 px-2.5 py-1.5 text-[#cbd5e1] hover:text-white" aria-expanded={legend} onClick={() => setLegend(v => !v)}>
@@ -135,6 +159,10 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
             </ul>}
           </div>
         </div>
+
+        {!wide && !right && <div data-overlay className="absolute right-3 top-3 z-10">
+          <Button size="small" icon={<PanelRight size={14} />} onClick={() => setRight(true)}>{hasSelection ? 'Details' : 'Overview'}</Button>
+        </div>}
 
         {state.route && !highlight.primaryRoute && <div data-overlay className="absolute left-1/2 top-3 z-10 -translate-x-1/2">
           <Alert type="warning" showIcon title="No dependency path: the first does not depend on the second." />
@@ -149,7 +177,7 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
           roleOptions={scene.mode === 'components' ? roleOptions : undefined} lens={state.lens}
           onLens={roles => commit({ ...base, ...state, lens: roles.length ? roles : undefined })}
           weights={weights} onWeights={() => setWeights(v => !v)} light={themeName === 'light'} onTheme={() => setThemeName(v => (v === 'dark' ? 'light' : 'dark'))}
-          inspector={right} onInspector={() => setRight(v => !v)}
+          inspector={right} onInspector={() => setRight(!right)}
           exporting={exporting} onExport={format => { void run(format); }} onHelp={() => setHelpOpen(true)} hasSelection={hasSelection} />
 
         <Modal open={helpOpen} onCancel={() => setHelpOpen(false)} footer={null} title="Keyboard and mouse" getContainer={vp.container}>
@@ -166,7 +194,10 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
         </Modal>
       </>} />
 
-    {right && <aside aria-label="Properties" className="w-72 shrink-0 overflow-auto border-l border-[#222c37] bg-[#0d1116]">
+    {right && <aside aria-label="Properties" className={`${drawer} right-0 w-72 max-w-[85%] shrink-0 overflow-auto border-l border-[#222c37] bg-[#0d1116]`}>
+      {!wide && <div className="sticky top-0 z-10 flex justify-end border-b border-[#222c37] bg-[#0d1116] px-2 py-1">
+        <Button size="small" type="text" onClick={() => setRight(false)}>Close</Button>
+      </div>}
       <div className="space-y-5 p-4">
         <Inspector view={view} scene={scene} theme={theme} selectedNode={state.focus} selectedEdge={state.edge} highlight={highlight} onSelectNode={focusNode} onSelectEdge={selectEdge} onOpen={openDetail} />
         {!hasSelection && (warnings.length > 0 || layoutIssues.length > 0) && <section className="space-y-1 text-xs">

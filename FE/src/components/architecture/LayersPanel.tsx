@@ -11,15 +11,17 @@ import type { SnapshotSummary } from '@/features/architecture/api';
  * view, double-click opens a component. Snapshots: the project's history, like pages of a design file.
  */
 export default function LayersPanel({ scene, theme, highlight, selected, onSelect, onOpen, snapshots, snapshotId, onSnapshot }: {
-  scene: Scene; theme: DiagramTheme; highlight: Highlight; selected?: string;
-  onSelect: (id: string) => void; onOpen: (id: string) => void;
+  /** Absent while the snapshot has no drawing yet: only the snapshot list is shown. */
+  scene?: Scene; theme?: DiagramTheme; highlight?: Highlight; selected?: string;
+  onSelect?: (id: string) => void; onOpen?: (id: string) => void;
   snapshots?: SnapshotSummary[]; snapshotId?: string; onSnapshot?: (id: string) => void;
 }) {
-  const [tab, setTab] = useState<'layers' | 'snapshots'>('layers');
+  const [chosen, setTab] = useState<'layers' | 'snapshots'>('layers');
+  const tab = scene ? chosen : 'snapshots';
   const [query, setQuery] = useState('');
   const [closed, setClosed] = useState<Set<string>>(new Set());
   const q = query.trim().toLowerCase();
-  const nodes = scene.nodes.filter(n => !q || n.title.toLowerCase().includes(q) || n.subtitle.toLowerCase().includes(q));
+  const nodes = (scene?.nodes ?? []).filter(n => !q || n.title.toLowerCase().includes(q) || n.subtitle.toLowerCase().includes(q));
   const groups = new Map<string, typeof nodes>();
   for (const n of nodes) {
     const key = n.kind === 'neighbour' ? 'neighbour' : n.role ?? 'other';
@@ -32,11 +34,11 @@ export default function LayersPanel({ scene, theme, highlight, selected, onSelec
 
   return <div className="flex h-full min-h-0 flex-col">
     <div className="flex items-center gap-1 border-b border-[#222c37] px-2 py-1.5" role="tablist">
-      <button type="button" role="tab" aria-selected={tab === 'layers'} className={tabClass('layers')} onClick={() => setTab('layers')}>Layers</button>
+      {scene && <button type="button" role="tab" aria-selected={tab === 'layers'} className={tabClass('layers')} onClick={() => setTab('layers')}>Layers</button>}
       {snapshots && <button type="button" role="tab" aria-selected={tab === 'snapshots'} className={tabClass('snapshots')} onClick={() => setTab('snapshots')}>Snapshots <span className="text-[#64748b]">{snapshots.length}</span></button>}
     </div>
 
-    {tab === 'layers' && <>
+    {tab === 'layers' && scene && theme && highlight && <>
       <label className="mx-2 my-2 flex items-center gap-2 rounded border border-[#222c37] bg-[#0b0f13] px-2">
         <Search size={13} className="text-[#64748b]" />
         <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search layers" aria-label="Search layers" className="h-7 w-full bg-transparent text-xs text-[#e2e8f0] outline-none placeholder:text-[#64748b]" />
@@ -53,8 +55,8 @@ export default function LayersPanel({ scene, theme, highlight, selected, onSelec
             const dim = !!highlight.nodes && !highlight.nodes.has(n.id);
             return <div key={n.id} role="treeitem" aria-selected={isSel} tabIndex={0}
               className={`mx-1 flex cursor-pointer flex-col rounded px-5 py-1 outline-none focus-visible:ring-1 focus-visible:ring-[#38bdf8] ${isSel ? 'bg-[#38bdf8]/15 text-white' : 'text-[#cbd5e1] hover:bg-white/5'} ${dim ? 'opacity-50' : ''}`}
-              onClick={() => onSelect(n.id)} onDoubleClick={() => onOpen(n.id)}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (e.shiftKey) onOpen(n.id); else onSelect(n.id); } }}>
+              onClick={() => onSelect?.(n.id)} onDoubleClick={() => onOpen?.(n.id)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (e.shiftKey) onOpen?.(n.id); else onSelect?.(n.id); } }}>
               <span className="truncate text-xs">{n.title}</span>
               <span className="truncate text-[10px] text-[#64748b]">{n.subtitle}</span>
             </div>;

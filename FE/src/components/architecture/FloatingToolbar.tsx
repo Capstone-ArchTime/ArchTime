@@ -49,6 +49,8 @@ export default function FloatingToolbar({ searchRef, ...p }: {
   const v = p.viewport;
   const routeSet = !!(p.route?.[0] && p.route?.[1]);
   const compact = v.width > 0 && v.width < ROOMY;
+  // Phone-sized: zoom steps, fit and frame stay in the zoom menu (and pinch), not as buttons.
+  const tiny = v.width > 0 && v.width < 520;
   const exports = [{ key: 'svg', label: 'SVG image' }, { key: 'png', label: 'PNG image' }, { key: 'html', label: 'Standalone HTML' }, { key: 'json', label: 'Verified data (JSON)' }];
   return (
     <div data-overlay role="toolbar" aria-label="Diagram tools"
@@ -78,19 +80,22 @@ export default function FloatingToolbar({ searchRef, ...p }: {
       </Popover>}
 
       <Divider />
-      <Tool label="Zoom out" shortcut="-" onClick={v.zoomOut}><Minus size={16} /></Tool>
+      {!tiny && <Tool label="Zoom out" shortcut="-" onClick={v.zoomOut}><Minus size={16} /></Tool>}
       <Dropdown trigger={['click']} placement="top" menu={{
         items: [
+          ...(tiny ? [{ key: 'in', label: 'Zoom in  (+)' }, { key: 'out', label: 'Zoom out  (-)' }] : []),
           { key: 'fit', label: 'Fit diagram  (0)' }, { key: 'sel', label: 'Zoom to selection  (F)', disabled: !p.hasSelection },
           { type: 'divider' }, { key: '0.5', label: '50%' }, { key: '1', label: '100%' }, { key: '2', label: '200%' },
         ],
-        onClick: ({ key }) => (key === 'fit' ? v.fit() : key === 'sel' ? v.frameSelection() : v.setZoom(Number(key))),
+        onClick: ({ key }) => (key === 'fit' ? v.fit() : key === 'sel' ? v.frameSelection() : key === 'in' ? v.zoomIn() : key === 'out' ? v.zoomOut() : v.setZoom(Number(key))),
       }}>
         <button type="button" aria-label={`Zoom ${Math.round(v.zoom * 100)}%, choose a level`} className="h-8 w-12 shrink-0 rounded-md font-mono text-xs text-[#cbd5e1] hover:bg-white/10">{Math.round(v.zoom * 100)}%</button>
       </Dropdown>
+      {!tiny && <>
       <Tool label="Zoom in" shortcut="+" onClick={v.zoomIn}><Plus size={16} /></Tool>
       <Tool label="Fit diagram" shortcut="0" onClick={v.fit}><Expand size={16} /></Tool>
       <Tool label="Zoom to selection" shortcut="F" disabled={!p.hasSelection} onClick={v.frameSelection}><Scan size={16} /></Tool>
+      </>}
 
       {compact && <>
         <Divider />

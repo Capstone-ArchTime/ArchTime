@@ -3,6 +3,7 @@ import { Alert, Button, Dropdown, Empty, Progress, Select, Spin, Tooltip } from 
 import { ChevronDown, Pickaxe, RefreshCw, Sparkles, Workflow } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ArchitectureViewer from '@/components/architecture/ArchitectureViewer';
+import LayersPanel from '@/components/architecture/LayersPanel';
 import ModelPicker, { RunUsage } from '@/components/architecture/ModelPicker';
 import QualityPanel from '@/components/architecture/QualityPanel';
 import AccountMenu from '@/components/AccountMenu';
@@ -74,13 +75,13 @@ export default function ArchitectureWorkspace() {
 
   const aiControls = () => {
     const llm = payload?.llm;
-    const button = <Button size="small" type="primary" icon={<Sparkles size={13} />} disabled={!llm?.enabled || busy} loading={!!arch.refining} onClick={arch.refine}>
-      {payload?.status === 'ready' ? 'Refine with AI' : 'Group with AI'}
+    const button = <Button size="small" type="primary" icon={<Sparkles size={13} />} aria-label={payload?.status === 'ready' ? 'Refine with AI' : 'Group with AI'} disabled={!llm?.enabled || busy} loading={!!arch.refining} onClick={arch.refine}>
+      <span className="hidden sm:inline">{payload?.status === 'ready' ? 'Refine with AI' : 'Group with AI'}</span>
     </Button>;
     if (!llm?.enabled) return <Tooltip title={llm?.reason ?? 'AI refinement is not available'}><span>{button}</span></Tooltip>;
     const t = arch.target();
     return <>
-      <ModelPicker models={arch.models} value={arch.modelChoice} onChange={arch.setModelChoice} disabled={busy} />
+      <span className="hidden lg:inline-flex"><ModelPicker models={arch.models} value={arch.modelChoice} onChange={arch.setModelChoice} disabled={busy} /></span>
       <Tooltip title={t.external ? `Sends file paths to ${t.host} (${t.model}); asks first` : `Uses ${t.model} on ${t.host}; nothing leaves your network`}>{button}</Tooltip>
     </>;
   };
@@ -111,7 +112,7 @@ export default function ArchitectureWorkspace() {
             <span className="truncate">{title}</span> <ChevronDown size={14} className="shrink-0 text-[#94a3b8]" />
           </button>
         </Dropdown>
-        {projectId && <Select size="small" variant="borderless" aria-label="Snapshot" className="w-44 shrink-0" placeholder="Latest snapshot" allowClear value={snapshotParam}
+        {projectId && <Select size="small" variant="borderless" aria-label="Snapshot" className="hidden w-44 shrink-0 md:inline-flex" placeholder="Latest snapshot" allowClear value={snapshotParam}
           options={arch.snapshots.map(s => ({ value: s.id, label: `${s.hash} · ${s.title.split('\n')[0].slice(0, 40)}` }))}
           onChange={(id?: string) => commit({ project: projectId, ...(id ? { snapshot: id } : {}) }, true)} />}
 
@@ -122,7 +123,7 @@ export default function ArchitectureWorkspace() {
         </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-2 xl:ml-0">
-          {projectId && <Tooltip title="Scan and mine the repository's history"><Button size="small" icon={<Pickaxe size={13} />} onClick={() => setMining(true)}>Mine</Button></Tooltip>}
+          {projectId && <Tooltip title="Scan and mine the repository's history"><Button size="small" icon={<Pickaxe size={13} />} aria-label="Mine" onClick={() => setMining(true)}><span className="hidden lg:inline">Mine</span></Button></Tooltip>}
           {projectId && payload && aiControls()}
           {projectId && payload?.status === 'ready' && <Tooltip title="Group the files again by their dependencies (no AI)"><Button size="small" icon={<RefreshCw size={13} />} aria-label="Regenerate" loading={arch.generating} disabled={busy} onClick={() => void arch.generate()} /></Tooltip>}
           {projectId && <Dropdown trigger={['click']} menu={{ items: [
@@ -138,6 +139,10 @@ export default function ArchitectureWorkspace() {
         {view && <ArchitectureViewer view={view} base={base} hash={hash} commit={commit} overview={overview}
           {...(projectId ? { snapshots: arch.snapshots, snapshotId: snapshotParam ?? payload?.snapshot?.id, onSnapshot: (id: string) => commit({ project: projectId, snapshot: id }, true) } : {})} />}
 
+        {/* No drawing for this snapshot (yet): keep the snapshot list, like a design file's pages, so another can be opened. */}
+        {projectId && !view && arch.snapshots.length > 0 && <aside aria-label="Snapshots" className="absolute inset-y-0 left-0 z-10 hidden w-60 border-r border-[#222c37] bg-[#0d1116] lg:block">
+          <LayersPanel snapshots={arch.snapshots} snapshotId={snapshotParam ?? payload?.snapshot?.id} onSnapshot={id => commit({ project: projectId, snapshot: id }, true)} />
+        </aside>}
         {projectId && arch.current?.status === 'loading' && <div role="status" className="flex h-full flex-col items-center justify-center gap-3"><Spin /><p className="text-sm text-[#94a3b8]">Loading architecture…</p></div>}
         {projectId && arch.current?.status === 'error' && <div className="mx-auto max-w-xl p-10">
           <Alert type="error" showIcon title="Could not load the architecture" description={arch.current.message}
