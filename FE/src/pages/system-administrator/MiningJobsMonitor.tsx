@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Alert, App, Button, Empty, Progress, Select, Spin, Tag } from 'antd';
 import FeaturePage, { featurePanel } from '@/components/FeaturePage';
 import { apiRequest } from '@/api/client';
@@ -24,6 +25,7 @@ export default function MiningJobsMonitor() {
   const [aiModels, setAiModels] = useState<AIModelUsage[]>([]);
   const [defaultModel, setDefaultModel] = useState<string>('');
   const [modelLoading, setModelLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   async function cancel(id: string) {
     setCancelError(null);
     try { await cancelMiningJob(id); setRevision(v => v + 1); }
@@ -36,8 +38,8 @@ export default function MiningJobsMonitor() {
       await setDefaultAIModel(model);
       setDefaultModel(model);
       message.success(`Default model set to ${model}`);
-    } catch {
-      message.error('Could not update default model.');
+    } catch (cause) {
+      message.error(cause instanceof Error ? cause.message : 'Could not update default model.');
     } finally {
       setModelLoading(false);
     }
@@ -49,16 +51,7 @@ export default function MiningJobsMonitor() {
         setAiModels(res.data.models);
         setDefaultModel(res.data.defaultModel);
       })
-      .catch(() => {
-        // Mock data
-        setAiModels([
-          { model: 'gpt-4-turbo', provider: 'openai', tokensUsed: 1250000, tokensLimit: 10000000, costUsd: 18.75, requestsToday: 342, avgLatencyMs: 1250, status: 'healthy', lastChecked: new Date().toISOString() },
-          { model: 'gpt-3.5-turbo', provider: 'openai', tokensUsed: 3200000, tokensLimit: 50000000, costUsd: 4.80, requestsToday: 1205, avgLatencyMs: 450, status: 'healthy', lastChecked: new Date().toISOString() },
-          { model: 'claude-3-opus', provider: 'anthropic', tokensUsed: 520000, tokensLimit: 5000000, costUsd: 15.60, requestsToday: 89, avgLatencyMs: 2100, status: 'healthy', lastChecked: new Date().toISOString() },
-          { model: 'claude-3-sonnet', provider: 'anthropic', tokensUsed: 1800000, tokensLimit: 20000000, costUsd: 5.40, requestsToday: 456, avgLatencyMs: 890, status: 'degraded', lastChecked: new Date().toISOString() },
-        ]);
-        setDefaultModel('gpt-4-turbo');
-      });
+      .catch(cause => setAiError(cause instanceof Error ? cause.message : 'Could not load AI models.'));
   }, []);
   useEffect(() => {
     const controller = new AbortController();
@@ -84,7 +77,9 @@ export default function MiningJobsMonitor() {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-semibold mb-1">Default AI Model for Mining</h3>
-          <p className="text-xs text-[#94a3b8]">Select the AI model used for architecture analysis</p>
+          <p className="text-xs text-[#94a3b8]">Used when a user does not pick a model for AI architecture refinement. Manage models under <Link to="/system-administrator/ai-models" className="text-[#38bdf8]">AI Models</Link>.</p>
+          {aiError && <p role="alert" className="text-xs text-red-400 mt-1">{aiError}</p>}
+          {!aiError && !aiModels.length && <p className="text-xs text-[#94a3b8] mt-1">No AI model is configured.</p>}
         </div>
         <Select
           className="min-w-56"
@@ -93,11 +88,12 @@ export default function MiningJobsMonitor() {
           loading={modelLoading}
           options={aiModels.map(m => ({
             value: m.model,
+            disabled: !m.id,
             label: (
               <span className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${m.provider === 'openai' ? 'bg-green-500' : 'bg-purple-500'}`} />
+                <span className={`w-2 h-2 rounded-full ${m.provider === 'anthropic' ? 'bg-purple-500' : m.provider === 'gemini' ? 'bg-sky-500' : 'bg-green-500'}`} />
                 {m.model}
-                <Tag size="small" color={m.status === 'healthy' ? 'green' : m.status === 'degraded' ? 'gold' : 'red'} className="ml-auto">
+                <Tag color={m.status === 'healthy' ? 'green' : m.status === 'degraded' ? 'gold' : m.status === 'down' ? 'red' : 'default'} className="ml-auto">
                   {m.status}
                 </Tag>
               </span>
@@ -108,20 +104,20 @@ export default function MiningJobsMonitor() {
       <div className="grid grid-cols-4 gap-4 mt-4">
         {aiModels.map(m => (
           <button
-            key={m.model}
+            key={m.id ?? m.model}
             type="button"
             onClick={() => handleDefaultModelChange(m.model)}
-            disabled={modelLoading || m.model === defaultModel}
+            disabled={modelLoading || m.model === defaultModel || !m.id}
             className={`p-3 border text-left transition-colors cursor-pointer hover:border-[#38bdf8]/50 disabled:cursor-default ${m.model === defaultModel ? 'border-[#38bdf8] bg-[#38bdf8]/5' : 'border-[#222c37] hover:bg-[#161d24]'}`}
           >
             <div className="flex items-center gap-2 mb-2">
-              <span className={`w-2 h-2 rounded-full ${m.provider === 'openai' ? 'bg-green-500' : 'bg-purple-500'}`} />
+              <span className={`w-2 h-2 rounded-full ${m.provider === 'anthropic' ? 'bg-purple-500' : m.provider === 'gemini' ? 'bg-sky-500' : 'bg-green-500'}`} />
               <span className="text-sm font-medium text-[#f4f4f6]">{m.model}</span>
               {m.model === defaultModel && <Tag color="blue" className="ml-auto">Active</Tag>}
             </div>
             <div className="text-xs text-[#94a3b8] space-y-1">
-              <p>Tokens: {(m.tokensUsed / 1000).toFixed(0)}K / {(m.tokensLimit / 1000000).toFixed(0)}M</p>
-              <p>Cost: ${m.costUsd.toFixed(2)}</p>
+              <p>Tokens this month: {(m.tokensUsed / 1000).toFixed(1)}K{m.tokensLimit > 0 ? ` / ${(m.tokensLimit / 1000000).toFixed(0)}M` : ''}</p>
+              <p>Cost: ${m.costUsd.toFixed(m.costUsd > 0 && m.costUsd < 1 ? 4 : 2)}</p>
               <p>Latency: {m.avgLatencyMs}ms</p>
             </div>
           </button>
