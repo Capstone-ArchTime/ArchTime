@@ -10,7 +10,6 @@ import { loginDestination } from '@/auth/permissions';
 import { authRequest } from '@/auth/requests';
 import { API_BASE_URL } from '@/auth/session';
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const fontFamily = {
   sans: '"Space Grotesk", sans-serif',
@@ -65,14 +64,14 @@ const AuthPage: React.FC = () => {
     }
 
     if (!email.trim()) {
-      errors.email = 'Email address is required.';
-    } else if (!EMAIL_PATTERN.test(email.trim())) {
+      errors.email = isRegister ? 'Email address is required.' : 'Username or email is required.';
+    } else if (isRegister && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       errors.email = 'Enter a valid email address.';
     }
 
     if (!password) {
       errors.password = 'Password is required.';
-    } else if (password.length < 8) {
+    } else if (isRegister && password.length < 8) {
       errors.password = 'Password must be at least 8 characters.';
     } else if (isRegister && strength < 3) {
       errors.password = 'Password is too weak. Add uppercase, a number, or a symbol.';
@@ -220,18 +219,18 @@ const AuthPage: React.FC = () => {
                   )}
 
                   <div className="space-y-1.5">
-                    <label htmlFor="auth-email" className="text-[11px] text-slate-400 uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>Email address</label>
+                    <label htmlFor="auth-email" className="text-[11px] text-slate-400 uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>{isRegister ? 'Email address' : 'Username or Email'}</label>
                     <div className="relative group">
                       <input
                         id="auth-email"
                           name="email"
                           autoComplete="email"
-                        type="email"
+                        type={isRegister ? "email" : "text"}
                         spellCheck={false}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         disabled={isLoading}
-                        placeholder="developer@archtime.io"
+                        placeholder={isRegister ? "developer@archtime.io" : "username or email"}
                         aria-invalid={!!fieldErrors.email}
                         aria-describedby={fieldErrors.email ? 'auth-email-error' : undefined}
                         className={`w-full h-11 bg-[#11161b] border pl-10 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none transition-colors disabled:opacity-50 ${

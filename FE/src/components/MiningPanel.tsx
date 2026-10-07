@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, App, Button, DatePicker, Modal, Progress, Spin, Tag } from 'antd';
+import { Alert, App, Button, DatePicker, Modal, Progress, Select, Spin, Tag } from 'antd';
 import {
   ACTIVE_STATUSES, cancelMiningJob, getMiningEstimate, getMiningOverview, startMining, startScan,
   type MiningEstimate, type MiningOverview,
 } from '@/features/mining-api';
+import { getAIModelsConfig } from '@/features/admin-api';
+import type { AIModelConfig } from '@/features/admin-api';
 import { coverageRows, describeBatchProgress, monthBounds } from '@/features/mining-coverage';
 
 type Range = { since: string; until: string };
@@ -16,6 +18,8 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
   const [result, setResult] = useState<{ key: string; estimate?: MiningEstimate; error?: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const wasActive = useRef(false);
+  const [aiModels, setAiModels] = useState<AIModelConfig[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string>('');
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -28,6 +32,30 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
   const hasHistory = !!overview?.history;
   const minedCount = overview?.mined.count ?? 0;
   const active = overview?.activeJob && ACTIVE_STATUSES.includes(overview.activeJob.status) ? overview.activeJob : null;
+
+  // Load AI models on open
+  useEffect(() => {
+    if (!open) return;
+    const controller = new AbortController();
+    getAIModelsConfig(controller.signal)
+      .then(res => {
+        setAiModels(res.data.models.filter(m => m.enabled));
+        const defaultModel = res.data.models.find(m => m.isDefault);
+        if (defaultModel) setSelectedModel(defaultModel.model);
+      })
+      .catch(() => {
+        // Mock data if API not available
+        const mockModels: AIModelConfig[] = [
+          { model: 'gpt-4-turbo', provider: 'openai', enabled: true, isDefault: true },
+          { model: 'gpt-3.5-turbo', provider: 'openai', enabled: true, isDefault: false },
+          { model: 'claude-3-opus', provider: 'anthropic', enabled: true, isDefault: false },
+          { model: 'claude-3-sonnet', provider: 'anthropic', enabled: true, isDefault: false },
+        ];
+        setAiModels(mockModels);
+        setSelectedModel('gpt-4-turbo');
+      });
+    return () => controller.abort();
+  }, [open]);
 
   // Load on open, then poll while a job is queued or running.
   useEffect(() => {
@@ -116,17 +144,42 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
         </section>
 
         <section className="space-y-3" aria-label="Choose what to mine">
-          <label className="block text-sm" htmlFor="mining-range">Time range</label>
-          <DatePicker.RangePicker id="mining-range" disabled={!!active} className="w-full"
-            value={undefined} placeholder={range ? [range.since, range.until] : ['From', 'To']}
-            onChange={(_, strings) => setRange(Array.isArray(strings) && strings[0] && strings[1] ? { since: strings[0], until: strings[1] } : null)} />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm mb-2" htmlFor="mining-range">Time range</label>
+              <DatePicker.RangePicker id="mining-range" disabled={!!active} className="w-full"
+                value={undefined} placeholder={range ? [range.since, range.until] : ['From', 'To']}
+                onChange={(_, strings) => setRange(Array.isArray(strings) && strings[0] && strings[1] ? { since: strings[0], until: strings[1] } : null)} />
+            </div>
+            <div>
+              <label className="block text-sm mb-2" htmlFor="mining-model">AI Model</label>
+              <Select
+                id="mining-model"
+                disabled={!!active}
+                className="w-full"
+                value={selectedModel}
+                onChange={setSelectedModel}
+                options={aiModels.map(m => ({
+                  value: m.model,
+                  label: (
+                    <span className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full ${m.provider === 'openai' ? 'bg-green-500' : 'bg-purple-500'}`} />
+                      {m.model}
+                      {m.isDefault && <span className="text-xs text-[#94a3b8]">(default)</span>}
+                    </span>
+                  ),
+                }))}
+                placeholder="Select AI model"
+              />
+            </div>
+          </div>
           {range && <p className="text-xs text-[#94a3b8]" role="status">
             {range.since} → {range.until}: {estimateError ?? (estimate ? `${estimate.inRange} commits, ${estimate.alreadyMined} already mined, ${estimate.toMine} to mine in ${estimate.batchCount} batch${estimate.batchCount === 1 ? '' : 'es'}` : 'Counting…')}
           </p>}
           <div className="flex flex-wrap gap-3">
-            <Button type="primary" disabled={!range || !!active || estimate?.toMine === 0} loading={busy}
-              onClick={() => range && run(() => startMining(project.id, { mode: 'range', ...range }), 'Mining started.')}>Mine this range</Button>
-            <Button disabled={!!active || fullyMined} loading={busy} onClick={() => run(() => startMining(project.id, { mode: 'remaining' }), 'Mining started.')}>
+            <Button type="primary" disabled={!range || !!active || estimate?.toMine === 0 || !selectedModel} loading={busy}
+              onClick={() => range && run(() => startMining(project.id, { mode: 'range', ...range, model: selectedModel } as any), 'Mining started.')}>Mine this range</Button>
+            <Button disabled={!!active || fullyMined || !selectedModel} loading={busy} onClick={() => run(() => startMining(project.id, { mode: 'remaining', model: selectedModel } as any), 'Mining started.')}>
               {overview.mined.count ? `Continue: mine all remaining${overview.remaining ? ` (${overview.remaining})` : ''}` : 'Mine entire history'}
             </Button>
             <Button disabled={!!active} loading={busy} onClick={() => run(() => startScan(project.id), 'Fetching new commits.')}>Check for new commits</Button>

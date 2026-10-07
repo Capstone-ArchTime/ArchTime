@@ -19,10 +19,9 @@ export class LoginUseCase {
     email: string;
     password: string;
   }): Promise<{ user: Omit<IUser, "passwordHash">; tokens: ITokenPair }> {
-    const user = await this.userRepo.findByEmail(input.email);
+    const user = await this.userRepo.findByEmailOrUsername(input.email);
     if (!user) {
-      // Deliberate vague message to prevent email enumeration
-      throw new UnauthorizedError("Invalid email or password.", "INVALID_CREDENTIALS");
+      throw new UnauthorizedError("Invalid credentials.", "INVALID_CREDENTIALS");
     }
 
     const passwordMatch = await this.hasher.comparePassword(
@@ -30,7 +29,7 @@ export class LoginUseCase {
       user.passwordHash,
     );
     if (!passwordMatch) {
-      throw new UnauthorizedError("Invalid email or password.", "INVALID_CREDENTIALS");
+      throw new UnauthorizedError("Invalid credentials.", "INVALID_CREDENTIALS");
     }
 
     // Block login if email not verified

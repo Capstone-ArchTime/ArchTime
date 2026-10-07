@@ -15,6 +15,10 @@ export async function authRequest(endpoint: 'login' | 'register' | 'verify-email
       throw new Error(typeof detail === 'string' ? detail : `Request failed (${response.status}). Please try again.`);
     }
     if (!result || typeof result !== 'object' || Array.isArray(result)) throw new Error('The server returned an invalid response. Please try again.');
+    // BE wraps response in { success, data, message } - unwrap if needed
+    if (result.success && result.data) {
+      return { ...result.data, message: result.message };
+    }
     return result;
   } catch (error) {
     if (signal?.aborted) throw error;
