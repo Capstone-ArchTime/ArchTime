@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { modelStats, modularity, normalizeWeights, runCost, runQuality, scoreModels, SCORE_PRESETS, stability, modeFor } from '../src/domain/architecture/llm/metrics.ts';
+import { modelStats, modularity, normalizeWeights, QUALITY_WEIGHTS, runCost, runQuality, scoreModels, SCORE_PRESETS, stability, modeFor } from '../src/domain/architecture/llm/metrics.ts';
 import { sumUsage } from '../src/domain/architecture/llm/types.ts';
 import { buildRun, ratedQuality, statusOf } from '../src/infrastructure/services/LlmRunService.ts';
 import { seal, unseal } from '../src/infrastructure/llm/secrets.ts';
@@ -23,20 +23,33 @@ test('modularity: textbook value, direction and duplicates ignored, all-in-one i
 test('run quality: zero without a verified answer, full marks for a clean first-try answer', () => {
   const base = { accepted: true, mode: 'refine', attemptsUsed: 1, validation: { errors: 0, warnings: 0 }, modularity: 0.4, baselineModularity: 0.4, roles: ['service', 'controller'], movedRatio: 0.1, maxMoveRatio: 0.4 };
   assert.equal(runQuality(base).score, 1);
+  assert.equal(runQuality(base).version, 2);
   assert.equal(runQuality({ ...base, accepted: false }).score, 0);
+  // Without the structure parts the weights of V, M, R, E, B (0.60 in total) are scaled up to 1.
   const third = runQuality({ ...base, attemptsUsed: 3 });
   close(third.E, 0.3333, 1e-4);
-  close(third.score, 1 - 0.15 * (2 / 3), 1e-3);
+  close(third.score, 1 - (0.10 / 0.60) * (2 / 3), 1e-3);
   // Half the roles unknown, two warnings, cohesion halved, moved 30% of files when 20% is free and 40% is the cap.
   const q = runQuality({ ...base, roles: ['service', 'other'], validation: { errors: 0, warnings: 2 }, modularity: 0.2, movedRatio: 0.3 });
   assert.deepEqual([q.R, q.V, q.M, q.B], [0.5, 0.9, 0.5, 0.5]);
-  close(q.score, 0.30 * 0.9 + 0.25 * 0.5 + 0.20 * 0.5 + 0.15 + 0.10 * 0.5, 1e-4);
+  close(q.score, (0.20 * 0.9 + 0.15 * 0.5 + 0.10 * 0.5 + 0.10 + 0.05 * 0.5) / 0.60, 1e-4);
+});
+
+test('run quality v2: grounding, acyclicity, layering and balance count, weighted as documented', () => {
+  const base = { accepted: true, mode: 'refine', attemptsUsed: 1, validation: { errors: 0, warnings: 0 }, modularity: 0.4, baselineModularity: 0.4, roles: ['service'], movedRatio: 0, maxMoveRatio: 0.4 };
+  const all = runQuality({ ...base, grounding: 1, acyclicity: 1, layering: 1, balance: 1 });
+  assert.equal(all.score, 1);
+  const q = runQuality({ ...base, grounding: 0.5, acyclicity: 0.75, layering: 0, balance: 1 });
+  assert.deepEqual([q.G, q.C, q.L, q.Bal], [0.5, 0.75, 0, 1]);
+  close(q.score, 1 - 0.20 * 0.5 - 0.08 * 0.25 - 0.07 * 1, 1e-4);
+  const sum = Object.values(QUALITY_WEIGHTS).reduce((a, b) => a + b, 0);
+  close(sum, 1, 1e-9);
 });
 
 test('run quality: a names-only answer is not judged on structure it could not change', () => {
-  const q = runQuality({ accepted: true, mode: 'name-only', attemptsUsed: 1, validation: { errors: 0, warnings: 0 }, modularity: 0, baselineModularity: 0.5, roles: ['other', 'service'], maxMoveRatio: 0.4 });
+  const q = runQuality({ accepted: true, mode: 'name-only', attemptsUsed: 1, validation: { errors: 0, warnings: 0 }, modularity: 0, baselineModularity: 0.5, roles: ['other', 'service'], maxMoveRatio: 0.4, grounding: 1 });
   assert.equal(q.M, 1);
-  close(q.score, (0.30 + 0.20 * 0.5 + 0.15) / 0.65, 1e-3);
+  close(q.score, (0.20 + 0.10 * 0.5 + 0.10 + 0.20) / 0.60, 1e-3);
 });
 
 test('cost: per-million pricing, cached input at its own price, no price means free', () => {

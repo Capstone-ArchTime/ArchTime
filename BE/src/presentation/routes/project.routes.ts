@@ -860,6 +860,35 @@ export function createProjectRouter(
    */
   router.get("/:id/architecture/runs", projectController.getArchitectureRuns);
 
+  /**
+   * @swagger
+   * /api/projects/{id}/architecture/reference:
+   *   get:
+   *     tags: [Projects]
+   *     summary: Kiến trúc tham chiếu (do người dùng khai báo) để chấm điểm sơ đồ (Adjusted Rand Index)
+   *     security: [{ BearerAuth: [] }]
+   *     parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+   *     responses: { 200: { description: "{ components: [{ name, prefixes }] }" } }
+   *   put:
+   *     tags: [Projects]
+   *     summary: Lưu kiến trúc tham chiếu (danh sách rỗng = xoá)
+   *     security: [{ BearerAuth: [] }]
+   *     parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               components:
+   *                 type: array
+   *                 items: { type: object, properties: { name: { type: string, example: "Domain" }, prefixes: { type: array, items: { type: string }, example: ["BE/src/domain/"] } } }
+   *     responses: { 200: { description: OK } }
+   */
+  router.get("/:id/architecture/reference", projectController.getArchitectureReference);
+  router.put("/:id/architecture/reference", projectController.saveArchitectureReference);
+
   // ────────────────────────────────────────────────────────────
   // Project Maintainer Routes (PM-01 to PM-07)
   // ────────────────────────────────────────────────────────────

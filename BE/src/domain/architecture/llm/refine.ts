@@ -2,9 +2,9 @@ import { layerForRole } from '../naming.js';
 import type { MappingComponent } from '../buildView.js';
 import { answerSchema, buildMessages, parseJsonAnswer, retryMessages } from './prompt.js';
 import type { PromptInput } from './prompt.js';
-import { DEFAULT_REFINE_OPTIONS, LlmError, sumUsage } from './types.js';
+import { DEFAULT_REFINE_OPTIONS, estimateTokens, LlmError, MAX_RATE_LIMIT_WAITS, MAX_WAIT_MS, sumUsage } from './types.js';
 import type { LlmClient, LlmMessage, LlmUsage, RefineAttempt, RefineIssue, RefineOptions, RefineReceipt } from './types.js';
-import { verifyNaming, verifyRefine } from './verify.js';
+import { expandDelta, verifyNaming, verifyRefine } from './verify.js';
 
 export interface RefineInput {
   /** Analyzable files and the dependencies between them (see fileDependencies). */
@@ -68,17 +68,26 @@ export async function refineMapping(input: RefineInput): Promise<RefineResult> {
     edges.push([a, b]);
     fanIn[b]++;
   }
-  const mode: PromptInput['mode'] = files.length <= options.maxRefineFiles ? 'refine' : 'name-only';
+  const clusters = initial.map((c, ci) => ({ id: `c${ci}`, files: c.memberIds.flatMap(f => (index.has(f) ? [index.get(f)!] : [])) }));
   // In name-only mode buildMessages sends just a few representative paths per cluster, never the whole list.
-  const prompt: PromptInput = {
-    mode, files, importance: fanIn, options,
-    clusters: initial.map((c, ci) => ({ id: `c${ci}`, files: c.memberIds.flatMap(f => (index.has(f) ? [index.get(f)!] : [])) })),
-    edges: mode === 'refine' ? edges : [],
-  };
+  const promptFor = (m: PromptInput['mode']): PromptInput => ({ mode: m, files, importance: fanIn, options, clusters, edges: m === 'refine' ? edges : [] });
+  const filesSentFor = (m: PromptInput['mode']) => (m === 'refine' ? files.length : initial.reduce((n, c) => n + Math.min(25, c.memberIds.length), 0));
+  /** What an answer needs: names for every cluster, and in refine mode the moves (capped by maxMoveRatio). */
+  const expectedOutput = (m: PromptInput['mode']) => 300 + 80 * clusters.length + (m === 'refine' ? 15 * Math.floor(options.maxMoveRatio * files.length) : 0);
+  const textOf = (ms: LlmMessage[]) => ms.map(x => x.content).join('\n');
+
+  let mode: PromptInput['mode'] = files.length <= options.maxRefineFiles ? 'refine' : 'name-only';
+  let narrowed: string | undefined;
+  // A prompt that cannot fit the model's request limit together with its answer goes out in name-only mode straight away.
+  if (mode === 'refine' && options.maxRequestTokens) {
+    const need = estimateTokens(textOf(buildMessages(promptFor('refine')))) + expectedOutput('refine');
+    if (need > options.maxRequestTokens) { mode = 'name-only'; narrowed = `about ${need} tokens needed, the model takes ${options.maxRequestTokens} per request`; }
+  }
+  let prompt = promptFor(mode);
   const receipt: RefineReceipt = {
-    mode, provider: client.info.provider, model: client.info.model, external: client.info.external,
-    filesSent: mode === 'refine' ? files.length : initial.reduce((n, c) => n + Math.min(25, c.memberIds.length), 0),
-    attempts: [], accepted: false,
+    mode, ...(mode === 'refine' ? { format: 'delta' as const } : {}), ...(narrowed ? { narrowed } : {}),
+    provider: client.info.provider, model: client.info.model, external: client.info.external,
+    filesSent: filesSentFor(mode), attempts: [], accepted: false,
   };
   const finish = () => {
     const notes = client.notes?.() ?? [];
@@ -91,10 +100,25 @@ export async function refineMapping(input: RefineInput): Promise<RefineResult> {
     finish();
     return { components: initial, generator: 'cluster-only', receipt };
   };
+  const narrow = (why: string) => {
+    mode = 'name-only'; narrowed = why; prompt = promptFor(mode);
+    receipt.mode = mode; receipt.narrowed = why; receipt.filesSent = filesSentFor(mode); delete receipt.format; delete receipt.movedRatio;
+    schema = answerSchema(mode); messages = buildMessages(prompt);
+  };
+  /** Answer budget: only sized when the model has a request limit; otherwise the client's own default stands. */
+  const answerBudget = (ms: LlmMessage[]) => {
+    if (!options.maxRequestTokens) return undefined;
+    const room = options.maxRequestTokens - estimateTokens(textOf(ms));
+    return Math.max(1000, Math.min(room, Math.max(2000, 2 * expectedOutput(mode))));
+  };
+  const sleep = async (ms: number) => {
+    for (let left = ms; left > 0 && !input.isCancelled?.() && !input.signal?.aborted; left -= 1000) await new Promise(r => setTimeout(r, Math.min(1000, left)));
+  };
 
-  const schema = answerSchema(mode);
+  let schema = answerSchema(mode);
   let messages: LlmMessage[] = buildMessages(prompt);
   const total = options.maxAttempts;
+  let waits = 0;
 
   for (let n = 1; n <= total; n++) {
     if (input.isCancelled?.()) return fallback('cancelled');
@@ -115,7 +139,8 @@ export async function refineMapping(input: RefineInput): Promise<RefineResult> {
     };
     try {
       try {
-        answer = await client.complete(messages, { schema, signal: input.signal, onUsage });
+        const maxTokens = answerBudget(messages);
+        answer = await client.complete(messages, { schema, signal: input.signal, onUsage, ...(maxTokens ? { maxTokens } : {}) });
       } finally {
         attempt.latencyMs = Date.now() - started;
       }
@@ -123,7 +148,9 @@ export async function refineMapping(input: RefineInput): Promise<RefineResult> {
       await input.onProgress?.('Checking the answer', Math.round(15 + (n / total) * 70) - 5);
 
       if (mode === 'refine') {
-        const checked = verifyRefine(raw, { fileCount: files.length, initialCluster, options });
+        const expanded = expandDelta(raw, { fileCount: files.length, clusters: prompt.clusters });
+        if (!expanded.ok || !expanded.value) throw new VerificationFailed(expanded.issues);
+        const checked = verifyRefine(expanded.value, { fileCount: files.length, initialCluster, options });
         receipt.movedRatio = checked.movedRatio;
         if (!checked.ok || !checked.value) throw new VerificationFailed(checked.issues);
         const ids = uniqueIds(checked.value.map(c => c.name));
@@ -155,9 +182,27 @@ export async function refineMapping(input: RefineInput): Promise<RefineResult> {
       attempt.issues = error instanceof VerificationFailed ? error.issues : [describe(error)];
       if (error instanceof LlmError) attempt.errorKind = error.kind;
       input.log?.(`attempt ${n}/${total} failed: ${attempt.issues.slice(0, 3).map(i => `${i.code} ${i.message}`).join(' | ')}`);
+      // A busy provider is waited for, as long as it asks, instead of being asked again at once; the wait is not an attempt.
+      if (error instanceof LlmError && error.kind === 'rate_limit' && waits < MAX_RATE_LIMIT_WAITS) {
+        waits++;
+        const ms = Math.min(MAX_WAIT_MS, error.retryAfterMs ?? 20_000);
+        attempt.waitedMs = ms;
+        await input.onProgress?.(`The provider is rate limiting; waiting ${Math.ceil(ms / 1000)} s`, Math.round(15 + ((n - 1) / total) * 70));
+        await sleep(ms);
+        n--;
+        continue;
+      }
+      // Too big for the model (request limit, context, or the answer did not fit): ask for names only, once.
+      if (error instanceof LlmError && (error.kind === 'too_large' || error.kind === 'truncated') && mode === 'refine') {
+        narrow(error.kind === 'too_large' ? `the provider said the request was too large (${error.message.slice(0, 120)})` : 'the answer did not fit the output budget');
+        n--;
+        continue;
+      }
       if (error instanceof LlmError && error.fatal) return fallback(`${error.kind}: ${error.message}`);
       if (error instanceof VerificationFailed || (!(error instanceof LlmError))) {
         messages = retryMessages(buildMessages(prompt), answer || '(no usable answer)', attempt.issues);
+      } else {
+        messages = buildMessages(prompt);
       }
     }
   }

@@ -97,7 +97,8 @@ export class LlmModelRegistry {
   private static fromRow(row: ModelRow, options: LlmRuntime['options']): ResolvedModel {
     let client: LlmClient;
     try { client = clientFor(row); } catch (error) { throw new BadRequestError(`The model "${row.displayName}" is misconfigured: ${error instanceof Error ? error.message : 'unknown error'}`); }
-    return { client, options, capability: capabilityOf(row, client), modelId: String(row._id), modelKey: row.key, pricing: pricingOf(row) };
+    const limit = row.options?.maxRequestTokens;
+    return { client, options: { ...options, ...(limit ? { maxRequestTokens: limit } : {}) }, capability: capabilityOf(row, client), modelId: String(row._id), modelKey: row.key, pricing: pricingOf(row) };
   }
 
   /** What the default model can do, for the architecture page. Never throws. */

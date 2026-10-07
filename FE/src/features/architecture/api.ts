@@ -4,6 +4,8 @@ import type { ArchitectureView, ValidationResult } from './types';
 export interface SnapshotSummary { id: string; hash: string; title: string; date: string }
 export interface RefineReceipt {
   mode: 'refine' | 'name-only';
+  /** Why the model was asked for names only (its request limit). */
+  narrowed?: string;
   provider: string;
   model: string;
   external: boolean;
@@ -28,6 +30,18 @@ export interface ArchitecturePayload {
   validation: ValidationResult | null;
   mapping: { generator: string; algorithmVersion: string; createdAt: string; stale: boolean; receipt: RefineReceipt | null } | null;
   llm: LlmCapability;
+  /** How meaningful the view is; null for older servers. */
+  quality?: ViewQuality | null;
+}
+export interface ReferenceComponent { name: string; prefixes: string[] }
+export interface ViewQuality {
+  grounding: { score: number; ungrounded: string[] };
+  acyclicity: { score: number; cycles: string[][] };
+  layering: { score: number; violations: { source: string; target: string; weight: number }[] };
+  balance: number;
+  components: number;
+  agreement?: { score: number; common: number };
+  stability?: { score: number; common: number; snapshotId: string };
 }
 
 const base = (projectId: string) => `/projects/${encodeURIComponent(projectId)}`;
@@ -65,4 +79,16 @@ export async function refineArchitecture(projectId: string, snapshotId?: string,
   });
   if (typeof body?.data?.jobId !== 'string') throw new Error('The server did not start the job.');
   return body.data.jobId;
+}
+
+export async function getReference(projectId: string, signal?: AbortSignal): Promise<ReferenceComponent[]> {
+  const body = await apiRequest<{ data?: { components?: ReferenceComponent[] } }>(`${base(projectId)}/architecture/reference`, { signal });
+  return Array.isArray(body?.data?.components) ? body.data.components : [];
+}
+
+export async function saveReference(projectId: string, components: ReferenceComponent[]): Promise<ReferenceComponent[]> {
+  const body = await apiRequest<{ data?: { components?: ReferenceComponent[] } }>(`${base(projectId)}/architecture/reference`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ components }),
+  });
+  return body?.data?.components ?? components;
 }

@@ -49,6 +49,31 @@ export class ArchitectureUseCase {
     return MiningService.startAbstractJob(projectId, userId, snapshotId, modelId);
   }
 
+  /** The architecture the project's people say it has, used to score views (adjusted Rand index). */
+  public async getReference(projectId: string, userId: string) {
+    await loadOwnedProject(projectId, userId);
+    return ArchitectureService.getReference(projectId);
+  }
+
+  /** Body: { components: [{ name, prefixes: [path prefix, ...] }] }; an empty list removes the reference. */
+  public async saveReference(projectId: string, userId: string, body: unknown) {
+    await loadOwnedProject(projectId, userId);
+    const raw = (body && typeof body === "object" ? (body as Record<string, unknown>).components : undefined);
+    if (!Array.isArray(raw) || raw.length > 40) throw new BadRequestError("components must be a list of at most 40 entries.");
+    const seen = new Set<string>();
+    const components = raw.map((c, i) => {
+      const item = (c && typeof c === "object" ? c : {}) as Record<string, unknown>;
+      const name = typeof item.name === "string" ? item.name.trim() : "";
+      if (!name || name.length > 60) throw new BadRequestError(`components[${i}].name must be 1 to 60 characters.`);
+      if (seen.has(name.toLowerCase())) throw new BadRequestError(`The name "${name}" is used twice.`);
+      seen.add(name.toLowerCase());
+      const prefixes = Array.isArray(item.prefixes) ? item.prefixes.filter((p): p is string => typeof p === "string").map(p => p.trim()).filter(Boolean) : [];
+      if (!prefixes.length || prefixes.length > 50 || prefixes.some(p => p.length > 200)) throw new BadRequestError(`components[${i}] needs 1 to 50 path prefixes of at most 200 characters.`);
+      return { name, prefixes: [...new Set(prefixes)] };
+    });
+    return ArchitectureService.saveReference(projectId, components, userId);
+  }
+
   /** The project's AI runs, newest first, with tokens, cost and quality. */
   public async runs(projectId: string, userId: string, query: { page?: unknown; limit?: unknown }) {
     await loadOwnedProject(projectId, userId);

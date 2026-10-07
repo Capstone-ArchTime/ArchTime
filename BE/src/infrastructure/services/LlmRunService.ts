@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import type { MappingComponent } from "../../domain/architecture/buildView.js";
 import type { ValidationResult } from "../../domain/architecture/types.js";
+import type { ViewAssessment } from "../../domain/architecture/quality.js";
 import type { RefineReceipt } from "../../domain/architecture/llm/types.js";
 import { modelStats, modularity, normalizeWeights, runCost, runQuality, SCORE_PRESETS, scoreModels } from "../../domain/architecture/llm/metrics.js";
 import type { ModelCandidate, ModelStats, RunSample, RunStatus, ScorePreset, ScoreWeights } from "../../domain/architecture/llm/metrics.js";
@@ -25,6 +26,8 @@ export interface RecordRunInput {
   initial: MappingComponent[];
   components: MappingComponent[];
   validation: ValidationResult;
+  /** Structure of the stored view; absent in callers that do not build one. */
+  assessment?: ViewAssessment;
   maxMoveRatio: number;
   wallMs: number;
 }
@@ -41,7 +44,8 @@ export function statusOf(receipt: RefineReceipt): RunStatus {
 export function buildRun(input: RecordRunInput): Omit<ILlmRun, "createdAt"> {
   const { receipt } = input;
   const usage = receipt.usage ?? { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, reasoningTokens: 0, totalTokens: 0, estimated: false };
-  const attemptsUsed = receipt.attempts.length;
+  // Waiting out a rate limit, or retreating to names only, says nothing about the answer: such attempts are not counted.
+  const attemptsUsed = receipt.attempts.filter(a => a.errorKind !== 'rate_limit' && a.errorKind !== 'too_large' && !(a.errorKind === 'truncated' && receipt.narrowed)).length || receipt.attempts.length;
   const errors = input.validation.issues.filter(i => i.severity === "error").length;
   const warnings = input.validation.issues.length - errors;
   const mod = modularity(input.files, input.edges, groupsOf(input.components));
@@ -49,7 +53,12 @@ export function buildRun(input: RecordRunInput): Omit<ILlmRun, "createdAt"> {
   const quality = runQuality({
     accepted: receipt.accepted, mode: receipt.mode, attemptsUsed, validation: { errors, warnings },
     modularity: mod, baselineModularity: baseline, roles: input.components.map(c => c.role), movedRatio: receipt.movedRatio, maxMoveRatio: input.maxMoveRatio,
+    ...(input.assessment ? {
+      grounding: input.assessment.grounding.score, acyclicity: input.assessment.acyclicity.score,
+      layering: input.assessment.layering.score, balance: input.assessment.balance,
+    } : {}),
   });
+  const a = input.assessment;
   const lastError = [...receipt.attempts].reverse().find(a => a.errorKind)?.errorKind;
   const status = statusOf(receipt);
   const pricing = input.model.pricing;
@@ -73,6 +82,10 @@ export function buildRun(input: RecordRunInput): Omit<ILlmRun, "createdAt"> {
     quality: {
       ...quality, errors, warnings, modularity: round(mod), baselineModularity: round(baseline),
       ...(receipt.movedRatio !== undefined ? { movedRatio: receipt.movedRatio } : {}), attemptsUsed, components: input.components.length,
+      ...(a ? {
+        ungrounded: a.grounding.ungrounded.slice(0, 10), cycles: a.acyclicity.cycles.length, layerViolations: a.layering.violations.length,
+        ...(a.agreement ? { agreement: a.agreement.score } : {}), ...(a.stability ? { stability: a.stability.score } : {}),
+      } : {}),
     },
   };
 }
@@ -85,6 +98,9 @@ export const ratedQuality = (score: number, feedback?: { rating?: number } | nul
 const toSample = (r: Pick<ILlmRun, "status" | "errorKind" | "quality" | "filesSent" | "latencyMs" | "usage" | "cost" | "feedback">): RunSample => ({
   status: r.status, errorKind: r.errorKind, attemptsUsed: r.quality?.attemptsUsed ?? 1, filesSent: r.filesSent, quality: ratedQuality(r.quality?.score ?? 0, r.feedback),
   latencyMs: r.latencyMs ?? 0, totalTokens: r.usage?.totalTokens ?? 0, cost: r.cost?.amount ?? 0,
+  ...(typeof r.quality?.G === "number" ? { grounding: r.quality.G } : {}),
+  ...(typeof r.quality?.agreement === "number" ? { agreement: r.quality.agreement } : {}),
+  ...(typeof r.quality?.stability === "number" ? { stability: r.quality.stability } : {}),
 });
 
 export interface LeaderboardQuery { mode?: "refine" | "name-only"; windowDays?: number; purpose?: "user" | "benchmark" | "all"; preset?: ScorePreset | "custom"; benchmarkId?: string }

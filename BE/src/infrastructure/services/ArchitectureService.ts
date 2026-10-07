@@ -1,4 +1,8 @@
+import mongoose from "mongoose";
 import { SnapshotModel } from "../database/models/SnapshotModel.js";
+import { ArchitectureReferenceModel } from "../database/models/ArchitectureReferenceModel.js";
+import { assessView } from "../../domain/architecture/quality.js";
+import type { ReferenceComponent, ViewAssessment } from "../../domain/architecture/quality.js";
 import { ArchitectureMappingModel } from "../database/models/ArchitectureMappingModel.js";
 import { ALGORITHM_VERSION, buildView, fileDependencies, graphHash, proposeMapping } from "../../domain/architecture/buildView.js";
 import type { MappingComponent, SnapshotGraph } from "../../domain/architecture/buildView.js";
@@ -23,7 +27,11 @@ export interface ArchitecturePayload {
   mapping: { generator: string; algorithmVersion: string; createdAt: Date; stale: boolean; receipt: RefineReceipt | null } | null;
   /** What the server can do with an AI model, so the UI can offer (or hide) the option and warn when prompts leave the network. */
   llm: LlmCapability;
+  /** How meaningful the view is (see domain/architecture/quality.ts): grounding, cycles, layering, balance, and agreement with the reference and the previous snapshot. */
+  quality?: ViewAssessment | null;
 }
+
+type QualityContext = { reference: ReferenceComponent[] | null; previous: { snapshotId: string; components: { id: string; memberIds: string[] }[] } | null };
 
 export interface ArchitectureOptions { minComponents?: number; maxComponents?: number }
 
@@ -54,7 +62,27 @@ export class ArchitectureService {
     return { id: String(snapshot._id), hash: snapshot.hash, title: snapshot.title, date: snapshot.date };
   }
 
-  private static payload(snapshot: any, graph: SnapshotGraph, mapping: any, llm: LlmCapability): ArchitecturePayload {
+  /**
+   * What a view is compared with: the project's reference architecture and the components of the closest earlier snapshot
+   * that has them. Without a database (unit tests, scripts) there is nothing to compare with.
+   */
+  private static async qualityContext(projectId: string, snapshot: any): Promise<QualityContext> {
+    if (mongoose.connection.readyState !== 1) return { reference: null, previous: null };
+    const [reference, earlier] = await Promise.all([
+      ArchitectureReferenceModel.findOne({ projectId }).lean(),
+      SnapshotModel.find({ projectId, date: { $lt: snapshot.date } }, { _id: 1 }).sort({ date: -1 }).limit(50).lean(),
+    ]);
+    const ids = earlier.map(s => String(s._id));
+    const mappings = ids.length ? await ArchitectureMappingModel.find({ projectId, snapshotId: { $in: ids } }, { snapshotId: 1, components: 1 }).lean() : [];
+    const bySnapshot = new Map(mappings.map(m => [String(m.snapshotId), m]));
+    const closest = ids.map(id => bySnapshot.get(id)).find(Boolean);
+    return {
+      reference: reference?.components?.length ? reference.components : null,
+      previous: closest ? { snapshotId: String(closest.snapshotId), components: closest.components } : null,
+    };
+  }
+
+  private static payload(snapshot: any, graph: SnapshotGraph, mapping: any, llm: LlmCapability, context?: QualityContext): ArchitecturePayload {
     const view = buildView(
       { projectId: String(snapshot.projectId), snapshotId: String(snapshot._id), title: `${snapshot.title?.split("\n")[0] ?? "Snapshot"} (${snapshot.hash})`, generator: mapping.generator },
       graph,
@@ -70,6 +98,7 @@ export class ArchitectureService {
         stale: mapping.graphHash !== graphHash(graph) || mapping.algorithmVersion !== ALGORITHM_VERSION, receipt: mapping.receipt ?? null,
       },
       llm,
+      quality: context ? assessView(view, context) : null,
     };
   }
 
@@ -78,7 +107,7 @@ export class ArchitectureService {
     const mapping = await ArchitectureMappingModel.findOne({ projectId, snapshotId: String(snapshot._id) }).lean();
     const llm = await LlmModelRegistry.capability();
     if (!mapping) return { status: "missing", snapshot: this.summary(snapshot), view: null, validation: null, mapping: null, llm };
-    return this.payload(snapshot, this.toGraph(snapshot), mapping, llm);
+    return this.payload(snapshot, this.toGraph(snapshot), mapping, llm, await this.qualityContext(projectId, snapshot));
   }
 
   private static async prepare(projectId: string, snapshotId: string | undefined, options: ArchitectureOptions) {
@@ -105,7 +134,7 @@ export class ArchitectureService {
   public static async generate(projectId: string, snapshotId?: string, options: ArchitectureOptions = {}): Promise<ArchitecturePayload> {
     const { snapshot, graph, minComponents, maxComponents, components } = await this.prepare(projectId, snapshotId, options);
     const mapping = await this.store(projectId, snapshot, graph, { generator: "cluster-only", options: { minComponents, maxComponents }, components, receipt: null });
-    return this.payload(snapshot, graph, mapping, await LlmModelRegistry.capability());
+    return this.payload(snapshot, graph, mapping, await LlmModelRegistry.capability(), await this.qualityContext(projectId, snapshot));
   }
 
   /**
@@ -135,21 +164,37 @@ export class ArchitectureService {
     const components = result.components as MappingComponent[];
     const view = buildView({ projectId, snapshotId: String(snapshot._id), title: snapshot.title ?? "Snapshot", generator: result.generator }, graph, components);
     const validation = validateView(view, { minComponents, maxComponents });
+    const compareWith = await this.qualityContext(projectId, snapshot);
+    const assessment = assessView(view, compareWith);
     const receipt: RefineReceipt = { ...result.receipt, modelId: resolved.modelId ?? undefined };
     const run = await LlmRunService.record({
       projectId, snapshotId: String(snapshot._id), userId: context.userId, jobId: context.jobId, purpose: context.purpose ?? "user", benchmarkId: context.benchmarkId,
-      model: resolved, receipt, files, edges, initial, components, validation,
+      model: resolved, receipt, files, edges, initial, components, validation, assessment,
       maxMoveRatio: refineOptions.maxMoveRatio ?? DEFAULT_REFINE_OPTIONS.maxMoveRatio, wallMs: Date.now() - started,
     });
     if (run) { receipt.runId = run.id; receipt.cost = run.cost; }
     const llm = resolved.capability;
     if (context.purpose === "benchmark") {
-      return { status: "ready", snapshot: this.summary(snapshot), view, validation, mapping: null, llm };
+      return { status: "ready", snapshot: this.summary(snapshot), view, validation, mapping: null, llm, quality: assessment };
     }
     const mapping = await this.store(projectId, snapshot, graph, {
       generator: result.generator, options: { minComponents, maxComponents }, components, receipt,
     });
-    return this.payload(snapshot, graph, mapping, llm);
+    return this.payload(snapshot, graph, mapping, llm, compareWith);
+  }
+
+  public static async getReference(projectId: string): Promise<ReferenceComponent[]> {
+    const ref = await ArchitectureReferenceModel.findOne({ projectId }).lean();
+    return ref?.components ?? [];
+  }
+
+  public static async saveReference(projectId: string, components: ReferenceComponent[], userId: string): Promise<ReferenceComponent[]> {
+    if (!components.length) {
+      await ArchitectureReferenceModel.deleteOne({ projectId });
+      return [];
+    }
+    const saved = await ArchitectureReferenceModel.findOneAndUpdate({ projectId }, { $set: { components, updatedBy: userId } }, { upsert: true, new: true }).lean();
+    return saved?.components ?? components;
   }
 }
 

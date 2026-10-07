@@ -168,6 +168,7 @@ function modelPatch(input: Body, partial: boolean): Record<string, unknown> {
     }
     if (o.maxTokens !== undefined && o.maxTokens !== null && o.maxTokens !== "") options.maxTokens = Math.round(number(o.maxTokens, "options.maxTokens", { min: 256, max: 64_000 }));
     if (o.timeoutMs !== undefined && o.timeoutMs !== null && o.timeoutMs !== "") options.timeoutMs = Math.round(number(o.timeoutMs, "options.timeoutMs", { min: 5_000, max: 900_000 }));
+    if (o.maxRequestTokens !== undefined && o.maxRequestTokens !== null && o.maxRequestTokens !== "") options.maxRequestTokens = Math.round(number(o.maxRequestTokens, "options.maxRequestTokens", { min: 2_000, max: 2_000_000 }));
     if (o.temperature !== undefined && o.temperature !== "") options.temperature = o.temperature === null ? null : number(o.temperature, "options.temperature", { max: 2 });
     if (o.jsonMode !== undefined) options.jsonMode = Boolean(o.jsonMode);
     set.options = options;

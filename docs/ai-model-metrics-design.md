@@ -137,6 +137,40 @@ Dữ liệu sinh ra từ sử dụng thực tế bị lệch vì mỗi model ch�
 
 ---
 
+### 2.5 Chất lượng v2: sơ đồ có ý nghĩa không? (`domain/architecture/quality.ts`)
+
+Các chỉ số này chấm **mọi** sơ đồ, kể cả sơ đồ do clustering tạo ra mà không dùng AI, nên clustering là mốc so sánh. Chúng hiển thị trên Architecture Map (panel *Quality*) và được lưu cùng mỗi lần chạy.
+
+| Ký hiệu | Chỉ số | Cách tính | Trong Q? |
+|---|---|---|---|
+| G | Grounding (ngược với hallucination) | Tỷ lệ component có tên chứa ít nhất một từ được đường dẫn file bên trong hỗ trợ (cùng gốc 5 ký tự: `Authentication` ↔ `auth/`). Tên chỉ toàn từ chung chung ("Core Services") tính là không được hỗ trợ | ✅ |
+| C | Acyclicity | 1 − (số component nằm trong vòng phụ thuộc / tổng số component), dùng Tarjan SCC | ✅ |
+| L | Layering | 1 − (trọng số mũi tên đi ngược tầng / tổng trọng số mũi tên giữa các component có tầng). Tầng: controller 0 → service 1 → entity 2 → repository/gateway/config/util 3 | ✅ |
+| Bal | Balance | Entropy chuẩn hoá của kích thước component: H / ln k | ✅ |
+| – | Agreement | Adjusted Rand Index so với kiến trúc tham chiếu (`PUT /api/projects/:id/architecture/reference`: tên + tiền tố đường dẫn) | Báo riêng |
+| – | Stability | ARI so với các component của snapshot liền trước, tính trên các file chung | Báo riêng |
+
+**Q v2 (refine):** `Q = pass × Σ wᵢ·xᵢ / Σ wᵢ`, chỉ tính trên các thành phần áp dụng được. Trọng số: V .20, M .15, R .10, E .10, B .05, G .20, C .08, L .07, Bal .05 (tổng = 1). Ở chế độ name-only bỏ M và B. Attempt bị rate limit hoặc phải chuyển sang name-only không tính vào E.
+
+Dùng **ARI** chứ không dùng MoJoFM: ARI có công thức chính xác và phổ biến, phù hợp để báo cáo.
+
+### 2.6 Giảm token (đo thật trên ArchTime, 127 file, 2026-10-08)
+
+Các thay đổi:
+- **A.** Model trả lời dạng delta `{clusters, newClusters, moves}`. Hệ thống dựng lại kết quả đầy đủ và kiểm tra bằng đúng các rule M001–M008. Câu trả lời đầy đủ kiểu cũ vẫn được chấp nhận.
+- **B.** Prompt gom file theo thư mục. Chỉ gửi số liên kết import giữa các cụm cho file ở ranh giới. Tên file có ký tự lạ được đặt trong chuỗi JSON để chống prompt injection.
+- **C.** `options.maxRequestTokens` cho từng model: ngân sách câu trả lời được tính cho vừa; prompt không vừa thì gửi ở chế độ name-only ngay từ đầu.
+- **D.** Khi bị rate limit, chờ đúng thời gian provider báo (Retry-After / "try again in …s"), tối đa 2 lần, không tính là attempt. Khi gặp `too_large`/`truncated` thì tự chuyển sang name-only.
+
+| Model | Trước: token in/out · kết quả · Q | Sau: token in/out · kết quả · Q |
+|---|---|---|
+| gemini-3.1-flash-lite (×3) | ~10.0k / 2.1k · luôn sai lần 1 (M001) · Q 63–72 | **2.9–6.6k / 0.5–1.6k** · 1/3 đúng ngay lần 1 · **Q 80–86** |
+| openai/gpt-oss-20b (Groq) | ❌ truncated 8000 + rate limit ×2 | ✅ chờ rate limit rồi thành công · Q 83 |
+| openai/gpt-oss-120b (Groq) | ✅ 3.3k / 3.9k · Q 86 | ✅ 5.7k / 3.4k (2 attempt) · Q 80 |
+| qwen/qwen3.8-27b (Groq) | ✅ 4.1k / 1.3k · Q 84 | ✅ **2.7k / 1.5k** · Q 87 |
+
+**Thay đổi hành vi cần biết:** với định dạng delta, model **chuyển ít file hơn hẳn**. Gemini có M (giữ gắn kết) 11–25% → 92–98%, nhưng mức khớp với kiến trúc tham chiếu (bản nháp chia theo tầng) giảm 61–65% → 33–37%. Q tăng chủ yếu vì Q đánh giá cao việc giữ gắn kết phụ thuộc. Sơ đồ giờ bám sát cấu trúc phụ thuộc thật hơn, nhưng ít giống cách nhìn "theo tầng/thư mục" hơn. Mẫu đo còn nhỏ (Gemini 3 lần, Groq 1 lần; cùng model dao động khoảng ±5 điểm Q), nên cần chạy thêm Benchmark trước khi kết luận chắc chắn.
+
 ## 3. Thay đổi database (MongoDB)
 
 ### 3.1 Collection mới `llmmodels` (Model registry)

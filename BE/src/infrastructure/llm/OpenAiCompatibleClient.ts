@@ -106,13 +106,27 @@ async function reasonFrom(response: Response): Promise<string> {
   return text.replace(/\s+/g, ' ').slice(0, 200);
 }
 
+/** Seconds in a Retry-After header, or "try again in 7.66s" / "in 850ms" in the message. */
+export function retryAfter(response: { headers: { get(name: string): string | null } }, reason: string): number | undefined {
+  const header = Number(response.headers.get('retry-after'));
+  if (Number.isFinite(header) && header > 0) return Math.ceil(header * 1000);
+  const m = /try again in\s*(?:(\d+)m)?\s*([\d.]+)\s*(ms|s)/i.exec(reason);
+  if (!m) return undefined;
+  const value = Number(m[2]) * (m[3].toLowerCase() === 'ms' ? 1 : 1000) + (m[1] ? Number(m[1]) * 60_000 : 0);
+  return Number.isFinite(value) ? Math.ceil(value) + 250 : undefined;
+}
+
 async function failure(response: Response): Promise<LlmError> {
   const reason = await reasonFrom(response);
   const detail = reason ? ` (${reason})` : '';
   // Google reports a bad key as 400 "API key not valid", not 401.
   if (response.status === 401 || response.status === 403 || /api[_ ]key (is )?(not valid|invalid)|API_KEY_INVALID/i.test(reason)) return new LlmError('auth', `The server rejected the credentials${detail}.`);
   if (/credit|billing|insufficient[_ ]quota/i.test(reason) && response.status !== 429) return new LlmError('billing', `The account has no credit or billing is not set up${detail}.`);
-  if (response.status === 429) return new LlmError('rate_limit', `Rate limited or out of quota${detail}.`);
+  // Groq answers 413 when one request exceeds the free tier's tokens per minute; others name the context length.
+  if (response.status === 413 || /request too large|too many tokens|context.length|maximum context|reduce the length|prompt is too long/i.test(reason)) {
+    return new LlmError('too_large', `The request is too large for this model${detail}.`);
+  }
+  if (response.status === 429) return new LlmError('rate_limit', `Rate limited or out of quota${detail}.`, retryAfter(response, reason));
   if (response.status === 404) return new LlmError('request', `The model or endpoint was not found. Check LLM_MODEL and LLM_BASE_URL${detail}.`);
   if (response.status >= 400 && response.status < 500) return new LlmError('request', `The server rejected the request${detail}.`);
   return new LlmError('other', `The server answered ${response.status}${detail}.`);

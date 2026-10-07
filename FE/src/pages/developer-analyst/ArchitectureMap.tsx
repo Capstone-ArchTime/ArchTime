@@ -12,6 +12,7 @@ import { getProjects } from '@/features/project-data';
 import type { ProjectSummary } from '@/features/project-data';
 import { parseHash, serializeHash } from '@/features/architecture/url-state';
 import ModelPicker, { RunUsage } from '@/components/architecture/ModelPicker';
+import QualityPanel from '@/components/architecture/QualityPanel';
 import { getUserModels, selectedModel } from '@/features/llm-api';
 import type { UserModels } from '@/features/llm-api';
 import type { ViewerState } from '@/features/architecture/url-state';
@@ -162,7 +163,7 @@ export default function ArchitectureMap() {
     const failed = receipt.attempts.filter(a => !a.ok).length;
     const notes = receipt.notes?.length ? <ul className="list-disc pl-5 text-xs text-[#94a3b8]">{receipt.notes.map((n, i) => <li key={i}>{n}</li>)}</ul> : null;
     if (receipt.accepted) {
-      return <div className="space-y-1"><RunUsage key={receipt.runId ?? receipt.model} receipt={receipt} /><p className="text-xs text-[#94a3b8]" role="status">AI refinement by <code>{receipt.model}</code> was accepted after {failed + 1} attempt{failed ? 's' : ''}{receipt.mode === 'name-only' ? ' (names only: the repository was too large to regroup)' : receipt.movedRatio !== undefined ? `; ${Math.round(receipt.movedRatio * 100)}% of files moved from the dependency grouping` : ''}.</p>{notes}</div>;
+      return <div className="space-y-1"><RunUsage key={receipt.runId ?? receipt.model} receipt={receipt} /><p className="text-xs text-[#94a3b8]" role="status">AI refinement by <code>{receipt.model}</code> was accepted after {failed + 1} attempt{failed ? 's' : ''}{receipt.mode === 'name-only' ? (receipt.narrowed ? ` (names only: ${receipt.narrowed})` : ' (names only: the repository was too large to regroup)') : receipt.movedRatio !== undefined ? `; ${Math.round(receipt.movedRatio * 100)}% of files moved from the dependency grouping` : ''}.</p>{notes}</div>;
     }
     return <Alert type="warning" showIcon title="AI refinement did not produce a usable answer"
       description={<div className="space-y-2">
@@ -224,6 +225,7 @@ export default function ArchitectureMap() {
             : 'Components are grouped by dependency clustering and named from folder names. '}
             Roles marked INFERENCE come from names; UNKNOWN means nothing identified a role. Snapshot <code>{payload.snapshot?.hash}</code>{payload.mapping ? `, generated ${new Date(payload.mapping.createdAt).toLocaleString()}` : ''}.</p>
           {receiptNote(payload.mapping?.receipt ?? null)}
+          {payload.quality && <QualityPanel projectId={projectId} quality={payload.quality} view={payload.view} onSaved={() => setReloads(v => v + 1)} />}
           <ArchitectureViewer view={payload.view} base={base} hash={hash} commit={commit}
             actions={<>{aiButton()}<Button icon={<RefreshCw size={14} />} loading={generating} disabled={!!refining} onClick={() => void generate()}>Regenerate</Button></>} />
         </>}

@@ -16,7 +16,8 @@ export interface ILlmModel {
   baseUrl?: string;
   /** Encrypted with LLM_SECRET_KEY (see infrastructure/llm/secrets.ts); never returned by the API. */
   apiKey?: { ciphertext: string; iv: string; tag: string; last4: string } | null;
-  options: { effort?: "low" | "medium" | "high"; maxTokens?: number; temperature?: number | null; jsonMode?: boolean; timeoutMs?: number };
+  /** maxRequestTokens: largest request the provider accepts (e.g. a free tier's tokens per minute); see RefineOptions. */
+  options: { effort?: "low" | "medium" | "high"; maxTokens?: number; temperature?: number | null; jsonMode?: boolean; timeoutMs?: number; maxRequestTokens?: number };
   /** USD per million tokens. */
   pricing: { inputPerMTok: number; outputPerMTok: number; cacheReadPerMTok?: number; currency: string };
   enabled: boolean;
@@ -52,6 +53,7 @@ const LlmModelSchema = new Schema<ILlmModel>(
       temperature: { type: Number },
       jsonMode: { type: Boolean },
       timeoutMs: { type: Number },
+      maxRequestTokens: { type: Number },
     },
     pricing: {
       inputPerMTok: { type: Number, default: 0, min: 0 },
