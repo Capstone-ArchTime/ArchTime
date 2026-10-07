@@ -1,34 +1,116 @@
-import SampleDataNotice from '@/components/SampleDataNotice';
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { App, Button, Empty, Select, Spin } from 'antd';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { FileText, Download, Calendar, FolderKanban, ChevronDown } from 'lucide-react';
-import { useComingSoon } from '@/hooks/useComingSoon';
+import { FileText, Download, Calendar, FolderKanban } from 'lucide-react';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationBar from '@/components/PaginationBar';
+import { getProjects } from '@/features/project-data';
+import type { ProjectSummary } from '@/features/project-data';
+import { getProjectReports, generateReport } from '@/features/pm-api';
+import type { ProjectReport } from '@/features/pm-api';
 
 const fontFamily = {
   mono: '"JetBrains Mono", monospace',
 };
 
-const mockProjects = ['E-Commerce Platform', 'Payment Platform', 'Healthcare Connect'];
+function formatTimeAgo(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return '1 day ago';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 14) return '1 week ago';
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+  return date.toLocaleDateString();
+}
 
-const mockExportedReports = [
-  { name: 'ecomm-core_evolution_2026-Q3.pdf', project: 'E-Commerce Platform', range: 'v1.0.0 → v1.5.0', exportedAgo: '2 days ago', size: '1.2 MB' },
-  { name: 'payment-service_evolution_2026-Q3.pdf', project: 'Payment Platform', range: 'v2.1.0 → v2.4.0', exportedAgo: '1 week ago', size: '840 KB' },
-  { name: 'healthcare-connect_onboarding.pdf', project: 'Healthcare Connect', range: 'v1.0.0 → HEAD', exportedAgo: '2 weeks ago', size: '2.1 MB' },
-];
+export default function Reports() {
+  const { message } = App.useApp();
+  const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const [selectedProject, setSelectedProject] = useState<string>('');
+  const [reports, setReports] = useState<ProjectReport[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [revision, setRevision] = useState(0);
 
-const Reports: React.FC = () => {
-  const [selectedProject, setSelectedProject] = useState(mockProjects[0]);
-  const notifyComingSoon = useComingSoon();
-  const pagination = usePagination(mockExportedReports);
+  const [fromRevision, setFromRevision] = useState('v1.0.0');
+  const [toRevision, setToRevision] = useState('HEAD');
+  const [generating, setGenerating] = useState(false);
+
+  const pagination = usePagination(reports);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getProjects(controller.signal)
+      .then(res => {
+        setProjects(res);
+        if (res.length > 0 && !selectedProject) {
+          setSelectedProject(res[0].id);
+        }
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedProject) {
+      setLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    setLoading(true);
+
+    getProjectReports(selectedProject, controller.signal)
+      .then(res => {
+        setReports(res.data.reports);
+        setError(null);
+      })
+      .catch(e => {
+        if (!controller.signal.aborted) setError(e.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [selectedProject, revision]);
+
+  function refresh() {
+    setRevision(v => v + 1);
+  }
+
+  async function handleGenerate() {
+    if (!selectedProject) return;
+    setGenerating(true);
+    try {
+      await generateReport(selectedProject, {
+        baseSnapshotId: fromRevision,
+        targetSnapshotId: toRevision,
+      });
+      message.success('Report generation started.');
+      refresh();
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : 'Failed to generate report.');
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  function handleDownload(report: ProjectReport) {
+    if (report.downloadUrl) {
+      window.open(report.downloadUrl, '_blank');
+    } else {
+      message.info('Report is still being generated.');
+    }
+  }
+
+  const currentProject = projects.find(p => p.id === selectedProject);
 
   return (
     <DashboardLayout>
       <div className="max-w-[1100px] mx-auto space-y-10">
-        <SampleDataNotice />
-
-        {/* HEADER */}
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Evolution Reports</h2>
           <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
@@ -37,26 +119,31 @@ const Reports: React.FC = () => {
           <div className="h-[1px] w-full bg-gradient-to-r from-[#222c37] to-transparent mt-8"></div>
         </div>
 
-        {/* NEW EXPORT */}
+        <div className="flex flex-wrap gap-3 items-center">
+          <Select
+            aria-label="Select project"
+            value={selectedProject}
+            onChange={setSelectedProject}
+            className="min-w-60"
+            options={projects.map(p => ({ value: p.id, label: p.name }))}
+            placeholder="Select a project"
+          />
+          <Button loading={loading} onClick={refresh}>Refresh</Button>
+        </div>
+
+        {error && <p className="text-red-400">{error}</p>}
+
         <section>
           <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-4" style={{ fontFamily: fontFamily.mono }}>New Export</h3>
 
           <div className="bg-[#161d24] border border-[#222c37] p-6 space-y-5">
             <div>
-              <label htmlFor="export-project" className="text-[10px] text-[#94a3b8] uppercase tracking-widest block mb-2" style={{ fontFamily: fontFamily.mono }}>Project</label>
+              <label className="text-[10px] text-[#94a3b8] uppercase tracking-widest block mb-2" style={{ fontFamily: fontFamily.mono }}>Project</label>
               <div className="relative">
                 <FolderKanban size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
-                <select
-                  id="export-project"
-                  value={selectedProject}
-                  onChange={(e) => setSelectedProject(e.target.value)}
-                  className="w-full h-10 bg-[#11161b] border border-[#222c37] pl-9 pr-9 text-sm text-[#f4f4f6] focus:outline-none focus:border-[#38bdf8]/50 transition-colors appearance-none"
-                >
-                  {mockProjects.map((p) => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
-                </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] pointer-events-none" />
+                <div className="w-full h-10 bg-[#11161b] border border-[#222c37] pl-9 pr-9 text-sm text-[#f4f4f6] flex items-center">
+                  {currentProject?.name ?? 'Select a project'}
+                </div>
               </div>
             </div>
 
@@ -68,7 +155,8 @@ const Reports: React.FC = () => {
                   <input
                     id="from-revision"
                     type="text"
-                    defaultValue="v1.0.0"
+                    value={fromRevision}
+                    onChange={e => setFromRevision(e.target.value)}
                     className="w-full h-10 bg-[#11161b] border border-[#222c37] pl-9 pr-4 text-sm text-[#f4f4f6] focus:outline-none focus:border-[#38bdf8]/50 transition-colors"
                     style={{ fontFamily: fontFamily.mono }}
                   />
@@ -81,7 +169,8 @@ const Reports: React.FC = () => {
                   <input
                     id="to-revision"
                     type="text"
-                    defaultValue="HEAD"
+                    value={toRevision}
+                    onChange={e => setToRevision(e.target.value)}
                     className="w-full h-10 bg-[#11161b] border border-[#222c37] pl-9 pr-4 text-sm text-[#f4f4f6] focus:outline-none focus:border-[#38bdf8]/50 transition-colors"
                     style={{ fontFamily: fontFamily.mono }}
                   />
@@ -91,67 +180,97 @@ const Reports: React.FC = () => {
 
             <div className="flex items-center gap-3 pt-2">
               <button
-                onClick={() => notifyComingSoon("PDF generation")}
-                className="h-10 px-5 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2" style={{ fontFamily: fontFamily.mono }}>
+                onClick={handleGenerate}
+                disabled={generating || !selectedProject}
+                className="h-10 px-5 bg-[#38bdf8] hover:bg-[#38bdf8]/90 disabled:opacity-50 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2"
+                style={{ fontFamily: fontFamily.mono }}
+              >
                 <Download size={14} />
-                GENERATE PDF
-              </button>
-              <button
-                onClick={() => notifyComingSoon("Report preview")}
-                className="h-10 px-5 bg-[#161d24] border border-[#222c37] hover:border-[#5f636b] text-[#94a3b8] hover:text-[#f4f4f6] font-bold text-xs transition-colors flex items-center gap-2" style={{ fontFamily: fontFamily.mono }}>
-                <FileText size={14} />
-                PREVIEW
+                {generating ? 'GENERATING...' : 'GENERATE PDF'}
               </button>
             </div>
           </div>
         </section>
 
-        {/* EXPORTED REPORTS */}
         <section>
           <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-4" style={{ fontFamily: fontFamily.mono }}>Previously Exported</h3>
 
-          <div className="bg-[#11161b] border border-[#222c37] overflow-hidden">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-[#161d24] border-b border-[#222c37] text-[10px] text-[#94a3b8] uppercase tracking-wider" style={{ fontFamily: fontFamily.mono }}>
-                <tr>
-                  <th className="px-5 py-3 font-medium">Report</th>
-                  <th className="px-5 py-3 font-medium">Project</th>
-                  <th className="px-5 py-3 font-medium">Range</th>
-                  <th className="px-5 py-3 font-medium">Exported</th>
-                  <th className="px-5 py-3 font-medium"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#222c37]">
-                {pagination.items.map((report) => (
-                  <tr key={report.name} className="hover:bg-[#161d24]/50 transition-colors group">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        <FileText size={14} className="text-[#38bdf8] shrink-0" />
-                        <span className="text-[#f4f4f6] font-medium text-xs" style={{ fontFamily: fontFamily.mono }}>{report.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-[#94a3b8] text-xs">{report.project}</td>
-                    <td className="px-5 py-4 text-[#94a3b8] text-xs" style={{ fontFamily: fontFamily.mono }}>{report.range}</td>
-                    <td className="px-5 py-4 text-[#94a3b8] text-xs" style={{ fontFamily: fontFamily.mono }}>{report.exportedAgo} &middot; {report.size}</td>
-                    <td className="px-5 py-4 text-right">
-                      <button
-                        onClick={() => notifyComingSoon(`Download of ${report.name}`)}
-                        className="text-[#38bdf8] hover:text-[#00f0ff] text-xs font-semibold opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity" style={{ fontFamily: fontFamily.mono }}>
-                        Download &rarr;
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <PaginationBar {...pagination} />
+          {loading && reports.length === 0 ? (
+            <div className="p-12 text-center">
+              <Spin />
+              <p className="mt-3 text-[#94a3b8]">Loading reports...</p>
+            </div>
+          ) : reports.length === 0 ? (
+            <Empty description="No reports generated yet" />
+          ) : (
+            <>
+              <div className="bg-[#11161b] border border-[#222c37] overflow-hidden">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-[#161d24] border-b border-[#222c37] text-[10px] text-[#94a3b8] uppercase tracking-wider" style={{ fontFamily: fontFamily.mono }}>
+                    <tr>
+                      <th className="px-5 py-3 font-medium">Report</th>
+                      <th className="px-5 py-3 font-medium">Project</th>
+                      <th className="px-5 py-3 font-medium">Range</th>
+                      <th className="px-5 py-3 font-medium">Status</th>
+                      <th className="px-5 py-3 font-medium">Created</th>
+                      <th className="px-5 py-3 font-medium"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#222c37]">
+                    {pagination.items.map((report) => (
+                      <tr key={report.id} className="hover:bg-[#161d24]/50 transition-colors group">
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-2">
+                            <FileText size={14} className="text-[#38bdf8] shrink-0" />
+                            <span className="text-[#f4f4f6] font-medium text-xs" style={{ fontFamily: fontFamily.mono }}>
+                              {report.project}_evolution.pdf
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 text-[#94a3b8] text-xs">{report.project}</td>
+                        <td className="px-5 py-4 text-[#94a3b8] text-xs" style={{ fontFamily: fontFamily.mono }}>
+                          {report.from} → {report.to}
+                        </td>
+                        <td className="px-5 py-4">
+                          <span
+                            className={`text-xs px-2 py-1 ${
+                              report.status === 'completed'
+                                ? 'bg-green-500/20 text-green-400'
+                                : report.status === 'failed'
+                                ? 'bg-red-500/20 text-red-400'
+                                : 'bg-yellow-500/20 text-yellow-400'
+                            }`}
+                            style={{ fontFamily: fontFamily.mono }}
+                          >
+                            {report.status.toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-[#94a3b8] text-xs" style={{ fontFamily: fontFamily.mono }}>
+                          {formatTimeAgo(report.createdAt)}
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          {report.status === 'completed' && (
+                            <button
+                              onClick={() => handleDownload(report)}
+                              className="text-[#38bdf8] hover:text-[#00f0ff] text-xs font-semibold opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity"
+                              style={{ fontFamily: fontFamily.mono }}
+                            >
+                              Download &rarr;
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <PaginationBar {...pagination} />
+            </>
+          )}
         </section>
 
         <div className="h-10"></div>
       </div>
     </DashboardLayout>
   );
-};
-
-export default Reports;
+}
