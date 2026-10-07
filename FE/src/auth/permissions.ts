@@ -14,9 +14,17 @@ const routes: Record<Role, readonly string[]> = {
   'system-administrator': ['/system-administrator', '/system-administrator/users', '/system-administrator/audit-log', '/system-administrator/settings', '/system-administrator/mining-jobs', '/system-administrator/ai-models', '/system-administrator/ai-metrics'],
 };
 
+/** Paths with an id after them (the workspace of one project or sample). */
+const prefixes: Record<Role, readonly string[]> = {
+  'developer-analyst': ['/workspace/'],
+  'project-maintainer': [],
+  'system-administrator': [],
+};
+
 export function canAccess(role: Role, path: string) {
   const pathname = path.split(/[?#]/)[0].replace(/\/+$/, '') || '/';
-  return Object.hasOwn(routes, role) && routes[role].includes(pathname);
+  if (!Object.hasOwn(routes, role)) return false;
+  return routes[role].includes(pathname) || prefixes[role].some(p => pathname.startsWith(p) && pathname.length > p.length);
 }
 
 export function loginDestination(role: Role, requested?: string) {

@@ -413,12 +413,22 @@ const Projects: React.FC = () => {
                   </button>
                 )}
                 {(project.id === 1 || typeof project.id === 'string') ? (
-                  <Link
-                    to={typeof project.id === 'string' ? `/project?projectId=${project.id}` : "/project"}
-                    className="w-full h-11 bg-[#161d24] hover:bg-[#222c37] border border-[#222c37] text-sm flex items-center justify-center gap-2 mt-auto"
-                  >
-                    Open project <ArrowRight size={14} aria-hidden="true" />
-                  </Link>
+                  <div className="mt-auto flex gap-2">
+                    <Link
+                      to={typeof project.id === 'string' ? `/workspace/${encodeURIComponent(project.id)}` : "/workspace/sample/shophub"}
+                      className="flex-1 h-11 bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#080b0e] font-semibold text-sm flex items-center justify-center gap-2"
+                    >
+                      Open architecture <ArrowRight size={14} aria-hidden="true" />
+                    </Link>
+                    <Link
+                      to={typeof project.id === 'string' ? `/project?projectId=${project.id}` : "/project"}
+                      aria-label={`Details of ${project.name}`}
+                      title="Project details"
+                      className="h-11 px-3 bg-[#161d24] hover:bg-[#222c37] border border-[#222c37] text-xs flex items-center justify-center"
+                    >
+                      Details
+                    </Link>
+                  </div>
                 ) : (
                   <button
                     disabled

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
+import type { MutableRefObject, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { ConfigProvider } from 'antd';
 import DiagramSvg from './DiagramSvg';
 import type { DiagramSvgProps } from './DiagramSvg';
@@ -12,6 +12,8 @@ const isTyping = (target: EventTarget | null) => target instanceof HTMLElement &
 /** What the floating controls drawn over the artboard can read and do. */
 export interface Viewport {
   zoom: number;
+  /** Width of the artboard on screen, so floating controls can fold into a menu when it is narrow. */
+  width: number;
   zoomIn: () => void;
   zoomOut: () => void;
   /** Whole diagram. */
@@ -38,8 +40,10 @@ export default function ArchitectureDiagram(props: Omit<DiagramSvgProps, 'intera
   className?: string;
   gridColor?: string;
   overlay?: (viewport: Viewport) => ReactNode;
+  /** Lets controls outside the artboard (a layers panel) move the view. */
+  apiRef?: MutableRefObject<Viewport | null>;
 }) {
-  const { className, gridColor = '#1e2732', overlay, ...svgProps } = props;
+  const { className, gridColor = '#1e2732', overlay, apiRef, ...svgProps } = props;
   const { layout, highlight, selectedNode, theme, scene } = svgProps;
   const shell = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLDivElement>(null);
@@ -76,6 +80,7 @@ export default function ArchitectureDiagram(props: Omit<DiagramSvgProps, 'intera
 
   const viewport: Viewport = {
     zoom: t.k,
+    width: size.w,
     zoomIn: () => update(zoomAt(t, 1.25, size.w / 2, size.h / 2)),
     zoomOut: () => update(zoomAt(t, 0.8, size.w / 2, size.h / 2)),
     fit: () => setManual(null),
@@ -107,7 +112,7 @@ export default function ArchitectureDiagram(props: Omit<DiagramSvgProps, 'intera
   };
   // Keyboard shortcuts read the latest viewport without re-binding the listener on every render.
   const vp = useRef(viewport);
-  useEffect(() => { vp.current = viewport; });
+  useEffect(() => { vp.current = viewport; if (apiRef) apiRef.current = viewport; });
 
   useEffect(() => {
     const el = box.current;
