@@ -265,12 +265,20 @@ export const adminMetricsController = new AdminMetricsController(
   new GetAdminLogsUseCase(),
 );
 
+// ── AI models (registry, usage, metrics) ──
+import { AdminLlmUseCases, UserLlmUseCases } from "./application/use-cases/llm/LlmUseCases.js";
+import { AdminLlmController, LlmController } from "./presentation/controllers/LlmController.js";
+
+export const llmController = new LlmController(new UserLlmUseCases());
+export const adminLlmController = new AdminLlmController(new AdminLlmUseCases());
+
 export const adminControllersConfig: AdminControllersConfig = {
   userController: adminUserController,
   jobController: adminJobController,
   auditController: adminAuditController,
   settingsController: adminSettingsController,
   metricsController: adminMetricsController,
+  llmController: adminLlmController,
 };
 
 // ── Project Maintainer (PM) ──

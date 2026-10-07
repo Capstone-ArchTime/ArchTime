@@ -1,4 +1,4 @@
-import { LayoutDashboard, FolderKanban, History, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, FileText, Users2, SlidersHorizontal, ScrollText, Activity, Boxes } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, History, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, FileText, Users2, SlidersHorizontal, ScrollText, Activity, Boxes, Cpu, Gauge, Coins } from 'lucide-react';
 
 export const navItemsByRole = {
   'developer-analyst': [
@@ -10,6 +10,7 @@ export const navItemsByRole = {
     { path: '/evidence', label: 'Changes & Evidence', icon: FileSearch },
     { path: '/insights', label: 'AI Insights', icon: Sparkles },
     { path: '/reports', label: 'Reports', icon: FileBarChart },
+    { path: '/ai-usage', label: 'AI Usage', icon: Coins },
   ],
   'project-maintainer': [
     { path: '/project-maintainer', label: 'Overview', icon: ShieldCheck },
@@ -26,5 +27,7 @@ export const navItemsByRole = {
     { path: '/system-administrator/settings', label: 'System Settings', icon: SlidersHorizontal },
     { path: '/system-administrator/audit-log', label: 'Audit Log', icon: ScrollText },
     { path: '/system-administrator/mining-jobs', label: 'Mining Jobs Monitor', icon: Activity },
+    { path: '/system-administrator/ai-models', label: 'AI Models', icon: Cpu },
+    { path: '/system-administrator/ai-metrics', label: 'AI Usage & Metrics', icon: Gauge },
   ],
 } as const;

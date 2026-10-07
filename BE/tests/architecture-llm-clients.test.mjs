@@ -240,3 +240,35 @@ test('configuration: off by default, explicit about why, and secrets never reach
   assert.equal(loadLlmRuntime({ LLM_MAX_REFINE_FILES: '10' }).options.maxRefineFiles, 10);
   assert.equal(loadLlmRuntime({ LLM_MAX_REFINE_FILES: 'abc' }).options.maxRefineFiles, 400);
 });
+
+test('Claude client reports token usage, counting cached input with the rest, even for an answer it then rejects', async () => {
+  const usage = { input_tokens: 100, output_tokens: 40, cache_read_input_tokens: 900, cache_creation_input_tokens: 10 };
+  let reply = message({ usage });
+  const srv = await server((req, res) => json(res, 200, reply));
+  try {
+    const client = new ClaudeClient({ apiKey: 'sk-test', model: 'claude-opus-5-5', baseUrl: srv.url, timeoutMs: 5000 });
+    const seen = [];
+    await client.complete(MESSAGES, { onUsage: (u, ms) => seen.push([u, ms]) });
+    assert.deepEqual(seen[0][0], { inputTokens: 1010, outputTokens: 40, cacheReadTokens: 900, estimated: false });
+    assert.ok(seen[0][1] >= 0);
+    reply = message({ usage, stop_reason: 'max_tokens' });
+    await assert.rejects(client.complete(MESSAGES, { onUsage: u => seen.push([u]) }), e => e.kind === 'truncated');
+    assert.equal(seen.length, 2, 'a cut-off answer was still paid for');
+  } finally { await srv.close(); }
+});
+
+test('self-hosted client reports usage, and estimates it when the server sends none', async () => {
+  let body = { choices: [{ message: { content: '{"ok":true}' }, finish_reason: 'stop' }], usage: { prompt_tokens: 500, completion_tokens: 80, prompt_tokens_details: { cached_tokens: 100 }, completion_tokens_details: { reasoning_tokens: 30 } } };
+  const srv = await server((req, res) => json(res, 200, body));
+  try {
+    const client = new OpenAiCompatibleClient({ baseUrl: srv.url, model: 'm', timeoutMs: 5000, jsonMode: false });
+    const seen = [];
+    await client.complete(MESSAGES, { onUsage: u => seen.push(u) });
+    assert.deepEqual(seen[0], { inputTokens: 500, outputTokens: 80, cacheReadTokens: 100, reasoningTokens: 30, estimated: false });
+    body = { choices: [{ message: { content: '{"ok":true}' }, finish_reason: 'stop' }] };
+    await client.complete(MESSAGES, { onUsage: u => seen.push(u) });
+    assert.equal(seen[1].estimated, true);
+    assert.equal(seen[1].outputTokens, Math.ceil('{"ok":true}'.length / 4));
+    assert.ok(seen[1].inputTokens > 0);
+  } finally { await srv.close(); }
+});

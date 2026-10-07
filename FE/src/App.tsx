@@ -31,6 +31,9 @@ const DesignDecisions = lazy(() => import("@/pages/project-maintainer/DesignDeci
 const SystemAdministratorDashboard = lazy(() => import("@/pages/system-administrator/Dashboard"));
 const SystemSettings = lazy(() => import("@/pages/system-administrator/SystemSettings"));
 const MiningJobsMonitor = lazy(() => import("@/pages/system-administrator/MiningJobsMonitor"));
+const AiModels = lazy(() => import("@/pages/system-administrator/AiModels"));
+const AiMetrics = lazy(() => import("@/pages/system-administrator/AiMetrics"));
+const AiUsage = lazy(() => import("@/pages/developer-analyst/AiUsage"));
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
 const GitHubCallback = lazy(() => import('@/pages/GitHubCallback'));
@@ -62,6 +65,7 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path="/evidence" element={<Evidence />} />
       <Route path="/insights" element={<Insights />} />
       <Route path="/reports" element={<Reports />} />
+      <Route path="/ai-usage" element={<AiUsage />} />
       <Route path="/project" element={<ProjectDetail />} />
       <Route path="/project-maintainer" element={<ProjectMaintainerDashboard />} />
       <Route path="/project-maintainer/approvals" element={<ApprovalQueue />} />
@@ -75,6 +79,8 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path="/system-administrator/audit-log" element={<AuditLog />} />
       <Route path="/system-administrator/settings" element={<SystemSettings />} />
       <Route path="/system-administrator/mining-jobs" element={<MiningJobsMonitor />} />
+      <Route path="/system-administrator/ai-models" element={<AiModels />} />
+      <Route path="/system-administrator/ai-metrics" element={<AiMetrics />} />
     </Route>
     <Route path="*" element={<div className="min-h-screen bg-[#080b0e] p-8"><Result status="404" title="Page not found" extra={<Link to="/">Back to home</Link>} /></div>} />
 

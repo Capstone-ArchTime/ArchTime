@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { LlmError } from '../../domain/architecture/llm/types.js';
-import type { CompleteOptions, LlmClient, LlmInfo, LlmMessage } from '../../domain/architecture/llm/types.js';
+import { estimateTokens, LlmError } from '../../domain/architecture/llm/types.js';
+import type { CompleteOptions, LlmClient, LlmInfo, LlmMessage, LlmUsage } from '../../domain/architecture/llm/types.js';
 
 export interface ClaudeConfig {
   apiKey?: string;
@@ -50,6 +50,7 @@ export class ClaudeClient implements LlmClient {
   private async send(messages: LlmMessage[], options: CompleteOptions): Promise<string> {
     const system = messages.filter(m => m.role === 'system').map(m => m.content).join('\n\n');
     const turns = messages.filter(m => m.role !== 'system').map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
+    const started = performance.now();
     const response = await this.client.beta.messages.create({
       model: this.config.model,
       // Thinking tokens count towards max_tokens. Kept under the size at which the SDK insists on streaming.
@@ -59,12 +60,25 @@ export class ClaudeClient implements LlmClient {
       ...(system ? { system } : {}),
       messages: turns,
     }, { signal: options.signal });
+    const latencyMs = Math.round(performance.now() - started);
+    const text = response.content.flatMap(block => (block.type === 'text' ? [block.text] : [])).join('');
+    options.onUsage?.(usageOf(response.usage, messages, text), latencyMs);
     if (response.stop_reason === 'refusal') throw new LlmError('refusal', 'The model declined the request.');
     if (response.stop_reason === 'max_tokens') throw new LlmError('truncated', 'The answer was cut off before it finished (the model used all of its output budget).');
-    const text = response.content.flatMap(block => (block.type === 'text' ? [block.text] : [])).join('');
     if (!text.trim()) throw new LlmError('other', 'The model returned no text.');
     return text;
   }
+}
+
+/** Anthropic reports cached input apart from `input_tokens`; ArchTime counts all input together and keeps the cached share. */
+function usageOf(usage: unknown, messages: LlmMessage[], text: string): LlmUsage {
+  const u = (usage ?? {}) as Record<string, unknown>;
+  const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : 0);
+  if (typeof u.input_tokens !== 'number' || typeof u.output_tokens !== 'number') {
+    return { inputTokens: estimateTokens(messages.map(m => m.content).join('\n')), outputTokens: estimateTokens(text), estimated: true };
+  }
+  const cacheRead = n(u.cache_read_input_tokens);
+  return { inputTokens: n(u.input_tokens) + cacheRead + n(u.cache_creation_input_tokens), outputTokens: n(u.output_tokens), cacheReadTokens: cacheRead, estimated: false };
 }
 
 /** The provider's own explanation, without the status prefix and request echo the SDK puts in `message`. */

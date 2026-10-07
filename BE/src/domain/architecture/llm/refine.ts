@@ -2,8 +2,8 @@ import { layerForRole } from '../naming.js';
 import type { MappingComponent } from '../buildView.js';
 import { answerSchema, buildMessages, parseJsonAnswer, retryMessages } from './prompt.js';
 import type { PromptInput } from './prompt.js';
-import { DEFAULT_REFINE_OPTIONS, LlmError } from './types.js';
-import type { LlmClient, LlmMessage, RefineAttempt, RefineIssue, RefineOptions, RefineReceipt } from './types.js';
+import { DEFAULT_REFINE_OPTIONS, LlmError, sumUsage } from './types.js';
+import type { LlmClient, LlmMessage, LlmUsage, RefineAttempt, RefineIssue, RefineOptions, RefineReceipt } from './types.js';
 import { verifyNaming, verifyRefine } from './verify.js';
 
 export interface RefineInput {
@@ -80,7 +80,12 @@ export async function refineMapping(input: RefineInput): Promise<RefineResult> {
     filesSent: mode === 'refine' ? files.length : initial.reduce((n, c) => n + Math.min(25, c.memberIds.length), 0),
     attempts: [], accepted: false,
   };
-  const finish = () => { const notes = client.notes?.() ?? []; if (notes.length) receipt.notes = notes; };
+  const finish = () => {
+    const notes = client.notes?.() ?? [];
+    if (notes.length) receipt.notes = notes;
+    receipt.usage = sumUsage(receipt.attempts);
+    receipt.latencyMs = receipt.attempts.reduce((s, a) => s + (a.latencyMs ?? 0), 0);
+  };
   const fallback = (reason: string): RefineResult => {
     receipt.fallbackReason = reason;
     finish();
@@ -98,8 +103,22 @@ export async function refineMapping(input: RefineInput): Promise<RefineResult> {
     receipt.attempts.push(attempt);
 
     let answer = '';
+    const started = Date.now();
+    // A client may send more than one request per call (it retries without an option the server rejected); all of them count.
+    const onUsage = (u: LlmUsage) => {
+      const prev = attempt.usage;
+      attempt.usage = prev ? {
+        inputTokens: prev.inputTokens + u.inputTokens, outputTokens: prev.outputTokens + u.outputTokens,
+        cacheReadTokens: (prev.cacheReadTokens ?? 0) + (u.cacheReadTokens ?? 0), reasoningTokens: (prev.reasoningTokens ?? 0) + (u.reasoningTokens ?? 0),
+        estimated: prev.estimated || u.estimated,
+      } : u;
+    };
     try {
-      answer = await client.complete(messages, { schema, signal: input.signal });
+      try {
+        answer = await client.complete(messages, { schema, signal: input.signal, onUsage });
+      } finally {
+        attempt.latencyMs = Date.now() - started;
+      }
       const raw = parseJsonAnswer(answer);
       await input.onProgress?.('Checking the answer', Math.round(15 + (n / total) * 70) - 5);
 
@@ -134,6 +153,7 @@ export async function refineMapping(input: RefineInput): Promise<RefineResult> {
       return { components, generator: 'cluster+llm', receipt };
     } catch (error) {
       attempt.issues = error instanceof VerificationFailed ? error.issues : [describe(error)];
+      if (error instanceof LlmError) attempt.errorKind = error.kind;
       input.log?.(`attempt ${n}/${total} failed: ${attempt.issues.slice(0, 3).map(i => `${i.code} ${i.message}`).join(' | ')}`);
       if (error instanceof LlmError && error.fatal) return fallback(`${error.kind}: ${error.message}`);
       if (error instanceof VerificationFailed || (!(error instanceof LlmError))) {

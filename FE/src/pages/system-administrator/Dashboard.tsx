@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [aiTotalTokens, setAiTotalTokens] = useState(0);
   const [aiDefaultModel, setAiDefaultModel] = useState('');
   const [aiLoading, setAiLoading] = useState(true);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const [revision, setRevision] = useState(0);
 
@@ -68,6 +69,7 @@ export default function Dashboard() {
       .catch(() => {})
       .finally(() => { if (!controller.signal.aborted) setLogsLoading(false); });
 
+    setAiError(null);
     getAIModelsHealth(controller.signal)
       .then(res => {
         setAiModels(res.data.models);
@@ -75,18 +77,7 @@ export default function Dashboard() {
         setAiTotalTokens(res.data.totalTokensUsed);
         setAiDefaultModel(res.data.defaultModel);
       })
-      .catch(() => {
-        // Mock data if API not available yet
-        setAiModels([
-          { model: 'gpt-4-turbo', provider: 'openai', tokensUsed: 1250000, tokensLimit: 10000000, costUsd: 18.75, requestsToday: 342, avgLatencyMs: 1250, status: 'healthy', lastChecked: new Date().toISOString() },
-          { model: 'gpt-3.5-turbo', provider: 'openai', tokensUsed: 3200000, tokensLimit: 50000000, costUsd: 4.80, requestsToday: 1205, avgLatencyMs: 450, status: 'healthy', lastChecked: new Date().toISOString() },
-          { model: 'claude-3-opus', provider: 'anthropic', tokensUsed: 520000, tokensLimit: 5000000, costUsd: 15.60, requestsToday: 89, avgLatencyMs: 2100, status: 'healthy', lastChecked: new Date().toISOString() },
-          { model: 'claude-3-sonnet', provider: 'anthropic', tokensUsed: 1800000, tokensLimit: 20000000, costUsd: 5.40, requestsToday: 456, avgLatencyMs: 890, status: 'degraded', lastChecked: new Date().toISOString() },
-        ]);
-        setAiTotalCost(44.55);
-        setAiTotalTokens(6770000);
-        setAiDefaultModel('gpt-4-turbo');
-      })
+      .catch(cause => { if (!controller.signal.aborted) setAiError(cause instanceof Error ? cause.message : 'Could not load AI model data.'); })
       .finally(() => { if (!controller.signal.aborted) setAiLoading(false); });
 
     return () => controller.abort();
@@ -174,15 +165,22 @@ export default function Dashboard() {
       </div>
 
       <section className={featurePanel}>
-        <h3 className="font-semibold mb-4">AI Model Health</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold">AI Model Health</h3>
+          <Link to="/system-administrator/ai-metrics" className="text-xs text-[#38bdf8]">Usage & metrics →</Link>
+        </div>
         {aiLoading ? (
           <Spin size="small" />
+        ) : aiError ? (
+          <p role="alert" className="text-sm text-red-400">{aiError}</p>
+        ) : !aiModels.length ? (
+          <p className="text-sm text-[#94a3b8]">No AI model is configured. <Link to="/system-administrator/ai-models" className="text-[#38bdf8]">Add one under AI Models</Link>.</p>
         ) : (
           <>
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="bg-[#11161b] border border-[#222c37] p-4">
                 <p className="text-xs text-[#94a3b8]">Total Cost (This Month)</p>
-                <p className="text-2xl font-bold text-[#38bdf8] mt-1">${aiTotalCost.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-[#38bdf8] mt-1">${aiTotalCost.toFixed(aiTotalCost > 0 && aiTotalCost < 1 ? 4 : 2)}</p>
               </div>
               <div className="bg-[#11161b] border border-[#222c37] p-4">
                 <p className="text-xs text-[#94a3b8]">Total Tokens Used</p>
@@ -190,14 +188,14 @@ export default function Dashboard() {
               </div>
               <div className="bg-[#11161b] border border-[#222c37] p-4">
                 <p className="text-xs text-[#94a3b8]">Default Model</p>
-                <p className="text-lg font-semibold mt-1 text-[#38bdf8]">{aiDefaultModel}</p>
+                <p className="text-lg font-semibold mt-1 text-[#38bdf8]">{aiDefaultModel || '–'}</p>
               </div>
             </div>
             <div className="space-y-3">
               {aiModels.map(m => (
-                <div key={m.model} className="flex items-center justify-between p-3 bg-[#11161b] border border-[#222c37]">
+                <div key={m.id ?? m.model} className="flex items-center justify-between p-3 bg-[#11161b] border border-[#222c37]">
                   <div className="flex items-center gap-3">
-                    <Tag color={m.provider === 'openai' ? 'green' : 'purple'}>{m.provider}</Tag>
+                    <Tag color={m.provider === 'anthropic' ? 'purple' : m.provider === 'gemini' ? 'blue' : 'green'}>{m.provider}</Tag>
                     <div>
                       <p className="font-medium">{m.model}</p>
                       <p className="text-xs text-[#94a3b8]">
@@ -208,13 +206,13 @@ export default function Dashboard() {
                   <div className="flex items-center gap-6 text-sm">
                     <div className="text-right">
                       <p className="text-[#94a3b8]">Tokens</p>
-                      <p>{(m.tokensUsed / 1000).toFixed(0)}K / {(m.tokensLimit / 1000000).toFixed(0)}M</p>
+                      <p>{(m.tokensUsed / 1000).toFixed(1)}K{m.tokensLimit > 0 ? ` / ${(m.tokensLimit / 1000000).toFixed(0)}M` : ''}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-[#94a3b8]">Cost</p>
-                      <p>${m.costUsd.toFixed(2)}</p>
+                      <p>${m.costUsd.toFixed(m.costUsd > 0 && m.costUsd < 1 ? 4 : 2)}</p>
                     </div>
-                    <Tag color={m.status === 'healthy' ? 'green' : m.status === 'degraded' ? 'gold' : 'red'}>
+                    <Tag color={m.status === 'healthy' ? 'green' : m.status === 'degraded' ? 'gold' : m.status === 'down' ? 'red' : 'default'}>
                       {m.status}
                     </Tag>
                   </div>

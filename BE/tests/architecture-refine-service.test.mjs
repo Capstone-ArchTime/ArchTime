@@ -9,6 +9,7 @@ import { MiningService } from '../src/infrastructure/services/MiningService.ts';
 import { ArchitectureUseCase } from '../src/application/use-cases/projects/ArchitectureUseCase.ts';
 import { setLlmRuntime } from '../src/infrastructure/llm/runtime.ts';
 import { LlmError } from '../src/domain/architecture/llm/types.ts';
+import { LlmRunModel } from '../src/infrastructure/database/models/LlmRunModel.ts';
 
 const OWNER = '64b000000000000000000001';
 const PROJECT = '64b000000000000000000002';
@@ -41,6 +42,8 @@ MiningJobModel.exists = async () => (jobs.some(j => ['queued', 'running'].includ
 MiningJobModel.create = async data => { const job = { _id: `job${jobs.length + 1}`, id: `job${jobs.length + 1}`, ...data }; jobs.push(job); return job; };
 MiningJobModel.findById = async id => jobs.find(j => j._id === id) ?? null;
 MiningJobModel.updateOne = async (filter, update) => { Object.assign(jobs.find(j => j._id === filter._id), update.$set); };
+const runs = [];
+LlmRunModel.create = async data => { const run = { _id: `run${runs.length + 1}`, ...data }; runs.push(run); return run; };
 
 const answerFor = files => {
   const byArea = AREAS.map((_, a) => files.flatMap((f, i) => (f.includes(`/area${a}/`) ? [i] : [])));
@@ -121,6 +124,53 @@ test('a job on a missing snapshot fails with a message, not a crash', async () =
   enable(fakeClient(() => '{}'));
   const jobId = await MiningService.startAbstractJob('64b0000000000000000000aa', OWNER).catch(e => e);
   assert.match(String(jobId.message ?? jobId), /Project not found/);
+});
+
+test('every refinement is recorded with its tokens, latency and quality, and the receipt shows them', async () => {
+  mappings = [];
+  runs.length = 0;
+  const client = fakeClient(n => (n === 1 ? '{"components":[]}' : JSON.stringify(answerFor(FILES))));
+  client.complete = async function (_messages, options) {
+    this.calls++;
+    options.onUsage?.({ inputTokens: 1000, outputTokens: 250, estimated: false }, 5);
+    return this.calls === 1 ? '{"components":[]}' : JSON.stringify(answerFor(FILES));
+  };
+  enable(client);
+  const payload = await ArchitectureService.refine(PROJECT, undefined, {}, { minComponents: 2, maxComponents: 10 }, { userId: OWNER, jobId: 'job-x' });
+  const receipt = payload.mapping.receipt;
+  assert.equal(receipt.accepted, true);
+  assert.deepEqual(receipt.usage, { inputTokens: 2000, outputTokens: 500, cacheReadTokens: 0, reasoningTokens: 0, totalTokens: 2500, estimated: false });
+  assert.equal(receipt.attempts.length, 2);
+  assert.ok(receipt.attempts.every(a => a.usage && a.latencyMs >= 0));
+  assert.equal(receipt.runId, 'run1');
+  assert.deepEqual(receipt.cost, { amount: 0, currency: 'USD' }, 'the environment model has no price');
+  const [run] = runs;
+  assert.equal(run.userId, OWNER);
+  assert.equal(run.jobId, 'job-x');
+  assert.equal(run.status, 'accepted');
+  assert.equal(run.modelId, null);
+  assert.equal(run.modelKey, 'env:test-model');
+  assert.equal(run.usage.totalTokens, 2500);
+  assert.equal(run.quality.attemptsUsed, 2);
+  assert.ok(run.quality.score > 0 && run.quality.score < 1, 'a second attempt costs some quality');
+  assert.ok(run.quality.baselineModularity > 0);
+});
+
+test('a benchmark run is recorded but leaves the stored components alone', async () => {
+  mappings = [];
+  runs.length = 0;
+  enable(fakeClient(() => JSON.stringify(answerFor(FILES))));
+  const payload = await ArchitectureService.refine(PROJECT, undefined, {}, { minComponents: 2, maxComponents: 10 }, { userId: OWNER, purpose: 'benchmark', benchmarkId: 'b1' });
+  assert.equal(payload.mapping, null);
+  assert.equal(payload.view.generator, 'cluster+llm');
+  assert.equal(mappings.length, 0);
+  assert.equal(runs[0].purpose, 'benchmark');
+  assert.equal(runs[0].benchmarkId, 'b1');
+});
+
+test('a user cannot pass a malformed model id', async () => {
+  enable(fakeClient(() => '{}'));
+  await assert.rejects(new ArchitectureUseCase().refine(PROJECT, OWNER, { modelId: 'nope' }), /Invalid model ID/);
 });
 
 test('only the owner can start a refinement and only one job per project runs at a time', async () => {

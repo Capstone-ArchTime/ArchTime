@@ -4,6 +4,7 @@ import type { AdminJobController } from "../controllers/AdminJobController.js";
 import type { AdminAuditController } from "../controllers/AdminAuditController.js";
 import type { AdminSettingsController } from "../controllers/AdminSettingsController.js";
 import type { AdminMetricsController } from "../controllers/AdminMetricsController.js";
+import type { AdminLlmController } from "../controllers/LlmController.js";
 import type { JwtTokenService } from "../../infrastructure/services/JwtTokenService.js";
 import { createAuthenticateMiddleware } from "../middlewares/authenticate.js";
 import { authorize } from "../middlewares/authorize.js";
@@ -15,6 +16,7 @@ export interface AdminControllersConfig {
   auditController: AdminAuditController;
   settingsController: AdminSettingsController;
   metricsController: AdminMetricsController;
+  llmController: AdminLlmController;
 }
 
 export function createAdminRouter(
@@ -28,6 +30,7 @@ export function createAdminRouter(
     auditController,
     settingsController,
     metricsController,
+    llmController,
   } = controllers;
 
   // All admin routes require authentication and SYSTEM_ADMINISTRATOR role
@@ -276,6 +279,187 @@ export function createAdminRouter(
    *         description: Logs hệ thống
    */
   router.get("/logs", metricsController.getLogs);
+
+  // ────────────────────────────────────────────────────────────
+  // AI models: registry, health, usage, comparison, benchmark
+  // ────────────────────────────────────────────────────────────
+
+  /**
+   * @swagger
+   * /api/admin/llm-models:
+   *   get:
+   *     tags: [Admin - AI Models]
+   *     summary: Danh sách model AI (không bao giờ trả API key, chỉ hasApiKey + apiKeyLast4) kèm usage 30 ngày
+   *     security: [{ BearerAuth: [] }]
+   *     responses: { 200: { description: "{ models, defaultModelId, allowUserModelChoice, scoring, serverConfig }" } }
+   *   post:
+   *     tags: [Admin - AI Models]
+   *     summary: Thêm model
+   *     security: [{ BearerAuth: [] }]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [displayName, provider, model]
+   *             properties:
+   *               key: { type: string, example: "claude-sonnet-5-5" }
+   *               displayName: { type: string, example: "Claude Sonnet 5.5" }
+   *               provider: { type: string, enum: [anthropic, gemini, openai-compatible] }
+   *               model: { type: string, example: "claude-sonnet-5-5" }
+   *               baseUrl: { type: string, example: "http://localhost:11434/v1" }
+   *               apiKey: { type: string, description: "Mã hoá AES-256-GCM bằng LLM_SECRET_KEY" }
+   *               pricing: { type: object, properties: { inputPerMTok: { type: number }, outputPerMTok: { type: number }, cacheReadPerMTok: { type: number } } }
+   *               options: { type: object, properties: { effort: { type: string, enum: [low, medium, high] }, maxTokens: { type: integer }, timeoutMs: { type: integer }, temperature: { type: number }, jsonMode: { type: boolean } } }
+   *               enabled: { type: boolean }
+   *               visibleToUsers: { type: boolean }
+   *               isDefault: { type: boolean }
+   *     responses: { 201: { description: Created }, 409: { description: "Key đã tồn tại" } }
+   */
+  router.get("/llm-models", llmController.list);
+  router.post("/llm-models", llmController.create);
+
+  /**
+   * @swagger
+   * /api/admin/llm-models/leaderboard:
+   *   get:
+   *     tags: [Admin - AI Models]
+   *     summary: So sánh model (ModelScore 0-100, breakdown quality/stability/latency/cost/tokens) và model đề xuất
+   *     security: [{ BearerAuth: [] }]
+   *     parameters:
+   *       - { in: query, name: mode, schema: { type: string, enum: [refine, name-only] } }
+   *       - { in: query, name: windowDays, schema: { type: integer } }
+   *       - { in: query, name: purpose, schema: { type: string, enum: [user, benchmark, all] } }
+   *       - { in: query, name: preset, schema: { type: string, enum: [balanced, quality, budget, custom] } }
+   *     responses: { 200: { description: OK } }
+   * /api/admin/llm-models/test-all:
+   *   post:
+   *     tags: [Admin - AI Models]
+   *     summary: Health check mọi model đang bật
+   *     security: [{ BearerAuth: [] }]
+   *     responses: { 200: { description: OK } }
+   */
+  router.get("/llm-models/leaderboard", llmController.leaderboard);
+  router.post("/llm-models/test-all", llmController.testAll);
+
+  /**
+   * @swagger
+   * /api/admin/llm-models/discover:
+   *   post:
+   *     tags: [Admin - AI Models]
+   *     summary: Liệt kê model nhà cung cấp có cho một API key (đánh dấu model chat / miễn phí / đã thêm). Key chỉ dùng cho request này
+   *     security: [{ BearerAuth: [] }]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [provider]
+   *             properties:
+   *               provider: { type: string, enum: [anthropic, gemini, openai-compatible] }
+   *               baseUrl: { type: string, example: "https://api.groq.com/openai/v1" }
+   *               apiKey: { type: string }
+   *               fromModelId: { type: string, description: "Dùng key đã lưu của model này" }
+   *     responses: { 200: { description: "{ models: [{ id, chat, reason, free, pricing, contextWindow, registered }] }" } }
+   */
+  router.post("/llm-models/discover", llmController.discover);
+
+  /**
+   * @swagger
+   * /api/admin/llm-models/{id}:
+   *   patch:
+   *     tags: [Admin - AI Models]
+   *     summary: Sửa model (apiKey null = xoá key; bỏ trống = giữ nguyên)
+   *     security: [{ BearerAuth: [] }]
+   *     parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+   *     responses: { 200: { description: OK } }
+   *   delete:
+   *     tags: [Admin - AI Models]
+   *     summary: Xoá model (model đã có lịch sử chạy thì chỉ tắt và ẩn)
+   *     security: [{ BearerAuth: [] }]
+   *     parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+   *     responses: { 200: { description: "{ deleted, archived }" } }
+   * /api/admin/llm-models/{id}/default:
+   *   post:
+   *     tags: [Admin - AI Models]
+   *     summary: Đặt làm model mặc định (dùng khi user không chọn model)
+   *     security: [{ BearerAuth: [] }]
+   *     parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+   *     responses: { 200: { description: OK } }
+   * /api/admin/llm-models/{id}/test:
+   *   post:
+   *     tags: [Admin - AI Models]
+   *     summary: Health check (gửi prompt rất nhỏ, đo latency và token, cập nhật health)
+   *     security: [{ BearerAuth: [] }]
+   *     parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+   *     responses: { 200: { description: "{ status, latencyMs, usage, error }" } }
+   */
+  router.patch("/llm-models/:id", llmController.update);
+  router.delete("/llm-models/:id", llmController.remove);
+  router.post("/llm-models/:id/default", llmController.setDefault);
+  router.post("/llm-models/:id/test", llmController.test);
+
+  /**
+   * @swagger
+   * /api/admin/llm-usage:
+   *   get:
+   *     tags: [Admin - AI Models]
+   *     summary: Thống kê token / cost / số lần chạy / lỗi theo ngày, model hoặc user
+   *     security: [{ BearerAuth: [] }]
+   *     parameters:
+   *       - { in: query, name: from, schema: { type: string, format: date } }
+   *       - { in: query, name: to, schema: { type: string, format: date } }
+   *       - { in: query, name: modelId, schema: { type: string } }
+   *       - { in: query, name: userId, schema: { type: string } }
+   *       - { in: query, name: groupBy, schema: { type: string, enum: [day, model, user] } }
+   *     responses: { 200: { description: "{ totals, groupBy, rows }" } }
+   */
+  router.get("/llm-usage", llmController.usage);
+
+  /**
+   * @swagger
+   * /api/admin/llm-benchmarks:
+   *   get:
+   *     tags: [Admin - AI Models]
+   *     summary: Các lần benchmark đã chạy
+   *     security: [{ BearerAuth: [] }]
+   *     responses: { 200: { description: OK } }
+   *   post:
+   *     tags: [Admin - AI Models]
+   *     summary: Chạy 2-8 model trên cùng một snapshot để so sánh công bằng (không ghi đè kiến trúc của project)
+   *     security: [{ BearerAuth: [] }]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [projectId, snapshotId, modelIds]
+   *             properties:
+   *               projectId: { type: string }
+   *               snapshotId: { type: string }
+   *               modelIds: { type: array, items: { type: string } }
+   *     responses: { 202: { description: "{ jobId, benchmarkId }" } }
+   * /api/admin/llm-benchmarks/targets:
+   *   get:
+   *     tags: [Admin - AI Models]
+   *     summary: Project và snapshot có thể dùng để benchmark
+   *     security: [{ BearerAuth: [] }]
+   *     responses: { 200: { description: OK } }
+   * /api/admin/llm-benchmarks/{id}:
+   *   get:
+   *     tags: [Admin - AI Models]
+   *     summary: Kết quả một lần benchmark
+   *     security: [{ BearerAuth: [] }]
+   *     parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+   *     responses: { 200: { description: OK } }
+   */
+  router.get("/llm-benchmarks", llmController.benchmarks);
+  router.post("/llm-benchmarks", llmController.startBenchmark);
+  router.get("/llm-benchmarks/targets", llmController.benchmarkTargets);
+  router.get("/llm-benchmarks/:id", llmController.benchmark);
 
   return router;
 }

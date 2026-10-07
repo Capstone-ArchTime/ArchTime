@@ -43,17 +43,7 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
         const defaultModel = res.data.models.find(m => m.isDefault);
         if (defaultModel) setSelectedModel(defaultModel.model);
       })
-      .catch(() => {
-        // Mock data if API not available
-        const mockModels: AIModelConfig[] = [
-          { model: 'gpt-4-turbo', provider: 'openai', enabled: true, isDefault: true },
-          { model: 'gpt-3.5-turbo', provider: 'openai', enabled: true, isDefault: false },
-          { model: 'claude-3-opus', provider: 'anthropic', enabled: true, isDefault: false },
-          { model: 'claude-3-sonnet', provider: 'anthropic', enabled: true, isDefault: false },
-        ];
-        setAiModels(mockModels);
-        setSelectedModel('gpt-4-turbo');
-      });
+      .catch(() => { if (!controller.signal.aborted) setAiModels([]); });
     return () => controller.abort();
   }, [open]);
 
@@ -163,7 +153,7 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
                   value: m.model,
                   label: (
                     <span className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${m.provider === 'openai' ? 'bg-green-500' : 'bg-purple-500'}`} />
+                      <span className={`w-2 h-2 rounded-full ${m.provider === 'anthropic' ? 'bg-purple-500' : m.provider === 'gemini' ? 'bg-sky-500' : 'bg-green-500'}`} />
                       {m.model}
                       {m.isDefault && <span className="text-xs text-[#94a3b8]">(default)</span>}
                     </span>
@@ -177,9 +167,9 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
             {range.since} → {range.until}: {estimateError ?? (estimate ? `${estimate.inRange} commits, ${estimate.alreadyMined} already mined, ${estimate.toMine} to mine in ${estimate.batchCount} batch${estimate.batchCount === 1 ? '' : 'es'}` : 'Counting…')}
           </p>}
           <div className="flex flex-wrap gap-3">
-            <Button type="primary" disabled={!range || !!active || estimate?.toMine === 0 || !selectedModel} loading={busy}
+            <Button type="primary" disabled={!range || !!active || estimate?.toMine === 0 || (aiModels.length > 0 && !selectedModel)} loading={busy}
               onClick={() => range && run(() => startMining(project.id, { mode: 'range', ...range, model: selectedModel } as any), 'Mining started.')}>Mine this range</Button>
-            <Button disabled={!!active || fullyMined || !selectedModel} loading={busy} onClick={() => run(() => startMining(project.id, { mode: 'remaining', model: selectedModel } as any), 'Mining started.')}>
+            <Button disabled={!!active || fullyMined || (aiModels.length > 0 && !selectedModel)} loading={busy} onClick={() => run(() => startMining(project.id, { mode: 'remaining', model: selectedModel } as any), 'Mining started.')}>
               {overview.mined.count ? `Continue: mine all remaining${overview.remaining ? ` (${overview.remaining})` : ''}` : 'Mine entire history'}
             </Button>
             <Button disabled={!!active} loading={busy} onClick={() => run(() => startScan(project.id), 'Fetching new commits.')}>Check for new commits</Button>

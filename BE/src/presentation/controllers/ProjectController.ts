@@ -358,4 +358,18 @@ export class ProjectController {
       next(error);
     }
   };
+
+  public getArchitectureRuns = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        res.status(401).json({ success: false, message: "Unauthorized" });
+        return;
+      }
+      const { runs, totals, meta } = await this.architectureUseCase.runs(req.params.id, userId, req.query);
+      res.status(200).json({ success: true, data: { runs, totals }, meta });
+    } catch (error: any) {
+      next(error);
+    }
+  };
 }
