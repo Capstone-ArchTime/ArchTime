@@ -35,3 +35,12 @@ test('unsupported and malformed server identities are rejected', () => {
   assert.equal(isAuthUser(user), true);
   for (const value of [null, {}, { ...user, id: undefined }, { ...user, id: '' }, { ...user, role: 'admin' }]) assert.equal(isAuthUser(value), false);
 });
+
+test('the architecture workspace of one project or sample is for developer-analysts only', () => {
+  assert.equal(canAccess('developer-analyst', '/workspace/6ac6c4668caa9b250e2b1213'), true);
+  assert.equal(canAccess('developer-analyst', '/workspace/sample/shophub#focus=web'), true);
+  assert.equal(canAccess('developer-analyst', '/workspace'), false, 'the bare prefix is not a page');
+  assert.equal(canAccess('project-maintainer', '/workspace/abc'), false);
+  assert.equal(canAccess('system-administrator', '/workspace/abc'), false);
+  assert.equal(canAccess('__proto__', '/workspace/abc'), false);
+});
