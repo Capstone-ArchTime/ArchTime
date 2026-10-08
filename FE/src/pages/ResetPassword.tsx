@@ -39,7 +39,7 @@ export default function ResetPassword() {
       if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Please try again.');
     } finally { if (!controller.signal.aborted) setBusy(false); }
   }
-  const inputClass = 'w-full rounded border border-[#222c37] bg-[#11161b] p-3 text-white';
+  const inputClass = 'w-full rounded border border-[#242527] bg-[#11161b] p-3 text-white';
   return <main className="min-h-dvh bg-[#080b0e] text-slate-200 flex items-center justify-center p-6">
     <section className="w-full max-w-md space-y-6">
       <Logo />

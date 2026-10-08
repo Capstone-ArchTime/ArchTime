@@ -20,7 +20,7 @@ export default function AccountMenu({ onNavigate }: { onNavigate: () => void }) 
                   type="button"
                   aria-label={`Open account menu for ${user.name}`}
                   title={user.name}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-[#38bdf8]/40 bg-[#11161b] text-[#38bdf8] transition-colors hover:border-[#00f0ff] hover:text-[#00f0ff] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#38bdf8]"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-[#3b82f6]/40 bg-[#11161b] text-[#3b82f6] transition-colors hover:border-[#00f0ff] hover:text-[#00f0ff] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#3b82f6]"
                 >
                   <UserRound size={20} aria-hidden="true" />
                 </button>

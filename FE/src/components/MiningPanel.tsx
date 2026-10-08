@@ -102,7 +102,7 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
           : <span className="text-[#94a3b8]">The repository has not been scanned yet.</span>}
       </div>
 
-      {active && <div className="border border-[#222c37] p-4 space-y-2" role="status">
+      {active && <div className="border border-[#242527] p-4 space-y-2" role="status">
         <div className="flex justify-between text-sm"><span>{active.kind === 'scan' ? 'Scanning repository' : 'Mining'}</span><span className="text-[#94a3b8]">{active.status}</span></div>
         <Progress percent={active.progress} status="active" />
         <p className="text-xs text-[#94a3b8]">{active.kind === 'mine' ? `${describeBatchProgress(active)} · ` : ''}{active.stage}{active.failedCommits ? ` · ${active.failedCommits} unreadable` : ''}</p>
@@ -119,14 +119,14 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
 
       {hasHistory && <>
         <section aria-label="Commit history by month">
-          <div className="flex justify-between text-xs text-[#94a3b8] mb-2"><span>Commits per month · click a month to select it</span><span><i className="inline-block w-2 h-2 bg-[#38bdf8] mr-1" />mined <i className="inline-block w-2 h-2 bg-[#2a3441] ml-3 mr-1" />not mined</span></div>
+          <div className="flex justify-between text-xs text-[#94a3b8] mb-2"><span>Commits per month · click a month to select it</span><span><i className="inline-block w-2 h-2 bg-[#3b82f6] mr-1" />mined <i className="inline-block w-2 h-2 bg-[#2a3441] ml-3 mr-1" />not mined</span></div>
           <div className="flex items-end gap-[3px] h-24 overflow-x-auto pb-1 pt-1">
             {rows.map(r => {
               const selected = range && r.month === range.since.slice(0, 7) && r.month === range.until.slice(0, 7);
               return <button key={r.month} type="button" disabled={!!active} aria-pressed={!!selected} aria-label={`${r.month}: ${r.mined} of ${r.total} commits mined`}
                 title={`${r.month} · ${r.mined}/${r.total} mined`} onClick={() => setRange(monthBounds(r.month))}
                 className={`relative flex-1 min-w-[10px] bg-[#2a3441] disabled:opacity-60 ${selected ? 'outline outline-2 outline-[#ffb03a]' : ''}`} style={{ height: `${Math.max(6, (r.total / peak) * 100)}%` }}>
-                <span className="absolute bottom-0 left-0 right-0 bg-[#38bdf8]" style={{ height: `${r.total ? (r.mined / r.total) * 100 : 0}%` }} />
+                <span className="absolute bottom-0 left-0 right-0 bg-[#3b82f6]" style={{ height: `${r.total ? (r.mined / r.total) * 100 : 0}%` }} />
               </button>;
             })}
           </div>

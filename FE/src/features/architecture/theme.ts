@@ -24,8 +24,8 @@ const mono = '"JetBrains Mono", ui-monospace, Menlo, monospace';
 
 export const DARK: DiagramTheme = {
   name: 'dark', background: '#080b0e', card: '#11161b', cardStroke: '#2a3441', text: '#f4f4f6', muted: '#94a3b8', edge: '#5b7186', edgeDim: '#27303a',
-  cycle: '#ef4444', route: '#f59e0b', focus: '#38bdf8', badgeFill: '#161d24',
-  role: { controller: '#38bdf8', service: '#a78bfa', repository: '#34d399', entity: '#fbbf24', gateway: '#fb7185', config: '#94a3b8', util: '#7dd3fc', external: '#fb923c', other: '#64748b' },
+  cycle: '#ef4444', route: '#f59e0b', focus: '#3b82f6', badgeFill: '#161d24',
+  role: { controller: '#3b82f6', service: '#a78bfa', repository: '#34d399', entity: '#fbbf24', gateway: '#fb7185', config: '#94a3b8', util: '#60a5fa', external: '#fb923c', other: '#64748b' },
   tag: { FACT: '#22c55e', INFERENCE: '#f59e0b', UNKNOWN: '#94a3b8' }, sans, mono,
 };
 

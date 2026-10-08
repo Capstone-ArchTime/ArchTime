@@ -104,8 +104,8 @@ export default function ArchitectureWorkspace() {
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-[#080b0e] text-[#f4f4f6]">
-      <header className="flex h-12 shrink-0 items-center gap-3 border-b border-[#222c37] bg-[#0d1116] px-3">
-        <Link to="/architecture" className="shrink-0 font-bold tracking-tight text-[#38bdf8] hover:text-white" aria-label="ArchTime: all architectures">Arch<span className="text-white">Time</span></Link>
+      <header className="flex h-12 shrink-0 items-center gap-3 border-b border-[#242527] bg-[#0d1116] px-3">
+        <Link to="/architecture" className="shrink-0 font-bold tracking-tight text-[#3b82f6] hover:text-white" aria-label="ArchTime: all architectures">Arch<span className="text-white">Time</span></Link>
         <span className="text-[#2a3441]">/</span>
         <Dropdown trigger={['click']} menu={switcher}>
           <button type="button" className="flex min-w-0 max-w-56 items-center gap-1 whitespace-nowrap rounded px-1.5 py-1 text-sm font-medium hover:bg-white/10" aria-label={`Switch project (now ${title})`}>
@@ -118,7 +118,7 @@ export default function ArchitectureWorkspace() {
 
         <div className="mx-auto hidden min-w-0 items-center gap-3 whitespace-nowrap text-xs text-[#94a3b8] xl:flex" role="status">
           {arch.refining
-            ? <span className="flex items-center gap-2"><Sparkles size={13} className="text-[#38bdf8]" /> {arch.refining.stage}<Progress percent={arch.refining.progress} size="small" showInfo={false} className="!m-0 w-24" status="active" /></span>
+            ? <span className="flex items-center gap-2"><Sparkles size={13} className="text-[#3b82f6]" /> {arch.refining.stage}<Progress percent={arch.refining.progress} size="small" showInfo={false} className="!m-0 w-24" status="active" /></span>
             : view && <><span className="text-[#4ade80]">✓ Verified</span><span>{view.components.length} components · {view.edges.length} dependencies</span></>}
         </div>
 
@@ -140,7 +140,7 @@ export default function ArchitectureWorkspace() {
           {...(projectId ? { snapshots: arch.snapshots, snapshotId: snapshotParam ?? payload?.snapshot?.id, onSnapshot: (id: string) => commit({ project: projectId, snapshot: id }, true) } : {})} />}
 
         {/* No drawing for this snapshot (yet): keep the snapshot list, like a design file's pages, so another can be opened. */}
-        {projectId && !view && arch.snapshots.length > 0 && <aside aria-label="Snapshots" className="absolute inset-y-0 left-0 z-10 hidden w-60 border-r border-[#222c37] bg-[#0d1116] lg:block">
+        {projectId && !view && arch.snapshots.length > 0 && <aside aria-label="Snapshots" className="absolute inset-y-0 left-0 z-10 hidden w-60 border-r border-[#242527] bg-[#0d1116] lg:block">
           <LayersPanel snapshots={arch.snapshots} snapshotId={snapshotParam ?? payload?.snapshot?.id} onSnapshot={id => commit({ project: projectId, snapshot: id }, true)} />
         </aside>}
         {projectId && arch.current?.status === 'loading' && <div role="status" className="flex h-full flex-col items-center justify-center gap-3"><Spin /><p className="text-sm text-[#94a3b8]">Loading architecture…</p></div>}
@@ -149,7 +149,7 @@ export default function ArchitectureWorkspace() {
             action={<div className="flex gap-2"><Button onClick={arch.reload}>Retry</Button><Button onClick={() => setMining(true)}>Mine</Button></div>} />
         </div>}
         {projectId && payload?.status === 'missing' && <div className="flex h-full items-center justify-center">
-          <Empty image={<Workflow size={40} className="mx-auto text-[#38bdf8]" />} description={<span>No components yet for snapshot <code>{payload.snapshot?.hash}</code>.<br />Group its files into components to draw the architecture.</span>}>
+          <Empty image={<Workflow size={40} className="mx-auto text-[#3b82f6]" />} description={<span>No components yet for snapshot <code>{payload.snapshot?.hash}</code>.<br />Group its files into components to draw the architecture.</span>}>
             <div className="flex flex-wrap justify-center gap-2">
               <Button type="primary" loading={arch.generating} disabled={busy} onClick={() => void arch.generate()}>Group files into components</Button>
             </div>

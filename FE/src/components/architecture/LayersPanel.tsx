@@ -33,13 +33,13 @@ export default function LayersPanel({ scene, theme, highlight, selected, onSelec
   const tabClass = (t: string) => `px-2 py-1 text-xs font-medium rounded ${tab === t ? 'text-white bg-white/10' : 'text-[#94a3b8] hover:text-white'}`;
 
   return <div className="flex h-full min-h-0 flex-col">
-    <div className="flex items-center gap-1 border-b border-[#222c37] px-2 py-1.5" role="tablist">
+    <div className="flex items-center gap-1 border-b border-[#242527] px-2 py-1.5" role="tablist">
       {scene && <button type="button" role="tab" aria-selected={tab === 'layers'} className={tabClass('layers')} onClick={() => setTab('layers')}>Layers</button>}
       {snapshots && <button type="button" role="tab" aria-selected={tab === 'snapshots'} className={tabClass('snapshots')} onClick={() => setTab('snapshots')}>Snapshots <span className="text-[#64748b]">{snapshots.length}</span></button>}
     </div>
 
     {tab === 'layers' && scene && theme && highlight && <>
-      <label className="mx-2 my-2 flex items-center gap-2 rounded border border-[#222c37] bg-[#0b0f13] px-2">
+      <label className="mx-2 my-2 flex items-center gap-2 rounded border border-[#242527] bg-[#0b0f13] px-2">
         <Search size={13} className="text-[#64748b]" />
         <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search layers" aria-label="Search layers" className="h-7 w-full bg-transparent text-xs text-[#e2e8f0] outline-none placeholder:text-[#64748b]" />
       </label>
@@ -54,7 +54,7 @@ export default function LayersPanel({ scene, theme, highlight, selected, onSelec
             const isSel = n.id === selected;
             const dim = !!highlight.nodes && !highlight.nodes.has(n.id);
             return <div key={n.id} role="treeitem" aria-selected={isSel} tabIndex={0}
-              className={`mx-1 flex cursor-pointer flex-col rounded px-5 py-1 outline-none focus-visible:ring-1 focus-visible:ring-[#38bdf8] ${isSel ? 'bg-[#38bdf8]/15 text-white' : 'text-[#cbd5e1] hover:bg-white/5'} ${dim ? 'opacity-50' : ''}`}
+              className={`mx-1 flex cursor-pointer flex-col rounded px-5 py-1 outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6] ${isSel ? 'bg-[#3b82f6]/15 text-white' : 'text-[#cbd5e1] hover:bg-white/5'} ${dim ? 'opacity-50' : ''}`}
               onClick={() => onSelect?.(n.id)} onDoubleClick={() => onOpen?.(n.id)}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (e.shiftKey) onOpen?.(n.id); else onSelect?.(n.id); } }}>
               <span className="truncate text-xs">{n.title}</span>
@@ -71,8 +71,8 @@ export default function LayersPanel({ scene, theme, highlight, selected, onSelec
         const current = s.id === snapshotId || (!snapshotId && i === 0);
         return <li key={s.id}>
           <button type="button" aria-current={current} onClick={() => onSnapshot?.(s.id)}
-            className={`flex w-full flex-col px-3 py-1.5 text-left ${current ? 'bg-[#38bdf8]/15' : 'hover:bg-white/5'}`}>
-            <span className="flex items-center gap-2 text-xs"><code className="text-[#7dd3fc]">{s.hash}</code>{i === 0 && <span className="text-[10px] text-[#64748b]">latest</span>}</span>
+            className={`flex w-full flex-col px-3 py-1.5 text-left ${current ? 'bg-[#3b82f6]/15' : 'hover:bg-white/5'}`}>
+            <span className="flex items-center gap-2 text-xs"><code className="text-[#60a5fa]">{s.hash}</code>{i === 0 && <span className="text-[10px] text-[#64748b]">latest</span>}</span>
             <span className="truncate text-[11px] text-[#cbd5e1]">{s.title.split('\n')[0]}</span>
             {s.date && <span className="text-[10px] text-[#64748b]">{new Date(s.date).toLocaleDateString()}</span>}
           </button>

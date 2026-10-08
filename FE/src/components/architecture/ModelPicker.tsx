@@ -45,7 +45,7 @@ export function RunUsage({ receipt }: { receipt: RefineReceipt }) {
     catch (cause) { message.error(cause instanceof Error ? cause.message : 'Could not save your rating.'); }
   }
   const item = (label: string, value: string) => <span className="whitespace-nowrap"><span className="text-[#94a3b8]">{label}</span> <span className="font-mono text-[#e2e8f0]">{value}</span></span>;
-  return <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded border border-[#222c37] bg-[#11161b] px-3 py-2 text-xs" aria-label="AI usage for this result">
+  return <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded border border-[#242527] bg-[#11161b] px-3 py-2 text-xs" aria-label="AI usage for this result">
     {item('Model', receipt.model)}
     {item('Input', formatTokens(u.inputTokens))}
     {item('Output', formatTokens(u.outputTokens))}

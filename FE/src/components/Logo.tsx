@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const fontFamilyMono = '"JetBrains Mono", monospace';
@@ -12,9 +12,19 @@ export function Logo({
   tagline?: string;
   className?: string;
 }) {
+  const location = useLocation();
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (location.pathname === to) {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
   return (
     <Link
       to={to}
+      onClick={handleClick}
       className={cn("flex items-center gap-3 text-base font-bold tracking-wider text-white", className)}
       style={{ fontFamily: fontFamilyMono }}
     >

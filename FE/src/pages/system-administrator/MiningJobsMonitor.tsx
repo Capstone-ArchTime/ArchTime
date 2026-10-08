@@ -77,7 +77,7 @@ export default function MiningJobsMonitor() {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-semibold mb-1">Default AI Model for Mining</h3>
-          <p className="text-xs text-[#94a3b8]">Used when a user does not pick a model for AI architecture refinement. Manage models under <Link to="/system-administrator/ai-models" className="text-[#38bdf8]">AI Models</Link>.</p>
+          <p className="text-xs text-[#94a3b8]">Used when a user does not pick a model for AI architecture refinement. Manage models under <Link to="/system-administrator/ai-models" className="text-[#3b82f6]">AI Models</Link>.</p>
           {aiError && <p role="alert" className="text-xs text-red-400 mt-1">{aiError}</p>}
           {!aiError && !aiModels.length && <p className="text-xs text-[#94a3b8] mt-1">No AI model is configured.</p>}
         </div>
@@ -108,7 +108,7 @@ export default function MiningJobsMonitor() {
             type="button"
             onClick={() => handleDefaultModelChange(m.model)}
             disabled={modelLoading || m.model === defaultModel || !m.id}
-            className={`p-3 border text-left transition-colors cursor-pointer hover:border-[#38bdf8]/50 disabled:cursor-default ${m.model === defaultModel ? 'border-[#38bdf8] bg-[#38bdf8]/5' : 'border-[#222c37] hover:bg-[#161d24]'}`}
+            className={`p-3 border text-left transition-colors cursor-pointer hover:border-[#3b82f6]/50 disabled:cursor-default ${m.model === defaultModel ? 'border-[#3b82f6] bg-[#3b82f6]/5' : 'border-[#242527] hover:bg-[#161d24]'}`}
           >
             <div className="flex items-center gap-2 mb-2">
               <span className={`w-2 h-2 rounded-full ${m.provider === 'anthropic' ? 'bg-purple-500' : m.provider === 'gemini' ? 'bg-sky-500' : 'bg-green-500'}`} />

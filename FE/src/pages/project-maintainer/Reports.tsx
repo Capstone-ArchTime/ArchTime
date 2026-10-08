@@ -116,7 +116,7 @@ export default function Reports() {
           <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
             Export architecture evolution reports for maintenance handoff and developer onboarding.
           </p>
-          <div className="h-[1px] w-full bg-gradient-to-r from-[#222c37] to-transparent mt-8"></div>
+          <div className="h-[1px] w-full bg-gradient-to-r from-[#242527] to-transparent mt-8"></div>
         </div>
 
         <div className="flex flex-wrap gap-3 items-center">
@@ -136,12 +136,12 @@ export default function Reports() {
         <section>
           <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-4" style={{ fontFamily: fontFamily.mono }}>New Export</h3>
 
-          <div className="bg-[#161d24] border border-[#222c37] p-6 space-y-5">
+          <div className="bg-[#161d24] border border-[#242527] p-6 space-y-5">
             <div>
               <label className="text-[10px] text-[#94a3b8] uppercase tracking-widest block mb-2" style={{ fontFamily: fontFamily.mono }}>Project</label>
               <div className="relative">
                 <FolderKanban size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
-                <div className="w-full h-10 bg-[#11161b] border border-[#222c37] pl-9 pr-9 text-sm text-[#f4f4f6] flex items-center">
+                <div className="w-full h-10 bg-[#11161b] border border-[#242527] pl-9 pr-9 text-sm text-[#f4f4f6] flex items-center">
                   {currentProject?.name ?? 'Select a project'}
                 </div>
               </div>
@@ -157,7 +157,7 @@ export default function Reports() {
                     type="text"
                     value={fromRevision}
                     onChange={e => setFromRevision(e.target.value)}
-                    className="w-full h-10 bg-[#11161b] border border-[#222c37] pl-9 pr-4 text-sm text-[#f4f4f6] focus:outline-none focus:border-[#38bdf8]/50 transition-colors"
+                    className="w-full h-10 bg-[#11161b] border border-[#242527] pl-9 pr-4 text-sm text-[#f4f4f6] focus:outline-none focus:border-[#3b82f6]/50 transition-colors"
                     style={{ fontFamily: fontFamily.mono }}
                   />
                 </div>
@@ -171,7 +171,7 @@ export default function Reports() {
                     type="text"
                     value={toRevision}
                     onChange={e => setToRevision(e.target.value)}
-                    className="w-full h-10 bg-[#11161b] border border-[#222c37] pl-9 pr-4 text-sm text-[#f4f4f6] focus:outline-none focus:border-[#38bdf8]/50 transition-colors"
+                    className="w-full h-10 bg-[#11161b] border border-[#242527] pl-9 pr-4 text-sm text-[#f4f4f6] focus:outline-none focus:border-[#3b82f6]/50 transition-colors"
                     style={{ fontFamily: fontFamily.mono }}
                   />
                 </div>
@@ -182,7 +182,7 @@ export default function Reports() {
               <button
                 onClick={handleGenerate}
                 disabled={generating || !selectedProject}
-                className="h-10 px-5 bg-[#38bdf8] hover:bg-[#38bdf8]/90 disabled:opacity-50 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2"
+                className="h-10 px-5 bg-[#3b82f6] hover:bg-[#3b82f6]/90 disabled:opacity-50 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 <Download size={14} />
@@ -204,9 +204,9 @@ export default function Reports() {
             <Empty description="No reports generated yet" />
           ) : (
             <>
-              <div className="bg-[#11161b] border border-[#222c37] overflow-hidden">
+              <div className="bg-[#11161b] border border-[#242527] overflow-hidden">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-[#161d24] border-b border-[#222c37] text-[10px] text-[#94a3b8] uppercase tracking-wider" style={{ fontFamily: fontFamily.mono }}>
+                  <thead className="bg-[#161d24] border-b border-[#242527] text-[10px] text-[#94a3b8] uppercase tracking-wider" style={{ fontFamily: fontFamily.mono }}>
                     <tr>
                       <th className="px-5 py-3 font-medium">Report</th>
                       <th className="px-5 py-3 font-medium">Project</th>
@@ -216,12 +216,12 @@ export default function Reports() {
                       <th className="px-5 py-3 font-medium"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#222c37]">
+                  <tbody className="divide-y divide-[#242527]">
                     {pagination.items.map((report) => (
                       <tr key={report.id} className="hover:bg-[#161d24]/50 transition-colors group">
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-2">
-                            <FileText size={14} className="text-[#38bdf8] shrink-0" />
+                            <FileText size={14} className="text-[#3b82f6] shrink-0" />
                             <span className="text-[#f4f4f6] font-medium text-xs" style={{ fontFamily: fontFamily.mono }}>
                               {report.project}_evolution.pdf
                             </span>
@@ -252,7 +252,7 @@ export default function Reports() {
                           {report.status === 'completed' && (
                             <button
                               onClick={() => handleDownload(report)}
-                              className="text-[#38bdf8] hover:text-[#00f0ff] text-xs font-semibold opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity"
+                              className="text-[#3b82f6] hover:text-[#00f0ff] text-xs font-semibold opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity"
                               style={{ fontFamily: fontFamily.mono }}
                             >
                               Download &rarr;

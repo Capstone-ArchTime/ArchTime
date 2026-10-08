@@ -48,15 +48,15 @@ const Projects: React.FC = () => {
       changes: 38,
       status: 'COMPLETED',
       nodes: [
-        { cx: 20, cy: 30, r: 4, color: '#38bdf8' },
-        { cx: 50, cy: 20, r: 4, color: '#38bdf8' },
+        { cx: 20, cy: 30, r: 4, color: '#3b82f6' },
+        { cx: 50, cy: 20, r: 4, color: '#3b82f6' },
         { cx: 50, cy: 40, r: 4, color: '#ffb03a', glow: true },
-        { cx: 80, cy: 30, r: 4, color: '#38bdf8' },
+        { cx: 80, cy: 30, r: 4, color: '#3b82f6' },
       ],
       links: [
-        { d: "M 20 30 C 35 30, 35 20, 50 20", color: "#38bdf8" },
-        { d: "M 20 30 C 35 30, 35 40, 50 40", color: "#38bdf8" },
-        { d: "M 50 20 C 65 20, 65 30, 80 30", color: "#38bdf8" },
+        { d: "M 20 30 C 35 30, 35 20, 50 20", color: "#3b82f6" },
+        { d: "M 20 30 C 35 30, 35 40, 50 40", color: "#3b82f6" },
+        { d: "M 50 20 C 65 20, 65 30, 80 30", color: "#3b82f6" },
         { d: "M 50 40 C 65 40, 65 30, 80 30", color: "#ffb03a" },
       ]
     },
@@ -69,15 +69,15 @@ const Projects: React.FC = () => {
       changes: 21,
       status: 'COMPLETED',
       nodes: [
-        { cx: 20, cy: 30, r: 4, color: '#38bdf8' },
-        { cx: 50, cy: 30, r: 4, color: '#38bdf8' },
+        { cx: 20, cy: 30, r: 4, color: '#3b82f6' },
+        { cx: 50, cy: 30, r: 4, color: '#3b82f6' },
         { cx: 80, cy: 15, r: 4, color: '#ffb03a', glow: true },
-        { cx: 80, cy: 45, r: 4, color: '#38bdf8' },
+        { cx: 80, cy: 45, r: 4, color: '#3b82f6' },
       ],
       links: [
-        { d: "M 20 30 L 50 30", color: "#38bdf8" },
+        { d: "M 20 30 L 50 30", color: "#3b82f6" },
         { d: "M 50 30 C 65 30, 65 15, 80 15", color: "#ffb03a" },
-        { d: "M 50 30 C 65 30, 65 45, 80 45", color: "#38bdf8" },
+        { d: "M 50 30 C 65 30, 65 45, 80 45", color: "#3b82f6" },
       ]
     },
     {
@@ -89,13 +89,13 @@ const Projects: React.FC = () => {
       changes: 15,
       status: 'COMPLETED',
       nodes: [
-        { cx: 30, cy: 20, r: 4, color: '#38bdf8' },
-        { cx: 30, cy: 40, r: 4, color: '#38bdf8' },
-        { cx: 70, cy: 30, r: 4, color: '#38bdf8' },
+        { cx: 30, cy: 20, r: 4, color: '#3b82f6' },
+        { cx: 30, cy: 40, r: 4, color: '#3b82f6' },
+        { cx: 70, cy: 30, r: 4, color: '#3b82f6' },
       ],
       links: [
-        { d: "M 30 20 C 50 20, 50 30, 70 30", color: "#38bdf8" },
-        { d: "M 30 40 C 50 40, 50 30, 70 30", color: "#38bdf8" },
+        { d: "M 30 20 C 50 20, 50 30, 70 30", color: "#3b82f6" },
+        { d: "M 30 40 C 50 40, 50 30, 70 30", color: "#3b82f6" },
       ]
     }
   ]);
@@ -120,7 +120,7 @@ const Projects: React.FC = () => {
             lastAnalyzed: 'Just now',
             changes: 0,
             status: p.status,
-            nodes: [{ cx: 50, cy: 30, r: 6, color: '#38bdf8' }],
+            nodes: [{ cx: 50, cy: 30, r: 6, color: '#3b82f6' }],
             links: []
           }));
           
@@ -239,9 +239,9 @@ const Projects: React.FC = () => {
         
         {/* HEADER */}
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#161d24] border border-[#222c37] mb-4">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] shadow-[0_0_5px_#38bdf8]"></div>
-            <span className="text-[10px] font-mono text-[#38bdf8] tracking-wider font-semibold uppercase"
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#161d24] border border-[#242527] mb-4">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] shadow-[0_0_5px_#3b82f6]"></div>
+            <span className="text-[10px] font-mono text-[#3b82f6] tracking-wider font-semibold uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository Workspace</span>
           </div>
           
@@ -254,20 +254,20 @@ const Projects: React.FC = () => {
             </div>
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="shrink-0 h-10 px-5 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)]"
+              className="shrink-0 h-10 px-5 bg-[#3b82f6] hover:bg-[#3b82f6]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)]"
             >
               <Plus size={16} />
               NEW PROJECT
             </button>
           </div>
-          <div className="h-[1px] w-full bg-gradient-to-r from-[#222c37] to-transparent mt-8"></div>
+          <div className="h-[1px] w-full bg-gradient-to-r from-[#242527] to-transparent mt-8"></div>
         </div>
 
         {/* PROJECT SUMMARY METRICS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
-          <div className="flex items-center gap-4 bg-[#161d24] border border-[#222c37] p-5">
-            <div className="w-12 h-12 bg-[#080b0e] border border-[#222c37] flex items-center justify-center">
+          <div className="flex items-center gap-4 bg-[#161d24] border border-[#242527] p-5">
+            <div className="w-12 h-12 bg-[#080b0e] border border-[#242527] flex items-center justify-center">
               <FolderKanban size={20} className="text-[#94a3b8]" />
             </div>
             <div>
@@ -281,9 +281,9 @@ const Projects: React.FC = () => {
           </div>
 
 
-          <div className="flex items-center gap-4 bg-[#161d24] border border-[#222c37] p-5">
-            <div className="w-12 h-12 bg-[#080b0e] border border-[#222c37] flex items-center justify-center">
-              <Activity size={20} className="text-[#38bdf8]" />
+          <div className="flex items-center gap-4 bg-[#161d24] border border-[#242527] p-5">
+            <div className="w-12 h-12 bg-[#080b0e] border border-[#242527] flex items-center justify-center">
+              <Activity size={20} className="text-[#3b82f6]" />
             </div>
             <div>
               <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-1"
@@ -293,8 +293,8 @@ const Projects: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 bg-[#161d24] border border-[#222c37] p-5">
-            <div className="w-12 h-12 bg-[#080b0e] border border-[#222c37] flex items-center justify-center">
+          <div className="flex items-center gap-4 bg-[#161d24] border border-[#242527] p-5">
+            <div className="w-12 h-12 bg-[#080b0e] border border-[#242527] flex items-center justify-center">
               <GitPullRequest size={20} className="text-[#ffb03a]" />
             </div>
             <div>
@@ -308,14 +308,14 @@ const Projects: React.FC = () => {
         </div>
 
         {/* PROJECT LIST */}
-        <input aria-label="Search projects" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search projects?" className="h-11 w-full max-w-md px-4 border border-[#222c37] bg-[#11161b] text-sm" />
+        <input aria-label="Search projects" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search projects?" className="h-11 w-full max-w-md px-4 border border-[#242527] bg-[#11161b] text-sm" />
         {!filteredProjects.length && <p role="status" className="text-[#94a3b8] text-sm">No projects match your search.</p>}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {pagination.items.map((project) => (
-            <div key={project.id} className="bg-[#11161b] border border-[#222c37] hover:border-[#38bdf8]/50 overflow-hidden transition-colors flex flex-col group">
+            <div key={project.id} className="bg-[#11161b] border border-[#242527] hover:border-[#3b82f6]/50 overflow-hidden transition-colors flex flex-col group">
               
               {/* SVG GRAPH PREVIEW */}
-              <div className="h-32 w-full bg-[#080b0e] border-b border-[#222c37] relative flex items-center justify-center overflow-hidden">
+              <div className="h-32 w-full bg-[#080b0e] border-b border-[#242527] relative flex items-center justify-center overflow-hidden">
                 <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#F5F7FA 1px, transparent 1px)', backgroundSize: '16px 16px' }}></div>
                 
                 <svg viewBox="0 0 100 60" className="w-full h-full opacity-70 group-hover:opacity-100 transition-opacity group-hover:scale-105 duration-500">
@@ -350,7 +350,7 @@ const Projects: React.FC = () => {
               {/* CARD CONTENT */}
               <div className="p-6 flex-1 flex flex-col">
                 <div className="flex items-start justify-between mb-2">
-                  <h3 className="text-[#f4f4f6] font-bold text-lg tracking-tight group-hover:text-[#38bdf8] transition-colors">{project.name}</h3>
+                  <h3 className="text-[#f4f4f6] font-bold text-lg tracking-tight group-hover:text-[#3b82f6] transition-colors">{project.name}</h3>
                   <button 
                     onClick={() => handleDeleteProject(project.id)} 
                     className="text-[#94a3b8] hover:text-[#ef4444] transition-colors p-1"
@@ -407,7 +407,7 @@ const Projects: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setMiningProject({ id: project.id, name: project.name })}
-                    className="w-full h-11 mb-3 bg-[#38bdf8]/10 hover:bg-[#38bdf8]/20 border border-[#38bdf8]/40 text-[#38bdf8] text-xs font-bold flex items-center justify-center gap-2"
+                    className="w-full h-11 mb-3 bg-[#3b82f6]/10 hover:bg-[#3b82f6]/20 border border-[#3b82f6]/40 text-[#3b82f6] text-xs font-bold flex items-center justify-center gap-2"
                   >
                     MANAGE MINING
                   </button>
@@ -416,7 +416,7 @@ const Projects: React.FC = () => {
                   <div className="mt-auto flex gap-2">
                     <Link
                       to={typeof project.id === 'string' ? `/workspace/${encodeURIComponent(project.id)}` : "/workspace/sample/shophub"}
-                      className="flex-1 h-11 bg-[#38bdf8] hover:bg-[#7dd3fc] text-[#080b0e] font-semibold text-sm flex items-center justify-center gap-2"
+                      className="flex-1 h-11 bg-[#3b82f6] hover:bg-[#60a5fa] text-[#080b0e] font-semibold text-sm flex items-center justify-center gap-2"
                     >
                       Open architecture <ArrowRight size={14} aria-hidden="true" />
                     </Link>
@@ -424,7 +424,7 @@ const Projects: React.FC = () => {
                       to={typeof project.id === 'string' ? `/project?projectId=${project.id}` : "/project"}
                       aria-label={`Details of ${project.name}`}
                       title="Project details"
-                      className="h-11 px-3 bg-[#161d24] hover:bg-[#222c37] border border-[#222c37] text-xs flex items-center justify-center"
+                      className="h-11 px-3 bg-[#161d24] hover:bg-[#242527] border border-[#242527] text-xs flex items-center justify-center"
                     >
                       Details
                     </Link>
@@ -432,7 +432,7 @@ const Projects: React.FC = () => {
                 ) : (
                   <button
                     disabled
-                    className="w-full h-11 bg-[#161d24] border border-[#222c37] text-xs mt-auto"
+                    className="w-full h-11 bg-[#161d24] border border-[#242527] text-xs mt-auto"
                     title="No architecture snapshot has been connected for this sample project"
                   >
                     Snapshot unavailable
@@ -476,11 +476,11 @@ const Projects: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-h-[90dvh] overflow-y-auto max-w-lg bg-[#11161b] border border-[#222c37] shadow-2xl overflow-hidden"
+              className="relative w-full max-h-[90dvh] overflow-y-auto max-w-lg bg-[#11161b] border border-[#242527] shadow-2xl overflow-hidden"
             >
-              <div className="p-6 border-b border-[#222c37] flex items-center justify-between">
+              <div className="p-6 border-b border-[#242527] flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] shadow-[0_0_5px_#38bdf8]"></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] shadow-[0_0_5px_#3b82f6]"></div>
                   <h2 id="create-project-title" className="text-[#f4f4f6] font-bold tracking-tight uppercase text-sm font-mono tracking-widest"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Create Project</h2>
                 </div>
@@ -506,7 +506,7 @@ const Projects: React.FC = () => {
                     value={projectName}
                     onChange={(e) => setProjectName(e.target.value)}
                     placeholder="e.g. Identity Service"
-                    className="w-full h-10 bg-[#161d24] border border-[#222c37] px-3 text-sm text-[#f4f4f6] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#38bdf8]/50 focus:ring-1 focus:ring-[#38bdf8]/20 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
+                    className="w-full h-10 bg-[#161d24] border border-[#242527] px-3 text-sm text-[#f4f4f6] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#3b82f6]/50 focus:ring-1 focus:ring-[#3b82f6]/20 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                   />
                 </div>
 
@@ -518,7 +518,7 @@ const Projects: React.FC = () => {
                     value={projectDescription}
                     onChange={(e) => setProjectDescription(e.target.value)}
                     placeholder="Brief architectural context..."
-                    className="w-full h-20 bg-[#161d24] border border-[#222c37] px-3 py-2 text-sm text-[#f4f4f6] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#38bdf8]/50 focus:ring-1 focus:ring-[#38bdf8]/20 transition-[color,background-color,border-color,box-shadow,opacity,transform] resize-none"
+                    className="w-full h-20 bg-[#161d24] border border-[#242527] px-3 py-2 text-sm text-[#f4f4f6] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#3b82f6]/50 focus:ring-1 focus:ring-[#3b82f6]/20 transition-[color,background-color,border-color,box-shadow,opacity,transform] resize-none"
                   ></textarea>
                 </div>
 
@@ -526,15 +526,15 @@ const Projects: React.FC = () => {
                   <span className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository Provider</span>
                   <div className="grid grid-cols-2 gap-3">
-                    <label className="flex items-center justify-center gap-2 h-10 bg-[#161d24] border border-[#222c37] cursor-pointer hover:border-[#94a3b8] transition-colors has-[:checked]:border-[#38bdf8] has-[:checked]:bg-[#38bdf8]/5 group">
+                    <label className="flex items-center justify-center gap-2 h-10 bg-[#161d24] border border-[#242527] cursor-pointer hover:border-[#94a3b8] transition-colors has-[:checked]:border-[#3b82f6] has-[:checked]:bg-[#3b82f6]/5 group">
                       <input type="radio" name="provider" className="sr-only" defaultChecked />
-                      <Icon icon="mdi:github" width="18" height="18" className="text-[#f4f4f6] group-has-[:checked]:text-[#38bdf8]" />
-                      <span className="text-xs font-bold text-[#f4f4f6] group-has-[:checked]:text-[#38bdf8]">GitHub</span>
+                      <Icon icon="mdi:github" width="18" height="18" className="text-[#f4f4f6] group-has-[:checked]:text-[#3b82f6]" />
+                      <span className="text-xs font-bold text-[#f4f4f6] group-has-[:checked]:text-[#3b82f6]">GitHub</span>
                     </label>
-                    <label className="flex items-center justify-center gap-2 h-10 bg-[#161d24] border border-[#222c37] cursor-pointer hover:border-[#94a3b8] transition-colors has-[:checked]:border-[#38bdf8] has-[:checked]:bg-[#38bdf8]/5 group">
+                    <label className="flex items-center justify-center gap-2 h-10 bg-[#161d24] border border-[#242527] cursor-pointer hover:border-[#94a3b8] transition-colors has-[:checked]:border-[#3b82f6] has-[:checked]:bg-[#3b82f6]/5 group">
                       <input type="radio" name="provider" className="sr-only" />
-                      <Icon icon="mdi:gitlab" width="18" height="18" className="text-[#FC6D26] group-has-[:checked]:text-[#38bdf8]" />
-                      <span className="text-xs font-bold text-[#f4f4f6] group-has-[:checked]:text-[#38bdf8]">GitLab</span>
+                      <Icon icon="mdi:gitlab" width="18" height="18" className="text-[#FC6D26] group-has-[:checked]:text-[#3b82f6]" />
+                      <span className="text-xs font-bold text-[#f4f4f6] group-has-[:checked]:text-[#3b82f6]">GitLab</span>
                     </label>
                   </div>
                 </div>
@@ -548,7 +548,7 @@ const Projects: React.FC = () => {
                     value={repoUrl}
                     onChange={(e) => setRepoUrl(e.target.value)}
                     placeholder="https://github.com/organization/repo"
-                    className="w-full h-10 bg-[#161d24] border border-[#222c37] px-3 text-sm font-mono text-[#f4f4f6] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#38bdf8]/50 focus:ring-1 focus:ring-[#38bdf8]/20 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
+                    className="w-full h-10 bg-[#161d24] border border-[#242527] px-3 text-sm font-mono text-[#f4f4f6] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#3b82f6]/50 focus:ring-1 focus:ring-[#3b82f6]/20 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}
                   />
                 </div>
@@ -557,15 +557,15 @@ const Projects: React.FC = () => {
                   <span className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Visibility</span>
                   <div className="grid grid-cols-2 gap-3">
-                    <label className="flex items-center justify-center gap-2 h-10 bg-[#161d24] border border-[#222c37] cursor-pointer hover:border-[#94a3b8] transition-colors has-[:checked]:border-[#38bdf8] has-[:checked]:bg-[#38bdf8]/5 group">
+                    <label className="flex items-center justify-center gap-2 h-10 bg-[#161d24] border border-[#242527] cursor-pointer hover:border-[#94a3b8] transition-colors has-[:checked]:border-[#3b82f6] has-[:checked]:bg-[#3b82f6]/5 group">
                       <input type="radio" name="visibility" value="public" className="sr-only" checked={visibility === 'public'} onChange={() => setVisibility('public')} />
-                      <Icon icon="mdi:earth" width="18" height="18" className="text-[#f4f4f6] group-has-[:checked]:text-[#38bdf8]" />
-                      <span className="text-xs font-bold text-[#f4f4f6] group-has-[:checked]:text-[#38bdf8]">Public</span>
+                      <Icon icon="mdi:earth" width="18" height="18" className="text-[#f4f4f6] group-has-[:checked]:text-[#3b82f6]" />
+                      <span className="text-xs font-bold text-[#f4f4f6] group-has-[:checked]:text-[#3b82f6]">Public</span>
                     </label>
-                    <label className="flex items-center justify-center gap-2 h-10 bg-[#161d24] border border-[#222c37] cursor-pointer hover:border-[#94a3b8] transition-colors has-[:checked]:border-[#38bdf8] has-[:checked]:bg-[#38bdf8]/5 group">
+                    <label className="flex items-center justify-center gap-2 h-10 bg-[#161d24] border border-[#242527] cursor-pointer hover:border-[#94a3b8] transition-colors has-[:checked]:border-[#3b82f6] has-[:checked]:bg-[#3b82f6]/5 group">
                       <input type="radio" name="visibility" value="private" className="sr-only" checked={visibility === 'private'} onChange={() => setVisibility('private')} />
-                      <Icon icon="mdi:lock" width="18" height="18" className="text-[#f4f4f6] group-has-[:checked]:text-[#38bdf8]" />
-                      <span className="text-xs font-bold text-[#f4f4f6] group-has-[:checked]:text-[#38bdf8]">Private</span>
+                      <Icon icon="mdi:lock" width="18" height="18" className="text-[#f4f4f6] group-has-[:checked]:text-[#3b82f6]" />
+                      <span className="text-xs font-bold text-[#f4f4f6] group-has-[:checked]:text-[#3b82f6]">Private</span>
                     </label>
                   </div>
                 </div>
@@ -580,7 +580,7 @@ const Projects: React.FC = () => {
                       placeholder="ghp_..."
                       value={token}
                       onChange={(e) => setToken(e.target.value)}
-                      className="w-full h-10 bg-[#161d24] border border-[#222c37] px-3 text-sm font-mono text-[#f4f4f6] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#38bdf8]/50 focus:ring-1 focus:ring-[#38bdf8]/20 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
+                      className="w-full h-10 bg-[#161d24] border border-[#242527] px-3 text-sm font-mono text-[#f4f4f6] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#3b82f6]/50 focus:ring-1 focus:ring-[#3b82f6]/20 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                       style={{ fontFamily: '"JetBrains Mono", monospace' }}
                     />
                     <p className="text-[10px] text-[#94a3b8]">Required to authenticate and clone private repositories.</p>
@@ -592,7 +592,7 @@ const Projects: React.FC = () => {
                 <button
                   onClick={handleConnect}
                   disabled={isSubmitting}
-                  className="w-full h-10 bg-[#38bdf8] hover:bg-[#38bdf8]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)] disabled:opacity-70"
+                  className="w-full h-10 bg-[#3b82f6] hover:bg-[#3b82f6]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)] disabled:opacity-70"
                 >
                   {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <FolderGit2 size={16} />}
                   CONNECT REPOSITORY
