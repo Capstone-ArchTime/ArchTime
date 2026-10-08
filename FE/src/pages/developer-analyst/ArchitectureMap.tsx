@@ -26,7 +26,7 @@ function Card({ to, title, subtitle, icon, sample }: { to: string; title: string
 
 /**
  * Where architectures are opened, like a design tool's file browser: every project and the samples, each opening in the
- * full-screen workspace. Older links (#project=… or #view=…) go straight to the workspace with their view state.
+ * full-screen workspace. Older links (#project=... or #view=...) go straight to the workspace with their view state.
  */
 export default function ArchitectureMap() {
   const hash = window.location.hash;
@@ -58,13 +58,13 @@ export default function ArchitectureMap() {
         </header>
         {error && <Alert type="error" showIcon title={error} />}
 
-        <section aria-label=”Your projects” className=”space-y-3”>
-          <h3 className=”text-xs font-medium uppercase tracking-wider text-[#94a3b8]”>Your projects</h3>
-          {projects === null ? <div className=”p-10 text-center”><Spin /></div>
-            : shown.length ? <div className=”grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4”>
-              {shown.map(p => <Card key={p.id} to={`/workspace/${encodeURIComponent(p.id)}`} title={p.name} subtitle=”Open architecture” icon={<FolderGit2 size={40} />} />)}
+        <section aria-label="Your projects" className="space-y-3">
+          <h3 className="text-xs font-medium uppercase tracking-wider text-[#94a3b8]">Your projects</h3>
+          {projects === null ? <div className="p-10 text-center"><Spin /></div>
+            : shown.length ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {shown.map(p => <Card key={p.id} to={`/workspace/${encodeURIComponent(p.id)}`} title={p.name} subtitle="Open architecture" icon={<FolderGit2 size={40} />} />)}
             </div>
-            : <Empty description={q ? `No project matches “${query}”.` : <span>No projects yet. <Link to=”/projects”>Add a repository</Link> to see its architecture.</span>} />}
+            : <Empty description={q ? ('No project matches "' + q + '".') : <span>No projects yet. <Link to="/projects">Add a repository</Link> to see its architecture.</span>} />}
         </section>
 
         <section aria-label="Samples" className="space-y-3">
