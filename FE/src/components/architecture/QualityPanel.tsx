@@ -71,7 +71,7 @@ export default function QualityPanel({ projectId, quality, view, onSaved }: {
   }
 
   const q = quality;
-  return <section className="rounded border border-[#222c37] bg-[#11161b] px-4 py-3" aria-label="Architecture quality">
+  return <section className="rounded border border-[#242527] bg-[#11161b] px-4 py-3" aria-label="Architecture quality">
     <div className="flex flex-wrap items-start gap-x-6 gap-y-3">
       <Measure label="Grounded names" value={q.grounding.score} hint="Share of component names that the file paths inside support. Low values mean invented or vague names." />
       <Measure label="No cycles" value={q.acyclicity.score} hint="Share of components not caught in a dependency loop with other components." />

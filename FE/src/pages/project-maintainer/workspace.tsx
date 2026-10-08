@@ -74,9 +74,9 @@ export function WorkspacePage({
   return (
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-6">
-        <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 border-b border-[#222c37] pb-6">
+        <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 border-b border-[#242527] pb-6">
           <div>
-            <p className="text-xs uppercase tracking-widest text-[#38bdf8] mb-3">
+            <p className="text-xs uppercase tracking-widest text-[#3b82f6] mb-3">
               Project maintainer / Architecture governance
             </p>
             <h2 className="text-3xl font-bold mb-2">{title}</h2>

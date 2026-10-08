@@ -33,7 +33,7 @@ export default function PaginationBar({ current, pageSize, total, onChange }: Pr
   if (total === 0) return null;
 
   return (
-    <nav aria-label="Pagination" className="flex items-center justify-between border-t border-[#222c37] pt-4 mt-2">
+    <nav aria-label="Pagination" className="flex items-center justify-between border-t border-[#242527] pt-4 mt-2">
       {/* Items Range Info */}
       <div className="text-[10px] font-mono text-[#94a3b8] uppercase hidden md:block" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
         Showing {startItem}-{endItem} of {total}
@@ -44,7 +44,7 @@ export default function PaginationBar({ current, pageSize, total, onChange }: Pr
         <button 
           onClick={() => current > 1 && onChange(current - 1, pageSize)}
           disabled={current === 1}
-          className="h-8 w-8 flex items-center justify-center rounded-sm border border-[#222c37] bg-[#11161b] text-[#94a3b8] transition-colors hover:bg-[#222c37] hover:text-[#f4f4f6] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="h-8 w-8 flex items-center justify-center rounded-sm border border-[#242527] bg-[#11161b] text-[#94a3b8] transition-colors hover:bg-[#242527] hover:text-[#f4f4f6] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <ChevronLeft size={14} />
         </button>
@@ -57,8 +57,8 @@ export default function PaginationBar({ current, pageSize, total, onChange }: Pr
               onClick={() => onChange(page, pageSize)}
               className={`h-8 w-8 flex items-center justify-center text-xs font-mono font-bold rounded-sm border transition-all duration-200 ${
                 page === current 
-                  ? 'bg-[#38bdf8]/10 border-[#38bdf8] text-[#38bdf8] shadow-[0_0_10px_rgba(56,189,248,0.2)]' 
-                  : 'bg-[#11161b] border-[#222c37] text-[#94a3b8] hover:bg-[#222c37] hover:text-[#f4f4f6]'
+                  ? 'bg-[#3b82f6]/10 border-[#3b82f6] text-[#3b82f6] shadow-[0_0_10px_rgba(56,189,248,0.2)]' 
+                  : 'bg-[#11161b] border-[#242527] text-[#94a3b8] hover:bg-[#242527] hover:text-[#f4f4f6]'
               }`}
               style={{ fontFamily: '"JetBrains Mono", monospace' }}
             >
@@ -71,7 +71,7 @@ export default function PaginationBar({ current, pageSize, total, onChange }: Pr
         <button 
           onClick={() => current < totalPages && onChange(current + 1, pageSize)}
           disabled={current === totalPages}
-          className="h-8 w-8 flex items-center justify-center rounded-sm border border-[#222c37] bg-[#11161b] text-[#94a3b8] transition-colors hover:bg-[#222c37] hover:text-[#f4f4f6] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="h-8 w-8 flex items-center justify-center rounded-sm border border-[#242527] bg-[#11161b] text-[#94a3b8] transition-colors hover:bg-[#242527] hover:text-[#f4f4f6] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <ChevronRight size={14} />
         </button>
@@ -83,7 +83,7 @@ export default function PaginationBar({ current, pageSize, total, onChange }: Pr
         <select 
           value={pageSize}
           onChange={(e) => onChange(1, Number(e.target.value))}
-          className="h-8 px-2 bg-[#11161b] border border-[#222c37] text-xs font-mono text-[#f4f4f6] outline-none cursor-pointer hover:border-[#5f636b] transition-colors"
+          className="h-8 px-2 bg-[#11161b] border border-[#242527] text-xs font-mono text-[#f4f4f6] outline-none cursor-pointer hover:border-[#5f636b] transition-colors"
           style={{ fontFamily: '"JetBrains Mono", monospace' }}
         >
           <option value={5}>5</option>

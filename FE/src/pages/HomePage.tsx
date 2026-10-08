@@ -70,7 +70,7 @@ function TypewriterLine() {
       <motion.span
         animate={prefersReducedMotion ? { opacity: 1 } : { opacity: [1, 1, 0, 0] }}
         transition={prefersReducedMotion ? undefined : { duration: 1, repeat: Infinity, times: [0, 0.5, 0.5, 1], ease: "linear" }}
-        style={{ color: "#38bdf8" }}
+        style={{ color: "#3b82f6" }}
       >
         |
       </motion.span>
@@ -91,7 +91,7 @@ function IsometricCard({
 }) {
   return (
     <motion.div
-      className="border border-[#222c37] bg-[#161d24] p-8 space-y-4"
+      className="border border-[#242527] bg-[#161d24] p-8 space-y-4"
       whileHover={{ y: -6, scale: 1.01, borderColor: "rgba(255, 176, 58, 0.3)" }}
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
@@ -179,7 +179,7 @@ export default function HomePage() {
               "radial-gradient(circle at 50% 50%, rgba(255, 176, 58, 0.08) 0%, rgba(56, 189, 248, 0.02) 45%, transparent 70%)",
           }}
         />
-        <div className="absolute bottom-[10%] right-[-5%] h-[40vw] w-[40vw] rounded-full bg-[#38bdf8]/5 blur-[120px]" />
+        <div className="absolute bottom-[10%] right-[-5%] h-[40vw] w-[40vw] rounded-full bg-[#3b82f6]/5 blur-[120px]" />
         {!prefersReducedMotion && particleList.map((p, i) => (
           <motion.div
             key={i}
@@ -209,7 +209,7 @@ export default function HomePage() {
         animate={{
           height: navScrolled ? 64 : 80,
           backgroundColor: navScrolled ? "rgba(8, 11, 14, 0.9)" : "rgba(8, 11, 14, 0)",
-          borderColor: navScrolled ? "#222c37" : "rgba(0,0,0,0)",
+          borderColor: navScrolled ? "#242527" : "rgba(0,0,0,0)",
           backdropFilter: navScrolled ? "blur(12px)" : "blur(0px)",
         }}
         transition={{ duration: 0.3 }}
@@ -218,32 +218,32 @@ export default function HomePage() {
           <Logo />
 
           <div
-            className="hidden items-center gap-8 text-xs uppercase tracking-widest text-slate-400 md:flex"
+            className="hidden items-center gap-8 text-xs uppercase tracking-widest text-white md:flex"
             style={{ fontFamily: fontFamily.mono }}
           >
-            <a href="#architecture" className="transition-colors hover:text-[#00f0ff]">
+            <a href="#architecture" className="text-white visited:text-white transition-colors hover:text-[#60a5fa]">
               Architecture
             </a>
-            <a href="#console" className="transition-colors hover:text-[#00f0ff]">
+            <a href="#console" className="text-white visited:text-white transition-colors hover:text-[#60a5fa]">
               Console
             </a>
-            <a href="#modules" className="transition-colors hover:text-[#00f0ff]">
+            <a href="#modules" className="text-white visited:text-white transition-colors hover:text-[#60a5fa]">
               Modules
             </a>
-            <a href="#hardware" className="transition-colors hover:text-[#00f0ff]">
+            <a href="#hardware" className="text-white visited:text-white transition-colors hover:text-[#60a5fa]">
               Evidence
             </a>
           </div>
 
           <div className="flex items-center gap-4">
             <span
-              className="hidden border border-[#222c37] bg-[#11161b] px-3 py-1 text-[10px] text-[#ffb03a] sm:inline-block"
+              className="hidden border border-[#242527] bg-[#11161b] px-3 py-1 text-[10px] text-[#ffb03a] sm:inline-block"
               style={{ fontFamily: fontFamily.mono }}
             >
               EVIDENCE // VERIFIED
             </span>
             {authLoading ? (
-              <span role="status" aria-label="Loading account" className="h-10 w-10 animate-pulse rounded-full border border-[#222c37] bg-[#11161b] motion-reduce:animate-none" />
+              <span role="status" aria-label="Loading account" className="h-10 w-10 animate-pulse rounded-full border border-[#242527] bg-[#11161b] motion-reduce:animate-none" />
             ) : user ? (
               <Suspense fallback={<span className="h-10 w-10" role="status" aria-label="Loading account menu" />}><AccountMenu onNavigate={() => setMobileMenuOpen(false)} /></Suspense>
             ) : (<>
@@ -256,7 +256,7 @@ export default function HomePage() {
             </Link>
             <Link
               to="/register"
-              className="hidden border border-[#38bdf8]/30 bg-[#11161b] px-5 py-2.5 text-xs uppercase tracking-widest text-white transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-[#00f0ff] hover:text-[#00f0ff] md:inline-block"
+              className="hidden border border-[#3b82f6]/30 bg-[#11161b] px-5 py-2.5 text-xs uppercase tracking-widest text-white transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-[#00f0ff] hover:text-[#00f0ff] md:inline-block"
               style={{ fontFamily: fontFamily.mono }}
             >
               Sign Up
@@ -267,7 +267,7 @@ export default function HomePage() {
               aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileMenuOpen}
               aria-controls="mobile-nav-menu"
-              className="border border-[#222c37] bg-[#11161b] p-2.5 text-slate-300 transition-colors hover:border-[#00f0ff] hover:text-white md:hidden"
+              className="border border-[#242527] bg-[#11161b] p-2.5 text-slate-300 transition-colors hover:border-[#00f0ff] hover:text-white md:hidden"
             >
               <Icon icon={mobileMenuOpen ? "ph:x-bold" : "ph:list-bold"} className="text-lg" />
             </button>
@@ -282,37 +282,37 @@ export default function HomePage() {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
-              className="absolute left-0 top-full w-full overflow-hidden border-b border-[#222c37] bg-[#080b0e]/95 backdrop-blur-md md:hidden"
+              className="absolute left-0 top-full w-full overflow-hidden border-b border-[#242527] bg-[#080b0e]/95 backdrop-blur-md md:hidden"
             >
               <nav
-                className="flex flex-col gap-1 px-6 py-4 text-xs uppercase tracking-widest text-slate-400"
+                className="flex flex-col gap-1 px-6 py-4 text-xs uppercase tracking-widest text-white"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 <a
                   href="#architecture"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="border-b border-[#222c37]/60 py-3 transition-colors hover:text-[#00f0ff]"
+                  className="border-b border-[#242527]/60 py-3 text-white visited:text-white transition-colors hover:text-[#60a5fa]"
                 >
                   Architecture
                 </a>
                 <a
                   href="#console"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="border-b border-[#222c37]/60 py-3 transition-colors hover:text-[#00f0ff]"
+                  className="border-b border-[#242527]/60 py-3 text-white visited:text-white transition-colors hover:text-[#60a5fa]"
                 >
                   Console
                 </a>
                 <a
                   href="#modules"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="border-b border-[#222c37]/60 py-3 transition-colors hover:text-[#00f0ff]"
+                  className="border-b border-[#242527]/60 py-3 text-white visited:text-white transition-colors hover:text-[#60a5fa]"
                 >
                   Modules
                 </a>
                 <a
                   href="#hardware"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="border-b border-[#222c37]/60 py-3 transition-colors hover:text-[#00f0ff]"
+                  className="border-b border-[#242527]/60 py-3 text-white visited:text-white transition-colors hover:text-[#60a5fa]"
                 >
                   Evidence
                 </a>
@@ -327,7 +327,7 @@ export default function HomePage() {
                 <Link
                   to="/register"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="mt-2 border border-[#38bdf8]/30 bg-[#11161b] px-5 py-2.5 text-center text-white transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-[#00f0ff] hover:text-[#00f0ff]"
+                  className="mt-2 border border-[#3b82f6]/30 bg-[#11161b] px-5 py-2.5 text-center text-white transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-[#00f0ff] hover:text-[#00f0ff]"
                 >
                   Sign Up
                 </Link>
@@ -337,7 +337,7 @@ export default function HomePage() {
                     setMobileMenuOpen(false);
                     notifyComingSoon("Repository analysis");
                   }}
-                  className="mt-2 border border-[#222c37] bg-transparent px-5 py-2.5 text-center text-slate-400 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400 hover:text-white"
+                  className="mt-2 border border-[#242527] bg-transparent px-5 py-2.5 text-center text-slate-400 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400 hover:text-white"
                 >
                   Analyze Repository
                 </button>
@@ -365,7 +365,7 @@ export default function HomePage() {
 
         <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-12 px-6 py-12 lg:grid-cols-12">
           <div className="space-y-8 text-left lg:col-span-7">
-            <div className="inline-flex items-center gap-3 border border-[#222c37] bg-[#11161b]/80 px-4 py-1.5">
+            <div className="inline-flex items-center gap-3 border border-[#242527] bg-[#11161b]/80 px-4 py-1.5">
               <Icon icon="radix-icons:dot-filled" className="animate-spin motion-reduce:animate-none text-[#ffb03a]" />
               <span
                 className="text-xs uppercase tracking-widest text-slate-300"
@@ -378,7 +378,7 @@ export default function HomePage() {
             <h1 className="text-5xl font-bold leading-[1.1] tracking-tight text-white sm:text-6xl md:text-7xl">
               Reconstruct How Your <br />
               <span
-                className="bg-gradient-to-r from-[#38bdf8] via-[#ffb03a] to-[#f59e0b] bg-clip-text text-transparent"
+                className="bg-gradient-to-r from-[#3b82f6] via-[#ffb03a] to-[#f59e0b] bg-clip-text text-transparent"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Architecture Evolved.
@@ -392,7 +392,7 @@ export default function HomePage() {
             <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
               <motion.a
                 href="#console"
-                className="rounded-none bg-[#38bdf8] px-8 py-4 text-center text-xs font-bold uppercase tracking-widest text-[#080b0e] transition-colors hover:bg-[#00f0ff]"
+                className="rounded-none bg-[#3b82f6] px-8 py-4 text-center text-xs font-bold uppercase tracking-widest text-[#080b0e] transition-colors hover:bg-[#00f0ff]"
                 style={{ fontFamily: fontFamily.mono }}
                 whileHover={{
                   boxShadow:
@@ -406,7 +406,7 @@ export default function HomePage() {
               </motion.a>
               <a
                 href="#architecture"
-                className="rounded-none border border-[#222c37] bg-[#11161b]/40 px-8 py-4 text-center text-xs font-light uppercase tracking-widest text-slate-300 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400"
+                className="rounded-none border border-[#242527] bg-[#11161b]/40 px-8 py-4 text-center text-xs font-light uppercase tracking-widest text-slate-300 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Explore Pipeline
@@ -433,7 +433,7 @@ export default function HomePage() {
                 ArchTime parses source code with an Abstract Syntax Tree and combines it with Git metadata &mdash; commits, authors, timestamps, diffs &mdash; to build a knowledge graph of your system across versions.
               </p>
               <div className="grid grid-cols-2 gap-4 pt-4">
-                <div className="border-l-2 border-[#38bdf8] pl-4">
+                <div className="border-l-2 border-[#3b82f6] pl-4">
                   <div className="text-xl font-bold text-white" style={{ fontFamily: fontFamily.mono }}>
                     AST
                   </div>
@@ -451,7 +451,7 @@ export default function HomePage() {
             <div className="grid gap-6 sm:grid-cols-2 lg:col-span-7">
               <IsometricCard
                 icon="ph:graph-light"
-                iconColor="#38bdf8"
+                iconColor="#3b82f6"
                 title="Knowledge Graph"
                 description="Represents modules, packages, classes and their dependencies across every version of the system."
               />
@@ -477,11 +477,11 @@ export default function HomePage() {
           </div>
         </RevealSection>
 
-        <RevealSection id="console" className="border-y border-[#222c37] bg-[#11161b]/50 py-32">
+        <RevealSection id="console" className="border-y border-[#242527] bg-[#11161b]/50 py-32">
           <div className="mx-auto max-w-7xl px-6">
             <div className="mx-auto mb-16 max-w-2xl text-center">
               <span
-                className="mb-3 block text-xs uppercase tracking-widest text-[#38bdf8]"
+                className="mb-3 block text-xs uppercase tracking-widest text-[#3b82f6]"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Evolution Analysis
@@ -491,8 +491,8 @@ export default function HomePage() {
               </h2>
             </div>
 
-            <div className="mx-auto w-full max-w-4xl overflow-hidden border border-[#222c37] bg-[#080b0e] shadow-2xl">
-              <div className="flex select-none items-center justify-between border-b border-[#222c37] bg-[#11161b] px-4 py-3">
+            <div className="mx-auto w-full max-w-4xl overflow-hidden border border-[#242527] bg-[#080b0e] shadow-2xl">
+              <div className="flex select-none items-center justify-between border-b border-[#242527] bg-[#11161b] px-4 py-3">
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-red-500/40" />
                   <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/40" />
@@ -511,7 +511,7 @@ export default function HomePage() {
                 style={{ fontFamily: fontFamily.mono }}
               >
                 <div className="flex items-start gap-2">
-                  <span className="text-[#38bdf8]">archtime@repo:~$</span>
+                  <span className="text-[#3b82f6]">archtime@repo:~$</span>
                   <span className="text-slate-300">analyze --repo=./target-service --since=v1.0.0</span>
                 </div>
                 <div className="space-y-1 text-slate-500">
@@ -520,14 +520,14 @@ export default function HomePage() {
                   <div>[ OK ] Comparing architecture snapshots (graph edit distance)...</div>
                 </div>
                 <div className="flex items-start gap-2">
-                  <span className="text-[#38bdf8]">archtime@repo:~$</span>
+                  <span className="text-[#3b82f6]">archtime@repo:~$</span>
                   <span className="text-slate-300">cat architectural_diff.json</span>
                 </div>
-                <div className="border border-[#222c37]/60 bg-[#161d24]/50 p-4 leading-relaxed text-[#ffb03a]">
+                <div className="border border-[#242527]/60 bg-[#161d24]/50 p-4 leading-relaxed text-[#ffb03a]">
                   &quot;Module `billing-service` was split from `core-monolith` at commit 4af21c9. Evidence: 3 commits, 2 authors, dependency direction reversed.&quot;
                 </div>
                 <div className="flex items-center gap-2 pt-2">
-                  <span className="text-[#38bdf8]">archtime@repo:~$</span>
+                  <span className="text-[#3b82f6]">archtime@repo:~$</span>
                   <TypewriterLine />
                 </div>
               </div>
@@ -552,17 +552,17 @@ export default function HomePage() {
           </div>
 
           <div className="grid gap-8 md:grid-cols-3">
-            <div className="group flex h-80 flex-col justify-between border border-[#222c37] bg-[#161d24] p-8 transition-colors hover:border-[#38bdf8]/40">
+            <div className="group flex h-80 flex-col justify-between border border-[#242527] bg-[#161d24] p-8 transition-colors hover:border-[#3b82f6]/40">
               <div>
                 <div className="mb-6 flex items-start justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center border border-[#38bdf8]/20 bg-[#38bdf8]/10 text-xl text-[#38bdf8]">
+                  <div className="flex h-12 w-12 items-center justify-center border border-[#3b82f6]/20 bg-[#3b82f6]/10 text-xl text-[#3b82f6]">
                     <Icon icon="ph:cube-light" />
                   </div>
                   <span className="text-xs text-slate-500" style={{ fontFamily: fontFamily.mono }}>
                     01 / CHANGE
                   </span>
                 </div>
-                <h3 className="mb-2 text-xl font-bold text-white transition-colors group-hover:text-[#38bdf8]">
+                <h3 className="mb-2 text-xl font-bold text-white transition-colors group-hover:text-[#3b82f6]">
                   Module Split / Merge
                 </h3>
                 <p className="text-sm leading-relaxed text-slate-400 font-light">
@@ -577,7 +577,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="group flex h-80 flex-col justify-between border border-[#222c37] bg-[#161d24] p-8 transition-colors hover:border-[#ffb03a]/40">
+            <div className="group flex h-80 flex-col justify-between border border-[#242527] bg-[#161d24] p-8 transition-colors hover:border-[#ffb03a]/40">
               <div>
                 <div className="mb-6 flex items-start justify-between">
                   <div className="flex h-12 w-12 items-center justify-center border border-[#ffb03a]/20 bg-[#ffb03a]/10 text-xl text-[#ffb03a]">
@@ -602,7 +602,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="group flex h-80 flex-col justify-between border border-[#222c37] bg-[#161d24] p-8 transition-colors hover:border-[#00f0ff]/40">
+            <div className="group flex h-80 flex-col justify-between border border-[#242527] bg-[#161d24] p-8 transition-colors hover:border-[#00f0ff]/40">
               <div>
                 <div className="mb-6 flex items-start justify-between">
                   <div className="flex h-12 w-12 items-center justify-center border border-[#00f0ff]/20 bg-[#00f0ff]/10 text-xl text-[#00f0ff]">
@@ -629,27 +629,27 @@ export default function HomePage() {
           </div>
         </RevealSection>
 
-        <RevealSection id="hardware" className="border-t border-[#222c37] bg-[#161d24]/30 py-32">
+        <RevealSection id="hardware" className="border-t border-[#242527] bg-[#161d24]/30 py-32">
           <div className="mx-auto grid max-w-7xl items-center gap-16 px-6 lg:grid-cols-12">
             <div className="relative order-2 lg:col-span-6 lg:order-1">
-              <div className="pointer-events-none absolute inset-0 rounded-full bg-[#38bdf8]/5 blur-[100px]" />
+              <div className="pointer-events-none absolute inset-0 rounded-full bg-[#3b82f6]/5 blur-[100px]" />
               <div
-                className="relative z-10 space-y-4 border border-[#222c37] bg-[#080b0e] p-8 text-xs"
+                className="relative z-10 space-y-4 border border-[#242527] bg-[#080b0e] p-8 text-xs"
                 style={{ fontFamily: fontFamily.mono }}
               >
-                <div className="flex justify-between border-b border-[#222c37]/40 pb-3 text-slate-500">
+                <div className="flex justify-between border-b border-[#242527]/40 pb-3 text-slate-500">
                   <span>EVIDENCE RECORD</span>
                   <span>COMMIT 4af21c9</span>
                 </div>
-                <div className="flex justify-between border-b border-[#222c37]/40 pb-2">
+                <div className="flex justify-between border-b border-[#242527]/40 pb-2">
                   <span className="text-slate-400">Author</span>
                   <span className="text-white">j.tran@example.com</span>
                 </div>
-                <div className="flex justify-between border-b border-[#222c37]/40 pb-2">
+                <div className="flex justify-between border-b border-[#242527]/40 pb-2">
                   <span className="text-slate-400">Files Changed</span>
                   <span className="text-white">14 modified, 3 added</span>
                 </div>
-                <div className="flex justify-between border-b border-[#222c37]/40 pb-2">
+                <div className="flex justify-between border-b border-[#242527]/40 pb-2">
                   <span className="text-slate-400">Claim Type</span>
                   <span className="text-white">FACT</span>
                 </div>
@@ -662,7 +662,7 @@ export default function HomePage() {
 
             <div className="space-y-6 order-1 lg:col-span-6 lg:order-2">
               <span
-                className="block text-xs uppercase tracking-widest text-[#38bdf8]"
+                className="block text-xs uppercase tracking-widest text-[#3b82f6]"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Evidence-Based Reasoning
@@ -689,7 +689,7 @@ export default function HomePage() {
         <RevealSection id="subscribe" className="relative mx-auto max-w-4xl overflow-hidden px-6 py-32 text-center">
           <div className="pointer-events-none absolute inset-0 rounded-full bg-[#ffb03a]/5 blur-3xl" />
           <div className="relative z-10 space-y-8">
-            <Icon icon="ph:fingerprint-light" className="animate-pulse motion-reduce:animate-none text-4xl text-[#38bdf8]" />
+            <Icon icon="ph:fingerprint-light" className="animate-pulse motion-reduce:animate-none text-4xl text-[#3b82f6]" />
             <h2 className="text-3xl font-bold tracking-tight text-white sm:text-5xl">
               Follow the ArchTime Build Log
             </h2>
@@ -710,12 +710,12 @@ export default function HomePage() {
                 value={subscribeEmail}
                 onChange={(e) => setSubscribeEmail(e.target.value)}
                 placeholder="you@domain.com"
-                className="w-full border border-[#222c37] bg-[#161d24] px-5 py-4 text-xs text-white placeholder:text-slate-600 focus:border-[#38bdf8] focus:outline-none transition-colors"
+                className="w-full border border-[#242527] bg-[#161d24] px-5 py-4 text-xs text-white placeholder:text-slate-600 focus:border-[#3b82f6] focus:outline-none transition-colors"
                 style={{ fontFamily: fontFamily.mono }}
               />
               <button
                 type="submit"
-                className="w-full whitespace-nowrap bg-[#38bdf8] px-8 py-4 text-xs font-bold uppercase tracking-widest text-[#080b0e] transition-colors hover:bg-[#00f0ff] sm:w-auto"
+                className="w-full whitespace-nowrap bg-[#3b82f6] px-8 py-4 text-xs font-bold uppercase tracking-widest text-[#080b0e] transition-colors hover:bg-[#00f0ff] sm:w-auto"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Subscribe
@@ -724,7 +724,7 @@ export default function HomePage() {
           </div>
         </RevealSection>
 
-        <footer className="relative overflow-hidden border-t border-[#222c37]/40 bg-[#11161b] px-6 pb-12 pt-20">
+        <footer className="relative overflow-hidden border-t border-[#242527]/40 bg-[#11161b] px-6 pb-12 pt-20">
           <div className="mx-auto mb-16 grid max-w-7xl items-start gap-16 lg:grid-cols-12">
             <div className="space-y-6 lg:col-span-5">
               <Logo />
@@ -741,11 +741,11 @@ export default function HomePage() {
                 >
                   Pipeline
                 </h4>
-                <ul className="space-y-4 text-xs text-slate-400" style={{ fontFamily: fontFamily.mono }}>
-                  <li><a href="#architecture" className="transition-colors hover:text-white">Repository Mining</a></li>
-                  <li><a href="#console" className="transition-colors hover:text-white">Evolution Analysis</a></li>
-                  <li><a href="#hardware" className="transition-colors hover:text-white">Evidence-Based Reasoning</a></li>
-                  <li><a href="#modules" className="transition-colors hover:text-white">Architectural Diff</a></li>
+                <ul className="space-y-4 text-xs" style={{ fontFamily: fontFamily.mono }}>
+                  <li><a href="#architecture" className="text-white visited:text-white transition-colors hover:text-[#60a5fa]">Repository Mining</a></li>
+                  <li><a href="#console" className="text-white visited:text-white transition-colors hover:text-[#60a5fa]">Evolution Analysis</a></li>
+                  <li><a href="#hardware" className="text-white visited:text-white transition-colors hover:text-[#60a5fa]">Evidence-Based Reasoning</a></li>
+                  <li><a href="#modules" className="text-white visited:text-white transition-colors hover:text-[#60a5fa]">Architectural Diff</a></li>
                 </ul>
               </div>
               <div>
@@ -785,7 +785,7 @@ export default function HomePage() {
           </div>
 
           <div
-            className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-[#222c37]/40 pt-8 text-[10px] uppercase tracking-widest text-slate-500 sm:flex-row"
+            className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-[#242527]/40 pt-8 text-[10px] uppercase tracking-widest text-slate-500 sm:flex-row"
             style={{ fontFamily: fontFamily.mono }}
           >
             <p>&copy; 2026 ArchTime. Capstone Project.</p>

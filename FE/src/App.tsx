@@ -91,7 +91,7 @@ const router = createBrowserRouter(createRoutesFromElements(
 ));
 
 export default function App() {
-  return <PageErrorBoundary><StyleProvider layer><ConfigProvider theme={{ algorithm: theme.darkAlgorithm, token: { colorPrimary: '#38bdf8', colorBgBase: '#080b0e', fontFamily: '"Space Grotesk", sans-serif', borderRadius: 6 } }}>
+  return <PageErrorBoundary><StyleProvider layer><ConfigProvider theme={{ algorithm: theme.darkAlgorithm, token: { colorPrimary: '#3b82f6', colorBgBase: '#080b0e', fontFamily: '"Space Grotesk", sans-serif', borderRadius: 6 } }}>
     <AntApp><MotionConfig reducedMotion="user"><RouterProvider router={router} /></MotionConfig></AntApp>
   </ConfigProvider></StyleProvider></PageErrorBoundary>;
 }

@@ -151,9 +151,9 @@ const Evidence: React.FC = () => {
         <div className="shrink-0 space-y-6">
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#161d24] border border-[#222c37] mb-4">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] shadow-[0_0_5px_#38bdf8]"></div>
-                <span className="text-[10px] font-mono text-[#38bdf8] tracking-wider font-semibold uppercase"
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#161d24] border border-[#242527] mb-4">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] shadow-[0_0_5px_#3b82f6]"></div>
+                <span className="text-[10px] font-mono text-[#3b82f6] tracking-wider font-semibold uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Evidence Observatory</span>
               </div>
               <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Changes & Evidence</h2>
@@ -162,7 +162,7 @@ const Evidence: React.FC = () => {
               </p>
 
               <div className="mt-6 mb-2 flex items-center gap-4">
-                <div className="relative group flex items-center h-10 bg-[#080b0e] border border-[#222c37] hover:border-[#5f636b] transition-colors">
+                <div className="relative group flex items-center h-10 bg-[#080b0e] border border-[#242527] hover:border-[#5f636b] transition-colors">
                   <FolderKanban size={16} className="text-[#94a3b8] ml-4" />
                   <span className="text-[10px] font-mono text-[#94a3b8] uppercase pl-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>Project:</span>
                   <select 
@@ -181,7 +181,7 @@ const Evidence: React.FC = () => {
           </div>
 
           {/* FILTER BAR */}
-          <div className="flex flex-wrap items-center gap-3 bg-[#11161b] p-3 border border-[#222c37]">
+          <div className="flex flex-wrap items-center gap-3 bg-[#11161b] p-3 border border-[#242527]">
             <div className="flex-1 relative min-w-[200px]">
                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
                <input
@@ -190,7 +190,7 @@ const Evidence: React.FC = () => {
                  value={search}
                  onChange={event => setSearch(event.target.value)}
                  placeholder="Search changes..."
-                 className="w-full bg-[#080b0e] border border-[#222c37] h-9 pl-9 pr-9 text-sm text-[#f4f4f6] placeholder-[#5f636b] focus:outline-none focus:border-[#38bdf8]/50 transition-colors"
+                 className="w-full bg-[#080b0e] border border-[#242527] h-9 pl-9 pr-9 text-sm text-[#f4f4f6] placeholder-[#5f636b] focus:outline-none focus:border-[#3b82f6]/50 transition-colors"
                />
                {search && (
                  <button 
@@ -203,22 +203,22 @@ const Evidence: React.FC = () => {
                )}
             </div>
             
-            <select aria-label="Filter by change type" value={type} onChange={event => setType(event.target.value)} className="h-10 px-3 bg-[#080b0e] border border-[#222c37] text-sm">
+            <select aria-label="Filter by change type" value={type} onChange={event => setType(event.target.value)} className="h-10 px-3 bg-[#080b0e] border border-[#242527] text-sm">
               <option value="all">All change types</option>{[...new Set(evidenceData.map(item => item.type))].map(value => <option key={value} value={value as string}>{value as string}</option>)}
             </select>
-            <select aria-label="Filter by repository" value={repository} onChange={event => setRepository(event.target.value)} className="h-10 px-3 bg-[#080b0e] border border-[#222c37] text-sm">
+            <select aria-label="Filter by repository" value={repository} onChange={event => setRepository(event.target.value)} className="h-10 px-3 bg-[#080b0e] border border-[#242527] text-sm">
               <option value="all">All repositories</option>{[...new Set(evidenceData.map(item => item.repository))].map(value => <option key={value} value={value as string}>{value as string}</option>)}
             </select>
           </div>
         </div>
 
         {/* CHANGE LIST TABLE */}
-        <div className="flex-1 bg-[#11161b] border border-[#222c37] overflow-hidden flex flex-col relative">
+        <div className="flex-1 bg-[#11161b] border border-[#242527] overflow-hidden flex flex-col relative">
           {loading && (
              <div className="absolute inset-0 bg-[#080b0e]/80 flex items-center justify-center z-10 backdrop-blur-sm">
                <div className="flex flex-col items-center gap-4">
-                  <div className="w-8 h-8 rounded-full border-2 border-[#38bdf8] border-t-transparent animate-spin"></div>
-                  <span className="text-xs font-mono text-[#38bdf8]">Loading Evidence...</span>
+                  <div className="w-8 h-8 rounded-full border-2 border-[#3b82f6] border-t-transparent animate-spin"></div>
+                  <span className="text-xs font-mono text-[#3b82f6]">Loading Evidence...</span>
                </div>
              </div>
           )}
@@ -226,7 +226,7 @@ const Evidence: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
-                <tr className="border-b border-[#222c37] bg-[#161d24]">
+                <tr className="border-b border-[#242527] bg-[#161d24]">
                   <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Change</th>
                   <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
@@ -243,12 +243,12 @@ const Evidence: React.FC = () => {
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#222c37]">
+              <tbody className="divide-y divide-[#242527]">
                 {!loading && !filtered.length && <tr><td colSpan={7} className="p-8 text-center text-sm text-[#94a3b8]" role="status">No changes match these filters.</td></tr>}
                 {pagination.items.map((item: any) => (
                   <tr 
                     key={item.id} 
-                    className="group hover:bg-[#222c37]/30 transition-colors cursor-pointer"
+                    className="group hover:bg-[#242527]/30 transition-colors cursor-pointer"
                     onClick={() => setSelectedChange(item)}
                   >
                     <td className="p-4 text-sm font-bold text-[#f4f4f6]">{item.changeTitle}</td>
@@ -260,7 +260,7 @@ const Evidence: React.FC = () => {
                     </td>
                     <td className="p-4 text-xs font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>{item.repository}</td>
-                    <td className="p-4 text-xs font-mono text-[#38bdf8] font-bold flex items-center gap-1.5"
+                    <td className="p-4 text-xs font-mono text-[#3b82f6] font-bold flex items-center gap-1.5"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                        <GitCommit size={14} /> {item.commit}
                     </td>
@@ -274,7 +274,7 @@ const Evidence: React.FC = () => {
                            setSelectedChange(item);
                          }}
                          aria-label={`View evidence for ${item.changeTitle}`}
-                         className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-[#94a3b8] group-hover:text-[#38bdf8] transition-colors uppercase focus:outline-none focus-visible:text-[#38bdf8]"
+                         className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-[#94a3b8] group-hover:text-[#3b82f6] transition-colors uppercase focus:outline-none focus-visible:text-[#3b82f6]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                           View <ArrowRight size={14} />
                        </button>
@@ -310,10 +310,10 @@ const Evidence: React.FC = () => {
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="absolute top-0 right-0 bottom-0 w-[800px] max-w-[90vw] bg-[#11161b] border-l border-[#222c37] shadow-2xl z-50 flex flex-col"
+                className="absolute top-0 right-0 bottom-0 w-[800px] max-w-[90vw] bg-[#11161b] border-l border-[#242527] shadow-2xl z-50 flex flex-col"
               >
                 {/* Drawer Header */}
-                <div className="p-6 border-b border-[#222c37] bg-[#161d24] shrink-0">
+                <div className="p-6 border-b border-[#242527] bg-[#161d24] shrink-0">
                   <div className="flex items-start justify-between gap-4 mb-4">
                     <div>
                       <span className="px-2 py-1 bg-[#ffb03a]/10 border border-[#ffb03a]/20 text-[#ffb03a] text-[9px] font-mono font-bold uppercase tracking-widest mb-3 inline-block"
@@ -325,15 +325,15 @@ const Evidence: React.FC = () => {
                     <button
                       onClick={closeDrawer}
                       aria-label="Close evidence detail"
-                      className="w-8 h-8 bg-[#222c37] hover:bg-[#5f636b] text-[#f4f4f6] flex items-center justify-center transition-colors shrink-0"
+                      className="w-8 h-8 bg-[#242527] hover:bg-[#5f636b] text-[#f4f4f6] flex items-center justify-center transition-colors shrink-0"
                     >
                       <X size={18} />
                     </button>
                   </div>
                   
                   {/* AI Disclaimer */}
-                  <div className="bg-[#38bdf8]/5 border border-[#38bdf8]/20 p-4 mt-4">
-                     <p className="text-xs text-[#38bdf8] leading-relaxed">
+                  <div className="bg-[#3b82f6]/5 border border-[#3b82f6]/20 p-4 mt-4">
+                     <p className="text-xs text-[#3b82f6] leading-relaxed">
                        <strong className="font-bold tracking-wide uppercase font-mono text-[10px]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Evidence Suggests:</strong><br />
                        Based on repository evidence, {selectedChange.summary}
@@ -351,12 +351,12 @@ const Evidence: React.FC = () => {
                        <Link size={14} /> Traceability Chain
                     </h4>
                     
-                    <div className="bg-[#080b0e] border border-[#222c37] p-6 flex flex-col items-center justify-center gap-3 relative overflow-hidden">
-                       <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'radial-gradient(#38bdf8 1px, transparent 1px)', backgroundSize: '16px 16px' }}></div>
+                    <div className="bg-[#080b0e] border border-[#242527] p-6 flex flex-col items-center justify-center gap-3 relative overflow-hidden">
+                       <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'radial-gradient(#3b82f6 1px, transparent 1px)', backgroundSize: '16px 16px' }}></div>
                        
                        <div className="flex items-center justify-between w-full max-w-2xl relative z-10">
                           {/* Line connecting them */}
-                          <div className="absolute top-1/2 left-0 right-0 h-px bg-[#222c37] -translate-y-1/2 z-0"></div>
+                          <div className="absolute top-1/2 left-0 right-0 h-px bg-[#242527] -translate-y-1/2 z-0"></div>
                           
                           <div className="flex flex-col items-center gap-2 z-10 bg-[#080b0e] px-2">
                             <div className="w-8 h-8 rounded-full bg-[#ffb03a]/20 border border-[#ffb03a]/50 flex items-center justify-center text-[#ffb03a]">
@@ -367,7 +367,7 @@ const Evidence: React.FC = () => {
                           </div>
 
                           <div className="flex flex-col items-center gap-2 z-10 bg-[#080b0e] px-2">
-                            <div className="w-8 h-8 rounded-full bg-[#222c37] border border-[#5f636b] flex items-center justify-center text-[#f4f4f6]">
+                            <div className="w-8 h-8 rounded-full bg-[#242527] border border-[#5f636b] flex items-center justify-center text-[#f4f4f6]">
                                <GitCommit size={14} />
                             </div>
                             <span className="text-[9px] font-mono text-[#94a3b8] font-bold"
@@ -375,7 +375,7 @@ const Evidence: React.FC = () => {
                           </div>
 
                           <div className="flex flex-col items-center gap-2 z-10 bg-[#080b0e] px-2">
-                            <div className="w-8 h-8 rounded-full bg-[#222c37] border border-[#5f636b] flex items-center justify-center text-[#f4f4f6]">
+                            <div className="w-8 h-8 rounded-full bg-[#242527] border border-[#5f636b] flex items-center justify-center text-[#f4f4f6]">
                                <FileCode size={14} />
                             </div>
                             <span className="text-[9px] font-mono text-[#94a3b8] font-bold"
@@ -383,7 +383,7 @@ const Evidence: React.FC = () => {
                           </div>
 
                           <div className="flex flex-col items-center gap-2 z-10 bg-[#080b0e] px-2">
-                            <div className="w-8 h-8 rounded-full bg-[#222c37] border border-[#5f636b] flex items-center justify-center text-[#f4f4f6]">
+                            <div className="w-8 h-8 rounded-full bg-[#242527] border border-[#5f636b] flex items-center justify-center text-[#f4f4f6]">
                                <Network size={14} />
                             </div>
                             <span className="text-[9px] font-mono text-[#94a3b8] font-bold"
@@ -391,10 +391,10 @@ const Evidence: React.FC = () => {
                           </div>
 
                           <div className="flex flex-col items-center gap-2 z-10 bg-[#080b0e] px-2">
-                            <div className="w-8 h-8 rounded-full bg-[#38bdf8]/20 border border-[#38bdf8]/50 flex items-center justify-center text-[#38bdf8]">
+                            <div className="w-8 h-8 rounded-full bg-[#3b82f6]/20 border border-[#3b82f6]/50 flex items-center justify-center text-[#3b82f6]">
                                <Box size={14} />
                             </div>
-                            <span className="text-[9px] font-mono text-[#38bdf8] font-bold"
+                            <span className="text-[9px] font-mono text-[#3b82f6] font-bold"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Snapshot</span>
                           </div>
                        </div>
@@ -403,17 +403,17 @@ const Evidence: React.FC = () => {
 
                   {/* EVIDENCE GRID */}
                   <div className="grid grid-cols-2 gap-4">
-                     <div className="bg-[#161d24] border border-[#222c37] p-4">
+                     <div className="bg-[#161d24] border border-[#242527] p-4">
                         <div className="text-[10px] font-mono text-[#94a3b8] mb-2 uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Commit Info</div>
-                        <div className="text-sm font-mono font-bold text-[#38bdf8]"
+                        <div className="text-sm font-mono font-bold text-[#3b82f6]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>{selectedChange.commit}</div>
                         <div className="text-[10px] mt-1 text-[#f4f4f6] truncate" title={selectedChange.diffBefore?.match(/Author:\s*(.*)/)?.[1] || 'Unknown Author'}>
                           {selectedChange.diffBefore?.match(/Author:\s*(.*)/)?.[1] || 'Unknown Author'}
                         </div>
                         <div className="text-[10px] mt-1 text-[#94a3b8]">{selectedChange.date}</div>
                      </div>
-                     <div className="bg-[#161d24] border border-[#222c37] p-4">
+                     <div className="bg-[#161d24] border border-[#242527] p-4">
                         <div className="text-[10px] font-mono text-[#94a3b8] mb-2 uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Dependencies Drift</div>
                         <div className="text-sm font-bold font-mono"
@@ -430,8 +430,8 @@ const Evidence: React.FC = () => {
                        <FileCode size={14} /> Modified Files ({selectedChange.files})
                     </h4>
                     
-                    <div className="bg-[#11161b] border border-[#222c37] overflow-hidden max-h-[300px] overflow-y-auto custom-scrollbar">
-                       <ul className="divide-y divide-[#222c37]">
+                    <div className="bg-[#11161b] border border-[#242527] overflow-hidden max-h-[300px] overflow-y-auto custom-scrollbar">
+                       <ul className="divide-y divide-[#242527]">
                          {selectedChange.sourceFiles?.length > 0 ? (
                            selectedChange.sourceFiles.map((file: string, idx: number) => (
                              <li key={idx} className="flex items-center justify-between p-3 hover:bg-[#161d24] transition-colors group">
@@ -441,7 +441,7 @@ const Evidence: React.FC = () => {
                                 </div>
                                 <button
                                   onClick={() => viewFileDiff(file, selectedChange.diffBefore)}
-                                  className="shrink-0 ml-4 px-3 py-1 bg-[#222c37] text-[10px] font-mono text-[#94a3b8] group-hover:text-[#38bdf8] transition-colors rounded-sm"
+                                  className="shrink-0 ml-4 px-3 py-1 bg-[#242527] text-[10px] font-mono text-[#94a3b8] group-hover:text-[#3b82f6] transition-colors rounded-sm"
                                   style={{ fontFamily: '"JetBrains Mono", monospace' }}
                                 >
                                   VIEW DIFF
@@ -461,14 +461,14 @@ const Evidence: React.FC = () => {
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                        <Box size={14} /> Architecture Interpretation
                      </h4>
-                     <div className="bg-[#161d24] border border-[#222c37] p-6 flex flex-col items-center">
+                     <div className="bg-[#161d24] border border-[#242527] p-6 flex flex-col items-center">
                         <div className="flex items-center justify-center w-full max-w-md relative">
                            {/* Line connecting them */}
-                           <div className="absolute top-1/2 left-0 right-0 h-px bg-[#222c37] -translate-y-1/2 z-0"></div>
+                           <div className="absolute top-1/2 left-0 right-0 h-px bg-[#242527] -translate-y-1/2 z-0"></div>
                            
                            <div className="flex justify-between w-full z-10">
                               <div className="flex flex-col items-center gap-2 bg-[#161d24] px-4">
-                                <div className="w-12 h-12 rounded-lg bg-[#080b0e] border border-[#222c37] flex items-center justify-center text-[#94a3b8] shadow-inner">
+                                <div className="w-12 h-12 rounded-lg bg-[#080b0e] border border-[#242527] flex items-center justify-center text-[#94a3b8] shadow-inner">
                                    <Layers size={20} />
                                 </div>
                                 <span className="text-[10px] font-mono text-[#94a3b8] font-bold"
@@ -476,7 +476,7 @@ const Evidence: React.FC = () => {
                               </div>
 
                               <div className="flex flex-col items-center justify-center bg-[#161d24] px-2">
-                                <div className="w-6 h-6 rounded-full bg-[#222c37] border border-[#5f636b] flex items-center justify-center text-[#f4f4f6]">
+                                <div className="w-6 h-6 rounded-full bg-[#242527] border border-[#5f636b] flex items-center justify-center text-[#f4f4f6]">
                                    <ArrowRight size={12} />
                                 </div>
                               </div>
@@ -507,7 +507,7 @@ const Evidence: React.FC = () => {
           centered
           title={
             <div className="flex items-center gap-2 text-[#f4f4f6] font-mono text-sm" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-              <Code2 size={16} className="text-[#38bdf8]" />
+              <Code2 size={16} className="text-[#3b82f6]" />
               Diff: {fileDiffModal.filename}
             </div>
           }
@@ -517,8 +517,8 @@ const Evidence: React.FC = () => {
           width={900}
           className="dark-modal"
           styles={{
-            container: { backgroundColor: '#11161b', border: '1px solid #222c37', padding: 0 },
-            header: { backgroundColor: '#161d24', borderBottom: '1px solid #222c37', padding: '16px', margin: 0 },
+            container: { backgroundColor: '#11161b', border: '1px solid #242527', padding: 0 },
+            header: { backgroundColor: '#161d24', borderBottom: '1px solid #242527', padding: '16px', margin: 0 },
             body: { padding: '0' }
           }}
           closeIcon={<X size={18} className="text-[#94a3b8] hover:text-[#f4f4f6]" />}
@@ -537,7 +537,7 @@ const Evidence: React.FC = () => {
                     textColor = 'text-[#ef4444]'; // red
                     bgColor = 'bg-[#ef4444]/10';
                   } else if (line.startsWith('@@')) {
-                    textColor = 'text-[#38bdf8]'; // blue for chunks
+                    textColor = 'text-[#3b82f6]'; // blue for chunks
                   } else if (line.startsWith('+++') || line.startsWith('---')) {
                     textColor = 'text-[#94a3b8] font-bold'; // gray for headers
                   }

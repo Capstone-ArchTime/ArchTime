@@ -30,15 +30,15 @@ function TokensByDay({ rows, days }: { rows: UsageRow[]; days: number }) {
   if (!rows.length) return <Empty description="No AI runs in this period" />;
   return <figure aria-label="Tokens used per day">
     <div className="flex items-baseline justify-between text-xs text-[#94a3b8] mb-2"><span>Tokens per day</span><span className="font-mono">peak {formatCompactTokens(max)}</span></div>
-    <div className="relative h-40 border-b border-[#222c37]">
-      <div className="absolute inset-x-0 top-0 border-t border-dashed border-[#222c37]" aria-hidden />
+    <div className="relative h-40 border-b border-[#242527]">
+      <div className="absolute inset-x-0 top-0 border-t border-dashed border-[#242527]" aria-hidden />
       <div className="absolute inset-0 flex items-end gap-[2px]">
         {series.map(s => {
           const total = s.row?.totalTokens ?? 0;
           return <Tooltip key={s.day} title={<div className="text-xs"><p className="font-medium">{new Date(s.day).toLocaleDateString()}</p>
             {s.row ? <><p>{formatTokens(s.row.inputTokens)} in · {formatTokens(s.row.outputTokens)} out</p><p>{formatTokens(s.row.runs)} runs · {formatCost(s.row.cost)}</p></> : <p>No runs</p>}</div>}>
             <div className="group flex h-full flex-1 items-end" role="img" aria-label={`${s.day}: ${formatTokens(total)} tokens`}>
-              <div className="w-full rounded-t-[4px] bg-[#38bdf8] group-hover:bg-[#7dd3fc]" style={{ height: total ? `${Math.max(2, (total / max) * 100)}%` : 0 }} />
+              <div className="w-full rounded-t-[4px] bg-[#3b82f6] group-hover:bg-[#60a5fa]" style={{ height: total ? `${Math.max(2, (total / max) * 100)}%` : 0 }} />
             </div>
           </Tooltip>;
         })}
@@ -49,7 +49,7 @@ function TokensByDay({ rows, days }: { rows: UsageRow[]; days: number }) {
 }
 
 function ScoreBar({ value }: { value: number }) {
-  return <div className="flex items-center gap-2 min-w-32"><Progress percent={value} showInfo={false} size="small" strokeColor="#38bdf8" className="!m-0 flex-1" /><span className="font-mono text-sm w-10 text-right">{value.toFixed(1)}</span></div>;
+  return <div className="flex items-center gap-2 min-w-32"><Progress percent={value} showInfo={false} size="small" strokeColor="#3b82f6" className="!m-0 flex-1" /><span className="font-mono text-sm w-10 text-right">{value.toFixed(1)}</span></div>;
 }
 
 const leaderboardColumns: ColumnsType<LeaderboardRow> = [

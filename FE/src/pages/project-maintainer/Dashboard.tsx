@@ -91,9 +91,9 @@ export default function ProjectMaintainerDashboard() {
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-10">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#161d24] border border-[#222c37] mb-4">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] shadow-[0_0_5px_#38bdf8]"></div>
-            <span className="text-[10px] text-[#38bdf8] tracking-wider font-semibold uppercase" style={{ fontFamily: fontFamily.mono }}>
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#161d24] border border-[#242527] mb-4">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] shadow-[0_0_5px_#3b82f6]"></div>
+            <span className="text-[10px] text-[#3b82f6] tracking-wider font-semibold uppercase" style={{ fontFamily: fontFamily.mono }}>
               Project Maintainer Workspace
             </span>
           </div>
@@ -117,7 +117,7 @@ export default function ProjectMaintainerDashboard() {
               <Button loading={loading} onClick={refresh}>Refresh</Button>
             </div>
           </div>
-          <div className="h-[1px] w-full bg-gradient-to-r from-[#222c37] to-transparent mt-8"></div>
+          <div className="h-[1px] w-full bg-gradient-to-r from-[#242527] to-transparent mt-8"></div>
         </div>
 
         {error && <p className="text-red-400">{error}</p>}
@@ -131,11 +131,11 @@ export default function ProjectMaintainerDashboard() {
             <Link
               key={item.path}
               to={`/project-maintainer/${item.path}${selectedProject ? `?project=${selectedProject}` : ''}`}
-              className="group border border-[#222c37] bg-[#11161b] p-5 hover:border-[#38bdf8] focus-visible:outline focus-visible:outline-[#38bdf8] transition-colors"
+              className="group border border-[#242527] bg-[#11161b] p-5 hover:border-[#3b82f6] focus-visible:outline focus-visible:outline-[#3b82f6] transition-colors"
             >
               <div className="flex justify-between gap-3">
-                <h3 className="font-semibold text-sm group-hover:text-[#38bdf8]">{item.title}</h3>
-                <ArrowRight size={16} className="text-[#38bdf8] shrink-0" />
+                <h3 className="font-semibold text-sm group-hover:text-[#3b82f6]">{item.title}</h3>
+                <ArrowRight size={16} className="text-[#3b82f6] shrink-0" />
               </div>
               <p className="text-xs text-[#94a3b8] leading-relaxed mt-3">{item.description}</p>
             </Link>
@@ -148,30 +148,30 @@ export default function ProjectMaintainerDashboard() {
           <>
             <section>
               <div className="mb-6 flex items-center gap-2">
-                <ShieldCheck size={18} className="text-[#38bdf8]" />
+                <ShieldCheck size={18} className="text-[#3b82f6]" />
                 <h3 className="text-xl font-bold text-[#f4f4f6] tracking-tight">{dashboard.project.name}</h3>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-[#161d24] border border-[#222c37] p-5">
+                <div className="bg-[#161d24] border border-[#242527] p-5">
                   <p className="text-xs text-[#94a3b8] uppercase tracking-wider mb-2" style={{ fontFamily: fontFamily.mono }}>Components</p>
                   <p className="text-3xl font-bold text-[#f4f4f6]" style={{ fontFamily: fontFamily.mono }}>{dashboard.diagram.componentsCount}</p>
                   <Tag className="mt-2" color={dashboard.diagram.confirmedAt ? 'green' : 'gold'}>
                     {dashboard.diagram.confirmedAt ? 'Confirmed' : 'Draft'}
                   </Tag>
                 </div>
-                <div className="bg-[#161d24] border border-[#222c37] p-5">
+                <div className="bg-[#161d24] border border-[#242527] p-5">
                   <p className="text-xs text-[#94a3b8] uppercase tracking-wider mb-2" style={{ fontFamily: fontFamily.mono }}>Rules</p>
                   <p className="text-3xl font-bold text-[#f4f4f6]" style={{ fontFamily: fontFamily.mono }}>{dashboard.rules.enabled}/{dashboard.rules.total}</p>
                   {dashboard.rules.violations > 0 && (
                     <Tag className="mt-2" color="red">{dashboard.rules.violations} violations</Tag>
                   )}
                 </div>
-                <div className="bg-[#161d24] border border-[#222c37] p-5">
+                <div className="bg-[#161d24] border border-[#242527] p-5">
                   <p className="text-xs text-[#94a3b8] uppercase tracking-wider mb-2" style={{ fontFamily: fontFamily.mono }}>Decisions</p>
                   <p className="text-3xl font-bold text-[#f4f4f6]" style={{ fontFamily: fontFamily.mono }}>{dashboard.decisions.total}</p>
                 </div>
-                <div className="bg-[#161d24] border border-[#222c37] p-5">
+                <div className="bg-[#161d24] border border-[#242527] p-5">
                   <p className="text-xs text-[#94a3b8] uppercase tracking-wider mb-2" style={{ fontFamily: fontFamily.mono }}>Pending Approvals</p>
                   <p className="text-3xl font-bold text-[#ffb03a]" style={{ fontFamily: fontFamily.mono }}>{dashboard.approvals.pending}</p>
                 </div>
@@ -191,14 +191,14 @@ export default function ProjectMaintainerDashboard() {
                 <h3 className="text-xl font-bold text-[#f4f4f6] tracking-tight">Pending Approvals</h3>
                 <p className="text-sm text-[#94a3b8] mt-1">Recent architectural change requests.</p>
               </div>
-              <Link to="/project-maintainer/approvals" className="text-sm text-[#38bdf8]">View all →</Link>
+              <Link to="/project-maintainer/approvals" className="text-sm text-[#3b82f6]">View all →</Link>
             </div>
 
             {approvals.length === 0 ? (
               <Empty description="No pending approvals" />
             ) : (
               <div className="relative pl-6 space-y-6">
-                <div className="absolute left-[3px] top-1 bottom-1 w-px bg-[#222c37]"></div>
+                <div className="absolute left-[3px] top-1 bottom-1 w-px bg-[#242527]"></div>
                 {approvals.map(item => {
                   const meta = statusMeta[item.status];
                   const StatusIcon = meta.icon;
@@ -241,7 +241,7 @@ export default function ProjectMaintainerDashboard() {
                 <h3 className="text-xl font-bold text-[#f4f4f6] tracking-tight">Team</h3>
                 <p className="text-sm text-[#94a3b8] mt-1">Members on this project.</p>
               </div>
-              <Link to="/project-maintainer/team" className="text-sm text-[#38bdf8]">Manage →</Link>
+              <Link to="/project-maintainer/team" className="text-sm text-[#3b82f6]">Manage →</Link>
             </div>
 
             {team.length === 0 ? (
@@ -249,9 +249,9 @@ export default function ProjectMaintainerDashboard() {
             ) : (
               <div className="grid grid-cols-2 gap-3">
                 {team.map(member => (
-                  <div key={member.id} className="bg-[#11161b] border border-[#222c37] p-4 flex flex-col items-center text-center gap-2">
+                  <div key={member.id} className="bg-[#11161b] border border-[#242527] p-4 flex flex-col items-center text-center gap-2">
                     <div className="relative">
-                      <div className="w-12 h-12 rounded-full bg-[#161d24] border border-[#222c37] flex items-center justify-center text-sm font-bold text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>
+                      <div className="w-12 h-12 rounded-full bg-[#161d24] border border-[#242527] flex items-center justify-center text-sm font-bold text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>
                         {member.name.slice(0, 2).toUpperCase()}
                       </div>
                       <div
@@ -267,7 +267,7 @@ export default function ProjectMaintainerDashboard() {
                 ))}
                 <Link
                   to="/project-maintainer/team"
-                  className="border border-dashed border-[#222c37] hover:border-[#38bdf8]/50 p-4 flex flex-col items-center justify-center gap-2 text-[#94a3b8] hover:text-[#38bdf8] transition-colors"
+                  className="border border-dashed border-[#242527] hover:border-[#3b82f6]/50 p-4 flex flex-col items-center justify-center gap-2 text-[#94a3b8] hover:text-[#3b82f6] transition-colors"
                 >
                   <UserPlus size={18} />
                   <span className="text-[10px] uppercase tracking-widest" style={{ fontFamily: fontFamily.mono }}>Invite</span>

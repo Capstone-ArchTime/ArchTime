@@ -157,7 +157,7 @@ export default function Dashboard() {
           <Link
             key={path}
             to={`/system-administrator/${path}`}
-            className="border border-[#222c37] px-4 py-3 text-sm text-[#38bdf8] hover:border-[#38bdf8]"
+            className="border border-[#242527] px-4 py-3 text-sm text-[#3b82f6] hover:border-[#3b82f6]"
           >
             {label} →
           </Link>
@@ -167,33 +167,33 @@ export default function Dashboard() {
       <section className={featurePanel}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold">AI Model Health</h3>
-          <Link to="/system-administrator/ai-metrics" className="text-xs text-[#38bdf8]">Usage & metrics →</Link>
+          <Link to="/system-administrator/ai-metrics" className="text-xs text-[#3b82f6]">Usage & metrics →</Link>
         </div>
         {aiLoading ? (
           <Spin size="small" />
         ) : aiError ? (
           <p role="alert" className="text-sm text-red-400">{aiError}</p>
         ) : !aiModels.length ? (
-          <p className="text-sm text-[#94a3b8]">No AI model is configured. <Link to="/system-administrator/ai-models" className="text-[#38bdf8]">Add one under AI Models</Link>.</p>
+          <p className="text-sm text-[#94a3b8]">No AI model is configured. <Link to="/system-administrator/ai-models" className="text-[#3b82f6]">Add one under AI Models</Link>.</p>
         ) : (
           <>
             <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="bg-[#11161b] border border-[#222c37] p-4">
+              <div className="bg-[#11161b] border border-[#242527] p-4">
                 <p className="text-xs text-[#94a3b8]">Total Cost (This Month)</p>
-                <p className="text-2xl font-bold text-[#38bdf8] mt-1">${aiTotalCost.toFixed(aiTotalCost > 0 && aiTotalCost < 1 ? 4 : 2)}</p>
+                <p className="text-2xl font-bold text-[#3b82f6] mt-1">${aiTotalCost.toFixed(aiTotalCost > 0 && aiTotalCost < 1 ? 4 : 2)}</p>
               </div>
-              <div className="bg-[#11161b] border border-[#222c37] p-4">
+              <div className="bg-[#11161b] border border-[#242527] p-4">
                 <p className="text-xs text-[#94a3b8]">Total Tokens Used</p>
                 <p className="text-2xl font-bold mt-1">{(aiTotalTokens / 1000000).toFixed(2)}M</p>
               </div>
-              <div className="bg-[#11161b] border border-[#222c37] p-4">
+              <div className="bg-[#11161b] border border-[#242527] p-4">
                 <p className="text-xs text-[#94a3b8]">Default Model</p>
-                <p className="text-lg font-semibold mt-1 text-[#38bdf8]">{aiDefaultModel || '–'}</p>
+                <p className="text-lg font-semibold mt-1 text-[#3b82f6]">{aiDefaultModel || '–'}</p>
               </div>
             </div>
             <div className="space-y-3">
               {aiModels.map(m => (
-                <div key={m.id ?? m.model} className="flex items-center justify-between p-3 bg-[#11161b] border border-[#222c37]">
+                <div key={m.id ?? m.model} className="flex items-center justify-between p-3 bg-[#11161b] border border-[#242527]">
                   <div className="flex items-center gap-3">
                     <Tag color={m.provider === 'anthropic' ? 'purple' : m.provider === 'gemini' ? 'blue' : 'green'}>{m.provider}</Tag>
                     <div>
@@ -244,7 +244,7 @@ export default function Dashboard() {
         ) : recentLogs.length ? (
           <ul className="space-y-3">
             {recentLogs.map(e => (
-              <li key={e.id} className="border-t border-[#222c37] pt-3 text-sm">
+              <li key={e.id} className="border-t border-[#242527] pt-3 text-sm">
                 <p>{e.description}</p>
                 <p className="text-xs text-[#94a3b8] mt-1">
                   {e.actor} · {new Date(e.timestamp).toLocaleString()}
@@ -255,7 +255,7 @@ export default function Dashboard() {
         ) : (
           <p className="text-sm text-[#94a3b8]">No recent activity.</p>
         )}
-        <Link to="/system-administrator/audit-log" className="text-sm text-[#38bdf8] mt-4 inline-block">
+        <Link to="/system-administrator/audit-log" className="text-sm text-[#3b82f6] mt-4 inline-block">
           View all activity →
         </Link>
       </section>

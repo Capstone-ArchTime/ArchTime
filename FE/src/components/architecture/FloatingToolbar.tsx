@@ -10,7 +10,7 @@ type Option = { value: string; label: string };
 function Tool({ label, shortcut, active, disabled, onClick, children }: { label: string; shortcut?: string; active?: boolean; disabled?: boolean; onClick?: () => void; children: ReactNode }) {
   return <Tooltip title={shortcut ? <span>{label} <kbd className="ml-1 rounded bg-white/10 px-1 font-mono text-[10px]">{shortcut}</kbd></span> : label} placement="top">
     <button type="button" aria-label={label} aria-pressed={active} disabled={disabled} onClick={onClick}
-      className={`h-8 min-w-8 shrink-0 px-1.5 flex items-center justify-center rounded-md text-[#cbd5e1] transition-colors hover:bg-white/10 hover:text-white disabled:opacity-35 disabled:hover:bg-transparent ${active ? 'bg-[#38bdf8]/15 text-[#7dd3fc]' : ''}`}>
+      className={`h-8 min-w-8 shrink-0 px-1.5 flex items-center justify-center rounded-md text-[#cbd5e1] transition-colors hover:bg-white/10 hover:text-white disabled:opacity-35 disabled:hover:bg-transparent ${active ? 'bg-[#3b82f6]/15 text-[#60a5fa]' : ''}`}>
       {children}
     </button>
   </Tooltip>;
@@ -62,7 +62,7 @@ export default function FloatingToolbar({ searchRef, ...p }: {
         items: [{ key: 'direct', label: 'Direct neighbours' }, { key: 'upstream', label: 'Used by (everything that depends on it)' }, { key: 'downstream', label: 'Depends on (everything it needs)' }],
         onClick: ({ key }) => p.onReach(key as 'direct' | 'upstream' | 'downstream'),
       }}>
-        <button type="button" aria-label="Dependency reach" className="flex h-8 shrink-0 items-center gap-1 rounded-md px-2 text-xs text-[#7dd3fc] hover:bg-white/10">
+        <button type="button" aria-label="Dependency reach" className="flex h-8 shrink-0 items-center gap-1 rounded-md px-2 text-xs text-[#60a5fa] hover:bg-white/10">
           {p.reach === 'upstream' ? 'Used by' : p.reach === 'downstream' ? 'Depends on' : 'Direct'} <ChevronDown size={12} />
         </button>
       </Dropdown>}

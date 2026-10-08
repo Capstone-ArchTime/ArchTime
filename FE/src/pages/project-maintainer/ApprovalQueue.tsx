@@ -141,7 +141,7 @@ export default function ApprovalQueue() {
               <> &mdash; <span className="text-[#ffb03a] font-semibold">{pendingCount} awaiting your review</span></>
             )}.
           </p>
-          <div className="h-[1px] w-full bg-gradient-to-r from-[#222c37] to-transparent mt-8"></div>
+          <div className="h-[1px] w-full bg-gradient-to-r from-[#242527] to-transparent mt-8"></div>
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
@@ -169,8 +169,8 @@ export default function ApprovalQueue() {
               onClick={() => setActiveFilter(opt.key)}
               className={`h-8 px-3 text-[10px] font-bold uppercase tracking-widest border transition-colors ${
                 activeFilter === opt.key
-                  ? 'bg-[#38bdf8]/10 border-[#38bdf8]/40 text-[#38bdf8]'
-                  : 'bg-[#161d24] border-[#222c37] text-[#94a3b8] hover:text-[#f4f4f6]'
+                  ? 'bg-[#3b82f6]/10 border-[#3b82f6]/40 text-[#3b82f6]'
+                  : 'bg-[#161d24] border-[#242527] text-[#94a3b8] hover:text-[#f4f4f6]'
               }`}
               style={{ fontFamily: fontFamily.mono }}
             >
@@ -189,7 +189,7 @@ export default function ApprovalQueue() {
               const meta = statusMeta[item.status];
               const StatusIcon = meta.icon;
               return (
-                <div key={item.id} className="bg-[#11161b] border border-[#222c37] p-5">
+                <div key={item.id} className="bg-[#11161b] border border-[#242527] p-5">
                   <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-2">
@@ -239,7 +239,7 @@ export default function ApprovalQueue() {
                     </div>
                   </div>
                   {item.reviewedAt && (
-                    <p className="text-xs text-[#94a3b8] pt-3 border-t border-[#222c37]">
+                    <p className="text-xs text-[#94a3b8] pt-3 border-t border-[#242527]">
                       {item.reviewedBy} · {new Date(item.reviewedAt).toLocaleString()}
                       {item.reason && ` · ${item.reason}`}
                     </p>

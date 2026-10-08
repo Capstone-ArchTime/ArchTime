@@ -157,9 +157,9 @@ const Insights: React.FC = () => {
         <div className="shrink-0 mb-6">
           <div className="flex items-start justify-between">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#38bdf8]/10 border border-[#38bdf8]/30 mb-4">
-                <Sparkles size={12} className="text-[#38bdf8]" />
-                <span className="text-[10px] font-mono text-[#38bdf8] tracking-wider font-semibold uppercase"
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#3b82f6]/10 border border-[#3b82f6]/30 mb-4">
+                <Sparkles size={12} className="text-[#3b82f6]" />
+                <span className="text-[10px] font-mono text-[#3b82f6] tracking-wider font-semibold uppercase"
                   style={{ fontFamily: '"JetBrains Mono", monospace' }}>Evidence-Grounded AI</span>
               </div>
               <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">AI Architectural Insights</h2>
@@ -169,7 +169,7 @@ const Insights: React.FC = () => {
             </div>
             <button
               onClick={handleClearChat}
-              className="flex items-center gap-2 px-3 py-2 text-xs text-[#94a3b8] hover:text-[#f4f4f6] border border-[#222c37] hover:border-[#38bdf8]/30 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-xs text-[#94a3b8] hover:text-[#f4f4f6] border border-[#242527] hover:border-[#3b82f6]/30 transition-colors"
             >
               <RefreshCw size={14} />
               Clear Chat
@@ -178,12 +178,12 @@ const Insights: React.FC = () => {
         </div>
 
         {/* CHAT CONTAINER */}
-        <div className="flex-1 flex flex-col bg-[#080b0e] border border-[#222c37] overflow-hidden min-h-0">
+        <div className="flex-1 flex flex-col bg-[#080b0e] border border-[#242527] overflow-hidden min-h-0">
 
           {/* Chat Header */}
-          <div className="shrink-0 p-4 border-b border-[#222c37] bg-[#11161b] flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#38bdf8]/20 flex items-center justify-center rounded-full">
-              <Bot size={16} className="text-[#38bdf8]" />
+          <div className="shrink-0 p-4 border-b border-[#242527] bg-[#11161b] flex items-center gap-3">
+            <div className="w-8 h-8 bg-[#3b82f6]/20 flex items-center justify-center rounded-full">
+              <Bot size={16} className="text-[#3b82f6]" />
             </div>
             <div>
               <span className="text-sm font-semibold text-[#f4f4f6]">ArchTime AI</span>
@@ -207,8 +207,8 @@ const Insights: React.FC = () => {
                   className={`flex gap-4 ${message.role === 'user' ? 'justify-end' : ''}`}
                 >
                   {message.role === 'assistant' && (
-                    <div className="shrink-0 w-8 h-8 bg-[#38bdf8]/20 flex items-center justify-center rounded-full">
-                      <Sparkles size={14} className="text-[#38bdf8]" />
+                    <div className="shrink-0 w-8 h-8 bg-[#3b82f6]/20 flex items-center justify-center rounded-full">
+                      <Sparkles size={14} className="text-[#3b82f6]" />
                     </div>
                   )}
 
@@ -216,14 +216,14 @@ const Insights: React.FC = () => {
                     <div
                       className={`p-4 ${
                         message.role === 'user'
-                          ? 'bg-[#38bdf8]/10 border border-[#38bdf8]/30'
-                          : 'bg-[#11161b] border border-[#222c37]'
+                          ? 'bg-[#3b82f6]/10 border border-[#3b82f6]/30'
+                          : 'bg-[#11161b] border border-[#242527]'
                       }`}
                     >
                       <p className="text-sm text-[#f4f4f6] leading-relaxed">{message.content}</p>
 
                       {message.evidence && (
-                        <div className="mt-4 pt-4 border-t border-[#222c37]">
+                        <div className="mt-4 pt-4 border-t border-[#242527]">
                           <div className="flex items-center gap-2 mb-3">
                             <CheckCircle2 size={12} className="text-[#22c55e]" />
                             <span className="text-[10px] font-mono font-semibold text-[#22c55e] uppercase tracking-wider"
@@ -231,19 +231,19 @@ const Insights: React.FC = () => {
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {message.evidence.commits?.map(commit => (
-                              <span key={commit} className="px-2 py-1 bg-[#222c37]/50 border border-[#222c37] text-[10px] font-mono text-[#38bdf8] flex items-center gap-1"
+                              <span key={commit} className="px-2 py-1 bg-[#242527]/50 border border-[#242527] text-[10px] font-mono text-[#3b82f6] flex items-center gap-1"
                                 style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                                 <GitCommit size={10} /> {commit}
                               </span>
                             ))}
                             {message.evidence.files && (
-                              <span className="px-2 py-1 bg-[#222c37]/50 border border-[#222c37] text-[10px] font-mono text-[#94a3b8] flex items-center gap-1"
+                              <span className="px-2 py-1 bg-[#242527]/50 border border-[#242527] text-[10px] font-mono text-[#94a3b8] flex items-center gap-1"
                                 style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                                 <FileCode size={10} /> {message.evidence.files} files
                               </span>
                             )}
                             {message.evidence.dependencies && (
-                              <span className="px-2 py-1 bg-[#222c37]/50 border border-[#222c37] text-[10px] font-mono text-[#94a3b8] flex items-center gap-1"
+                              <span className="px-2 py-1 bg-[#242527]/50 border border-[#242527] text-[10px] font-mono text-[#94a3b8] flex items-center gap-1"
                                 style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                                 <Network size={10} /> +{message.evidence.dependencies.added}/-{message.evidence.dependencies.removed} deps
                               </span>
@@ -259,7 +259,7 @@ const Insights: React.FC = () => {
                   </div>
 
                   {message.role === 'user' && (
-                    <div className="shrink-0 w-8 h-8 bg-[#222c37] flex items-center justify-center rounded-full">
+                    <div className="shrink-0 w-8 h-8 bg-[#242527] flex items-center justify-center rounded-full">
                       <User size={14} className="text-[#94a3b8]" />
                     </div>
                   )}
@@ -273,12 +273,12 @@ const Insights: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="flex gap-4"
               >
-                <div className="shrink-0 w-8 h-8 bg-[#38bdf8]/20 flex items-center justify-center rounded-full">
-                  <Sparkles size={14} className="text-[#38bdf8]" />
+                <div className="shrink-0 w-8 h-8 bg-[#3b82f6]/20 flex items-center justify-center rounded-full">
+                  <Sparkles size={14} className="text-[#3b82f6]" />
                 </div>
-                <div className="p-4 bg-[#11161b] border border-[#222c37]">
+                <div className="p-4 bg-[#11161b] border border-[#242527]">
                   <div className="flex items-center gap-2">
-                    <Loader2 size={14} className="text-[#38bdf8] animate-spin" />
+                    <Loader2 size={14} className="text-[#3b82f6] animate-spin" />
                     <span className="text-xs text-[#94a3b8] font-mono"
                       style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       Analyzing repository evidence...
@@ -303,7 +303,7 @@ const Insights: React.FC = () => {
                   <button
                     key={question}
                     onClick={() => handleSend(question)}
-                    className="px-3 py-2 bg-[#11161b] border border-[#222c37] hover:border-[#38bdf8]/50 text-xs text-[#94a3b8] hover:text-[#38bdf8] transition-colors"
+                    className="px-3 py-2 bg-[#11161b] border border-[#242527] hover:border-[#3b82f6]/50 text-xs text-[#94a3b8] hover:text-[#3b82f6] transition-colors"
                   >
                     {question}
                   </button>
@@ -313,7 +313,7 @@ const Insights: React.FC = () => {
           )}
 
           {/* Input Area */}
-          <div className="shrink-0 p-4 border-t border-[#222c37] bg-[#11161b]">
+          <div className="shrink-0 p-4 border-t border-[#242527] bg-[#11161b]">
             <div className="flex items-center gap-3">
               <div className="flex-1 relative">
                 <input
@@ -323,7 +323,7 @@ const Insights: React.FC = () => {
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Ask about architectural changes, patterns, or decisions..."
-                  className="w-full h-12 bg-[#080b0e] border border-[#222c37] focus:border-[#38bdf8]/50 px-4 pr-12 text-sm text-[#f4f4f6] placeholder-[#5f636b] focus:outline-none transition-colors font-mono"
+                  className="w-full h-12 bg-[#080b0e] border border-[#242527] focus:border-[#3b82f6]/50 px-4 pr-12 text-sm text-[#f4f4f6] placeholder-[#5f636b] focus:outline-none transition-colors font-mono"
                   style={{ fontFamily: '"JetBrains Mono", monospace' }}
                   disabled={isTyping}
                 />
@@ -331,7 +331,7 @@ const Insights: React.FC = () => {
               <button
                 onClick={() => handleSend(inputValue)}
                 disabled={!inputValue.trim() || isTyping}
-                className="h-12 px-6 bg-[#38bdf8] hover:bg-[#38bdf8]/80 disabled:bg-[#222c37] disabled:cursor-not-allowed text-[#080b0e] disabled:text-[#5f636b] font-semibold text-sm transition-colors flex items-center gap-2"
+                className="h-12 px-6 bg-[#3b82f6] hover:bg-[#3b82f6]/80 disabled:bg-[#242527] disabled:cursor-not-allowed text-[#080b0e] disabled:text-[#5f636b] font-semibold text-sm transition-colors flex items-center gap-2"
               >
                 <Send size={16} />
                 Send

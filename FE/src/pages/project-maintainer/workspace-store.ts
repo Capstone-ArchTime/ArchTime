@@ -6,7 +6,7 @@ import { apiRequest, ApiError } from '@/api/client';
 import { getProjects } from '@/features/project-data';
 
 export const projects = demoProjects;
-export const panel = 'border border-[#222c37] bg-[#11161b] p-5';
+export const panel = 'border border-[#242527] bg-[#11161b] p-5';
 export type Component = { id: string; name: string; kind: string; description: string };
 export type Dependency = { id: string; source: string; target: string; label: string };
 export type Diagram = { components: Component[]; dependencies: Dependency[]; revision: number; confirmedAt: string | null };

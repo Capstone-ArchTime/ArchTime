@@ -53,7 +53,7 @@ const AuthPage: React.FC = () => {
   };
 
   const strength = calculatePasswordStrength(password);
-  const strengthColors = ['bg-[#5f636b]', 'bg-red-500', 'bg-[#ffb03a]', 'bg-[#38bdf8]', 'bg-[#00f0ff]'];
+  const strengthColors = ['bg-[#5f636b]', 'bg-red-500', 'bg-[#ffb03a]', 'bg-[#3b82f6]', 'bg-[#00f0ff]'];
   const strengthLabels = ['Very weak', 'Weak', 'Fair', 'Strong', 'Very strong'];
 
   const validate = (): FieldErrors => {
@@ -144,7 +144,7 @@ const AuthPage: React.FC = () => {
     >
 
       {/* Left Panel - Authentication */}
-      <div className="w-full md:w-[40%] flex flex-col relative z-10 bg-[#080b0e] border-b md:border-b-0 md:border-r border-[#222c37] shadow-2xl min-h-dvh">
+      <div className="w-full md:w-[40%] flex flex-col relative z-10 bg-[#080b0e] border-b md:border-b-0 md:border-r border-[#242527] shadow-2xl min-h-dvh">
 
         <div className="flex-1 flex flex-col p-6 lg:p-10 xl:px-12 xl:py-8 max-w-xl w-full mx-auto justify-between">
 
@@ -152,11 +152,11 @@ const AuthPage: React.FC = () => {
           <Logo tagline="Architecture Evolution Observatory" className="mb-8 shrink-0" />
 
           {/* Mobile-only compact value prop (Right Panel's content is md:flex only) */}
-          <div className="md:hidden mb-8 shrink-0 border border-[#222c37] bg-[#11161b]/60 p-4">
+          <div className="md:hidden mb-8 shrink-0 border border-[#242527] bg-[#11161b]/60 p-4">
             <p className="text-lg font-bold tracking-tight text-white leading-snug">
               Understand how your architecture{" "}
               <span
-                className="bg-gradient-to-r from-[#38bdf8] via-[#ffb03a] to-[#f59e0b] bg-clip-text text-transparent"
+                className="bg-gradient-to-r from-[#3b82f6] via-[#ffb03a] to-[#f59e0b] bg-clip-text text-transparent"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 evolves.
@@ -207,10 +207,10 @@ const AuthPage: React.FC = () => {
                           aria-invalid={!!fieldErrors.name}
                           aria-describedby={fieldErrors.name ? 'auth-name-error' : undefined}
                           className={`w-full h-11 bg-[#11161b] border pl-10 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none transition-colors disabled:opacity-50 ${
-                            fieldErrors.name ? 'border-red-500/60 focus:border-red-500' : 'border-[#222c37] focus:border-[#38bdf8]'
+                            fieldErrors.name ? 'border-red-500/60 focus:border-red-500' : 'border-[#242527] focus:border-[#3b82f6]'
                           }`}
                         />
-                        <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#38bdf8] transition-colors" />
+                        <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#3b82f6] transition-colors" />
                       </div>
                       {fieldErrors.name && (
                         <p id="auth-name-error" role="alert" className="text-xs text-red-400">{fieldErrors.name}</p>
@@ -234,10 +234,10 @@ const AuthPage: React.FC = () => {
                         aria-invalid={!!fieldErrors.email}
                         aria-describedby={fieldErrors.email ? 'auth-email-error' : undefined}
                         className={`w-full h-11 bg-[#11161b] border pl-10 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none transition-colors disabled:opacity-50 ${
-                          fieldErrors.email ? 'border-red-500/60 focus:border-red-500' : 'border-[#222c37] focus:border-[#38bdf8]'
+                          fieldErrors.email ? 'border-red-500/60 focus:border-red-500' : 'border-[#242527] focus:border-[#3b82f6]'
                         }`}
                       />
-                      <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#38bdf8] transition-colors" />
+                      <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#3b82f6] transition-colors" />
                     </div>
                     {fieldErrors.email && (
                       <p id="auth-email-error" role="alert" className="text-xs text-red-400">{fieldErrors.email}</p>
@@ -262,15 +262,15 @@ const AuthPage: React.FC = () => {
                         aria-describedby={fieldErrors.password ? 'auth-password-error' : undefined}
                         data-ms-reveal="false"
                         className={`w-full h-11 bg-[#11161b] border pl-10 pr-10 text-sm text-white placeholder:text-slate-600 focus:outline-none transition-colors tracking-wide disabled:opacity-50 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-textfield-decoration-container]:hidden [&::-webkit-credentials-auto-fill-button]:hidden [&::-webkit-contacts-auto-fill-button]:hidden ${
-                          fieldErrors.password ? 'border-red-500/60 focus:border-red-500' : 'border-[#222c37] focus:border-[#38bdf8]'
+                          fieldErrors.password ? 'border-red-500/60 focus:border-red-500' : 'border-[#242527] focus:border-[#3b82f6]'
                         }`}
                       />
-                      <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#38bdf8] transition-colors" />
+                      <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#3b82f6] transition-colors" />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         aria-label={showPassword ? "Hide password" : "Show password"}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors focus:outline-none focus-visible:text-[#38bdf8]"
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors focus:outline-none focus-visible:text-[#3b82f6]"
                       >
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
@@ -287,7 +287,7 @@ const AuthPage: React.FC = () => {
                           {[1, 2, 3, 4].map((level) => (
                             <div
                               key={level}
-                              className={`h-1 flex-1 transition-colors duration-300 ${strength >= level ? strengthColors[strength] : 'bg-[#222c37]'}`}
+                              className={`h-1 flex-1 transition-colors duration-300 ${strength >= level ? strengthColors[strength] : 'bg-[#242527]'}`}
                             ></div>
                           ))}
                         </div>
@@ -312,10 +312,10 @@ const AuthPage: React.FC = () => {
                           aria-invalid={!!fieldErrors.confirmPassword}
                           aria-describedby={fieldErrors.confirmPassword ? 'auth-confirm-password-error' : undefined}
                           className={`w-full h-11 bg-[#11161b] border pl-10 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none transition-colors tracking-wide disabled:opacity-50 ${
-                            fieldErrors.confirmPassword ? 'border-red-500/60 focus:border-red-500' : 'border-[#222c37] focus:border-[#38bdf8]'
+                            fieldErrors.confirmPassword ? 'border-red-500/60 focus:border-red-500' : 'border-[#242527] focus:border-[#3b82f6]'
                           }`}
                         />
-                        <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#38bdf8] transition-colors" />
+                        <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#3b82f6] transition-colors" />
                       </div>
                       {fieldErrors.confirmPassword && (
                         <p id="auth-confirm-password-error" role="alert" className="text-xs text-red-400">{fieldErrors.confirmPassword}</p>
@@ -328,7 +328,7 @@ const AuthPage: React.FC = () => {
                       <input
                         type="checkbox"
                         id="remember" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)}
-                        className="w-3.5 h-3.5 border-[#222c37] bg-[#11161b] text-[#38bdf8] focus:ring-[#38bdf8] focus:ring-offset-0 focus:ring-offset-[#080b0e] cursor-pointer"
+                        className="w-3.5 h-3.5 border-[#242527] bg-[#11161b] text-[#3b82f6] focus:ring-[#3b82f6] focus:ring-offset-0 focus:ring-offset-[#080b0e] cursor-pointer"
                       />
                       <label htmlFor="remember" className="text-sm text-slate-400 cursor-pointer select-none">Remember me</label>
                       <Link to="/forgot-password" className="ml-auto text-sm text-sky-400 hover:underline">Forgot password?</Link>
@@ -338,7 +338,7 @@ const AuthPage: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full h-11 bg-[#38bdf8] hover:bg-[#00f0ff] text-[#080b0e] font-bold uppercase tracking-widest text-xs mt-6 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed focus:outline-none"
+                    className="w-full h-11 bg-[#3b82f6] hover:bg-[#00f0ff] text-[#080b0e] font-bold uppercase tracking-widest text-xs mt-6 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed focus:outline-none"
                     style={{ fontFamily: fontFamily.mono }}
                   >
                     {isLoading ? (
@@ -348,12 +348,12 @@ const AuthPage: React.FC = () => {
                     )}
                   </button>
                 </form>
-                {!isRegister && <Link to="/verify-email" state={{ email: email.trim(), from: location.state?.from }} className="block mt-4 text-center text-xs text-[#38bdf8]">Have a verification code? Activate your account</Link>}
+                {!isRegister && <Link to="/verify-email" state={{ email: email.trim(), from: location.state?.from }} className="block mt-4 text-center text-xs text-[#3b82f6]">Have a verification code? Activate your account</Link>}
 
                 <div className="flex items-center gap-4 my-6 opacity-70">
-                  <div className="h-[1px] flex-1 bg-[#222c37]"></div>
+                  <div className="h-[1px] flex-1 bg-[#242527]"></div>
                   <span className="text-xs text-slate-500 uppercase tracking-widest" style={{ fontFamily: fontFamily.mono }}>or</span>
-                  <div className="h-[1px] flex-1 bg-[#222c37]"></div>
+                  <div className="h-[1px] flex-1 bg-[#242527]"></div>
                 </div>
 
                 <button
@@ -365,7 +365,7 @@ const AuthPage: React.FC = () => {
                     } catch { message.error('Browser storage is unavailable. Enable it to sign in.'); }
                   }}
                   disabled={isLoading}
-                  className="w-full h-11 flex items-center justify-center gap-3 px-4 bg-[#11161b] hover:bg-[#161d24] border border-[#222c37] transition-colors text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:border-[#38bdf8]"
+                  className="w-full h-11 flex items-center justify-center gap-3 px-4 bg-[#11161b] hover:bg-[#161d24] border border-[#242527] transition-colors text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:border-[#3b82f6]"
                 >
                   <Icon icon="mdi:github" width="18" height="18" />
                   Continue with GitHub
@@ -376,14 +376,14 @@ const AuthPage: React.FC = () => {
                   {isRegister ? (
                     <>
                       Already have an account?{' '}
-                      <Link to="/login" className="text-[#38bdf8] hover:text-[#00f0ff] transition-colors font-medium">
+                      <Link to="/login" className="text-[#3b82f6] hover:text-[#00f0ff] transition-colors font-medium">
                         Sign in &rarr;
                       </Link>
                     </>
                   ) : (
                     <>
                       Don't have an account?{' '}
-                      <Link to="/register" className="text-[#38bdf8] hover:text-[#00f0ff] transition-colors font-medium">
+                      <Link to="/register" className="text-[#3b82f6] hover:text-[#00f0ff] transition-colors font-medium">
                         Create account &rarr;
                       </Link>
                     </>
@@ -396,7 +396,7 @@ const AuthPage: React.FC = () => {
           {/* Footer (SOC-2) */}
           <div className="flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 shrink-0 mt-auto pt-6" style={{ fontFamily: fontFamily.mono }}>
             <div className="flex items-center gap-2 mb-4 sm:mb-0">
-              <Lock size={12} className="text-[#38bdf8]" />
+              <Lock size={12} className="text-[#3b82f6]" />
               <span>SOC-2 & Git AST Grounded</span>
             </div>
             <div className="flex gap-4" aria-label="Coming soon">
@@ -421,15 +421,15 @@ const AuthPage: React.FC = () => {
           
           {/* Header Content */}
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#11161b]/80 border border-[#222c37] backdrop-blur-sm mb-8">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#11161b]/80 border border-[#242527] backdrop-blur-sm mb-8">
               <div className="w-1.5 h-1.5 rounded-full bg-[#00f0ff]"></div>
-              <span className="text-[10px] text-[#38bdf8] tracking-wider font-semibold" style={{ fontFamily: fontFamily.mono }}>ARCHTIME OBSERVATORY</span>
+              <span className="text-[10px] text-[#3b82f6] tracking-wider font-semibold" style={{ fontFamily: fontFamily.mono }}>ARCHTIME OBSERVATORY</span>
             </div>
 
             <h2 className="text-4xl lg:text-5xl font-bold tracking-tight text-white mb-4 leading-[1.1]">
               Understand how your<br />architecture{" "}
               <span
-                className="bg-gradient-to-r from-[#38bdf8] via-[#ffb03a] to-[#f59e0b] bg-clip-text text-transparent"
+                className="bg-gradient-to-r from-[#3b82f6] via-[#ffb03a] to-[#f59e0b] bg-clip-text text-transparent"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 evolves.
@@ -442,19 +442,19 @@ const AuthPage: React.FC = () => {
 
           {/* Architectural Visualization */}
           <div className="flex-1 my-4 relative flex flex-col w-full min-h-0">
-            <div className="w-full h-full relative border border-[#222c37] bg-[#080b0e] overflow-hidden flex flex-col p-6 shadow-2xl">
+            <div className="w-full h-full relative border border-[#242527] bg-[#080b0e] overflow-hidden flex flex-col p-6 shadow-2xl">
 
               {/* Top Header of Diagram */}
               <div className="flex justify-between items-center z-20 mb-8" style={{ fontFamily: fontFamily.mono }}>
                 <div className="flex items-center gap-2">
-                  <div className="text-[#38bdf8] flex items-center">
+                  <div className="text-[#3b82f6] flex items-center">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                   </div>
                   <span className="text-sm text-slate-500 font-medium tracking-widest">REVISION RANGE:</span>
                   <span className="text-sm text-white font-bold">rev-8e41..HEAD</span>
                 </div>
                 <div className="flex items-center gap-4">
-                  <div className="px-3 py-1.5 bg-[#38bdf8]/10 border border-[#38bdf8]/20 text-[#38bdf8] text-xs font-bold">
+                  <div className="px-3 py-1.5 bg-[#3b82f6]/10 border border-[#3b82f6]/20 text-[#3b82f6] text-xs font-bold">
                     Java AST Analyzed
                   </div>
                   <span className="text-sm text-slate-500">4 Architectural Eras</span>
@@ -472,7 +472,7 @@ const AuthPage: React.FC = () => {
                   <span className="text-xs text-slate-500">02 Modular Core</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#38bdf8] opacity-50"></div>
+                  <div className="w-2 h-2 rounded-full bg-[#3b82f6] opacity-50"></div>
                   <span className="text-xs text-slate-500">03 Service Extract</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -506,7 +506,7 @@ const AuthPage: React.FC = () => {
                   </defs>
 
                   {/* Grid Lines */}
-                  <g stroke="#222c37" strokeWidth="1" strokeDasharray="4 4" opacity="0.4">
+                  <g stroke="#242527" strokeWidth="1" strokeDasharray="4 4" opacity="0.4">
                     <line x1="225" y1="0" x2="225" y2="400" />
                     <line x1="475" y1="0" x2="475" y2="400" />
                     <line x1="725" y1="0" x2="725" y2="400" />
@@ -515,9 +515,9 @@ const AuthPage: React.FC = () => {
                   {/* Connection Lines (Bezier Curves) */}
                   <g fill="none" strokeWidth="2">
                     {/* Monolith to Modular */}
-                    <path d="M 150 200 C 220 200, 220 121, 300 121" stroke="#222c37" />
-                    <path d="M 150 200 C 220 200, 220 281, 300 281" stroke="#222c37" />
-                    <path d="M 150 200 L 300 200" stroke="#222c37" strokeDasharray="4 4" opacity="0.5" />
+                    <path d="M 150 200 C 220 200, 220 121, 300 121" stroke="#242527" />
+                    <path d="M 150 200 C 220 200, 220 281, 300 281" stroke="#242527" />
+                    <path d="M 150 200 L 300 200" stroke="#242527" strokeDasharray="4 4" opacity="0.5" />
 
                     {/* Modular to Extract */}
                     <path d="M 420 121 C 480 121, 490 101, 550 101" stroke="#ffb03a" opacity="0.6" />
@@ -526,7 +526,7 @@ const AuthPage: React.FC = () => {
                     <path d="M 420 281 C 480 281, 490 301, 550 301" stroke="#ffb03a" opacity="0.6" />
 
                     {/* Dotted cross connection */}
-                    <path d="M 420 121 L 550 201" stroke="#38bdf8" strokeDasharray="4 4" opacity="0.8" />
+                    <path d="M 420 121 L 550 201" stroke="#3b82f6" strokeDasharray="4 4" opacity="0.8" />
 
                     {/* Extract to Distributed */}
                     <path d="M 680 101 C 740 101, 740 71, 800 71" stroke="url(#grad-cyan)" filter="url(#glow-line)" opacity="0.9" />
@@ -552,12 +552,12 @@ const AuthPage: React.FC = () => {
 
                   {/* Floating Badges (AST, Commit) */}
                   <g transform="translate(550, 20)">
-                    <rect x="0" y="0" width="130" height="24" fill="#38bdf8" fillOpacity="0.05" stroke="#38bdf8" strokeOpacity="0.3" />
-                    <circle cx="12" cy="12" r="3.5" fill="#38bdf8" />
-                    <text x="22" y="16" fill="#38bdf8" fontSize="10" fontFamily="monospace">AST Dependency Graph</text>
+                    <rect x="0" y="0" width="130" height="24" fill="#3b82f6" fillOpacity="0.05" stroke="#3b82f6" strokeOpacity="0.3" />
+                    <circle cx="12" cy="12" r="3.5" fill="#3b82f6" />
+                    <text x="22" y="16" fill="#3b82f6" fontSize="10" fontFamily="monospace">AST Dependency Graph</text>
                   </g>
                   <g transform="translate(810, 20)">
-                    <rect x="0" y="0" width="120" height="24" fill="#11161b" stroke="#222c37" />
+                    <rect x="0" y="0" width="120" height="24" fill="#11161b" stroke="#242527" />
                     <circle cx="12" cy="12" r="3.5" fill="#ffb03a" />
                     <text x="22" y="16" fill="#94a3b8" fontSize="10" fontFamily="monospace">commit #4f82a9d</text>
                   </g>
@@ -566,7 +566,7 @@ const AuthPage: React.FC = () => {
 
                   {/* Monolith */}
                   <g transform="translate(40, 175)">
-                    <rect width="110" height="50" fill="#080b0e" stroke="#222c37" strokeWidth="1.5" />
+                    <rect width="110" height="50" fill="#080b0e" stroke="#242527" strokeWidth="1.5" />
                     <text x="55" y="20" fill="#5f636b" fontSize="10" fontFamily="monospace" textAnchor="middle">v1.0-mono</text>
                     <circle cx="55" cy="30" r="3.5" fill="#5f636b" />
                     <text x="55" y="44" fill="#94a3b8" fontSize="11" fontFamily="monospace" fontWeight="bold" textAnchor="middle">app-core</text>
@@ -574,12 +574,12 @@ const AuthPage: React.FC = () => {
 
                   {/* Modular */}
                   <g transform="translate(300, 105)">
-                    <rect width="120" height="32" fill="#080b0e" stroke="#222c37" strokeWidth="1.5" />
+                    <rect width="120" height="32" fill="#080b0e" stroke="#242527" strokeWidth="1.5" />
                     <circle cx="15" cy="16" r="4" fill="#ffb03a" />
                     <text x="28" y="20" fill="#94a3b8" fontSize="11" fontFamily="monospace" fontWeight="bold">domain-lib</text>
                   </g>
                   <g transform="translate(300, 265)">
-                    <rect width="120" height="32" fill="#080b0e" stroke="#222c37" strokeWidth="1.5" />
+                    <rect width="120" height="32" fill="#080b0e" stroke="#242527" strokeWidth="1.5" />
                     <circle cx="15" cy="16" r="4" fill="#5f636b" />
                     <text x="28" y="20" fill="#94a3b8" fontSize="11" fontFamily="monospace" fontWeight="bold">persistence</text>
                   </g>
@@ -587,7 +587,7 @@ const AuthPage: React.FC = () => {
                   {/* Extract */}
                   <g transform="translate(550, 85)">
                     <rect width="130" height="32" fill="#080b0e" stroke="#ffb03a" strokeOpacity="0.4" strokeWidth="1.5" />
-                    <circle cx="15" cy="16" r="4" fill="#38bdf8" />
+                    <circle cx="15" cy="16" r="4" fill="#3b82f6" />
                     <text x="28" y="20" fill="#f4f4f6" fontSize="11" fontFamily="monospace" fontWeight="bold">auth-service</text>
                   </g>
                   <g transform="translate(550, 185)">
@@ -596,7 +596,7 @@ const AuthPage: React.FC = () => {
                     <text x="28" y="20" fill="#f4f4f6" fontSize="11" fontFamily="monospace" fontWeight="bold">gateway-api</text>
                   </g>
                   <g transform="translate(550, 285)">
-                    <rect width="130" height="32" fill="#080b0e" stroke="#222c37" strokeWidth="1.5" />
+                    <rect width="130" height="32" fill="#080b0e" stroke="#242527" strokeWidth="1.5" />
                     <circle cx="15" cy="16" r="4" fill="#5f636b" />
                     <text x="28" y="20" fill="#94a3b8" fontSize="11" fontFamily="monospace" fontWeight="bold">data-store</text>
                   </g>
@@ -621,7 +621,7 @@ const AuthPage: React.FC = () => {
                     <text x="28" y="20" fill="#00f0ff" fontSize="11" fontFamily="monospace" fontWeight="bold">inventory-service</text>
                   </g>
                   <g transform="translate(800, 315)">
-                    <rect width="140" height="32" fill="#080b0e" stroke="#222c37" strokeWidth="1.5" />
+                    <rect width="140" height="32" fill="#080b0e" stroke="#242527" strokeWidth="1.5" />
                     <circle cx="15" cy="16" r="4" fill="#5f636b" />
                     <text x="28" y="20" fill="#94a3b8" fontSize="11" fontFamily="monospace" fontWeight="bold">event-bus</text>
                   </g>
@@ -631,10 +631,10 @@ const AuthPage: React.FC = () => {
 
               {/* Bottom Info Bar */}
               <div className="flex items-center gap-4 mt-6 z-20" style={{ fontFamily: fontFamily.mono }}>
-                <div className="px-4 py-2 bg-[#11161b] border border-[#222c37] text-sm text-slate-400">
+                <div className="px-4 py-2 bg-[#11161b] border border-[#242527] text-sm text-slate-400">
                   Delta: +18 modular edges
                 </div>
-                <div className="px-4 py-2 bg-[#38bdf8]/20 border border-[#38bdf8]/30 text-sm text-[#38bdf8] font-bold">
+                <div className="px-4 py-2 bg-[#3b82f6]/20 border border-[#3b82f6]/30 text-sm text-[#3b82f6] font-bold">
                   architecture change detected
                 </div>
               </div>
@@ -642,9 +642,9 @@ const AuthPage: React.FC = () => {
           </div>
 
           {/* Feature Indicators */}
-          <div className="grid grid-cols-3 gap-6 shrink-0 border-t border-[#222c37] pt-6">
+          <div className="grid grid-cols-3 gap-6 shrink-0 border-t border-[#242527] pt-6">
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-[#38bdf8] font-semibold" style={{ fontFamily: fontFamily.mono }}>01</span>
+              <span className="text-xs text-[#3b82f6] font-semibold" style={{ fontFamily: fontFamily.mono }}>01</span>
               <h4 className="text-white text-sm font-medium">Repository Mining</h4>
               <p className="text-slate-400 text-xs leading-relaxed font-light">Deep commit mining and structural analysis.</p>
             </div>
@@ -671,7 +671,7 @@ const AuthPage: React.FC = () => {
           background: #080b0e;
         }
         ::-webkit-scrollbar-thumb {
-          background: #222c37;
+          background: #242527;
         }
         ::-webkit-scrollbar-thumb:hover {
           background: #5f636b;

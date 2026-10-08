@@ -134,8 +134,8 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
   }
   const drawer = wide ? '' : 'absolute inset-y-0 z-20 shadow-[0_0_40px_rgba(0,0,0,0.6)]';
   return <div ref={root} className="relative flex h-full min-h-0">
-    {left && <aside aria-label="Layers" className={`${drawer} left-0 w-60 max-w-[85%] shrink-0 border-r border-[#222c37] bg-[#0d1116]`}>
-      {!wide && <div className="flex justify-end border-b border-[#222c37] px-2 py-1"><Button size="small" type="text" onClick={() => setLeft(false)}>Close</Button></div>}
+    {left && <aside aria-label="Layers" className={`${drawer} left-0 w-60 max-w-[85%] shrink-0 border-r border-[#242527] bg-[#0d1116]`}>
+      {!wide && <div className="flex justify-end border-b border-[#242527] px-2 py-1"><Button size="small" type="text" onClick={() => setLeft(false)}>Close</Button></div>}
       <LayersPanel scene={scene} theme={theme} highlight={highlight} selected={state.focus} onSelect={selectLayer} onOpen={openDetail}
         snapshots={snapshots} snapshotId={snapshotId} onSnapshot={onSnapshot} />
     </aside>}
@@ -189,13 +189,13 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
               ['Click / Enter', 'Focus a component (click again to clear)'], ['Double-click / Shift+Enter', 'Show what is inside a component'],
               ['/', 'Find a component'], ['Esc', 'Clear focus, route or selection; then leave the inner view'],
               ['T', 'Toggle light / dark theme'], ['W', 'Show dependency counts on all arrows'], ['?', 'This help'],
-            ].map(([k, v]) => <div key={k} className="contents"><dt className="font-mono text-xs text-[#38bdf8]">{k}</dt><dd>{v}</dd></div>)}
+            ].map(([k, v]) => <div key={k} className="contents"><dt className="font-mono text-xs text-[#3b82f6]">{k}</dt><dd>{v}</dd></div>)}
           </dl>
         </Modal>
       </>} />
 
-    {right && <aside aria-label="Properties" className={`${drawer} right-0 w-72 max-w-[85%] shrink-0 overflow-auto border-l border-[#222c37] bg-[#0d1116]`}>
-      {!wide && <div className="sticky top-0 z-10 flex justify-end border-b border-[#222c37] bg-[#0d1116] px-2 py-1">
+    {right && <aside aria-label="Properties" className={`${drawer} right-0 w-72 max-w-[85%] shrink-0 overflow-auto border-l border-[#242527] bg-[#0d1116]`}>
+      {!wide && <div className="sticky top-0 z-10 flex justify-end border-b border-[#242527] bg-[#0d1116] px-2 py-1">
         <Button size="small" type="text" onClick={() => setRight(false)}>Close</Button>
       </div>}
       <div className="space-y-5 p-4">

@@ -102,7 +102,7 @@ export default function FindModelsModal({ start, models, onClose, onAdded }: { s
           <Input className="mt-1" value={baseUrl} disabled={preset.provider !== 'openai-compatible'} placeholder={preset.provider === 'openai-compatible' ? 'https://…/v1' : 'Provider default'} onChange={e => { setBaseUrl(e.target.value); setFound(null); }} />
         </label>
       </div>
-      <p className="text-xs text-[#94a3b8]">{preset.hint}{preset.keyUrl && <> Get a key at <a href={preset.keyUrl} target="_blank" rel="noreferrer" className="text-[#38bdf8]">{new URL(preset.keyUrl).host}</a>.</>}</p>
+      <p className="text-xs text-[#94a3b8]">{preset.hint}{preset.keyUrl && <> Get a key at <a href={preset.keyUrl} target="_blank" rel="noreferrer" className="text-[#3b82f6]">{new URL(preset.keyUrl).host}</a>.</>}</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm">API key{preset.keyOptional ? ' (optional)' : ''}
           <Input.Password className="mt-1" autoComplete="new-password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder={keyFrom ? 'Using a stored key' : ''} />
