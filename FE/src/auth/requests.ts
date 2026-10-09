@@ -11,7 +11,11 @@ export async function authRequest(endpoint: 'login' | 'register' | 'verify-email
     });
     const result = await response.json().catch(() => null);
     if (!response.ok) {
-      const detail = result?.message ?? result?.error;
+      if (endpoint === 'login' && (response.status === 401 || result?.error?.code === 'INVALID_CREDENTIALS')) {
+        throw new Error('Incorrect username/email or password.');
+      }
+      // BE errors look like { success: false, error: { code, message } }
+      const detail = result?.message ?? (typeof result?.error === 'string' ? result.error : result?.error?.message);
       throw new Error(typeof detail === 'string' ? detail : `Request failed (${response.status}). Please try again.`);
     }
     if (!result || typeof result !== 'object' || Array.isArray(result)) throw new Error('The server returned an invalid response. Please try again.');

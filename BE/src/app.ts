@@ -18,8 +18,10 @@ import {
   adminControllersConfig,
   projectMaintainerController,
   llmController,
+  projectChatController,
 } from "./container.js";
 import { createLlmRouter } from "./presentation/routes/llm.routes.js";
+import { createProjectChatRouter } from "./presentation/routes/projectChat.routes.js";
 import { createGitHubRouter } from './presentation/routes/github.routes.js';
 import { GitHubIdentityService } from './infrastructure/services/GitHubIdentityService.js';
 import { GitHubLoginUseCase } from './application/use-cases/GitHubLoginUseCase.js';
@@ -40,6 +42,7 @@ setupSwagger(app);
 app.use("/api/health", healthRouter);
 app.use('/api/auth/github', createGitHubRouter(env, new GitHubIdentityService(env.githubClientId, env.githubClientSecret, env.githubCallbackUrl), new GitHubLoginUseCase(), new MongoUserRepository(), jwtTokenService));
 app.use("/api/auth", createAuthRouter(authController, jwtTokenService));
+app.use("/api/projects", createProjectChatRouter(projectChatController, jwtTokenService, projectRoleMiddleware));
 app.use(
   "/api/projects",
   createProjectRouter(

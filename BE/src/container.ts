@@ -270,6 +270,9 @@ import { AdminLlmUseCases, UserLlmUseCases } from "./application/use-cases/llm/L
 import { AdminLlmController, LlmController } from "./presentation/controllers/LlmController.js";
 
 export const llmController = new LlmController(new UserLlmUseCases());
+import { ProjectChatUseCase } from "./application/use-cases/llm/ProjectChatUseCase.js";
+import { ProjectChatController } from "./presentation/controllers/ProjectChatController.js";
+export const projectChatController = new ProjectChatController(new ProjectChatUseCase());
 export const adminLlmController = new AdminLlmController(new AdminLlmUseCases());
 
 export const adminControllersConfig: AdminControllersConfig = {
