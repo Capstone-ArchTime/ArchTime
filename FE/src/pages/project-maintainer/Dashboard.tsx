@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { App, Button, Empty, Select, Spin, Tag } from 'antd';
+import { Button, Empty, Select, Spin, Tag } from 'antd';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   ShieldCheck,
@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  Mail,
 } from 'lucide-react';
 import { getProjects } from '@/features/project-data';
 import type { ProjectSummary } from '@/features/project-data';
@@ -29,7 +28,6 @@ const statusMeta = {
 };
 
 export default function ProjectMaintainerDashboard() {
-  const { message } = App.useApp();
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [dashboard, setDashboard] = useState<ProjectDashboard | null>(null);
@@ -84,8 +82,6 @@ export default function ProjectMaintainerDashboard() {
   function refresh() {
     setRevision(v => v + 1);
   }
-
-  const currentProject = projects.find(p => p.id === selectedProject);
 
   return (
     <DashboardLayout>

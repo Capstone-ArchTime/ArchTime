@@ -23,6 +23,9 @@ function createMockUserRepo(initialUsers = []) {
     async findByEmail(email) {
       return users.find((u) => u.email.toLowerCase() === email.toLowerCase()) || null;
     },
+    async findByEmailOrUsername(identifier) {
+      return users.find((u) => u.email.toLowerCase() === identifier.toLowerCase()) || null;
+    },
     async existsByEmail(email) {
       return users.some((u) => u.email.toLowerCase() === email.toLowerCase());
     },
