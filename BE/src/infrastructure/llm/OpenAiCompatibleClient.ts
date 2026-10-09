@@ -40,7 +40,7 @@ export class OpenAiCompatibleClient implements LlmClient {
     try {
       return await this.send(messages, options);
     } catch (error) {
-      if (!(error instanceof LlmError) || error.kind !== 'request' || !this.jsonMode) throw error;
+      if (!(error instanceof LlmError) || error.kind !== 'request' || !this.jsonMode || options.plain) throw error;
       this.jsonMode = false;
       this.dropped.push(`The server rejected JSON mode (${error.message.replace(/^The server rejected the request/, '').replace(/^ \(|\)\.$/g, '') || 'no reason given'}); it was switched off.`);
       return this.send(messages, options);
@@ -61,7 +61,7 @@ export class OpenAiCompatibleClient implements LlmClient {
           messages,
           ...(this.config.temperature === null ? {} : { temperature: this.config.temperature ?? 0 }),
           max_tokens: options.maxTokens ?? this.config.maxTokens ?? 8000,
-          ...(this.jsonMode ? { response_format: { type: 'json_object' } } : {}),
+          ...(this.jsonMode && !options.plain ? { response_format: { type: 'json_object' } } : {}),
         }),
         signal,
       });

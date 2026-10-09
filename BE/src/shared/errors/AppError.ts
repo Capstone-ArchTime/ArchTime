@@ -23,6 +23,7 @@ export type ErrorCode =
   | "VALIDATION_ERROR"
   | "BAD_REQUEST"
   // Server
+  | "RATE_LIMITED"
   | "INTERNAL_ERROR"
   | "SERVICE_UNAVAILABLE";
 

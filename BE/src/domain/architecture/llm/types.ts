@@ -46,6 +46,8 @@ export interface CompleteOptions {
   schema?: Record<string, unknown>;
   maxTokens?: number;
   signal?: AbortSignal;
+  /** Free-text answer: no JSON mode and no schema for this call. */
+  plain?: boolean;
   /** Called once per request that reached the provider and got an answer, including answers then rejected (refusal, truncated). */
   onUsage?: (usage: LlmUsage, latencyMs: number) => void;
 }

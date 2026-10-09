@@ -23,8 +23,8 @@ async function renewToken() {
   return renewal;
 }
 
-export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const timeout = AbortSignal.timeout(15_000);
+export async function apiRequest<T>(path: string, options: RequestInit = {}, timeoutMs = 15_000): Promise<T> {
+  const timeout = AbortSignal.timeout(timeoutMs);
   const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
   const send = (token: string) => fetch(`${API_BASE_URL}${path}`, {
     ...options, signal, headers: { ...Object.fromEntries(new Headers(options.headers)), Authorization: `Bearer ${token}` },
