@@ -6,7 +6,6 @@ import { getProjects } from '@/features/project-data';
 import type { ProjectSummary } from '@/features/project-data';
 import {
   getProjectApprovals,
-  getApprovalDetail,
   createApproval,
   approveRequest,
   rejectRequest,
@@ -31,7 +30,7 @@ const filterOptions: { key: 'all' | ApprovalStatus; label: string }[] = [
 ];
 
 export default function ApprovalQueue() {
-  const { message, modal } = App.useApp();
+  const { message } = App.useApp();
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [approvals, setApprovals] = useState<Approval[]>([]);

@@ -1,20 +1,16 @@
 import { useEffect, useState } from 'react';
-import { App, Button, Empty, Form, Input, Modal, Popconfirm, Select, Spin, Table, Tag } from 'antd';
+import { App, Button, Empty, Form, Input, Modal, Select, Spin, Table, Tag } from 'antd';
 import FeaturePage from '@/components/FeaturePage';
 import { getProjects } from '@/features/project-data';
 import type { ProjectSummary } from '@/features/project-data';
 import {
   getTeamMembers,
-  getProjectMembers,
   inviteProjectMember,
   updateMemberRole,
   removeMember,
   cancelInvitation,
-  getProjectInvitations,
 } from '@/features/pm-api';
-import type { TeamMember, ProjectMember, ProjectInvitation } from '@/features/pm-api';
-
-type CombinedMember = TeamMember | (ProjectMember & { projects: string[] });
+import type { TeamMember } from '@/features/pm-api';
 
 export default function Team() {
   const { message, modal } = App.useApp();
@@ -24,7 +20,6 @@ export default function Team() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [projectFilter, setProjectFilter] = useState('all');
-  const [editing, setEditing] = useState<{ member: CombinedMember; projectId: string } | null | undefined>();
   const [inviting, setInviting] = useState<string | null>(null); // projectId
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm<{ email: string; role: string }>();
@@ -97,7 +92,7 @@ export default function Team() {
     }
   }
 
-  async function handleRemove(member: CombinedMember, projectId: string) {
+  async function handleRemove(member: TeamMember, projectId: string) {
     modal.confirm({
       title: member.status === 'invited' ? 'Revoke invitation?' : 'Remove member?',
       content: member.status === 'invited'
