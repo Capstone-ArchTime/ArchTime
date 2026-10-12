@@ -117,6 +117,7 @@ const options: swaggerJsdoc.Options = {
           properties: {
             id: { type: "string", example: "64f1a2b3c4d5e6f7a8b9c0d1" },
             name: { type: "string", example: "Jane Doe" },
+            username: { type: "string", example: "janedoe" },
             email: { type: "string", format: "email", example: "dev@archtime.io" },
             role: {
               type: "string",
@@ -787,6 +788,8 @@ const options: swaggerJsdoc.Options = {
       { name: "Admin - Audit Logs", description: "Nhật ký kiểm toán hoạt động hệ thống" },
       { name: "Admin - System Settings", description: "Cấu hình tham số hệ thống và quản lý API keys" },
       { name: "Admin - Metrics & Health", description: "Giám sát tài nguyên máy chủ và tình trạng các dịch vụ" },
+      { name: "Admin - AI Models", description: "Quản lý và benchmark mô hình AI (System Administrator)" },
+      { name: "AI Models", description: "Danh sách và lịch sử sử dụng AI models của người dùng" },
       { name: "Health", description: "Kiểm tra trạng thái server" },
     ],
   },
