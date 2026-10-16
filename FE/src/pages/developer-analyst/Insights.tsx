@@ -3,10 +3,6 @@ import { Link } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   Sparkles,
-  GitCommit,
-  CheckCircle2,
-  FileCode,
-  Network,
   Bot,
   Loader2,
   Box,
@@ -18,12 +14,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { apiRequest } from '@/api/client';
-
-interface ChatEvidence {
-  commits: string[];
-  files: number;
-  dependencies: { added: number; removed: number };
-}
+import AssistantMessage from '@/components/chat/AssistantMessage';
+import type { ChatEvidence } from '@/features/chat-answer';
 
 interface ChatMessage {
   id: string;
@@ -56,28 +48,6 @@ const SUGGESTED_QUESTIONS = [
   'How did the dependencies change over time?',
   'Which modules look the most coupled?'
 ];
-
-const LABEL_STYLES: Record<string, string> = {
-  FACT: 'bg-[#22c55e]/15 text-[#22c55e] border-[#22c55e]/30',
-  INFERENCE: 'bg-[#ffb03a]/15 text-[#ffb03a] border-[#ffb03a]/30',
-  UNKNOWN: 'bg-[#94a3b8]/15 text-[#94a3b8] border-[#94a3b8]/30'
-};
-
-/** Shows the model's [FACT] / [INFERENCE] / [UNKNOWN] labels as badges and `code` spans as code; everything else stays plain text. */
-function renderAnswer(text: string) {
-  return text.split(/(\[(?:FACT|INFERENCE|UNKNOWN)\]|`[^`\n]+`)/g).map((part, i) => {
-    if (part.length > 2 && part.startsWith('`') && part.endsWith('`')) {
-      return <code key={i} className="px-1 bg-[#242527]/60 text-[#3b82f6] text-[12px]" style={mono}>{part.slice(1, -1)}</code>;
-    }
-    const label = /^\[(FACT|INFERENCE|UNKNOWN)\]$/.exec(part)?.[1];
-    if (!label) return <React.Fragment key={i}>{part}</React.Fragment>;
-    return (
-      <span key={i} className={`inline-block px-1.5 mr-1 border text-[10px] font-semibold tracking-wider align-middle ${LABEL_STYLES[label]}`} style={mono}>
-        {label}
-      </span>
-    );
-  });
-}
 
 const Insights: React.FC = () => {
   const [projects, setProjects] = useState<ProjectOption[]>([]);
@@ -280,34 +250,12 @@ const Insights: React.FC = () => {
                             : 'bg-[#11161b] border border-[#242527]'
                       }`}
                     >
-                      <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${message.isError ? 'text-red-300' : 'text-[#f4f4f6]'}`}>
-                        {message.role === 'assistant' && !message.isError ? renderAnswer(message.content) : message.content}
-                      </p>
-
-                      {message.evidence && (
-                        <div className="mt-4 pt-4 border-t border-[#242527]">
-                          <div className="flex items-center gap-2 mb-3">
-                            <CheckCircle2 size={12} className="text-[#22c55e]" />
-                            <span className="text-[10px] font-mono font-semibold text-[#22c55e] uppercase tracking-wider" style={mono}>Evidence cited</span>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {message.evidence.commits.map(commit => (
-                              <span key={commit} className="px-2 py-1 bg-[#242527]/50 border border-[#242527] text-[10px] font-mono text-[#3b82f6] flex items-center gap-1" style={mono}>
-                                <GitCommit size={10} /> {commit}
-                              </span>
-                            ))}
-                            {message.evidence.files > 0 && (
-                              <span className="px-2 py-1 bg-[#242527]/50 border border-[#242527] text-[10px] font-mono text-[#94a3b8] flex items-center gap-1" style={mono}>
-                                <FileCode size={10} /> {message.evidence.files} files
-                              </span>
-                            )}
-                            {(message.evidence.dependencies.added > 0 || message.evidence.dependencies.removed > 0) && (
-                              <span className="px-2 py-1 bg-[#242527]/50 border border-[#242527] text-[10px] font-mono text-[#94a3b8] flex items-center gap-1" style={mono}>
-                                <Network size={10} /> +{message.evidence.dependencies.added}/-{message.evidence.dependencies.removed} deps
-                              </span>
-                            )}
-                          </div>
-                        </div>
+                      {message.role === 'assistant' && !message.isError ? (
+                        <AssistantMessage content={message.content} evidence={message.evidence} projectId={selectedProjectId} />
+                      ) : (
+                        <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${message.isError ? 'text-red-300' : 'text-[#f4f4f6]'}`}>
+                          {message.content}
+                        </p>
                       )}
                     </div>
                     <p className="text-[10px] text-[#5f636b] mt-1 font-mono" style={mono}>

@@ -7,7 +7,7 @@ import { LlmModelRegistry } from "../../../infrastructure/llm/registry.js";
 import { AppError, BadRequestError } from "../../../shared/errors/AppError.js";
 import {
   buildProjectContext, CHAT_LIMITS, citedEvidence, parseChatMessages,
-  type ChatEvidence, type ChatSnapshot, type ChatStructure,
+  type ChatCitations, type ChatEvidence, type ChatSnapshot, type ChatStructure,
 } from "./ProjectChatContext.js";
 
 const SYSTEM_PROMPT = `You are ArchTime AI, an assistant that explains how a software project's architecture evolved.
@@ -54,7 +54,7 @@ function toAppError(error: unknown): Error {
 
 export interface ProjectChatResult {
   answer: string;
-  evidence: { commits: string[]; files: number; dependencies: { added: number; removed: number } } | null;
+  evidence: ChatCitations | null;
   model: { name: string; host: string; external: boolean };
   usage: { inputTokens: number; outputTokens: number } | null;
 }

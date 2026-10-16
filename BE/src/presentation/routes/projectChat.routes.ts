@@ -37,7 +37,7 @@ export function createProjectChatRouter(
    *                     content: { type: string }
    *     responses:
    *       200:
-   *         description: "{ answer, evidence: { commits, files, dependencies } | null, model: { name, host, external }, usage }"
+   *         description: "{ answer, evidence: { commits, files, dependencies, items: [{ commit, kind, title, type, date, files, dependencies, sourceFiles }] } | null, model: { name, host, external }, usage }"
    *       429:
    *         description: Gửi quá nhanh
    *       503:
