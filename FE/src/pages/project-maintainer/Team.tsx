@@ -97,7 +97,7 @@ export default function Team() {
       title: member.status === 'invited' ? 'Revoke invitation?' : 'Remove member?',
       content: member.status === 'invited'
         ? 'This will cancel the pending invitation.'
-        : 'This member will no longer have access to this project.',
+        : 'This member will no longer have access to this workspace.',
       onOk: async () => {
         try {
           if (member.status === 'invited') {
@@ -115,20 +115,20 @@ export default function Team() {
   }
 
   const projectOptions = [
-    { value: 'all', label: 'All projects' },
+    { value: 'all', label: 'All workspaces' },
     ...projects.map(p => ({ value: p.id, label: p.name })),
   ];
 
   return (
     <FeaturePage
       title="Team"
-      description="Manage members and invitations across your maintained projects."
+      description="Manage members and invitations across your maintained workspaces."
       error={error}
       actions={
         <div className="flex gap-2">
           <Button loading={loading} onClick={refresh}>Refresh</Button>
           <Select
-            placeholder="Invite to project"
+            placeholder="Invite to workspace"
             className="min-w-48"
             value={undefined}
             onChange={openInvite}
@@ -147,7 +147,7 @@ export default function Team() {
           allowClear
         />
         <Select
-          aria-label="Filter team by project"
+          aria-label="Filter team by workspace"
           value={projectFilter}
           onChange={setProjectFilter}
           className="min-w-60"
@@ -180,7 +180,7 @@ export default function Team() {
             },
             { title: 'Role', dataIndex: 'role' },
             {
-              title: 'Projects',
+              title: 'Workspaces',
               render: (_, m: TeamMember) => (
                 <div className="flex flex-wrap gap-1">
                   {m.projects.map(p => {
@@ -230,7 +230,7 @@ export default function Team() {
       )}
 
       <Modal
-        title={`Invite member to ${projects.find(p => p.id === inviting)?.name ?? 'project'}`}
+        title={`Invite member to ${projects.find(p => p.id === inviting)?.name ?? 'workspace'}`}
         open={!!inviting}
         onCancel={() => setInviting(null)}
         onOk={() => form.submit()}
@@ -247,7 +247,7 @@ export default function Team() {
           </Form.Item>
           <Form.Item
             name="role"
-            label="Project role"
+            label="Workspace role"
             rules={[{ required: true }]}
           >
             <Select

@@ -63,7 +63,7 @@ export class GetProjectDashboardUseCase {
 
   async execute(projectId: string): Promise<ProjectDashboardData> {
     const project = await this.projectRepository.findById(projectId);
-    if (!project) throw new NotFoundError("Project not found.");
+    if (!project) throw new NotFoundError("Workspace not found.");
 
     const [ws, members, snapshotsCount, latestSnapshot, pendingApprovalsCount, totalApprovalsCount] =
       await Promise.all([

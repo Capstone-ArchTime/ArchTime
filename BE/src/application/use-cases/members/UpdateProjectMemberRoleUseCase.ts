@@ -31,7 +31,7 @@ export class UpdateProjectMemberRoleUseCase {
 
     const updated = await this.memberRepository.updateRole(memberId, role);
     if (!updated) {
-      throw new NotFoundError("Project member not found.");
+      throw new NotFoundError("Workspace member not found.");
     }
 
     return updated;

@@ -118,6 +118,10 @@ export class MongoProjectRepository implements IProjectRepository {
           "../database/models/ProjectMemberModel.js"
         );
         await ProjectMemberModel.deleteMany({ projectId: id });
+        const { ChatConversationModel } = await import(
+          "../database/models/ChatConversationModel.js"
+        );
+        await ChatConversationModel.deleteMany({ projectId: id });
       } catch {
         // ignore if model not ready
       }

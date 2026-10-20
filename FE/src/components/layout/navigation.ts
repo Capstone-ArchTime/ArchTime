@@ -3,7 +3,7 @@ import { LayoutDashboard, FolderKanban, History, GitCompare, FileSearch, Sparkle
 export const navItemsByRole = {
   'developer-analyst': [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/projects', label: 'Projects', icon: FolderKanban },
+    { path: '/projects', label: 'Workspaces', icon: FolderKanban },
     { path: '/history', label: 'Architecture History', icon: History },
     { path: '/architecture', label: 'Architecture Map', icon: Boxes },
     { path: '/compare', label: 'Compare', icon: GitCompare },

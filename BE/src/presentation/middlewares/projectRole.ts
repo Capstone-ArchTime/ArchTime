@@ -47,7 +47,7 @@ export function createProjectRoleMiddleware(
 
         const project = await projectRepository.findById(projectId);
         if (!project) {
-          next(new NotFoundError("Project not found."));
+          next(new NotFoundError("Workspace not found."));
           return;
         }
 
@@ -104,7 +104,7 @@ export function createProjectRoleMiddleware(
         // 5. Unauthorized access
         next(
           new ForbiddenError(
-            "Forbidden: you do not have permission to access this project.",
+            "Forbidden: you do not have permission to access this workspace.",
           ),
         );
       } catch (error) {

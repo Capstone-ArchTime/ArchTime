@@ -81,9 +81,9 @@ test('another snapshot can be chosen, and unknown ones are rejected', async () =
 
 test('only the owner may read or generate, and ids are validated', async () => {
   const useCase = new ArchitectureUseCase();
-  await assert.rejects(useCase.get(PROJECT, 'someone-else'), /Project not found/);
-  await assert.rejects(useCase.generate(PROJECT, 'someone-else', {}), /Project not found/);
-  await assert.rejects(useCase.get('not-an-id', OWNER), /Invalid project ID/);
+  await assert.rejects(useCase.get(PROJECT, 'someone-else'), /Workspace not found/);
+  await assert.rejects(useCase.generate(PROJECT, 'someone-else', {}), /Workspace not found/);
+  await assert.rejects(useCase.get('not-an-id', OWNER), /Invalid workspace ID/);
   await assert.rejects(useCase.get(PROJECT, OWNER, 'bad'), /Invalid snapshot ID/);
   const ok = await useCase.generate(PROJECT, OWNER, { snapshotId: SNAP_NEW, minComponents: 'nope' });
   assert.equal(ok.status, 'ready');

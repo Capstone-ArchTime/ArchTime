@@ -50,7 +50,7 @@ export class ArchitectureService {
   private static async pickSnapshot(projectId: string, snapshotId?: string) {
     const query = snapshotId ? { _id: snapshotId, projectId } : { projectId };
     const snapshot = await SnapshotModel.findOne(query).sort({ date: -1 }).lean();
-    if (!snapshot) throw new NotFoundError(snapshotId ? "Snapshot not found" : "This project has no mined snapshots yet");
+    if (!snapshot) throw new NotFoundError(snapshotId ? "Snapshot not found" : "This workspace has no mined snapshots yet");
     return snapshot;
   }
 

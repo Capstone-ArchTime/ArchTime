@@ -29,7 +29,7 @@ export class GetProjectByIdUseCase {
   ): Promise<ProjectDetailDTO> {
     const project = await this.projectRepository.findById(projectId);
     if (!project) {
-      throw new NotFoundError("Project not found.");
+      throw new NotFoundError("Workspace not found.");
     }
 
     const isOwner = project.userId === userId;
@@ -60,7 +60,7 @@ export class GetProjectByIdUseCase {
     // Check read access
     if (!isOwner && !isAdmin && !isMember && !isPublic) {
       throw new ForbiddenError(
-        "Forbidden: you do not have permission to view this project.",
+        "Forbidden: you do not have permission to view this workspace.",
       );
     }
 

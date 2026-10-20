@@ -146,7 +146,7 @@ const Projects: React.FC = () => {
 
   const handleConnect = async () => {
     if (!projectName.trim() || !repoUrl.trim()) {
-      message.error('Project Name and Repository URL are required.');
+      message.error('Workspace Name and Repository URL are required.');
       return;
     }
     if (visibility === 'private' && !token.trim()) {
@@ -204,7 +204,7 @@ const Projects: React.FC = () => {
   const handleDeleteProject = async (id: string | number) => {
     // Only allow deletion of non-hardcoded items for demo purposes if id is a string (MongoDB ObjectId)
     if (typeof id === 'number') {
-      message.warning('Cannot delete sample projects.');
+      message.warning('Cannot delete sample workspaces.');
       return;
     }
     
@@ -216,13 +216,13 @@ const Projects: React.FC = () => {
         }
       });
       if (response.ok) {
-        message.success('Project deleted successfully');
+        message.success('Workspace deleted successfully');
         fetchProjects();
         // Also clean up state if it doesn't immediately refetch
         setProjectsList(prev => prev.filter(p => p.id !== id));
       } else {
         const err = await response.json().catch(() => ({}));
-        message.error(err.message || 'Failed to delete project');
+        message.error(err.message || 'Failed to delete workspace');
       }
     } catch (error) {
       message.error('Network error. Please try again.');
@@ -247,9 +247,9 @@ const Projects: React.FC = () => {
           
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Repository Projects</h2>
+              <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Repository Workspaces</h2>
               <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
-                Manage repositories and their architecture analysis. Each project contains one or more connected repositories.
+                Manage repositories and their architecture analysis. Each workspace contains one or more connected repositories.
               </p>
             </div>
             <button 
@@ -257,7 +257,7 @@ const Projects: React.FC = () => {
               className="shrink-0 h-10 px-5 bg-[#3b82f6] hover:bg-[#3b82f6]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)]"
             >
               <Plus size={16} />
-              NEW PROJECT
+              NEW WORKSPACE
             </button>
           </div>
           <div className="h-[1px] w-full bg-gradient-to-r from-[#242527] to-transparent mt-8"></div>
@@ -308,8 +308,8 @@ const Projects: React.FC = () => {
         </div>
 
         {/* PROJECT LIST */}
-        <input aria-label="Search projects" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search projects?" className="h-11 w-full max-w-md px-4 border border-[#242527] bg-[#11161b] text-sm" />
-        {!filteredProjects.length && <p role="status" className="text-[#94a3b8] text-sm">No projects match your search.</p>}
+        <input aria-label="Search workspaces" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search workspaces?" className="h-11 w-full max-w-md px-4 border border-[#242527] bg-[#11161b] text-sm" />
+        {!filteredProjects.length && <p role="status" className="text-[#94a3b8] text-sm">No workspaces match your search.</p>}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {pagination.items.map((project) => (
             <div key={project.id} className="bg-[#11161b] border border-[#242527] hover:border-[#3b82f6]/50 overflow-hidden transition-colors flex flex-col group">
@@ -354,7 +354,7 @@ const Projects: React.FC = () => {
                   <button 
                     onClick={() => handleDeleteProject(project.id)} 
                     className="text-[#94a3b8] hover:text-[#ef4444] transition-colors p-1"
-                    title="Delete Project"
+                    title="Delete Workspace"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -423,7 +423,7 @@ const Projects: React.FC = () => {
                     <Link
                       to={typeof project.id === 'string' ? `/project?projectId=${project.id}` : "/project"}
                       aria-label={`Details of ${project.name}`}
-                      title="Project details"
+                      title="Workspace details"
                       className="h-11 px-3 bg-[#161d24] hover:bg-[#242527] border border-[#242527] text-xs flex items-center justify-center"
                     >
                       Details
@@ -433,7 +433,7 @@ const Projects: React.FC = () => {
                   <button
                     disabled
                     className="w-full h-11 bg-[#161d24] border border-[#242527] text-xs mt-auto"
-                    title="No architecture snapshot has been connected for this sample project"
+                    title="No architecture snapshot has been connected for this sample workspace"
                   >
                     Snapshot unavailable
                   </button>
@@ -482,7 +482,7 @@ const Projects: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] shadow-[0_0_5px_#3b82f6]"></div>
                   <h2 id="create-project-title" className="text-[#f4f4f6] font-bold tracking-tight uppercase text-sm font-mono tracking-widest"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Create Project</h2>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Create Workspace</h2>
                 </div>
                 <button
                   onClick={closeModal}
@@ -499,7 +499,7 @@ const Projects: React.FC = () => {
                 </p>
                 <div className="space-y-1.5">
                   <label htmlFor="project-name" className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Project Name</label>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Workspace Name</label>
                   <input
                     id="project-name"
                     type="text"

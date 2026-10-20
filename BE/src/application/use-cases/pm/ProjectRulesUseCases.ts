@@ -67,7 +67,7 @@ export class GetProjectRulesUseCase {
 
   async execute(input: FilterRulesInput): Promise<{ rules: IWorkspaceRule[]; total: number }> {
     const project = await this.projectRepository.findById(input.projectId);
-    if (!project) throw new NotFoundError("Project not found.");
+    if (!project) throw new NotFoundError("Workspace not found.");
 
     const ws = await this.workspaceRepository.findByProjectId(input.projectId);
     let rules = ws?.rules ?? [];
@@ -107,7 +107,7 @@ export class CreateProjectRuleUseCase {
 
   async execute(input: CreateRuleInput): Promise<IWorkspaceRule> {
     const project = await this.projectRepository.findById(input.projectId);
-    if (!project) throw new NotFoundError("Project not found.");
+    if (!project) throw new NotFoundError("Workspace not found.");
 
     if (!input.name?.trim() || !input.source?.trim() || !input.target?.trim()) {
       throw new BadRequestError("Rule name, source, and target are required.");
@@ -164,7 +164,7 @@ export class UpdateProjectRuleUseCase {
 
   async execute(input: UpdateRuleInput): Promise<IWorkspaceRule> {
     const project = await this.projectRepository.findById(input.projectId);
-    if (!project) throw new NotFoundError("Project not found.");
+    if (!project) throw new NotFoundError("Workspace not found.");
 
     const ws = await this.workspaceRepository.findByProjectId(input.projectId);
     if (!ws) throw new NotFoundError("Rule not found.");
@@ -211,7 +211,7 @@ export class DeleteProjectRuleUseCase {
 
   async execute(projectId: string, ruleId: string, userId?: string): Promise<void> {
     const project = await this.projectRepository.findById(projectId);
-    if (!project) throw new NotFoundError("Project not found.");
+    if (!project) throw new NotFoundError("Workspace not found.");
 
     const ws = await this.workspaceRepository.findByProjectId(projectId);
     if (!ws) throw new NotFoundError("Rule not found.");
@@ -275,7 +275,7 @@ export class EvaluateProjectRulesUseCase {
 
   async execute(projectId: string): Promise<EvaluationSummary> {
     const project = await this.projectRepository.findById(projectId);
-    if (!project) throw new NotFoundError("Project not found.");
+    if (!project) throw new NotFoundError("Workspace not found.");
 
     const ws = await this.workspaceRepository.findByProjectId(projectId);
     const rules = ws?.rules ?? [];

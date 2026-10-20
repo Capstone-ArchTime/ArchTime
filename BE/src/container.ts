@@ -271,8 +271,10 @@ import { AdminLlmController, LlmController } from "./presentation/controllers/Ll
 
 export const llmController = new LlmController(new UserLlmUseCases());
 import { ProjectChatUseCase } from "./application/use-cases/llm/ProjectChatUseCase.js";
+import { ChatHistoryUseCases } from "./application/use-cases/llm/ChatHistoryUseCases.js";
 import { ProjectChatController } from "./presentation/controllers/ProjectChatController.js";
-export const projectChatController = new ProjectChatController(new ProjectChatUseCase());
+const chatHistory = new ChatHistoryUseCases();
+export const projectChatController = new ProjectChatController(new ProjectChatUseCase(chatHistory), chatHistory);
 export const adminLlmController = new AdminLlmController(new AdminLlmUseCases());
 
 export const adminControllersConfig: AdminControllersConfig = {

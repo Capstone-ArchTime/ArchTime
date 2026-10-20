@@ -3,8 +3,8 @@ import type { ReactNode, Ref } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, ExternalLink, FileCode, GitCommit, Network, X } from 'lucide-react';
 import {
-  countedItems, evidenceHref, toggleDetail, tokenizeAnswer,
-  type ChatEvidence, type CitedItem, type EvidenceDetail,
+  countedItems, evidenceHref, parseAnswer, toggleDetail,
+  type AnswerSegment, type ChatEvidence, type CitedItem, type EvidenceDetail,
 } from '@/features/chat-answer';
 
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -159,35 +159,69 @@ export default function AssistantMessage({ content, evidence, projectId }: Props
     panel.current?.scrollIntoView({ block: 'nearest', behavior: calm ? 'auto' : 'smooth' });
   }, [detail]);
 
+  const renderSegments = (segments: AnswerSegment[]): ReactNode[] => segments.map((segment, index) => {
+    if (segment.kind === 'bold') {
+      return <strong key={index} className="font-semibold">{renderSegments(segment.children)}</strong>;
+    }
+    if (segment.kind === 'label') {
+      return <span key={index} className={`inline-block px-1.5 mr-1 border text-[10px] font-semibold tracking-wider align-middle ${LABEL_STYLES[segment.value]}`} style={mono}>{segment.value}</span>;
+    }
+    if (segment.kind === 'code') {
+      return <code key={index} className="px-1 bg-[#242527]/60 text-[#3b82f6] text-[12px]" style={mono}>{segment.value}</code>;
+    }
+    if (segment.kind === 'commit') {
+      const label = `Show evidence for commit ${segment.commit}`;
+      return interactive ? (
+        <button
+          key={index} type="button" onClick={() => toggle({ kind: 'commit', commit: segment.commit })}
+          aria-expanded={isOpen('commit', segment.commit)} aria-controls={panelId} aria-label={label}
+          className={`px-1 bg-[#3b82f6]/10 text-[#3b82f6] text-[12px] underline decoration-dotted underline-offset-2 hover:bg-[#3b82f6]/25 ${FOCUSABLE}`} style={mono}
+        >
+          {segment.value}
+        </button>
+      ) : (
+        <Link key={index} to={evidenceHref(projectId, segment.commit)} aria-label={label} className="px-1 bg-[#3b82f6]/10 text-[#3b82f6] text-[12px] underline decoration-dotted underline-offset-2 hover:bg-[#3b82f6]/25" style={mono}>
+          {segment.value}
+        </Link>
+      );
+    }
+    return <Fragment key={index}>{segment.value}</Fragment>;
+  });
+
   return (
     <>
-      <p className="text-sm leading-relaxed whitespace-pre-wrap break-words text-[#f4f4f6]">
-        {tokenizeAnswer(content, evidence?.commits).map((segment, index) => {
-          if (segment.kind === 'label') {
-            return <span key={index} className={`inline-block px-1.5 mr-1 border text-[10px] font-semibold tracking-wider align-middle ${LABEL_STYLES[segment.value]}`} style={mono}>{segment.value}</span>;
+      <div className="space-y-3 text-sm leading-relaxed text-[#f4f4f6]">
+        {parseAnswer(content, evidence?.commits).map((block, index) => {
+          if (block.kind === 'heading') {
+            return <p key={index} className="font-semibold break-words">{renderSegments(block.segments)}</p>;
           }
-          if (segment.kind === 'code') {
-            return <code key={index} className="px-1 bg-[#242527]/60 text-[#3b82f6] text-[12px]" style={mono}>{segment.value}</code>;
-          }
-          if (segment.kind === 'commit') {
-            const label = `Show evidence for commit ${segment.commit}`;
-            return interactive ? (
-              <button
-                key={index} type="button" onClick={() => toggle({ kind: 'commit', commit: segment.commit })}
-                aria-expanded={isOpen('commit', segment.commit)} aria-controls={panelId} aria-label={label}
-                className={`px-1 bg-[#3b82f6]/10 text-[#3b82f6] text-[12px] underline decoration-dotted underline-offset-2 hover:bg-[#3b82f6]/25 ${FOCUSABLE}`} style={mono}
-              >
-                {segment.value}
-              </button>
-            ) : (
-              <Link key={index} to={evidenceHref(projectId, segment.commit)} aria-label={label} className="px-1 bg-[#3b82f6]/10 text-[#3b82f6] text-[12px] underline decoration-dotted underline-offset-2 hover:bg-[#3b82f6]/25" style={mono}>
-                {segment.value}
-              </Link>
+          if (block.kind === 'table') {
+            return (
+              <div key={index} className="overflow-x-auto">
+                <table className="min-w-full border-collapse text-xs">
+                  <thead>
+                    <tr>
+                      {block.header.map((cell, column) => (
+                        <th key={column} scope="col" className="px-3 py-2 text-left font-semibold bg-[#161d24] border border-[#242527] whitespace-nowrap">{renderSegments(cell)}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {block.rows.map((row, rowIndex) => (
+                      <tr key={rowIndex}>
+                        {row.map((cell, column) => (
+                          <td key={column} className="px-3 py-2 align-top border border-[#242527] break-words">{renderSegments(cell)}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             );
           }
-          return <Fragment key={index}>{segment.value}</Fragment>;
+          return <p key={index} className="whitespace-pre-wrap break-words">{renderSegments(block.segments)}</p>;
         })}
-      </p>
+      </div>
 
       {evidence && (
         <div className="mt-4 pt-4 border-t border-[#242527]">

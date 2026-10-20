@@ -96,19 +96,19 @@ export default function ProjectMaintainerDashboard() {
 
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Project &amp; architecture overview</h2>
+              <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Workspace &amp; architecture overview</h2>
               <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
                 Track architecture health, review changes, manage teams, and document diagrams, rules, and design decisions.
               </p>
             </div>
             <div className="flex gap-2">
               <Select
-                aria-label="Select project"
+                aria-label="Select workspace"
                 value={selectedProject}
                 onChange={setSelectedProject}
                 className="min-w-60"
                 options={projects.map(p => ({ value: p.id, label: p.name }))}
-                placeholder="Select a project"
+                placeholder="Select a workspace"
               />
               <Button loading={loading} onClick={refresh}>Refresh</Button>
             </div>
@@ -175,9 +175,9 @@ export default function ProjectMaintainerDashboard() {
             </section>
           </>
         ) : selectedProject ? (
-          <Empty description="Dashboard data not available for this project" />
+          <Empty description="Dashboard data not available for this workspace" />
         ) : (
-          <Empty description="Select a project to view dashboard" />
+          <Empty description="Select a workspace to view dashboard" />
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
@@ -235,7 +235,7 @@ export default function ProjectMaintainerDashboard() {
             <div className="mb-6 flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-bold text-[#f4f4f6] tracking-tight">Team</h3>
-                <p className="text-sm text-[#94a3b8] mt-1">Members on this project.</p>
+                <p className="text-sm text-[#94a3b8] mt-1">Members on this workspace.</p>
               </div>
               <Link to="/project-maintainer/team" className="text-sm text-[#3b82f6]">Manage →</Link>
             </div>

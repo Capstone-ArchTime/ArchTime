@@ -164,7 +164,7 @@ const Evidence: React.FC = () => {
               <div className="mt-6 mb-2 flex items-center gap-4">
                 <div className="relative group flex items-center h-10 bg-[#080b0e] border border-[#242527] hover:border-[#5f636b] transition-colors">
                   <FolderKanban size={16} className="text-[#94a3b8] ml-4" />
-                  <span className="text-[10px] font-mono text-[#94a3b8] uppercase pl-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>Project:</span>
+                  <span className="text-[10px] font-mono text-[#94a3b8] uppercase pl-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>Workspace:</span>
                   <select 
                     value={selectedProjectId} 
                     onChange={(e) => setSelectedProjectId(e.target.value)}
@@ -172,7 +172,7 @@ const Evidence: React.FC = () => {
                   >
                     {projectsList.length > 0 ? projectsList.map(p => (
                       <option key={p.id} value={p.id} className="bg-[#161d24]">{p.name}</option>
-                    )) : <option value="" className="bg-[#161d24]">No Projects Found</option>}
+                    )) : <option value="" className="bg-[#161d24]">No Workspaces Found</option>}
                   </select>
                   <ChevronDown size={14} className="text-[#94a3b8] absolute right-3 pointer-events-none group-hover:text-[#f4f4f6]" />
                 </div>

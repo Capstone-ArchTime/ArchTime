@@ -77,7 +77,7 @@ export function createProjectRouter(
    *             example:
    *               success: true
    *               data: { project: { id: "64f1...", name: "My Awesome Project", status: "pending" } }
-   *               message: "Project registered successfully."
+   *               message: "Workspace registered successfully."
    *       400:
    *         $ref: '#/components/responses/ValidationError'
    *       401:
@@ -262,7 +262,7 @@ export function createProjectRouter(
    *             example:
    *               success: true
    *               data: null
-   *               message: "Project deleted successfully."
+   *               message: "Workspace deleted successfully."
    *       401:
    *         $ref: '#/components/responses/Unauthorized'
    *       403:

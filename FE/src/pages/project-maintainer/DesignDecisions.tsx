@@ -12,7 +12,7 @@ const statuses = ['Proposed', 'Accepted', 'Deprecated'] as const;
 const colors = { Proposed: 'gold', Accepted: 'green', Deprecated: 'default' };
 const adr = (number: number) => `ADR-${String(number).padStart(3, '0')}`;
 function exportDecision(d: Decision, project: string) {
-  const text = [`# ${adr(d.number)}: ${d.title}`, `Project: ${project}`, `Status: ${d.status}`, 'Source: local demo workspace', `Created: ${d.createdAt}`, `Updated: ${d.updatedAt}`, '## Context', d.context, '## Decision', d.decision, '## Alternatives', d.alternatives || 'None recorded.', '## Consequences', d.consequences, '## Component IDs', d.componentIds.join(', ') || 'None'].join('\n\n');
+  const text = [`# ${adr(d.number)}: ${d.title}`, `Workspace: ${project}`, `Status: ${d.status}`, 'Source: local demo workspace', `Created: ${d.createdAt}`, `Updated: ${d.updatedAt}`, '## Context', d.context, '## Decision', d.decision, '## Alternatives', d.alternatives || 'None recorded.', '## Consequences', d.consequences, '## Component IDs', d.componentIds.join(', ') || 'None'].join('\n\n');
   downloadText(`${adr(d.number)}.md`, text, 'text/markdown;charset=utf-8');
 }
 

@@ -112,7 +112,7 @@ function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyCha
         <Form.Item name="source" label="Source (caller)" rules={[{ required: true }]}><Select options={options} /></Form.Item><Form.Item name="target" label="Target" rules={[{ required: true }]}><Select options={options} /></Form.Item><Form.Item name="label" label="Protocol / relationship" rules={[{ required: true, whitespace: true }]}><Input maxLength={40} placeholder="e.g. HTTPS, publishes events" /></Form.Item>
       </Form>
     </Modal>
-    {dirty && <p role="status" className="text-xs text-[#ffb03a]">Save or confirm your changes before switching project or leaving this page.</p>}
+    {dirty && <p role="status" className="text-xs text-[#ffb03a]">Save or confirm your changes before switching workspace or leaving this page.</p>}
   </div>;
 }
 

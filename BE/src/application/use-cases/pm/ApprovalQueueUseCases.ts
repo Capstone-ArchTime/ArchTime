@@ -42,7 +42,7 @@ export class GetProjectApprovalsUseCase {
     meta: { page: number; limit: number; total: number; totalPages: number };
   }> {
     const project = await this.projectRepository.findById(input.projectId);
-    if (!project) throw new NotFoundError("Project not found.");
+    if (!project) throw new NotFoundError("Workspace not found.");
 
     const query: Record<string, unknown> = { projectId: input.projectId };
     if (input.status) query.status = input.status;
@@ -75,7 +75,7 @@ export class CreateApprovalRequestUseCase {
 
   async execute(input: CreateApprovalInput): Promise<IApprovalRequest> {
     const project = await this.projectRepository.findById(input.projectId);
-    if (!project) throw new NotFoundError("Project not found.");
+    if (!project) throw new NotFoundError("Workspace not found.");
 
     if (!input.title?.trim()) {
       throw new BadRequestError("Approval request title is required.");

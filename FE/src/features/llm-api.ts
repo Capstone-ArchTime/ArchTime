@@ -167,7 +167,7 @@ export interface BenchmarkDetail {
   runs: Pick<LlmRun, 'id' | 'modelId' | 'model' | 'provider' | 'status' | 'usage' | 'latencyMs' | 'cost' | 'quality' | 'fallbackReason' | 'createdAt'>[];
   leaderboard: Leaderboard;
 }
-export const getBenchmarkTargets = async (signal?: AbortSignal) => data(await apiRequest<Envelope<{ projects: BenchmarkTarget[] }>>('/admin/llm-benchmarks/targets', { signal }), 'project list').projects;
+export const getBenchmarkTargets = async (signal?: AbortSignal) => data(await apiRequest<Envelope<{ projects: BenchmarkTarget[] }>>('/admin/llm-benchmarks/targets', { signal }), 'workspace list').projects;
 export const getBenchmarks = async (signal?: AbortSignal) => data(await apiRequest<Envelope<{ benchmarks: BenchmarkSummary[] }>>('/admin/llm-benchmarks', { signal }), 'benchmark list').benchmarks;
 export const getBenchmark = async (id: string, signal?: AbortSignal) => data(await apiRequest<Envelope<BenchmarkDetail>>(`/admin/llm-benchmarks/${encodeURIComponent(id)}`, { signal }), 'benchmark');
 export const startBenchmark = async (input: { projectId: string; snapshotId: string; modelIds: string[] }) =>

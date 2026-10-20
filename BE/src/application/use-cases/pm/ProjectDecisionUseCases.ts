@@ -48,7 +48,7 @@ export class GetProjectDecisionsUseCase {
     meta: { page: number; limit: number; total: number; totalPages: number };
   }> {
     const project = await this.projectRepository.findById(input.projectId);
-    if (!project) throw new NotFoundError("Project not found.");
+    if (!project) throw new NotFoundError("Workspace not found.");
 
     const ws = await this.workspaceRepository.findByProjectId(input.projectId);
     let decisions = ws?.decisions ?? [];
@@ -91,7 +91,7 @@ export class CreateProjectDecisionUseCase {
 
   async execute(input: CreateDecisionInput): Promise<IWorkspaceDecision> {
     const project = await this.projectRepository.findById(input.projectId);
-    if (!project) throw new NotFoundError("Project not found.");
+    if (!project) throw new NotFoundError("Workspace not found.");
 
     if (!input.title?.trim() || !input.decision?.trim() || !input.context?.trim()) {
       throw new BadRequestError("ADR title, context, and decision are required.");
@@ -150,7 +150,7 @@ export class GetProjectDecisionDetailUseCase {
 
   async execute(projectId: string, decisionId: string): Promise<IWorkspaceDecision> {
     const project = await this.projectRepository.findById(projectId);
-    if (!project) throw new NotFoundError("Project not found.");
+    if (!project) throw new NotFoundError("Workspace not found.");
 
     const ws = await this.workspaceRepository.findByProjectId(projectId);
     const found = ws?.decisions.find((d) => d.id === decisionId);
@@ -168,7 +168,7 @@ export class UpdateProjectDecisionUseCase {
 
   async execute(input: UpdateDecisionInput): Promise<IWorkspaceDecision> {
     const project = await this.projectRepository.findById(input.projectId);
-    if (!project) throw new NotFoundError("Project not found.");
+    if (!project) throw new NotFoundError("Workspace not found.");
 
     const ws = await this.workspaceRepository.findByProjectId(input.projectId);
     if (!ws) throw new NotFoundError("Design decision not found.");
@@ -216,7 +216,7 @@ export class DeleteProjectDecisionUseCase {
 
   async execute(projectId: string, decisionId: string, userId?: string): Promise<void> {
     const project = await this.projectRepository.findById(projectId);
-    if (!project) throw new NotFoundError("Project not found.");
+    if (!project) throw new NotFoundError("Workspace not found.");
 
     const ws = await this.workspaceRepository.findByProjectId(projectId);
     if (!ws) throw new NotFoundError("Design decision not found.");

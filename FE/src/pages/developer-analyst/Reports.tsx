@@ -109,7 +109,7 @@ const Reports: React.FC = () => {
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Filters:</div>
                   
                   <input aria-label="Search reports" placeholder="Search reports?" value={search} onChange={event => setSearch(event.target.value)} className="flex-1 min-w-40 bg-[#080b0e] border border-[#242527] px-3 h-10 text-sm" />
-                  <select aria-label="Filter reports by project" value={projectFilter} onChange={event => setProjectFilter(event.target.value)} className="bg-[#080b0e] border border-[#242527] h-10 px-3 text-sm"><option value="all">All projects</option>{[...new Set(reportsData.map(report => report.project))].map(value => <option key={value} value={value}>{value}</option>)}</select>
+                  <select aria-label="Filter reports by workspace" value={projectFilter} onChange={event => setProjectFilter(event.target.value)} className="bg-[#080b0e] border border-[#242527] h-10 px-3 text-sm"><option value="all">All workspaces</option>{[...new Set(reportsData.map(report => report.project))].map(value => <option key={value} value={value}>{value}</option>)}</select>
                 </div>
               </div>
 
@@ -122,7 +122,7 @@ const Reports: React.FC = () => {
                         <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Report</th>
                         <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Project</th>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Workspace</th>
                         <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Revision Range</th>
                         <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"

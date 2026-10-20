@@ -16,7 +16,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const mainRef = useRef<HTMLElement>(null);
   const items = user ? navItemsByRole[user.role] : [];
   const homePath = items[0]?.path ?? '/';
-  const currentPage = items.find(item => item.path === pathname)?.label ?? 'Project detail';
+  const currentPage = items.find(item => item.path === pathname)?.label ?? 'Workspace detail';
 
   useEffect(() => {
     document.title = `${currentPage} · ArchTime`;

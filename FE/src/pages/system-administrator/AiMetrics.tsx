@@ -61,7 +61,7 @@ const leaderboardColumns: ColumnsType<LeaderboardRow> = [
   { title: <Tooltip title="100 × weighted sum of the five parts on the right">Score</Tooltip>, render: (_, r) => r.stats.n ? <Tooltip title={r.reasons.length ? `Not recommended: ${r.reasons.join('; ')}` : r.confident ? undefined : 'Fewer than 5 runs: pulled towards the average'}><div><ScoreBar value={r.score} />{!r.confident && <span className="text-[10px] text-[#94a3b8]">few runs</span>}</div></Tooltip> : <span className="text-[#94a3b8]">no runs</span> },
   { title: <Tooltip title="Mean quality of the answers: verified, valid view, cohesion kept, roles found, few attempts">Quality</Tooltip>, align: 'right', render: (_, r) => r.stats.n ? formatPercent(r.components.quality) : '–' },
   { title: <Tooltip title="Accepted runs: share of component names the file paths support (the rest are invented or vague)">Grounded</Tooltip>, align: 'right', render: (_, r) => (typeof r.stats.groundingMean === 'number' ? formatPercent(r.stats.groundingMean) : '–') },
-  { title: <Tooltip title="Accepted runs: adjusted Rand index against the project's reference architecture (100% = same grouping); only projects with a reference">Matches ref.</Tooltip>, align: 'right', render: (_, r) => (typeof r.stats.agreementMean === 'number' ? formatPercent(Math.max(0, r.stats.agreementMean)) : '–') },
+  { title: <Tooltip title="Accepted runs: adjusted Rand index against the workspace's reference architecture (100% = same grouping); only workspaces with a reference">Matches ref.</Tooltip>, align: 'right', render: (_, r) => (typeof r.stats.agreementMean === 'number' ? formatPercent(Math.max(0, r.stats.agreementMean)) : '–') },
   { title: <Tooltip title="Success rate, first-try rate, provider errors and latency spread">Stability</Tooltip>, align: 'right', render: (_, r) => r.stats.n ? <Tooltip title={`${formatPercent(r.stats.successRate)} success · ${formatPercent(r.stats.firstPassRate)} first try · ${formatPercent(r.stats.providerErrorRate)} provider errors`}>{formatPercent(r.components.stability)}</Tooltip> : '–' },
   { title: <Tooltip title="Accepted runs: median time per 100 files sent (p95 of whole runs in brackets)">Latency / 100 files</Tooltip>, align: 'right', render: (_, r) => r.stats.accepted ? <span className="text-xs">{formatMs(r.stats.latencyPer100)} <span className="text-[#94a3b8]">({formatMs(r.stats.latencyP95Ms)})</span></span> : '–' },
   { title: <Tooltip title="Total cost divided by accepted runs">Cost / success</Tooltip>, align: 'right', render: (_, r) => !r.stats.n ? '–' : !r.stats.accepted ? <span className="text-red-400">no success</span> : formatCost(r.stats.costPerSuccess) },
@@ -109,9 +109,9 @@ function BenchmarkPanel({ models }: { models: AdminModel[] }) {
   }
 
   return <div className="space-y-4">
-    <p className="text-sm text-[#94a3b8]">Everyday usage compares models on different repositories. A benchmark asks each chosen model to draw the <b>same snapshot</b>, one after another, for a fair comparison. The project's own architecture is not changed; the runs count towards the scores.</p>
+    <p className="text-sm text-[#94a3b8]">Everyday usage compares models on different repositories. A benchmark asks each chosen model to draw the <b>same snapshot</b>, one after another, for a fair comparison. The workspace's own architecture is not changed; the runs count towards the scores.</p>
     <div className="flex flex-wrap items-end gap-2">
-      <Select className="min-w-56" placeholder="Project" aria-label="Benchmark project" value={projectId} showSearch optionFilterProp="label" onChange={(v: string) => { setProjectId(v); setSnapshotId(targets.find(t => t.id === v)?.snapshots[0]?.id); }} options={targets.map(t => ({ value: t.id, label: t.name }))} />
+      <Select className="min-w-56" placeholder="Workspace" aria-label="Benchmark workspace" value={projectId} showSearch optionFilterProp="label" onChange={(v: string) => { setProjectId(v); setSnapshotId(targets.find(t => t.id === v)?.snapshots[0]?.id); }} options={targets.map(t => ({ value: t.id, label: t.name }))} />
       <Select className="min-w-72" placeholder="Snapshot" aria-label="Benchmark snapshot" value={snapshotId} onChange={setSnapshotId} disabled={!project}
         options={(project?.snapshots ?? []).map(s => ({ value: s.id, label: `${s.hash} · ${s.title.split('\n')[0].slice(0, 40)} · ${s.files} files` }))} />
       <Select mode="multiple" className="min-w-80" placeholder="Models to compare (2-8)" aria-label="Benchmark models" value={modelIds} onChange={setModelIds} maxCount={8}
@@ -122,7 +122,7 @@ function BenchmarkPanel({ models }: { models: AdminModel[] }) {
     <Table<BenchmarkSummary> rowKey="id" size="small" dataSource={list} pagination={{ pageSize: 8 }} locale={{ emptyText: 'No benchmarks yet' }}
       columns={[
         { title: 'Started', render: (_, b) => new Date(b.startedAt).toLocaleString() },
-        { title: 'Project', render: (_, b) => b.projectName ?? b.projectId },
+        { title: 'Workspace', render: (_, b) => b.projectName ?? b.projectId },
         { title: 'Models', render: (_, b) => b.models.map(m => <Tag key={m}>{m}</Tag>) },
         { title: 'Runs', dataIndex: 'runs', align: 'right' },
         { title: '', align: 'right', render: (_, b) => <Button size="small" onClick={() => void show(b.id)}>Results</Button> },

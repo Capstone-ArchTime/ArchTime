@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { countedItems, evidenceHref, shortCommit, toggleDetail, tokenizeAnswer } from '../src/features/chat-answer.ts';
+import { countedItems, evidenceHref, parseAnswer, shortCommit, toggleDetail, tokenizeAnswer } from '../src/features/chat-answer.ts';
 
 const kinds = segments => segments.map(segment => segment.kind);
 
@@ -58,4 +58,77 @@ test('selecting what is open closes it, selecting something else switches to it'
   assert.deepEqual(toggleDetail(a, { kind: 'files' }), { kind: 'files' });
   assert.equal(toggleDetail({ kind: 'files' }, { kind: 'files' }), null);
   assert.deepEqual(toggleDetail({ kind: 'files' }, { kind: 'deps' }), { kind: 'deps' });
+});
+
+// ── Markdown the model writes: **bold**, headings and tables ───────────────────────────────────────────────────────
+const text = value => ({ kind: 'text', value });
+const bold = (...children) => ({ kind: 'bold', children });
+
+test('**bold** becomes bold and its asterisks disappear', () => {
+  assert.deepEqual(tokenizeAnswer('a **b** c'), [text('a '), bold(text('b')), text(' c')]);
+});
+
+test('bold may hold a label, as in the answers the model writes', () => {
+  const out = tokenizeAnswer('- **[FACT] Has a planner:** it has `2d0ad95` and `80d2bfe`.', ['2d0ad95']);
+  assert.deepEqual(out[0], text('- '));
+  assert.deepEqual(out[1], bold({ kind: 'label', value: 'FACT' }, text(' Has a planner:')));
+  assert.deepEqual(out.filter(s => s.kind === 'commit').map(s => s.commit), ['2d0ad95']);
+  assert.deepEqual(out.filter(s => s.kind === 'code').map(s => s.value), ['80d2bfe']);
+});
+
+test('asterisks inside a code span are never bold markers', () => {
+  const out = tokenizeAnswer('Use `src/**/*.ts` and `lib/**/*.js` here, **really**.');
+  assert.deepEqual(out.filter(s => s.kind === 'code').map(s => s.value), ['src/**/*.ts', 'lib/**/*.js']);
+  assert.deepEqual(out.filter(s => s.kind === 'bold'), [bold(text('really'))]);
+});
+
+test('a ** with no partner, or around spaces, stays as written', () => {
+  assert.deepEqual(tokenizeAnswer('**open'), [text('**open')]);
+  assert.deepEqual(tokenizeAnswer('2 ** 3 ** 4'), [text('2 ** 3 ** 4')]);
+  assert.deepEqual(tokenizeAnswer('**bold **'), [text('**bold **')]);
+  assert.deepEqual(tokenizeAnswer('****'), [text('****')]);
+});
+
+test('bold never spans a line break', () => {
+  assert.deepEqual(tokenizeAnswer('**a\nb**'), [text('**a\nb**')]);
+  assert.deepEqual(tokenizeAnswer('**a**\n**b**'), [bold(text('a')), text('\n'), bold(text('b'))]);
+});
+
+test('plain answers lay out as one text block, as before', () => {
+  const blocks = parseAnswer('[FACT] `a1b2c3d` split billing.\n- second line', ['a1b2c3d']);
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].kind, 'text');
+  assert.deepEqual(kinds(blocks[0].segments), ['label', 'text', 'commit', 'text']);
+});
+
+test('a heading line becomes a heading without its hashes', () => {
+  const blocks = parseAnswer('### Summary\nbody text');
+  assert.deepEqual(blocks.map(b => b.kind), ['heading', 'text']);
+  assert.deepEqual(blocks[0].segments, [text('Summary')]);
+  assert.deepEqual(parseAnswer('#hashtag')[0].kind, 'text');
+});
+
+test('a markdown table becomes a table whose cells keep commits and bold', () => {
+  const blocks = parseAnswer('Intro\n\n| Commit | Files |\n|---|---|\n| `a1b2c3d` | 12 |\n| **x** | 3 |\n\nOutro', ['a1b2c3d']);
+  assert.deepEqual(blocks.map(b => b.kind), ['text', 'table', 'text']);
+  const table = blocks[1];
+  assert.deepEqual(table.header, [[text('Commit')], [text('Files')]]);
+  assert.equal(table.rows.length, 2);
+  assert.equal(table.rows[0][0][0].kind, 'commit');
+  assert.deepEqual(table.rows[1][0], [bold(text('x'))]);
+  assert.deepEqual(blocks[0].segments, [text('Intro')]);
+  assert.deepEqual(blocks[2].segments, [text('Outro')]);
+});
+
+test('table rows with too few cells are padded, and lines without the rule row are not a table', () => {
+  const padded = parseAnswer('| A | B |\n|:--|--:|\n| only |')[0];
+  assert.equal(padded.kind, 'table');
+  assert.deepEqual(padded.rows[0], [[text('only')], []]);
+  const notTable = parseAnswer('| a | b |\n| c | d |');
+  assert.deepEqual(notTable.map(b => b.kind), ['text']);
+});
+
+test('an empty answer has no blocks', () => {
+  assert.deepEqual(parseAnswer(''), []);
+  assert.deepEqual(parseAnswer('\n\n'), []);
 });
