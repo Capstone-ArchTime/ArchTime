@@ -18,7 +18,7 @@ export class LlmController {
   constructor(private readonly useCases: UserLlmUseCases) {}
 
   public listModels = handle(async (req, res) => {
-    sendSuccess(res, await this.useCases.listModels(userIdOf(req), req.query as Record<string, unknown>));
+    sendSuccess(res, await this.useCases.listModels(userIdOf(req), req.query as Record<string, unknown>, req.user?.role));
   });
 
   public myRuns = handle(async (req, res) => {

@@ -7,6 +7,10 @@ import type { RefreshTokenUseCase } from "../../application/use-cases/RefreshTok
 import type { GetCurrentUserUseCase } from "../../application/use-cases/GetCurrentUserUseCase.js";
 import type { PasswordResetUseCase } from "../../application/use-cases/PasswordResetUseCase.js";
 import type { ChangePasswordUseCase } from "../../application/use-cases/ChangePasswordUseCase.js";
+import type { UpdateProfileUseCase } from "../../application/use-cases/UpdateProfileUseCase.js";
+import type { LogoutAllDevicesUseCase } from "../../application/use-cases/LogoutAllDevicesUseCase.js";
+import { AuditAction } from "../../domain/entities/AuditLog.js";
+import { AuditService } from "../../infrastructure/services/AuditService.js";
 import { BadRequestError } from "../../shared/errors/AppError.js";
 import { sendSuccess } from "../../shared/utils/apiResponse.js";
 import { validatePassword } from "../../shared/utils/validators.js";
@@ -21,7 +25,31 @@ export class AuthController {
     private readonly getMeUC: GetCurrentUserUseCase,
     private readonly passwordResetUC: PasswordResetUseCase,
     private readonly changePasswordUC: ChangePasswordUseCase,
+    private readonly updateProfileUC?: UpdateProfileUseCase,
+    private readonly logoutAllUC?: LogoutAllDevicesUseCase,
   ) {}
+
+  updateProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!this.updateProfileUC) throw new Error("Profile updates are not configured.");
+      const { name, username } = req.body ?? {};
+      const user = await this.updateProfileUC.execute({ userId: req.user!.userId, name, username });
+      sendSuccess(res, { user }, { message: "Profile updated." });
+    } catch (err) { next(err); }
+  };
+
+  logoutAll = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!this.logoutAllUC) throw new Error("Signing out of all devices is not configured.");
+      const userId = req.user!.userId;
+      const result = await this.logoutAllUC.execute({ userId });
+      await AuditService.log({
+        action: AuditAction.USER_LOGOUT_ALL, userId, targetType: "user", targetId: userId,
+        ipAddress: req.ip, userAgent: req.get("user-agent"),
+      });
+      sendSuccess(res, result, { message: result.message });
+    } catch (err) { next(err); }
+  };
 
   forgotPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

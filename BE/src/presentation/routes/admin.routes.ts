@@ -62,7 +62,7 @@ export function createAdminRouter(
    *         description: Tìm theo tên hoặc email người dùng
    *       - in: query
    *         name: role
-   *         schema: { type: string, enum: [developer-analyst, project-maintainer, system-administrator] }
+   *         schema: { type: string, enum: [developer-analyst, system-administrator] }
    *       - in: query
    *         name: status
    *         schema: { type: string, enum: [active, suspended] }
@@ -108,7 +108,7 @@ export function createAdminRouter(
    *             properties:
    *               name: { type: string, example: "Nguyen Van A" }
    *               email: { type: string, format: email, example: "user@archtime.io" }
-   *               role: { type: string, enum: [developer-analyst, project-maintainer, system-administrator], example: "developer-analyst" }
+   *               role: { type: string, enum: [developer-analyst, system-administrator], example: "developer-analyst" }
    *               temporaryPassword: { type: string, example: "ArchTime#2026!" }
    *     responses:
    *       201:
@@ -157,7 +157,7 @@ export function createAdminRouter(
    *             type: object
    *             required: [role]
    *             properties:
-   *               role: { type: string, enum: [developer-analyst, project-maintainer, system-administrator], example: "project-maintainer" }
+   *               role: { type: string, enum: [developer-analyst, system-administrator], example: "system-administrator" }
    *     responses:
    *       200:
    *         description: Cập nhật vai trò thành công

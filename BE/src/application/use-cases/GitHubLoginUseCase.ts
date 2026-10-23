@@ -19,7 +19,7 @@ export class GitHubLoginUseCase {
     }
     try {
       const user = await UserModel.create({ githubId: identity.id, email: identity.email, name: identity.name,
-        passwordHash: `!github-only:${randomBytes(32).toString('hex')}`, isVerified: true, role: UserRole.DEVELOPER_ANALYST });
+        passwordHash: `!github-only:${randomBytes(32).toString('hex')}`, isVerified: true, role: UserRole.USER });
       return user.id as string;
     } catch (error) {
       if ((error as { code?: number }).code !== 11000) throw error;

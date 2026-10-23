@@ -27,4 +27,6 @@ export interface IProjectMemberRepository {
   ): Promise<IProjectMember | null>;
   delete(id: string): Promise<boolean>;
   deleteByProjectAndId(projectId: string, memberId: string): Promise<boolean>;
+  /** Removes the user from each of the given projects; returns how many memberships were removed. */
+  deleteByUserInProjects(userId: string, projectIds: string[]): Promise<number>;
 }

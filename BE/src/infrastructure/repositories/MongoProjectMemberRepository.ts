@@ -121,4 +121,10 @@ export class MongoProjectMemberRepository implements IProjectMemberRepository {
     });
     return result.deletedCount > 0;
   }
+
+  async deleteByUserInProjects(userId: string, projectIds: string[]): Promise<number> {
+    if (projectIds.length === 0) return 0;
+    const result = await ProjectMemberModel.deleteMany({ userId, projectId: { $in: projectIds } });
+    return result.deletedCount;
+  }
 }

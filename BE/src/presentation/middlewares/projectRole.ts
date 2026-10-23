@@ -1,32 +1,30 @@
 import type { Request, Response, NextFunction } from "express";
-import { UserRole } from "../../domain/entities/User.js";
-import { RepoVisibility } from "../../domain/entities/Project.js";
 import {
-  MemberStatus,
-  ProjectMemberRole,
-} from "../../domain/entities/ProjectMember.js";
+  ProjectAccessPolicy,
+  deniedMessage,
+  type ProjectAction,
+} from "../../application/services/ProjectAccessPolicy.js";
 import type { IProjectRepository } from "../../domain/interfaces/IProjectRepository.js";
 import type { IProjectMemberRepository } from "../../domain/interfaces/IProjectMemberRepository.js";
+import type { IOrganizationRepository } from "../../domain/interfaces/IOrganizationRepository.js";
 import {
   ForbiddenError,
   NotFoundError,
   UnauthorizedError,
 } from "../../shared/errors/AppError.js";
 
-export type ProjectAction = "read" | "write" | "admin";
+export type { ProjectAction };
 
 /**
- * Middleware factory to enforce project-level permissions:
- * - SYSTEM_ADMINISTRATOR: full access to all projects
- * - Project Owner (project.userId): full access
- * - Project Maintainer: full access (read, write, admin)
- * - Project Member (developer-analyst): read access only
- * - Public projects: read access for any authenticated user
+ * Enforces project-level permissions for routes with an `:id` project parameter; the rules live in
+ * ProjectAccessPolicy. On success the project and the caller's access are put on the request.
  */
 export function createProjectRoleMiddleware(
   projectRepository: IProjectRepository,
   memberRepository: IProjectMemberRepository,
+  organizationRepository?: IOrganizationRepository,
 ) {
+  const policy = new ProjectAccessPolicy(projectRepository, memberRepository, organizationRepository);
   return (action: ProjectAction) => {
     return async (
       req: Request,
@@ -51,62 +49,16 @@ export function createProjectRoleMiddleware(
           return;
         }
 
-        // 1. System Administrator has full superuser access
-        if (req.user.role === UserRole.SYSTEM_ADMINISTRATOR) {
-          req.project = project;
-          next();
+        const access = await policy.evaluate(project, req.user);
+        if (!access.actions.has(action)) {
+          next(new ForbiddenError(deniedMessage(access, action)));
           return;
         }
 
-        // 2. Project Owner has full access
-        if (project.userId === req.user.userId) {
-          req.project = project;
-          req.projectMemberRole = "owner";
-          next();
-          return;
-        }
-
-        // 3. Check active membership in project_members
-        const member = await memberRepository.findByProjectAndUserId(
-          projectId,
-          req.user.userId,
-        );
-
-        if (member && member.status === MemberStatus.ACTIVE) {
-          req.project = project;
-          req.projectMemberRole = member.role;
-
-          if (action === "read") {
-            next();
-            return;
-          }
-
-          if (member.role === ProjectMemberRole.MAINTAINER) {
-            next();
-            return;
-          }
-
-          next(
-            new ForbiddenError(
-              "Forbidden: only project maintainers can perform this action.",
-            ),
-          );
-          return;
-        }
-
-        // 4. Public project read-only access
-        if (action === "read" && project.visibility === RepoVisibility.PUBLIC) {
-          req.project = project;
-          next();
-          return;
-        }
-
-        // 5. Unauthorized access
-        next(
-          new ForbiddenError(
-            "Forbidden: you do not have permission to access this workspace.",
-          ),
-        );
+        req.project = project;
+        req.projectAccess = access;
+        if (access.memberRole) req.projectMemberRole = access.memberRole;
+        next();
       } catch (error) {
         next(error);
       }

@@ -1,5 +1,5 @@
 import mongoose, { type Document, type Model, Schema } from "mongoose";
-import { UserRole, UserStatus, type IUser } from "../../../domain/entities/User.js";
+import { LEGACY_USER_ROLES, UserRole, UserStatus, type IUser } from "../../../domain/entities/User.js";
 
 export interface IUserDocument extends Omit<IUser, "id">, Document {
   resetTokenHash?: string;
@@ -28,8 +28,9 @@ const UserSchema = new Schema<IUserDocument>(
     githubId: { type: String, unique: true, sparse: true },
     role: {
       type: String,
-      enum: Object.values(UserRole),
-      default: UserRole.DEVELOPER_ANALYST,
+      // Legacy values stay valid until MongoUserRepository.migrateLegacyRoles() rewrites them on boot.
+      enum: [...Object.values(UserRole), ...LEGACY_USER_ROLES],
+      default: UserRole.USER,
     },
     status: {
       type: String,

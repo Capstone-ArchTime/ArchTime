@@ -1,5 +1,5 @@
 import { SnapshotModel } from "../../../infrastructure/database/models/SnapshotModel.js";
-import { loadOwnedProject } from "./loadOwnedProject.js";
+import { loadProject } from "./loadOwnedProject.js";
 import type { PaginatedResult } from "../../../shared/utils/apiResponse.js";
 
 export interface GetSnapshotsOptions {
@@ -37,7 +37,7 @@ export class GetSnapshotsUseCase {
     }
 
     if (userId) {
-      await loadOwnedProject(projectId, userId);
+      await loadProject(projectId);
     }
 
     let query: any = SnapshotModel.find({ projectId }).sort({ date: -1 });

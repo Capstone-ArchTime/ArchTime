@@ -39,7 +39,7 @@ ArchitectureMappingModel.findOneAndUpdate = (filter, update) => {
   Object.assign(row, update.$set, { updatedAt: new Date() });
   return q(row);
 };
-ProjectModel.findOne = async filter => (filter._id === PROJECT && filter.userId === OWNER ? { _id: PROJECT } : null);
+ProjectModel.findOne = async filter => (filter._id === PROJECT ? { _id: PROJECT } : null); // who may act is checked on the route (projectRole)
 
 test('nothing is stored until the grouping is generated', async () => {
   const result = await ArchitectureService.get(PROJECT);
@@ -79,10 +79,10 @@ test('another snapshot can be chosen, and unknown ones are rejected', async () =
   await assert.rejects(ArchitectureService.get(PROJECT, '64b0000000000000000000ff'), /Snapshot not found/);
 });
 
-test('only the owner may read or generate, and ids are validated', async () => {
+test('unknown workspaces are rejected and ids are validated (permissions are checked on the route)', async () => {
   const useCase = new ArchitectureUseCase();
-  await assert.rejects(useCase.get(PROJECT, 'someone-else'), /Workspace not found/);
-  await assert.rejects(useCase.generate(PROJECT, 'someone-else', {}), /Workspace not found/);
+  await assert.rejects(useCase.get('64b0000000000000000000aa', OWNER), /Workspace not found/);
+  await assert.rejects(useCase.generate('64b0000000000000000000aa', OWNER, {}), /Workspace not found/);
   await assert.rejects(useCase.get('not-an-id', OWNER), /Invalid workspace ID/);
   await assert.rejects(useCase.get(PROJECT, OWNER, 'bad'), /Invalid snapshot ID/);
   const ok = await useCase.generate(PROJECT, OWNER, { snapshotId: SNAP_NEW, minComponents: 'nope' });

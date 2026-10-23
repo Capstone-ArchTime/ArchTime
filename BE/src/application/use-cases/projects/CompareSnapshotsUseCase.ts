@@ -1,17 +1,21 @@
 import mongoose from "mongoose";
 import { SnapshotModel } from "../../../infrastructure/database/models/SnapshotModel.js";
+import { BadRequestError, NotFoundError } from "../../../shared/errors/AppError.js";
 
 export class CompareSnapshotsUseCase {
-  public async execute(baseSnapshotId: string, targetSnapshotId: string) {
+  /** Both snapshots must belong to `projectId`: the route only checked access to that project. */
+  public async execute(baseSnapshotId: string, targetSnapshotId: string, projectId: string) {
     if (!mongoose.isValidObjectId(baseSnapshotId) || !mongoose.isValidObjectId(targetSnapshotId)) {
-      throw new Error("Invalid snapshot ID format");
+      throw new BadRequestError("Invalid snapshot ID format", "VALIDATION_ERROR");
     }
 
-    const baseSnapshot = await SnapshotModel.findById(baseSnapshotId);
-    const targetSnapshot = await SnapshotModel.findById(targetSnapshotId);
+    const [baseSnapshot, targetSnapshot] = await Promise.all([
+      SnapshotModel.findOne({ _id: baseSnapshotId, projectId }),
+      SnapshotModel.findOne({ _id: targetSnapshotId, projectId }),
+    ]);
 
     if (!baseSnapshot || !targetSnapshot) {
-      throw new Error("One or both snapshots not found");
+      throw new NotFoundError("One or both snapshots not found in this workspace");
     }
 
     const baseNodes = baseSnapshot.nodes || [];

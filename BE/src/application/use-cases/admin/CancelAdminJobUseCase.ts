@@ -1,4 +1,6 @@
+import mongoose from "mongoose";
 import { JobStatus, MiningJobModel } from "../../../infrastructure/database/models/MiningJobModel.js";
+import { MiningService } from "../../../infrastructure/services/MiningService.js";
 import { BadRequestError, NotFoundError } from "../../../shared/errors/AppError.js";
 import { AuditService } from "../../../infrastructure/services/AuditService.js";
 import { AuditAction } from "../../../domain/entities/AuditLog.js";
@@ -10,24 +12,24 @@ export interface CancelAdminJobInput {
 
 export class CancelAdminJobUseCase {
   async execute(input: CancelAdminJobInput): Promise<Record<string, unknown>> {
-    const job = await MiningJobModel.findById(input.jobId);
-    if (!job) {
+    if (!mongoose.isValidObjectId(input.jobId)) {
+      throw new NotFoundError("Mining job not found.");
+    }
+    const existing = await MiningJobModel.findById(input.jobId);
+    if (!existing) {
       throw new NotFoundError("Mining job not found.");
     }
 
-    if (job.status === JobStatus.COMPLETED || job.status === JobStatus.FAILED) {
-      throw new BadRequestError(`Cannot cancel a job that is already ${job.status}.`);
+    if (existing.status === JobStatus.COMPLETED || existing.status === JobStatus.FAILED) {
+      throw new BadRequestError(`Cannot cancel a job that is already ${existing.status}.`);
     }
 
-    if (job.status === JobStatus.CANCELLED) {
-      return job.toJSON();
+    if (existing.status === JobStatus.CANCELLED) {
+      return existing.toJSON();
     }
 
-    job.status = JobStatus.CANCELLED;
-    job.cancelledAt = new Date();
-    job.cancelledBy = input.adminUserId;
-    job.stage = "Cancelled by administrator";
-    await job.save();
+    // Through the mining queue, so a running worker actually stops instead of finishing and overwriting the status.
+    const job = await MiningService.cancelJob(input.jobId, { by: input.adminUserId, stage: "Cancelled by administrator" });
 
     await AuditService.log({
       action: AuditAction.JOB_CANCEL,

@@ -20,7 +20,9 @@ import type { SnapshotGraph } from "../../../domain/architecture/buildView.js";
 import { DEFAULT_REFINE_OPTIONS } from "../../../domain/architecture/llm/types.js";
 import { modeFor, runCost } from "../../../domain/architecture/llm/metrics.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../../../shared/errors/AppError.js";
-import { loadOwnedProject } from "../projects/loadOwnedProject.js";
+import { loadProject } from "../projects/loadOwnedProject.js";
+import type { ProjectAccessPolicy } from "../../services/ProjectAccessPolicy.js";
+import { UserRole } from "../../../domain/entities/User.js";
 
 type Body = Record<string, unknown>;
 const asBody = (body: unknown): Body => (body && typeof body === "object" && !Array.isArray(body) ? body as Body : {});
@@ -37,16 +39,20 @@ const TYPICAL_TOKENS_PER_100_FILES = { input: 6_000, output: 2_500 };
 // ────────────────────────────────────────────────────────────
 
 export class UserLlmUseCases {
+  constructor(private readonly projectAccess?: Pick<ProjectAccessPolicy, "require">) {}
+
   /**
    * The models a user may pick for drawing an architecture, with the recommended one for the snapshot's size.
    * Without registered models, the server's configured model is offered as the only (default) choice.
    */
-  async listModels(userId: string, query: { projectId?: unknown; snapshotId?: unknown }) {
+  async listModels(userId: string, query: { projectId?: unknown; snapshotId?: unknown }, role: UserRole | string = UserRole.USER) {
     const settings = await SystemSettingsModel.findOne().lean();
     let files: number | null = null;
     if (query.projectId) {
       const projectId = objectId(query.projectId, "workspace ID");
-      await loadOwnedProject(projectId, userId);
+      // The estimate reads the project's snapshot, so it needs the same right as reading the project.
+      if (this.projectAccess) await this.projectAccess.require(projectId, { userId, role }, "read");
+      else await loadProject(projectId);
       const filter = query.snapshotId ? { _id: objectId(query.snapshotId, "snapshot ID"), projectId } : { projectId };
       const snapshot = await SnapshotModel.findOne(filter).sort({ date: -1 }).select({ nodes: 1, edges: 1 }).lean();
       if (snapshot) files = fileDependencies({ nodes: (snapshot.nodes ?? []) as SnapshotGraph["nodes"], edges: (snapshot.edges ?? []) as SnapshotGraph["edges"] }).files.length;

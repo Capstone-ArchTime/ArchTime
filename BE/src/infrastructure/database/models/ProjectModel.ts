@@ -32,6 +32,8 @@ const ProjectSchema = new Schema<IProjectDocument>(
       ),
     },
     userId: { type: String, required: true, ref: "User" },
+    organizationId: { type: String, ref: "Organization", index: true },
+    credentialId: { type: String, ref: "OrganizationCredential", index: true },
   },
   {
     timestamps: true,
@@ -40,6 +42,7 @@ const ProjectSchema = new Schema<IProjectDocument>(
         ret.id = ret._id.toString();
         delete ret._id;
         delete ret.__v;
+        delete ret.token;
       },
     },
   },

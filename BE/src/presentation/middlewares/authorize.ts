@@ -7,7 +7,8 @@ import { ForbiddenError, UnauthorizedError } from "../../shared/errors/AppError.
  *
  * Usage:
  *   router.get("/admin", authenticate, authorize(UserRole.SYSTEM_ADMINISTRATOR), handler)
- *   router.delete("/project/:id", authenticate, authorize(UserRole.PROJECT_MAINTAINER, UserRole.SYSTEM_ADMINISTRATOR), handler)
+ *
+ * Project-level permissions (owner, maintainer, member) are checked by projectRole.ts instead.
  */
 export function authorize(...allowedRoles: UserRole[]) {
   return (req: Request, _res: Response, next: NextFunction): void => {

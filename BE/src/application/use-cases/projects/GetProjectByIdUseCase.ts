@@ -4,6 +4,7 @@ import type { IProject } from "../../../domain/entities/Project.js";
 import { RepoVisibility } from "../../../domain/entities/Project.js";
 import { UserRole } from "../../../domain/entities/User.js";
 import { MemberStatus } from "../../../domain/entities/ProjectMember.js";
+import type { ProjectAccess } from "../../services/ProjectAccessPolicy.js";
 import {
   ForbiddenError,
   NotFoundError,
@@ -22,10 +23,15 @@ export class GetProjectByIdUseCase {
     private readonly memberRepository?: IProjectMemberRepository,
   ) {}
 
+  /**
+   * `access`, when given, is what the projectRole middleware already decided (ProjectAccessPolicy); it covers
+   * organization owners and administrators of organization projects, which the checks below do not know about.
+   */
   async execute(
     projectId: string,
     userId: string,
     userRole?: UserRole,
+    access?: ProjectAccess,
   ): Promise<ProjectDetailDTO> {
     const project = await this.projectRepository.findById(projectId);
     if (!project) {
@@ -52,6 +58,17 @@ export class GetProjectByIdUseCase {
         (m) => m.userId !== project.userId,
       ).length;
       membersCount = nonOwnerCount + 1; // +1 for owner
+    }
+
+    if (access?.role) {
+      return {
+        ...project,
+        // Clients know five role labels; an organization owner works as a maintainer.
+        userRole: access.role === "organization-owner" ? "project-maintainer" : access.role,
+        isOwner: access.role === "owner",
+        isMaintainer: access.actions.has("write"),
+        membersCount,
+      };
     }
 
     const isMember = member?.status === MemberStatus.ACTIVE;

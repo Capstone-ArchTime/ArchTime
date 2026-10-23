@@ -21,6 +21,8 @@ import {
   type MinedIndex,
 } from '../../domain/mining/miningPlan.js';
 import { runArchitectureJob } from './ArchitectureJob.js';
+import { MongoOrganizationCredentialRepository } from '../repositories/MongoOrganizationCredentialRepository.js';
+import { allowLocalRepos, validateRepoUrl } from '../../domain/mining/repoUrl.js';
 import { ConflictError, NotFoundError } from '../../shared/errors/AppError.js';
 
 type GraphNode = { id: string; name: string; type: string };
@@ -34,6 +36,15 @@ const edgeKey = (e: GraphEdge) => `${e.source}\u0000${e.target}`;
 
 class CancelledError extends Error {}
 
+// simple-git guards every GIT_* variable and the ones that make git run another program (EDITOR, PAGER, askpass...):
+// passed explicitly they reject the command unless allowed. The server's own (an IDE's GIT_ASKPASS, for instance) are
+// left out; only the two set here are allowed.
+const GIT_GUARDED_ENV = /^(git_.*|editor|visual|pager|prefix|ssh_askpass)$/i;
+const GIT_ENV_ALLOWED = ['GIT_ALLOW_PROTOCOL', 'GIT_TERMINAL_PROMPT'];
+const gitSafeEnv = () => Object.fromEntries(
+  Object.entries(process.env).filter(([k, v]) => v !== undefined && !GIT_GUARDED_ENV.test(k)),
+) as Record<string, string>;
+
 /**
  * Batch mining. Jobs run in-process through a small queue:
  *  - a `scan` job clones/fetches the repo and records its commit history (no AST work);
@@ -45,6 +56,7 @@ export class MiningService {
   private static readonly queue: string[] = [];
   private static readonly running = new Set<string>();
   private static readonly cancelled = new Set<string>();
+  private static readonly credentials = new MongoOrganizationCredentialRepository();
 
   // ---------- public API ----------
 
@@ -76,16 +88,23 @@ export class MiningService {
     });
   }
 
-  public static async cancelJob(jobId: string, userId: string) {
+  /**
+   * Cancels a queued job at once, or tells a running worker to stop after its current commit. Who may cancel is
+   * checked by the caller (MiningWorkflowUseCase for project members, CancelAdminJobUseCase for administrators).
+   */
+  public static async cancelJob(jobId: string, options: { by?: string; stage?: string } = {}) {
     const job = await MiningJobModel.findById(jobId);
     if (!job) throw new NotFoundError('Job not found');
-    const project = await ProjectModel.findOne({ _id: job.projectId, userId });
-    if (!project) throw new NotFoundError('Job not found');
-    if (job.status === JobStatus.QUEUED) {
+    if (job.status === JobStatus.QUEUED || job.status === JobStatus.RUNNING) {
+      job.cancelledAt = new Date();
+      if (options.by) job.cancelledBy = options.by;
+    }
+    // Queued, or "running" with no worker in this process (nothing would ever notice the flag): cancel at once.
+    if (job.status === JobStatus.QUEUED || (job.status === JobStatus.RUNNING && !this.running.has(jobId))) {
       const at = this.queue.indexOf(jobId);
       if (at >= 0) this.queue.splice(at, 1);
+      job.stage = options.stage ?? (job.status === JobStatus.QUEUED ? 'Cancelled before start' : 'Cancelled');
       job.status = JobStatus.CANCELLED;
-      job.stage = 'Cancelled before start';
       job.finishedAt = new Date();
       await job.save();
     } else if (job.status === JobStatus.RUNNING) {
@@ -218,7 +237,7 @@ export class MiningService {
     const job = await MiningJobModel.findById(jobId);
     if (!job || job.status !== JobStatus.QUEUED) return;
     const project = await ProjectModel.findById(job.projectId);
-    const secret = project?.token || undefined;
+    let secret: string | undefined;
     const set = (patch: Record<string, unknown>) => MiningJobModel.updateOne({ _id: jobId }, { $set: patch });
     const checkCancel = () => {
       if (this.cancelled.has(jobId)) throw new CancelledError();
@@ -235,12 +254,13 @@ export class MiningService {
 
     try {
       if (!project) throw new Error('Workspace no longer exists');
+      secret = await this.repoToken(project);
       await set({ status: JobStatus.RUNNING, startedAt: new Date(), stage: 'Preparing repository', progress: 1 });
       if (job.kind === JobKind.MINE) {
         await ProjectModel.updateOne({ _id: project._id }, { $set: { status: ProjectStatus.ANALYZING } });
       }
 
-      const git = await this.ensureRepo(project, async (stage, progress) => {
+      const git = await this.ensureRepo(project, secret, async (stage, progress) => {
         checkCancel();
         await set({ stage, progress });
       });
@@ -255,6 +275,7 @@ export class MiningService {
         monthly: monthlyHistogram(commits),
         scannedAt: new Date(),
       } } });
+      await this.markVanishedCommits(String(project._id), git);
 
       if (job.kind === JobKind.SCAN) {
         await set({ status: JobStatus.COMPLETED, stage: `Scanned ${commits.length} commits`, progress: 100, total: 0, finishedAt: new Date() });
@@ -352,17 +373,32 @@ export class MiningService {
     }
   }
 
-  private static async ensureRepo(project: any, report: (stage: string, progress: number) => Promise<void>): Promise<SimpleGit> {
+  /** The organization credential when the project uses one, else the project's own token for a private repository. */
+  private static async repoToken(project: any): Promise<string | undefined> {
+    if (project.credentialId) {
+      const token = await this.credentials.resolveSecret(String(project.credentialId));
+      if (!token) throw new Error('The organization credential for this workspace was deleted. Ask an organization owner to attach another one.');
+      return token;
+    }
+    return project.visibility === 'private' && project.token ? project.token : undefined;
+  }
+
+  private static async ensureRepo(project: any, token: string | undefined, report: (stage: string, progress: number) => Promise<void>): Promise<SimpleGit> {
     const id = String(project._id);
     const dir = this.repoDir(id);
     // The token travels as a per-process HTTP header, never in the remote URL or on disk.
-    const config = project.visibility === 'private' && project.token
-      ? [`http.extraHeader=Authorization: Basic ${Buffer.from(`x-access-token:${project.token}`).toString('base64')}`]
+    const config = token
+      ? [`http.extraHeader=Authorization: Basic ${Buffer.from(`x-access-token:${token}`).toString('base64')}`]
       : [];
+    // Projects registered before URLs were checked are checked here too, and git itself is limited to the allowed
+    // transports, so no URL (or redirect, or submodule) can make the server read local paths or run ext:: commands.
+    const remoteUrl = validateRepoUrl(project.repoUrl);
+    const remote = (baseDir: string) => simpleGit({ baseDir, config, allowEnvironment: GIT_ENV_ALLOWED })
+      .env({ ...gitSafeEnv(), GIT_ALLOW_PROTOCOL: allowLocalRepos() ? 'https:http:file' : 'https', GIT_TERMINAL_PROMPT: '0' });
 
     if (fs.existsSync(path.join(dir, '.git'))) {
       await report('Fetching new commits', 3);
-      const git = simpleGit({ baseDir: dir, config });
+      const git = remote(dir);
       try {
         await git.fetch(['origin', '--prune', '+refs/heads/*:refs/remotes/origin/*']);
         return git;
@@ -372,13 +408,43 @@ export class MiningService {
     }
     await report('Cloning repository', 2);
     fs.mkdirSync(dir, { recursive: true });
-    await simpleGit({ baseDir: dir, config }).clone(project.repoUrl, '.', ['--no-checkout']);
+    await remote(dir).clone(remoteUrl, '.', ['--no-checkout']);
     return simpleGit(dir);
   }
 
   private static async listCommits(git: SimpleGit): Promise<CommitRef[]> {
     const raw = await git.raw(['log', '--all', '--source', '--date-order', '--reverse', `--format=${GIT_LOG_FORMAT}`]);
     return parseCommitLog(raw);
+  }
+
+  /**
+   * Flags snapshots whose commit is no longer reachable from the remote's branches or tags (force-push, deleted branch),
+   * and clears the flag when the commit is back. Local refs are left out on purpose: the cache's own branch and detached
+   * HEAD keep rewritten commits reachable. Steps pinned to such a commit then read as missing (domain/onboarding/stepRevision.ts).
+   */
+  private static async markVanishedCommits(projectId: string, git: SimpleGit): Promise<void> {
+    let reachable: string[];
+    try {
+      reachable = (await git.raw(['rev-list', '--remotes', '--tags'])).split('\n').map(s => s.trim()).filter(Boolean);
+    } catch (error) {
+      console.warn(`[mining] project ${projectId}: could not list remote commits, vanished-commit check skipped`, error);
+      return;
+    }
+    // An empty remote is far more likely a fetch problem than a wiped history; do not flag everything.
+    if (reachable.length === 0) return;
+    try {
+      await SnapshotModel.updateMany(
+        { projectId, fullHash: { $exists: true, $nin: reachable }, missingSince: null },
+        { $set: { missingSince: new Date() } },
+      );
+      await SnapshotModel.updateMany(
+        { projectId, fullHash: { $in: reachable }, missingSince: { $ne: null } },
+        { $set: { missingSince: null } },
+      );
+    } catch (error) {
+      // Best effort: a failed check must not fail the scan or mine it runs in.
+      console.warn(`[mining] project ${projectId}: vanished-commit check failed`, error);
+    }
   }
 
   private static async minedIndex(projectId: string): Promise<MinedIndex> {

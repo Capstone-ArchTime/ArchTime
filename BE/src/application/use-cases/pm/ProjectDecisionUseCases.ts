@@ -1,15 +1,83 @@
 import { randomUUID } from "node:crypto";
 import type { IWorkspaceRepository } from "../../../domain/interfaces/IWorkspaceRepository.js";
 import type { IProjectRepository } from "../../../domain/interfaces/IProjectRepository.js";
-import type { IWorkspaceDecision } from "../../../domain/entities/Workspace.js";
+import {
+  DECISION_ORIGINS,
+  DECISION_SOURCE_KINDS,
+  type DecisionOrigin,
+  type DecisionSourceKind,
+  type IDecisionSource,
+  type IWorkspaceDecision,
+} from "../../../domain/entities/Workspace.js";
+import type { IDecisionSourceVerifier } from "../../../domain/interfaces/IDecisionSourceVerifier.js";
 import { BadRequestError, NotFoundError } from "../../../shared/errors/AppError.js";
 
 export interface FilterDecisionsInput {
   projectId: string;
   search?: string;
   status?: "Proposed" | "Accepted" | "Deprecated";
+  origin?: DecisionOrigin;
   page?: number;
   limit?: number;
+}
+
+const MAX_SOURCES = 20;
+const NOTE_MAX = 300;
+
+export function parseDecisionOrigin(value: unknown): DecisionOrigin | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  if (!DECISION_ORIGINS.includes(value as DecisionOrigin)) {
+    throw new BadRequestError(`origin must be one of: ${DECISION_ORIGINS.join(", ")}.`, "VALIDATION_ERROR");
+  }
+  return value as DecisionOrigin;
+}
+
+/**
+ * Checks what an ADR cites: each source must exist in this project (a mined commit, a snapshot, change evidence or an
+ * approval request). Stores the canonical reference and what the source said at the time.
+ */
+export async function resolveDecisionSources(
+  verifier: IDecisionSourceVerifier | undefined,
+  projectId: string,
+  value: unknown,
+): Promise<IDecisionSource[]> {
+  if (!Array.isArray(value)) throw new BadRequestError("sources must be an array of { kind, ref, note? }.", "VALIDATION_ERROR");
+  if (value.length > MAX_SOURCES) throw new BadRequestError(`An ADR can cite at most ${MAX_SOURCES} sources.`, "VALIDATION_ERROR");
+  if (value.length > 0 && !verifier) throw new BadRequestError("Sources cannot be checked right now.");
+
+  const seen = new Set<string>();
+  const resolved: IDecisionSource[] = [];
+  const missing: string[] = [];
+  for (const item of value) {
+    const kind = item?.kind as DecisionSourceKind;
+    const ref = typeof item?.ref === "string" ? item.ref.trim() : "";
+    if (!DECISION_SOURCE_KINDS.includes(kind) || !ref) {
+      throw new BadRequestError(`Each source needs kind (${DECISION_SOURCE_KINDS.join(", ")}) and ref.`, "VALIDATION_ERROR");
+    }
+    if (item.note !== undefined && (typeof item.note !== "string" || item.note.length > NOTE_MAX)) {
+      throw new BadRequestError(`A source note must be text of at most ${NOTE_MAX} characters.`, "VALIDATION_ERROR");
+    }
+    const found = await verifier!.resolve(projectId, kind, ref);
+    if (!found) { missing.push(`${kind} ${ref}`); continue; }
+    const key = `${found.kind}:${found.ref}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    resolved.push({ ...found, ...(item.note?.trim() ? { note: item.note.trim() } : {}) });
+  }
+  if (missing.length) {
+    throw new BadRequestError(`These sources do not exist in this workspace: ${missing.join(", ")}.`, "VALIDATION_ERROR");
+  }
+  return resolved;
+}
+
+/** ADRs written before provenance existed have no origin, sources or history; read them with neutral defaults. */
+export function withProvenance(d: IWorkspaceDecision): IWorkspaceDecision {
+  return {
+    ...d,
+    origin: d.origin ?? "recorded",
+    sources: d.sources ?? [],
+    statusHistory: d.statusHistory?.length ? d.statusHistory : [{ status: d.status, at: d.createdAt }],
+  };
 }
 
 export interface CreateDecisionInput {
@@ -21,6 +89,8 @@ export interface CreateDecisionInput {
   consequences?: string;
   status?: "Proposed" | "Accepted" | "Deprecated";
   componentIds?: string[];
+  origin?: unknown;
+  sources?: unknown;
   userId?: string;
 }
 
@@ -34,6 +104,9 @@ export interface UpdateDecisionInput {
   consequences?: string;
   status?: "Proposed" | "Accepted" | "Deprecated";
   componentIds?: string[];
+  origin?: unknown;
+  /** Replaces the list when given. */
+  sources?: unknown;
   userId?: string;
 }
 
@@ -51,7 +124,7 @@ export class GetProjectDecisionsUseCase {
     if (!project) throw new NotFoundError("Workspace not found.");
 
     const ws = await this.workspaceRepository.findByProjectId(input.projectId);
-    let decisions = ws?.decisions ?? [];
+    let decisions = (ws?.decisions ?? []).map(withProvenance);
 
     if (input.search && input.search.trim()) {
       const q = input.search.trim().toLowerCase();
@@ -65,6 +138,11 @@ export class GetProjectDecisionsUseCase {
 
     if (input.status) {
       decisions = decisions.filter((d) => d.status === input.status);
+    }
+
+    const origin = parseDecisionOrigin(input.origin);
+    if (origin) {
+      decisions = decisions.filter((d) => d.origin === origin);
     }
 
     // Sort by ADR number ascending (or newest first)
@@ -87,6 +165,7 @@ export class CreateProjectDecisionUseCase {
   constructor(
     private readonly workspaceRepository: IWorkspaceRepository,
     private readonly projectRepository: IProjectRepository,
+    private readonly sourceVerifier?: IDecisionSourceVerifier,
   ) {}
 
   async execute(input: CreateDecisionInput): Promise<IWorkspaceDecision> {
@@ -96,6 +175,8 @@ export class CreateProjectDecisionUseCase {
     if (!input.title?.trim() || !input.decision?.trim() || !input.context?.trim()) {
       throw new BadRequestError("ADR title, context, and decision are required.");
     }
+    const origin = parseDecisionOrigin(input.origin) ?? "recorded";
+    const sources = input.sources === undefined ? [] : await resolveDecisionSources(this.sourceVerifier, input.projectId, input.sources);
 
     let ws = await this.workspaceRepository.findByProjectId(input.projectId);
     if (!ws) {
@@ -111,18 +192,25 @@ export class CreateProjectDecisionUseCase {
     const currentDecisions = ws.decisions ?? [];
     const maxNum = currentDecisions.reduce((max, d) => Math.max(max, d.number ?? 0), 0);
 
+    const now = new Date();
+    const status = input.status ?? "Proposed";
     const newDecision: IWorkspaceDecision = {
       id: `adr-${randomUUID().slice(0, 8)}`,
       number: maxNum + 1,
       title: input.title.trim(),
-      status: input.status ?? "Proposed",
+      status,
       context: input.context.trim(),
       decision: input.decision.trim(),
       alternatives: input.alternatives?.trim() ?? "",
       consequences: input.consequences?.trim() ?? "",
       componentIds: input.componentIds ?? [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      origin,
+      sources,
+      statusHistory: [{ status, at: now, by: input.userId }],
+      createdBy: input.userId,
+      updatedBy: input.userId,
+      createdAt: now,
+      updatedAt: now,
     };
 
     const decisions = [...currentDecisions, newDecision];
@@ -156,7 +244,7 @@ export class GetProjectDecisionDetailUseCase {
     const found = ws?.decisions.find((d) => d.id === decisionId);
     if (!found) throw new NotFoundError("Design decision not found.");
 
-    return found;
+    return withProvenance(found);
   }
 }
 
@@ -164,6 +252,7 @@ export class UpdateProjectDecisionUseCase {
   constructor(
     private readonly workspaceRepository: IWorkspaceRepository,
     private readonly projectRepository: IProjectRepository,
+    private readonly sourceVerifier?: IDecisionSourceVerifier,
   ) {}
 
   async execute(input: UpdateDecisionInput): Promise<IWorkspaceDecision> {
@@ -176,7 +265,13 @@ export class UpdateProjectDecisionUseCase {
     const index = ws.decisions.findIndex((d) => d.id === input.decisionId);
     if (index === -1) throw new NotFoundError("Design decision not found.");
 
-    const existing = ws.decisions[index];
+    const existing = withProvenance(ws.decisions[index]);
+    const origin = parseDecisionOrigin(input.origin) ?? existing.origin;
+    const sources = input.sources === undefined
+      ? existing.sources
+      : await resolveDecisionSources(this.sourceVerifier, input.projectId, input.sources);
+    const now = new Date();
+    const status = input.status ?? existing.status;
     const updated: IWorkspaceDecision = {
       ...existing,
       title: input.title?.trim() ?? existing.title,
@@ -184,9 +279,15 @@ export class UpdateProjectDecisionUseCase {
       decision: input.decision?.trim() ?? existing.decision,
       alternatives: input.alternatives !== undefined ? input.alternatives.trim() : existing.alternatives,
       consequences: input.consequences !== undefined ? input.consequences.trim() : existing.consequences,
-      status: input.status ?? existing.status,
+      status,
       componentIds: input.componentIds ?? existing.componentIds,
-      updatedAt: new Date(),
+      origin,
+      sources,
+      statusHistory: status === existing.status
+        ? existing.statusHistory
+        : [...existing.statusHistory, { status, at: now, by: input.userId }],
+      updatedBy: input.userId ?? existing.updatedBy,
+      updatedAt: now,
     };
 
     const newDecisions = [...ws.decisions];
