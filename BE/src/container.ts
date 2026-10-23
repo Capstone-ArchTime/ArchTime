@@ -52,6 +52,13 @@ import { OrganizationUseCases } from "./application/use-cases/organizations/Orga
 import { OrganizationCredentialUseCases } from "./application/use-cases/organizations/OrganizationCredentialUseCases.js";
 import { OrganizationController } from "./presentation/controllers/OrganizationController.js";
 
+// ── Onboarding paths ──
+import { MongoPathStore, MongoAssignmentStore } from "./infrastructure/repositories/MongoOnboardingStores.js";
+import { createOnboardingDeps } from "./infrastructure/services/OnboardingDeps.js";
+import { OnboardingPathUseCases } from "./application/use-cases/onboarding/OnboardingPathUseCases.js";
+import { OnboardingLearningUseCases } from "./application/use-cases/onboarding/OnboardingLearningUseCases.js";
+import { OnboardingController } from "./presentation/controllers/OnboardingController.js";
+
 // ─────────────────────────────────────────
 // Infrastructure instances
 // ─────────────────────────────────────────
@@ -69,6 +76,15 @@ const bcryptHasher = new BcryptHasher();
 const organizationUseCases = new OrganizationUseCases(organizationRepository, userRepository, projectRepository, memberRepository);
 const organizationCredentialUseCases = new OrganizationCredentialUseCases(organizationUseCases, organizationCredentialRepository, projectRepository);
 export const organizationController = new OrganizationController(organizationUseCases, organizationCredentialUseCases);
+
+// ── Onboarding paths ──
+const onboardingPaths = new MongoPathStore();
+const onboardingAssignments = new MongoAssignmentStore();
+const onboardingDeps = createOnboardingDeps(memberRepository);
+export const onboardingController = new OnboardingController(
+  new OnboardingPathUseCases(onboardingPaths, onboardingAssignments, onboardingDeps),
+  new OnboardingLearningUseCases(onboardingPaths, onboardingAssignments, onboardingDeps),
+);
 const jwtTokenService = new JwtTokenService(
   env.jwtSecret,
   env.jwtExpiresIn,

@@ -20,9 +20,11 @@ import {
   llmController,
   projectChatController,
   organizationController,
+  onboardingController,
 } from "./container.js";
 import { createOrganizationRouter } from "./presentation/routes/organization.routes.js";
 import { createRevisionRouter } from "./presentation/routes/revision.routes.js";
+import { createLearningRouter, createOnboardingRouter } from "./presentation/routes/onboarding.routes.js";
 import { createLlmRouter } from "./presentation/routes/llm.routes.js";
 import { createProjectChatRouter } from "./presentation/routes/projectChat.routes.js";
 import { createGitHubRouter } from './presentation/routes/github.routes.js';
@@ -47,6 +49,8 @@ app.use('/api/auth/github', createGitHubRouter(env, new GitHubIdentityService(en
 app.use("/api/auth", createAuthRouter(authController, jwtTokenService));
 app.use("/api/projects", createProjectChatRouter(projectChatController, jwtTokenService, projectRoleMiddleware));
 app.use("/api/projects", createRevisionRouter(jwtTokenService, projectRoleMiddleware));
+app.use("/api/projects", createOnboardingRouter(onboardingController, jwtTokenService, projectRoleMiddleware));
+app.use("/api/onboarding", createLearningRouter(onboardingController, jwtTokenService));
 app.use(
   "/api/projects",
   createProjectRouter(
