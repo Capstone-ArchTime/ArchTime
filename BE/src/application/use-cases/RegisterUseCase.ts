@@ -35,7 +35,7 @@ export class RegisterUseCase {
       name: input.name,
       email: input.email,
       passwordHash,
-      role: UserRole.DEVELOPER_ANALYST,
+      role: UserRole.USER,
     });
 
     const code = generateOtpCode();

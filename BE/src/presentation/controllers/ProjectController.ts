@@ -37,7 +37,7 @@ export class ProjectController {
       const userId = req.user?.userId;
       if (!userId) throw new UnauthorizedError();
 
-      const { name, description, repoUrl, visibility, token } = req.body;
+      const { name, description, repoUrl, visibility, token, organizationId, credentialId } = req.body;
 
       const project = await this.registerProjectUseCase.execute({
         name,
@@ -46,6 +46,8 @@ export class ProjectController {
         visibility,
         token,
         userId,
+        organizationId,
+        credentialId,
       });
 
       sendSuccess(res, { project }, {
@@ -102,6 +104,7 @@ export class ProjectController {
           id,
           userId,
           req.user?.role,
+          req.projectAccess,
         );
         sendSuccess(res, { project });
       } else {
@@ -124,12 +127,9 @@ export class ProjectController {
       const userId = req.user?.userId;
       if (!userId) throw new UnauthorizedError();
 
+      // checkRole("owner") has already allowed only the project owner or an owner of its organization.
       const { id } = req.params;
-      const isAdmin = req.user?.role === "system-administrator";
-      const deleted = await this.deleteProjectUseCase.execute(
-        id,
-        isAdmin ? undefined : userId,
-      );
+      const deleted = await this.deleteProjectUseCase.execute(id);
 
       if (!deleted) throw new NotFoundError("Workspace not found or unauthorized.");
 
@@ -204,6 +204,7 @@ export class ProjectController {
       const { items, total } = await this.getMiningJobsUseCase.execute(
         skip,
         limit,
+        req.user ? { userId: req.user.userId, role: req.user.role } : undefined,
       );
 
       sendSuccess(res, { jobs: items }, {
@@ -232,7 +233,7 @@ export class ProjectController {
         );
       }
 
-      const result = await this.compareSnapshotsUseCase.execute(baseId, targetId);
+      const result = await this.compareSnapshotsUseCase.execute(baseId, targetId, req.params.id);
       sendSuccess(res, result);
     } catch (error) {
       next(error);
@@ -310,7 +311,7 @@ export class ProjectController {
         res.status(401).json({ success: false, message: "Unauthorized" });
         return;
       }
-      const job = await this.miningWorkflowUseCase.cancel(req.params.jobId, userId);
+      const job = await this.miningWorkflowUseCase.cancel(req.params.jobId, { userId, role: req.user!.role });
       res.status(200).json({ success: true, data: { job } });
     } catch (error: any) {
       next(error);

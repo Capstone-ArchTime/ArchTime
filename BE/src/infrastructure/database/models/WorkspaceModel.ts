@@ -1,5 +1,5 @@
 import mongoose, { type Document, type Model, Schema } from "mongoose";
-import type { IWorkspace } from "../../../domain/entities/Workspace.js";
+import { DECISION_ORIGINS, DECISION_SOURCE_KINDS, type IWorkspace } from "../../../domain/entities/Workspace.js";
 
 export interface IWorkspaceDocument
   extends Omit<IWorkspace, "id">,
@@ -73,6 +73,27 @@ const DecisionSchema = new Schema(
     alternatives: { type: String, default: "" },
     consequences: { type: String, default: "" },
     componentIds: { type: [String], default: [] },
+    origin: { type: String, enum: DECISION_ORIGINS, default: "recorded" },
+    sources: {
+      type: [new Schema({
+        kind: { type: String, enum: DECISION_SOURCE_KINDS, required: true },
+        ref: { type: String, required: true },
+        title: { type: String, default: "" },
+        date: { type: Date },
+        note: { type: String },
+      }, { _id: false })],
+      default: [],
+    },
+    statusHistory: {
+      type: [new Schema({
+        status: { type: String, enum: ["Proposed", "Accepted", "Deprecated"], required: true },
+        at: { type: Date, required: true },
+        by: { type: String },
+      }, { _id: false })],
+      default: [],
+    },
+    createdBy: { type: String },
+    updatedBy: { type: String },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
   },

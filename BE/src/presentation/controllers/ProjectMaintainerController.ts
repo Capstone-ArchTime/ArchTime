@@ -246,6 +246,7 @@ export class ProjectMaintainerController {
       const { id: projectId } = req.params;
       const search = typeof req.query.search === "string" ? req.query.search : undefined;
       const status = typeof req.query.status === "string" ? (req.query.status as any) : undefined;
+      const origin = typeof req.query.origin === "string" ? (req.query.origin as any) : undefined;
       const page = req.query.page ? Number(req.query.page) : undefined;
       const limit = req.query.limit ? Number(req.query.limit) : undefined;
 
@@ -253,6 +254,7 @@ export class ProjectMaintainerController {
         projectId,
         search,
         status,
+        origin,
         page,
         limit,
       });
@@ -265,7 +267,7 @@ export class ProjectMaintainerController {
   public createDecision = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { id: projectId } = req.params;
-      const { title, context, decision, alternatives, consequences, status, componentIds } = req.body;
+      const { title, context, decision, alternatives, consequences, status, componentIds, origin, sources } = req.body;
       const userId = req.user?.userId;
 
       const created = await this.uc.createDecisionUseCase.execute({
@@ -277,6 +279,8 @@ export class ProjectMaintainerController {
         consequences,
         status,
         componentIds,
+        origin,
+        sources,
         userId,
       });
       sendSuccess(res, { decision: created }, { statusCode: 201, message: "Design decision created." });
@@ -298,7 +302,7 @@ export class ProjectMaintainerController {
   public updateDecision = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { id: projectId, decisionId } = req.params;
-      const { title, context, decision, alternatives, consequences, status, componentIds } = req.body;
+      const { title, context, decision, alternatives, consequences, status, componentIds, origin, sources } = req.body;
       const userId = req.user?.userId;
 
       const updated = await this.uc.updateDecisionUseCase.execute({
@@ -311,6 +315,8 @@ export class ProjectMaintainerController {
         consequences,
         status,
         componentIds,
+        origin,
+        sources,
         userId,
       });
       sendSuccess(res, { decision: updated }, { message: "Design decision updated." });

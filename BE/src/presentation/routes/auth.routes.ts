@@ -274,6 +274,78 @@ export function createAuthRouter(
 
   /**
    * @swagger
+   * /api/auth/me:
+   *   patch:
+   *     tags: [Auth]
+   *     summary: Cập nhật profile của chính mình (tên hiển thị, username)
+   *     description: |
+   *       Gửi ít nhất một trường. `username` = null hoặc "" để xóa username.
+   *       Email không đổi được ở đây (cần xác minh lại); role và trạng thái do System Administrator thay đổi.
+   *     security:
+   *       - BearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               name: { type: string, maxLength: 100, example: "Jane Doe" }
+   *               username:
+   *                 type: string
+   *                 nullable: true
+   *                 pattern: '^[a-z0-9](?:[a-z0-9._-]{1,30})[a-z0-9]$'
+   *                 example: "jane.doe"
+   *     responses:
+   *       200:
+   *         description: Profile đã cập nhật
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/SuccessResponse'
+   *             example:
+   *               success: true
+   *               message: Profile updated.
+   *               data:
+   *                 user: { id: "64f1...", name: "Jane Doe", username: "jane.doe", email: "dev@archtime.io", role: "developer-analyst" }
+   *       400:
+   *         $ref: '#/components/responses/ValidationError'
+   *       401:
+   *         $ref: '#/components/responses/Unauthorized'
+   *       409:
+   *         description: Username đã có người dùng
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   */
+  router.patch("/me", authenticate, authController.updateProfile);
+
+  /**
+   * @swagger
+   * /api/auth/logout-all:
+   *   post:
+   *     tags: [Auth]
+   *     summary: Đăng xuất khỏi mọi thiết bị
+   *     description: |
+   *       Thu hồi mọi access token và refresh token của tài khoản, kể cả phiên hiện tại.
+   *       Sau khi gọi, client phải đăng nhập lại. Hành động được ghi vào audit log.
+   *     security:
+   *       - BearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Đã thu hồi mọi phiên
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/SuccessResponse'
+   *       401:
+   *         $ref: '#/components/responses/Unauthorized'
+   */
+  router.post("/logout-all", authenticate, authController.logoutAll);
+
+  /**
+   * @swagger
    * /api/auth/forgot-password:
    *   post:
    *     tags: [Auth]

@@ -11,11 +11,15 @@ let seq = 0;
 function matches(doc, q = {}) {
   return Object.entries(q).every(([k, cond]) => {
     const v = doc[k];
+    if (cond === null) return v === null || v === undefined;
     if (cond && typeof cond === 'object' && !(cond instanceof Date)) {
+      if ('$exists' in cond && (v !== undefined) !== cond.$exists) return false;
+      if ('$ne' in cond) return cond.$ne === null ? v !== null && v !== undefined : String(v) !== String(cond.$ne);
       if ('$in' in cond) return cond.$in.map(String).includes(String(v));
       if ('$nin' in cond) return !cond.$nin.map(String).includes(String(v));
       if ('$lt' in cond) return v < cond.$lt;
       if ('$gt' in cond) return v > cond.$gt;
+      if ('$exists' in cond) return true;
     }
     return String(v) === String(cond);
   });
@@ -52,12 +56,14 @@ function collection(withDefaults = (d) => d) {
     },
     exists: async (q) => (rows.some((r) => matches(r, q)) ? { _id: 1 } : null),
     updateOne: async (q, u) => { const r = rows.find((x) => matches(x, q)); if (r) Object.assign(r, u.$set); },
+    updateMany: async (q, u) => { const hit = rows.filter((x) => matches(x, q)); hit.forEach((r) => Object.assign(r, u.$set)); return { modifiedCount: hit.length }; },
     deleteMany: async (q) => { for (let i = rows.length - 1; i >= 0; i--) if (matches(rows[i], q)) rows.splice(i, 1); },
     countDocuments: async (q) => rows.filter((r) => matches(r, q)).length,
   };
   return api;
 }
 
+process.env.ARCHTIME_ALLOW_LOCAL_REPOS = 'true'; // the test remote is a local file:// repository
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'mining-svc-'));
 process.chdir(tmp);
 const src = (p) => pathToFileURL(path.resolve(import.meta.dirname, '../src', p)).href;
@@ -71,7 +77,7 @@ const fakes = { project: collection(), job: collection(), snap: collection(), ev
 const patch = (model, fake) => Object.assign(model, fake);
 patch(ProjectModel, { findById: fakes.project.findById, findOne: fakes.project.findOne, updateOne: fakes.project.updateOne });
 patch(MiningJobModel, { create: fakes.job.create, findById: fakes.job.findById, updateOne: fakes.job.updateOne, exists: fakes.job.exists, find: fakes.job.find });
-patch(SnapshotModel, { find: fakes.snap.find, findOne: fakes.snap.findOne, insertMany: fakes.snap.insertMany, updateOne: fakes.snap.updateOne, deleteMany: fakes.snap.deleteMany, countDocuments: fakes.snap.countDocuments });
+patch(SnapshotModel, { find: fakes.snap.find, findOne: fakes.snap.findOne, insertMany: fakes.snap.insertMany, updateOne: fakes.snap.updateOne, updateMany: fakes.snap.updateMany, deleteMany: fakes.snap.deleteMany, countDocuments: fakes.snap.countDocuments });
 patch(EvidenceModel, { insertMany: fakes.evid.insertMany, deleteMany: fakes.evid.deleteMany });
 
 // --- a real git repo with 6 commits over 3 months; every commit adds an import edge ---
@@ -162,6 +168,38 @@ test('cancelling stops at a batch boundary and keeps finished batches', async ()
   }
   const resumed = await settled(await MiningService.startMiningJob(project._id, 'u1'));
   assert.deepEqual([resumed.status, resumed.total, fakes.snap.rows.length], ['completed', 4, 6]);
+});
+
+test('a scan flags snapshots whose commit was force-pushed away, and clears the flag when it comes back', async () => {
+  const tip = git('rev-parse', 'HEAD').trim();
+  const snapOf = (hash) => fakes.snap.rows.find((s) => s.fullHash === hash);
+  assert.ok(snapOf(tip), 'the tip was mined by the earlier tests');
+
+  git('reset', '-q', '--hard', 'HEAD~1'); // rewrite history: the last commit is no longer on any branch
+  try {
+    const job = await settled(await MiningService.startScanJob(project._id, 'u1'));
+    assert.equal(job.status, 'completed', job.error);
+    assert.ok(snapOf(tip).missingSince instanceof Date, 'the vanished commit is flagged');
+    const flagged = fakes.snap.rows.filter((s) => s.missingSince);
+    assert.equal(flagged.length, 1, 'commits still on the branch are not flagged');
+  } finally {
+    git('reset', '-q', '--hard', tip);
+  }
+
+  const back = await settled(await MiningService.startScanJob(project._id, 'u1'));
+  assert.equal(back.status, 'completed', back.error);
+  assert.equal(snapOf(tip).missingSince, null, 'pushed back: the flag is cleared');
+});
+
+test('a project registered with a local path is refused at mining time too', async () => {
+  delete process.env.ARCHTIME_ALLOW_LOCAL_REPOS;
+  try {
+    const job = await settled(await MiningService.startScanJob(project._id, 'u1'));
+    assert.equal(job.status, 'failed');
+    assert.match(job.error, /Only HTTPS/);
+  } finally {
+    process.env.ARCHTIME_ALLOW_LOCAL_REPOS = 'true';
+  }
 });
 
 test.after(() => {

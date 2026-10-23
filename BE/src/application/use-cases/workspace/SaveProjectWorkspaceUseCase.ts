@@ -21,6 +21,43 @@ export interface SaveWorkspaceRequest {
   userId?: string;
 }
 
+/**
+ * The whole-workspace save carries ADR text but not provenance: origin, sources and authorship are taken from the stored
+ * ADR (sources are only changed through the ADR endpoints, which verify them). A status change is added to the history.
+ */
+function keepProvenance(
+  incoming: IWorkspaceDecision[],
+  stored: IWorkspaceDecision[],
+  userId?: string,
+): IWorkspaceDecision[] {
+  const byId = new Map(stored.map((d) => [d.id, d]));
+  const now = new Date();
+  return incoming.map((d) => {
+    const before = byId.get(d.id);
+    if (!before) {
+      return {
+        ...d,
+        origin: d.origin === "reconstructed" ? "reconstructed" : "recorded",
+        sources: [],
+        statusHistory: [{ status: d.status, at: now, by: userId }],
+        createdBy: userId,
+        updatedBy: userId,
+      };
+    }
+    const history = before.statusHistory?.length
+      ? before.statusHistory
+      : [{ status: before.status, at: before.createdAt ?? now }];
+    return {
+      ...d,
+      origin: before.origin ?? "recorded",
+      sources: before.sources ?? [],
+      statusHistory: d.status === before.status ? history : [...history, { status: d.status, at: now, by: userId }],
+      createdBy: before.createdBy,
+      updatedBy: userId ?? before.updatedBy,
+    };
+  });
+}
+
 export class SaveProjectWorkspaceUseCase {
   constructor(
     private readonly workspaceRepository: IWorkspaceRepository,
@@ -47,6 +84,8 @@ export class SaveProjectWorkspaceUseCase {
       throw new NotFoundError("Workspace not found.");
     }
 
+    const current = await this.workspaceRepository.findByProjectId(projectId);
+
     try {
       const saved = await this.workspaceRepository.save(
         {
@@ -54,7 +93,7 @@ export class SaveProjectWorkspaceUseCase {
           revision: expectedRevision ?? 1,
           diagram,
           rules: rules ?? [],
-          decisions: decisions ?? [],
+          decisions: keepProvenance(decisions ?? [], current?.decisions ?? [], userId),
           updatedBy: userId,
         },
         expectedRevision,

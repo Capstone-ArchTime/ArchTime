@@ -4,9 +4,12 @@ import { connectDb } from "./config/db.js";
 import open from "open";
 import { MiningService } from "./infrastructure/services/MiningService.js";
 import { LlmModelRegistry } from "./infrastructure/llm/registry.js";
+import { MongoUserRepository } from "./infrastructure/repositories/MongoUserRepository.js";
 
 async function start(): Promise<void> {
   await connectDb();
+  const migrated = await MongoUserRepository.migrateLegacyRoles();
+  if (migrated) console.log(`Moved ${migrated} account(s) from the retired project-maintainer system role to user`);
   await MiningService.recoverInterruptedJobs();
   await LlmModelRegistry.seedFromEnv();
   const url = `http://localhost:${env.port}`;

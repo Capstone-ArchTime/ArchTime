@@ -24,9 +24,9 @@ export class PasswordResetUseCase {
       const saved = await this.users.requestPasswordReset(user.id, hash, now, new Date(now.getTime() + 600_000));
       if (saved) {
         try { await this.email.sendPasswordReset(user.email, token); }
-        catch {
+        catch (err) {
           await this.users.clearPasswordReset(user.id, hash);
-          console.error("Password reset email delivery failed.");
+          console.error("Password reset email delivery failed:", err);
         }
       }
     }

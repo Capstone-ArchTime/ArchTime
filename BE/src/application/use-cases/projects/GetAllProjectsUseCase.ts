@@ -3,6 +3,11 @@ import type { IProjectMemberRepository } from "../../../domain/interfaces/IProje
 import type { IProject } from "../../../domain/entities/Project.js";
 import { UserRole } from "../../../domain/entities/User.js";
 import type { PaginatedResult } from "../../../shared/utils/apiResponse.js";
+import type { ProjectAccess, ProjectAccessPolicy } from "../../services/ProjectAccessPolicy.js";
+
+/** Clients know five role labels; an organization owner works as a maintainer. */
+const roleLabel = (access: ProjectAccess): ProjectItemDTO["userRole"] =>
+  access.role === "organization-owner" ? "project-maintainer" : access.role ?? "viewer";
 
 export interface GetAllProjectsRequest {
   userId: string;
@@ -23,7 +28,43 @@ export class GetAllProjectsUseCase {
   constructor(
     private readonly projectRepository: IProjectRepository,
     private readonly memberRepository?: IProjectMemberRepository,
+    private readonly accessPolicy?: Pick<ProjectAccessPolicy, "readableProjects">,
   ) {}
+
+  /**
+   * Lists what the user may read according to ProjectAccessPolicy: organization projects of organizations they left
+   * drop out, and organization owners see every project of their organizations.
+   */
+  private async listReadable(params: GetAllProjectsRequest): Promise<PaginatedResult<ProjectItemDTO>> {
+    const readable = await this.accessPolicy!.readableProjects({ userId: params.userId, role: params.userRole ?? UserRole.USER });
+    const inScope = readable.filter(({ project, access }) => {
+      switch (params.scope) {
+        case "owned": return project.userId === params.userId && access.role === "owner";
+        case "managed": return access.actions.has("write");
+        case "participating": return access.role === "developer-analyst";
+        default: return true;
+      }
+    });
+    const accessById = new Map(inScope.map(e => [e.project.id, e.access]));
+    const { items, total } = await this.projectRepository.findAccessibleProjectsPaginated({
+      projectIds: [...accessById.keys()],
+      search: params.search,
+      skip: params.skip ?? 0,
+      limit: params.limit ?? 10,
+    });
+    return {
+      items: items.map((project) => {
+        const access = accessById.get(project.id)!;
+        return {
+          ...project,
+          userRole: roleLabel(access),
+          isOwner: access.role === "owner",
+          isMaintainer: access.actions.has("write"),
+        };
+      }),
+      total,
+    };
+  }
 
   async execute(
     paramsOrUserId: string | GetAllProjectsRequest,
@@ -49,6 +90,10 @@ export class GetAllProjectsUseCase {
     }
 
     const { userId, userRole, scope, search, skip, limit } = params;
+
+    if (this.accessPolicy && userRole !== UserRole.SYSTEM_ADMINISTRATOR) {
+      return this.listReadable(params);
+    }
 
     // 1. Fetch user's project memberships
     const memberships = this.memberRepository

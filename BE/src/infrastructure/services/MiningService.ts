@@ -21,6 +21,8 @@ import {
   type MinedIndex,
 } from '../../domain/mining/miningPlan.js';
 import { runArchitectureJob } from './ArchitectureJob.js';
+import { MongoOrganizationCredentialRepository } from '../repositories/MongoOrganizationCredentialRepository.js';
+import { allowLocalRepos, validateRepoUrl } from '../../domain/mining/repoUrl.js';
 import { ConflictError, NotFoundError } from '../../shared/errors/AppError.js';
 
 type GraphNode = { id: string; name: string; type: string };
@@ -34,6 +36,15 @@ const edgeKey = (e: GraphEdge) => `${e.source}\u0000${e.target}`;
 
 class CancelledError extends Error {}
 
+// simple-git guards every GIT_* variable and the ones that make git run another program (EDITOR, PAGER, askpass...):
+// passed explicitly they reject the command unless allowed. The server's own (an IDE's GIT_ASKPASS, for instance) are
+// left out; only the two set here are allowed.
+const GIT_GUARDED_ENV = /^(git_.*|editor|visual|pager|prefix|ssh_askpass)$/i;
+const GIT_ENV_ALLOWED = ['GIT_ALLOW_PROTOCOL', 'GIT_TERMINAL_PROMPT'];
+const gitSafeEnv = () => Object.fromEntries(
+  Object.entries(process.env).filter(([k, v]) => v !== undefined && !GIT_GUARDED_ENV.test(k)),
+) as Record<string, string>;
+
 /**
  * Batch mining. Jobs run in-process through a small queue:
  *  - a `scan` job clones/fetches the repo and records its commit history (no AST work);
@@ -45,6 +56,7 @@ export class MiningService {
   private static readonly queue: string[] = [];
   private static readonly running = new Set<string>();
   private static readonly cancelled = new Set<string>();
+  private static readonly credentials = new MongoOrganizationCredentialRepository();
 
   // ---------- public API ----------
 
@@ -76,16 +88,23 @@ export class MiningService {
     });
   }
 
-  public static async cancelJob(jobId: string, userId: string) {
+  /**
+   * Cancels a queued job at once, or tells a running worker to stop after its current commit. Who may cancel is
+   * checked by the caller (MiningWorkflowUseCase for project members, CancelAdminJobUseCase for administrators).
+   */
+  public static async cancelJob(jobId: string, options: { by?: string; stage?: string } = {}) {
     const job = await MiningJobModel.findById(jobId);
     if (!job) throw new NotFoundError('Job not found');
-    const project = await ProjectModel.findOne({ _id: job.projectId, userId });
-    if (!project) throw new NotFoundError('Job not found');
-    if (job.status === JobStatus.QUEUED) {
+    if (job.status === JobStatus.QUEUED || job.status === JobStatus.RUNNING) {
+      job.cancelledAt = new Date();
+      if (options.by) job.cancelledBy = options.by;
+    }
+    // Queued, or "running" with no worker in this process (nothing would ever notice the flag): cancel at once.
+    if (job.status === JobStatus.QUEUED || (job.status === JobStatus.RUNNING && !this.running.has(jobId))) {
       const at = this.queue.indexOf(jobId);
       if (at >= 0) this.queue.splice(at, 1);
+      job.stage = options.stage ?? (job.status === JobStatus.QUEUED ? 'Cancelled before start' : 'Cancelled');
       job.status = JobStatus.CANCELLED;
-      job.stage = 'Cancelled before start';
       job.finishedAt = new Date();
       await job.save();
     } else if (job.status === JobStatus.RUNNING) {
@@ -218,7 +237,7 @@ export class MiningService {
     const job = await MiningJobModel.findById(jobId);
     if (!job || job.status !== JobStatus.QUEUED) return;
     const project = await ProjectModel.findById(job.projectId);
-    const secret = project?.token || undefined;
+    let secret: string | undefined;
     const set = (patch: Record<string, unknown>) => MiningJobModel.updateOne({ _id: jobId }, { $set: patch });
     const checkCancel = () => {
       if (this.cancelled.has(jobId)) throw new CancelledError();
@@ -235,12 +254,13 @@ export class MiningService {
 
     try {
       if (!project) throw new Error('Workspace no longer exists');
+      secret = await this.repoToken(project);
       await set({ status: JobStatus.RUNNING, startedAt: new Date(), stage: 'Preparing repository', progress: 1 });
       if (job.kind === JobKind.MINE) {
         await ProjectModel.updateOne({ _id: project._id }, { $set: { status: ProjectStatus.ANALYZING } });
       }
 
-      const git = await this.ensureRepo(project, async (stage, progress) => {
+      const git = await this.ensureRepo(project, secret, async (stage, progress) => {
         checkCancel();
         await set({ stage, progress });
       });
@@ -255,6 +275,7 @@ export class MiningService {
         monthly: monthlyHistogram(commits),
         scannedAt: new Date(),
       } } });
+      await this.markVanishedCommits(String(project._id), git);
 
       if (job.kind === JobKind.SCAN) {
         await set({ status: JobStatus.COMPLETED, stage: `Scanned ${commits.length} commits`, progress: 100, total: 0, finishedAt: new Date() });
@@ -352,17 +373,32 @@ export class MiningService {
     }
   }
 
-  private static async ensureRepo(project: any, report: (stage: string, progress: number) => Promise<void>): Promise<SimpleGit> {
+  /** The organization credential when the project uses one, else the project's own token for a private repository. */
+  private static async repoToken(project: any): Promise<string | undefined> {
+    if (project.credentialId) {
+      const token = await this.credentials.resolveSecret(String(project.credentialId));
+      if (!token) throw new Error('The organization credential for this workspace was deleted. Ask an organization owner to attach another one.');
+      return token;
+    }
+    return project.visibility === 'private' && project.token ? project.token : undefined;
+  }
+
+  private static async ensureRepo(project: any, token: string | undefined, report: (stage: string, progress: number) => Promise<void>): Promise<SimpleGit> {
     const id = String(project._id);
     const dir = this.repoDir(id);
     // The token travels as a per-process HTTP header, never in the remote URL or on disk.
-    const config = project.visibility === 'private' && project.token
-      ? [`http.extraHeader=Authorization: Basic ${Buffer.from(`x-access-token:${project.token}`).toString('base64')}`]
+    const config = token
+      ? [`http.extraHeader=Authorization: Basic ${Buffer.from(`x-access-token:${token}`).toString('base64')}`]
       : [];
+    // Projects registered before URLs were checked are checked here too, and git itself is limited to the allowed
+    // transports, so no URL (or redirect, or submodule) can make the server read local paths or run ext:: commands.
+    const remoteUrl = validateRepoUrl(project.repoUrl);
+    const remote = (baseDir: string) => simpleGit({ baseDir, config, allowEnvironment: GIT_ENV_ALLOWED })
+      .env({ ...gitSafeEnv(), GIT_ALLOW_PROTOCOL: allowLocalRepos() ? 'https:http:file' : 'https', GIT_TERMINAL_PROMPT: '0' });
 
     if (fs.existsSync(path.join(dir, '.git'))) {
       await report('Fetching new commits', 3);
-      const git = simpleGit({ baseDir: dir, config });
+      const git = remote(dir);
       try {
         await git.fetch(['origin', '--prune', '+refs/heads/*:refs/remotes/origin/*']);
         return git;
@@ -372,13 +408,43 @@ export class MiningService {
     }
     await report('Cloning repository', 2);
     fs.mkdirSync(dir, { recursive: true });
-    await simpleGit({ baseDir: dir, config }).clone(project.repoUrl, '.', ['--no-checkout']);
+    await remote(dir).clone(remoteUrl, '.', ['--no-checkout']);
     return simpleGit(dir);
   }
 
   private static async listCommits(git: SimpleGit): Promise<CommitRef[]> {
     const raw = await git.raw(['log', '--all', '--source', '--date-order', '--reverse', `--format=${GIT_LOG_FORMAT}`]);
     return parseCommitLog(raw);
+  }
+
+  /**
+   * Flags snapshots whose commit is no longer reachable from the remote's branches or tags (force-push, deleted branch),
+   * and clears the flag when the commit is back. Local refs are left out on purpose: the cache's own branch and detached
+   * HEAD keep rewritten commits reachable. Steps pinned to such a commit then read as missing (domain/onboarding/stepRevision.ts).
+   */
+  private static async markVanishedCommits(projectId: string, git: SimpleGit): Promise<void> {
+    let reachable: string[];
+    try {
+      reachable = (await git.raw(['rev-list', '--remotes', '--tags'])).split('\n').map(s => s.trim()).filter(Boolean);
+    } catch (error) {
+      console.warn(`[mining] project ${projectId}: could not list remote commits, vanished-commit check skipped`, error);
+      return;
+    }
+    // An empty remote is far more likely a fetch problem than a wiped history; do not flag everything.
+    if (reachable.length === 0) return;
+    try {
+      await SnapshotModel.updateMany(
+        { projectId, fullHash: { $exists: true, $nin: reachable }, missingSince: null },
+        { $set: { missingSince: new Date() } },
+      );
+      await SnapshotModel.updateMany(
+        { projectId, fullHash: { $in: reachable }, missingSince: { $ne: null } },
+        { $set: { missingSince: null } },
+      );
+    } catch (error) {
+      // Best effort: a failed check must not fail the scan or mine it runs in.
+      console.warn(`[mining] project ${projectId}: vanished-commit check failed`, error);
+    }
   }
 
   private static async minedIndex(projectId: string): Promise<MinedIndex> {
@@ -443,41 +509,151 @@ export class MiningService {
     await project.save();
   }
 
+  /** All source extensions the mining engine understands. */
+  private static readonly ALL_SOURCE_EXTS = ['.ts', '.tsx', '.js', '.jsx', '.cs', '.java', '.py', '.go', '.rb', '.c', '.cpp', '.h', '.hpp'];
+
   private static analyzeAST(dirPath: string) {
     const nodes: { id: string; name: string; type: string }[] = [];
     const edges: { source: string; target: string; type: string }[] = [];
-    const files = this.getAllFiles(dirPath, ['.ts', '.tsx', '.js', '.jsx']);
 
-    const program = ts.createProgram(files, { allowJs: true });
-    
-    for (const sourceFile of program.getSourceFiles()) {
-      if (!sourceFile.isDeclarationFile && !sourceFile.fileName.includes('node_modules')) {
-        const fileId = path.relative(dirPath, sourceFile.fileName).replace(/\\/g, '/');
-        nodes.push({ id: fileId, name: path.basename(fileId), type: 'module' });
-        
-        ts.forEachChild(sourceFile, node => {
-          if (ts.isImportDeclaration(node)) {
-            const moduleSpecifier = node.moduleSpecifier;
-            if (ts.isStringLiteral(moduleSpecifier)) {
-              let target = moduleSpecifier.text;
-              if (target.startsWith('.')) {
-                // Resolve relative path
-                const resolved = path.join(path.dirname(fileId), target).replace(/\\/g, '/');
-                edges.push({ source: fileId, target: resolved, type: 'imports' });
-              } else {
-                edges.push({ source: fileId, target, type: 'imports' });
+    // --- TypeScript / JavaScript (AST-based) ---
+    const tsFiles = this.getAllFiles(dirPath, ['.ts', '.tsx', '.js', '.jsx']);
+    if (tsFiles.length > 0) {
+      const program = ts.createProgram(tsFiles, { allowJs: true });
+      for (const sourceFile of program.getSourceFiles()) {
+        if (!sourceFile.isDeclarationFile && !sourceFile.fileName.includes('node_modules')) {
+          const fileId = path.relative(dirPath, sourceFile.fileName).replace(/\\/g, '/');
+          nodes.push({ id: fileId, name: path.basename(fileId), type: 'module' });
+          ts.forEachChild(sourceFile, node => {
+            if (ts.isImportDeclaration(node)) {
+              const moduleSpecifier = node.moduleSpecifier;
+              if (ts.isStringLiteral(moduleSpecifier)) {
+                let target = moduleSpecifier.text;
+                if (target.startsWith('.')) {
+                  const resolved = path.join(path.dirname(fileId), target).replace(/\\/g, '/');
+                  edges.push({ source: fileId, target: resolved, type: 'imports' });
+                } else {
+                  edges.push({ source: fileId, target, type: 'imports' });
+                }
               }
             }
-          }
-        });
+          });
+        }
       }
     }
-    
+
+    // --- C# / Java / Python / Go / Ruby / C/C++ (regex-based) ---
+    const otherFiles = this.getAllFiles(dirPath, ['.cs', '.java', '.py', '.go', '.rb', '.c', '.cpp', '.h', '.hpp']);
+    // Build a lookup: namespace/package → list of file ids that define it
+    const nsToFiles = new Map<string, string[]>();
+    const fileContents = new Map<string, string>();
+
+    for (const absPath of otherFiles) {
+      const fileId = path.relative(dirPath, absPath).replace(/\\/g, '/');
+      nodes.push({ id: fileId, name: path.basename(fileId), type: 'module' });
+      let content: string;
+      try { content = fs.readFileSync(absPath, 'utf-8'); } catch { continue; }
+      fileContents.set(fileId, content);
+
+      // Extract the namespace / package this file belongs to
+      const ext = path.extname(absPath);
+      let ns: string | null = null;
+      if (ext === '.cs') {
+        const m = content.match(/^namespace\s+([\w.]+)/m);
+        ns = m?.[1] ?? null;
+      } else if (ext === '.java') {
+        const m = content.match(/^package\s+([\w.]+)/m);
+        ns = m?.[1] ?? null;
+      } else if (ext === '.py') {
+        // Use directory-based module path: Services/Auth/views.py → Services.Auth.views
+        ns = fileId.replace(/\//g, '.').replace(/\.py$/, '');
+      } else if (ext === '.go') {
+        const m = content.match(/^package\s+(\w+)/m);
+        ns = m?.[1] ?? null;
+      } else if (ext === '.rb') {
+        // Ruby: use directory-based module path like Python
+        ns = fileId.replace(/\//g, '::').replace(/\.rb$/, '');
+      } else if (['.c', '.cpp', '.h', '.hpp'].includes(ext)) {
+        // C/C++: use directory-based path
+        ns = fileId;
+      }
+      if (ns) {
+        const arr = nsToFiles.get(ns) ?? [];
+        arr.push(fileId);
+        nsToFiles.set(ns, arr);
+      }
+    }
+
+    // Now extract imports and resolve them to file-ids via the namespace lookup
+    for (const [fileId, content] of fileContents.entries()) {
+      const ext = path.extname(fileId);
+      const importedNamespaces: string[] = [];
+
+      if (ext === '.cs') {
+        for (const m of content.matchAll(/^using\s+(?:static\s+)?([\w.]+)\s*;/gm)) importedNamespaces.push(m[1]);
+      } else if (ext === '.java') {
+        for (const m of content.matchAll(/^import\s+(?:static\s+)?([\w.]+(?:\.\*)?)\s*;/gm)) {
+          const imp = m[1].replace(/\.\*$/, '');
+          importedNamespaces.push(imp);
+        }
+      } else if (ext === '.py') {
+        for (const m of content.matchAll(/^(?:from\s+([\w.]+)\s+import|import\s+([\w.]+))/gm)) {
+          importedNamespaces.push(m[1] ?? m[2]);
+        }
+      } else if (ext === '.go') {
+        // Go imports are paths like "project/pkg/auth"
+        for (const m of content.matchAll(/^\s*"([^"]+)"/gm)) importedNamespaces.push(m[1]);
+      } else if (ext === '.rb') {
+        // Ruby: require 'lib/foo' or require_relative '../bar'
+        for (const m of content.matchAll(/^\s*require(?:_relative)?\s+['"]([^'"]+)['"]/gm)) {
+          let target = m[1];
+          if (m[0].includes('require_relative')) {
+            target = path.join(path.dirname(fileId), target).replace(/\\/g, '/');
+          }
+          // Push as edge directly; normalization will try adding .rb extension
+          const resolved = target.endsWith('.rb') ? target : target;
+          edges.push({ source: fileId, target: resolved, type: 'imports' });
+          // Also track as namespace for prefix matching
+          importedNamespaces.push(target.replace(/\//g, '::').replace(/\.rb$/, ''));
+        }
+      } else if (['.c', '.cpp', '.h', '.hpp'].includes(ext)) {
+        // C/C++: #include "local/header.h" (skip <system> includes)
+        for (const m of content.matchAll(/^\s*#include\s+"([^"]+)"/gm)) {
+          let target = m[1];
+          // Resolve relative to the current file's directory
+          const resolved = path.join(path.dirname(fileId), target).replace(/\\/g, '/');
+          edges.push({ source: fileId, target: resolved, type: 'includes' });
+          // Also try from repo root
+          if (resolved !== target) {
+            edges.push({ source: fileId, target: target, type: 'includes' });
+          }
+        }
+      }
+
+      for (const ns of importedNamespaces) {
+        // Exact match
+        const targets = nsToFiles.get(ns);
+        if (targets) {
+          for (const t of targets) {
+            if (t !== fileId) edges.push({ source: fileId, target: t, type: 'imports' });
+          }
+          continue;
+        }
+        // Prefix match: using Services.Auth → find all files whose namespace starts with that
+        for (const [key, files] of nsToFiles.entries()) {
+          if (key.startsWith(ns + '.') || ns.startsWith(key + '.')) {
+            for (const t of files) {
+              if (t !== fileId) edges.push({ source: fileId, target: t, type: 'imports' });
+            }
+          }
+        }
+      }
+    }
+
     // Normalize edge targets to map to actual fileIds if they exist
     const nodeIds = new Set(nodes.map(n => n.id));
     edges.forEach(e => {
-      // Very naive resolution, just check if target plus ext exists
-      const possibleExts = ['.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.js'];
+      const possibleExts = ['.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.js', '.cs', '.java', '.py', '.go', '.rb', '.c', '.cpp', '.h', '.hpp'];
       for (const ext of possibleExts) {
         if (nodeIds.has(e.target + ext)) {
           e.target = e.target + ext;
@@ -486,12 +662,21 @@ export class MiningService {
       }
     });
 
-    return { nodes, edges };
+    // Deduplicate edges
+    const seen = new Set<string>();
+    const deduped = edges.filter(e => {
+      const k = edgeKey(e);
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+
+    return { nodes, edges: deduped };
   }
 
   private static getAllFiles(dirPath: string, exts: string[], arrayOfFiles: string[] = []) {
     const base = path.basename(dirPath);
-    if (base === '.git' || base === 'node_modules') return arrayOfFiles;
+    if (['node_modules', '.git', 'bin', 'obj', 'target', '__pycache__', 'dist', 'build', '.vs', '.idea'].includes(base)) return arrayOfFiles;
     
     const files = fs.readdirSync(dirPath);
     
