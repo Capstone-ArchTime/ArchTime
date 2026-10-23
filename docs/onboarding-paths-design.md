@@ -74,7 +74,7 @@ Lỗi dữ liệu trả 400 `VALIDATION_ERROR` kèm `fields` theo từng trườ
 - Lưu lộ trình dùng kiểm tra revision và ghi trong một lệnh (`findOneAndUpdate` có điều kiện revision), như workspace: hai mentor cùng sửa thì chỉ người lưu trước thắng, người sau nhận 409 và không mất gì.
 - Xóa project xóa luôn lộ trình và các lần giao của nó.
 
-## 6. Quyết định, và chỗ chưa làm
+## 6. Quyết định đã chọn
 
 Quyết định đã chọn (tài liệu tổng quan chưa nêu chi tiết, dễ đổi nếu nhóm muốn khác):
 
@@ -83,4 +83,19 @@ Quyết định đã chọn (tài liệu tổng quan chưa nêu chi tiết, dễ
 - Chỉ **thành viên project** (hoặc chủ project) được giao lộ trình; Organization Owner không phải thành viên thì không nhận được, nhưng soạn và xem tiến độ được ở mọi project của tổ chức.
 - Lộ trình thuộc một project, không dùng chung giữa các project.
 
-Chưa làm: màn hình front-end (soạn, giao, học, theo dõi); báo cáo tiến độ toàn tổ chức cho Organization Owner; thông báo cho người học khi được giao; thông báo cho mentor khi một bước chuyển sang `missing`.
+## 7. Giao diện
+
+Mục "Learning" trong thanh điều hướng của mọi tài khoản đăng nhập (vai trò hệ thống User), vì Maintainer là vai trò theo từng project chứ không còn là vai trò hệ thống:
+
+| Đường dẫn | Dành cho | Nội dung |
+|---|---|---|
+| `/learning` (tab "My learning") | người học | Các lộ trình được giao cho tôi, tiến độ của riêng tôi, nút Start / Continue / Review |
+| `/learning/:projectId/:pathId` | người học | Từng bước: đọc ghi chú của mentor, xem component / commit / quyết định thiết kế (kèm liên kết sang bản đồ kiến trúc và trang evidence), đánh dấu "xong", trả lời câu hỏi; bước có thể đã cũ được gắn cờ |
+| `/learning?tab=manage` (tab "Manage paths") | mentor | Chọn workspace mình có quyền ghi (`GET /api/projects?scope=managed`), bảng lộ trình với số người, số người xong, số bước cần cập nhật; mở hộp thoại "People" để giao lộ trình và xem tiến độ từng người, từng bước (ô vuông xanh: xong, đỏ: thử từ 3 lần vẫn chưa xong) |
+| `/learning/manage/:projectId/new` và `/learning/manage/:projectId/:pathId` | mentor | Trình soạn: tiêu đề, mô tả, nháp hoặc công bố, các bước (chọn component, commit, quyết định thiết kế từ chính workspace; câu hỏi có nhiều đáp án và đáp án đúng), đổi thứ tự, xóa, ghim lại vào revision hiện tại; lưu có kiểm tra revision và hỏi trước khi bỏ bản nháp để tải bản mới khi bị xung đột |
+
+Trang mentor không có nút nào dẫn tới người không có quyền ghi: tab "Manage paths" của họ chỉ báo chưa phải maintainer của workspace nào, và mở thẳng đường dẫn trình soạn thì nhận 403 từ server.
+
+## 8. Chưa làm
+
+Báo cáo tiến độ toàn tổ chức cho Organization Owner; thông báo cho người học khi được giao lộ trình; thông báo cho mentor khi một bước chuyển sang `missing`.

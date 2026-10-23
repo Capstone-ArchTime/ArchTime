@@ -9,14 +9,14 @@ export const roleHome: Record<Role, string> = {
 };
 
 const routes: Record<Role, readonly string[]> = {
-  'developer-analyst': ['/dashboard', '/projects', '/project', '/history', '/architecture', '/compare', '/evidence', '/insights', '/reports', '/ai-usage'],
+  'developer-analyst': ['/dashboard', '/projects', '/project', '/history', '/architecture', '/compare', '/evidence', '/insights', '/reports', '/ai-usage', '/learning'],
   'project-maintainer': ['/project-maintainer', '/project-maintainer/approvals', '/project-maintainer/team', '/project-maintainer/reports', '/project-maintainer/component-diagram', '/project-maintainer/architecture-rules', '/project-maintainer/design-decisions'],
   'system-administrator': ['/system-administrator', '/system-administrator/users', '/system-administrator/audit-log', '/system-administrator/settings', '/system-administrator/mining-jobs', '/system-administrator/ai-models', '/system-administrator/ai-metrics'],
 };
 
 /** Paths with an id after them (the workspace of one project or sample). */
 const prefixes: Record<Role, readonly string[]> = {
-  'developer-analyst': ['/workspace/'],
+  'developer-analyst': ['/workspace/', '/learning/'],
   'project-maintainer': [],
   'system-administrator': [],
 };

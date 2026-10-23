@@ -34,6 +34,9 @@ const MiningJobsMonitor = lazy(() => import("@/pages/system-administrator/Mining
 const AiModels = lazy(() => import("@/pages/system-administrator/AiModels"));
 const AiMetrics = lazy(() => import("@/pages/system-administrator/AiMetrics"));
 const AiUsage = lazy(() => import("@/pages/developer-analyst/AiUsage"));
+const Learning = lazy(() => import("@/pages/developer-analyst/Learning"));
+const LearningPath = lazy(() => import("@/pages/developer-analyst/LearningPath"));
+const PathEditor = lazy(() => import("@/pages/developer-analyst/PathEditor"));
 const ArchitectureWorkspace = lazy(() => import("@/pages/developer-analyst/ArchitectureWorkspace"));
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
@@ -67,6 +70,10 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path="/insights" element={<Insights />} />
       <Route path="/reports" element={<Reports />} />
       <Route path="/ai-usage" element={<AiUsage />} />
+      <Route path="/learning" element={<Learning />} />
+      <Route path="/learning/manage/:projectId/new" element={<PathEditor />} />
+      <Route path="/learning/manage/:projectId/:pathId" element={<PathEditor />} />
+      <Route path="/learning/:projectId/:pathId" element={<LearningPath />} />
       <Route path="/workspace/sample/:sampleId" element={<ArchitectureWorkspace />} />
       <Route path="/workspace/:projectId" element={<ArchitectureWorkspace />} />
       <Route path="/project" element={<ProjectDetail />} />

@@ -1,4 +1,4 @@
-import { LayoutDashboard, FolderKanban, History, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, FileText, Users2, SlidersHorizontal, ScrollText, Activity, Boxes, Cpu, Gauge, Coins } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, History, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, FileText, Users2, SlidersHorizontal, ScrollText, Activity, Boxes, Cpu, Gauge, Coins, GraduationCap } from 'lucide-react';
 
 export const navItemsByRole = {
   'developer-analyst': [
@@ -9,6 +9,7 @@ export const navItemsByRole = {
     { path: '/compare', label: 'Compare', icon: GitCompare },
     { path: '/evidence', label: 'Changes & Evidence', icon: FileSearch },
     { path: '/insights', label: 'AI Insights', icon: Sparkles },
+    { path: '/learning', label: 'Learning', icon: GraduationCap },
     { path: '/reports', label: 'Reports', icon: FileBarChart },
     { path: '/ai-usage', label: 'AI Usage', icon: Coins },
   ],
