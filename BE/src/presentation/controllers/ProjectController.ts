@@ -50,7 +50,7 @@ export class ProjectController {
 
       sendSuccess(res, { project }, {
         statusCode: 201,
-        message: "Project registered successfully.",
+        message: "Workspace registered successfully.",
       });
     } catch (error) {
       next(error);
@@ -107,7 +107,7 @@ export class ProjectController {
       } else {
         // Fallback to repository
         const project = req.project;
-        if (!project) throw new NotFoundError("Project not found.");
+        if (!project) throw new NotFoundError("Workspace not found.");
         sendSuccess(res, { project });
       }
     } catch (error) {
@@ -131,9 +131,9 @@ export class ProjectController {
         isAdmin ? undefined : userId,
       );
 
-      if (!deleted) throw new NotFoundError("Project not found or unauthorized.");
+      if (!deleted) throw new NotFoundError("Workspace not found or unauthorized.");
 
-      sendSuccess(res, null, { message: "Project deleted successfully." });
+      sendSuccess(res, null, { message: "Workspace deleted successfully." });
     } catch (error) {
       next(error);
     }

@@ -177,9 +177,9 @@ export class MiningService {
 
   private static async enqueue(projectId: string, userId: string, fields: Record<string, unknown>): Promise<string> {
     const project = await ProjectModel.findById(projectId);
-    if (!project) throw new NotFoundError('Project not found');
+    if (!project) throw new NotFoundError('Workspace not found');
     const busy = await MiningJobModel.exists({ projectId, status: { $in: [JobStatus.QUEUED, JobStatus.RUNNING] } });
-    if (busy) throw new ConflictError('A job is already queued or running for this project');
+    if (busy) throw new ConflictError('A job is already queued or running for this workspace');
 
     const job = await MiningJobModel.create({
       projectId,
@@ -234,7 +234,7 @@ export class MiningService {
     }
 
     try {
-      if (!project) throw new Error('Project no longer exists');
+      if (!project) throw new Error('Workspace no longer exists');
       await set({ status: JobStatus.RUNNING, startedAt: new Date(), stage: 'Preparing repository', progress: 1 });
       if (job.kind === JobKind.MINE) {
         await ProjectModel.updateOne({ _id: project._id }, { $set: { status: ProjectStatus.ANALYZING } });

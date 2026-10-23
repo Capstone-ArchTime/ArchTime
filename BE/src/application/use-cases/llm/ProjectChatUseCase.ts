@@ -7,8 +7,9 @@ import { LlmModelRegistry } from "../../../infrastructure/llm/registry.js";
 import { AppError, BadRequestError } from "../../../shared/errors/AppError.js";
 import {
   buildProjectContext, CHAT_LIMITS, citedEvidence, parseChatMessages,
-  type ChatEvidence, type ChatSnapshot, type ChatStructure,
+  type ChatCitations, type ChatEvidence, type ChatSnapshot, type ChatStructure,
 } from "./ProjectChatContext.js";
+import { ChatHistoryUseCases, parseConversationId } from "./ChatHistoryUseCases.js";
 
 const SYSTEM_PROMPT = `You are ArchTime AI, an assistant that explains how a software project's architecture evolved.
 
@@ -46,7 +47,7 @@ function toAppError(error: unknown): Error {
     case "timeout":
       return new AppError(504, "SERVICE_UNAVAILABLE", "The AI service took too long to answer. Try again.");
     case "too_large":
-      return new BadRequestError("This project has more data than the model can take in one request.");
+      return new BadRequestError("This workspace has more data than the model can take in one request.");
     default:
       return new AppError(502, "SERVICE_UNAVAILABLE", `The AI service could not answer: ${error.message}`);
   }
@@ -54,18 +55,28 @@ function toAppError(error: unknown): Error {
 
 export interface ProjectChatResult {
   answer: string;
-  evidence: { commits: string[]; files: number; dependencies: { added: number; removed: number } } | null;
+  evidence: ChatCitations | null;
   model: { name: string; host: string; external: boolean };
   usage: { inputTokens: number; outputTokens: number } | null;
+  /** Where this exchange was saved; null when saving failed (the answer is still returned). */
+  conversation: { id: string; title: string } | null;
 }
 
-/** Answers questions about one project's architecture history from its stored snapshots and change evidence. */
+/**
+ * Answers questions about one project's architecture history from its stored snapshots and change evidence, and saves
+ * each question and answer to the user's conversation so it can be read back later.
+ */
 export class ProjectChatUseCase {
-  async execute(input: { project: IProject; userId: string; messages: unknown }): Promise<ProjectChatResult> {
+  constructor(private readonly history = new ChatHistoryUseCases()) {}
+
+  async execute(input: { project: IProject; userId: string; messages: unknown; conversationId?: unknown }): Promise<ProjectChatResult> {
+    const askedAt = new Date();
     const turns = parseChatMessages(input.messages);
+    const conversationId = parseConversationId(input.conversationId);
     throttle(input.userId);
 
     const projectId = input.project.id;
+    if (conversationId) await this.history.assertCanAppend(conversationId, projectId, input.userId);
     const [snapshots, snapshotTotal, evidences, evidenceTotal, latest] = await Promise.all([
       SnapshotModel.find({ projectId }).sort({ date: -1 }).limit(CHAT_LIMITS.snapshots).select("-nodes -edges").lean<ChatSnapshot[]>(),
       SnapshotModel.countDocuments({ projectId }),
@@ -98,11 +109,23 @@ export class ProjectChatUseCase {
     }
 
     const { info } = resolved.client;
-    return {
+    const result = {
       answer: answer.trim(),
       evidence: citedEvidence(answer, evidences, snapshots),
       model: { name: info.model, host: info.host, external: info.external },
       usage: usage ? { inputTokens: (usage as LlmUsage).inputTokens, outputTokens: (usage as LlmUsage).outputTokens } : null,
     };
+
+    // The answer is already paid for: a history that cannot be written must not take it away. The page is told it was not saved.
+    let conversation: ProjectChatResult["conversation"] = null;
+    try {
+      conversation = await this.history.append({
+        conversationId, projectId, userId: input.userId, question: turns[turns.length - 1].content, askedAt,
+        answer: { content: result.answer, evidence: result.evidence, model: result.model, usage: result.usage },
+      });
+    } catch (error) {
+      console.error("Project chat: the conversation could not be saved.", error);
+    }
+    return { ...result, conversation };
   }
 }

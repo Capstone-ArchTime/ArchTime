@@ -91,7 +91,7 @@ export class MemberController {
       await this.removeProjectMemberUseCase.execute(projectId, memberId);
 
       sendSuccess(res, null, {
-        message: "Member removed from project successfully.",
+        message: "Member removed from workspace successfully.",
       });
     } catch (error) {
       next(error);

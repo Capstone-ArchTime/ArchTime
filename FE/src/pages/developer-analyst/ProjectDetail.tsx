@@ -61,14 +61,14 @@ const ProjectDetail: React.FC = () => {
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#161d24] border border-[#242527] mb-4">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] shadow-[0_0_5px_#3b82f6]"></div>
                 <span className="text-[10px] font-mono text-[#3b82f6] tracking-wider font-semibold uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Project Observatory</span>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Workspace Observatory</span>
               </div>
               
               <div className="flex items-center gap-2 mb-2 text-sm font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                  <Link to="/projects" className="hover:text-[#f4f4f6] transition-colors">ArchTime</Link>
                  <span>/</span>
-                 <Link to="/projects" className="hover:text-[#f4f4f6] transition-colors">Projects</Link>
+                 <Link to="/projects" className="hover:text-[#f4f4f6] transition-colors">Workspaces</Link>
                  <span>/</span>
                  <span className="text-[#3b82f6]">{displayName}</span>
               </div>

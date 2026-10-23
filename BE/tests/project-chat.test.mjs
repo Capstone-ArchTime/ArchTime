@@ -74,3 +74,46 @@ test("citedEvidence returns null when nothing real is cited", () => {
   assert.equal(citedEvidence("No commit hashes here.", evidences, snapshots), null);
   assert.equal(citedEvidence("Invented `deadbeef` commit", evidences, snapshots), null);
 });
+
+test("citedEvidence lists what is behind the numbers, one item per cited commit", () => {
+  const cited = citedEvidence("See `a1b2c3d`.", evidences, snapshots);
+  assert.equal(cited.items.length, 1);
+  assert.deepEqual(cited.items[0], {
+    commit: "a1b2c3d", kind: "evidence", title: "Extract billing", type: "MODULE SPLIT", date: "2026-03-01T00:00:00.000Z",
+    summary: "Billing moved out of core", files: 12, dependencies: { added: 4, removed: 1 }, sourceFiles: ["core/Billing.java"], moreFiles: 0,
+  });
+});
+
+test("citedEvidence items add up to the totals and follow the order of the commits", () => {
+  const more = [...snapshots, { hash: "ffff000", fullHash: "ffff0000aaaabbbbccccddddeeee111122223333", title: "Other", author: "Binh", date: "2026-02-01T00:00:00Z", files: 5, archChanges: 1, depAdded: 1, depRemoved: 0 }];
+  const cited = citedEvidence("`ffff000` then `a1b2c3d`", evidences, more);
+  assert.deepEqual(cited.commits, ["a1b2c3d", "ffff000"]);
+  assert.deepEqual(cited.items.map(item => item.commit), cited.commits);
+  assert.equal(cited.items.reduce((sum, item) => sum + item.files, 0), cited.files);
+  assert.equal(cited.items.reduce((sum, item) => sum + item.dependencies.added, 0), cited.dependencies.added);
+  assert.equal(cited.items.reduce((sum, item) => sum + item.dependencies.removed, 0), cited.dependencies.removed);
+});
+
+test("citedEvidence marks a commit that has a snapshot but no evidence and does not count it", () => {
+  const lonely = { hash: "9f8e7d6", fullHash: "9f8e7d6c5b4a39281706f5e4d3c2b1a098765432", title: "Add gateway", author: "Binh", date: "2026-02-10T00:00:00Z", files: 20, archChanges: 0, depAdded: 9, depRemoved: 2 };
+  const cited = citedEvidence("`9f8e7d6` and `a1b2c3d`", evidences, [...snapshots, lonely]);
+  const item = cited.items.find(i => i.commit === "9f8e7d6");
+  assert.equal(item.kind, "snapshot");
+  assert.equal(item.author, "Binh");
+  assert.equal(cited.files, 12);
+  assert.deepEqual(cited.dependencies, { added: 4, removed: 1 });
+});
+
+test("citedEvidence lists a long file list only in part and says how many were left out", () => {
+  const files = Array.from({ length: CHAT_LIMITS.citedFiles + 5 }, (_, i) => `src/f${i}.ts`);
+  const cited = citedEvidence("`a1b2c3d`", [{ ...evidences[0], sourceFiles: files }], snapshots);
+  assert.equal(cited.items[0].sourceFiles.length, CHAT_LIMITS.citedFiles);
+  assert.equal(cited.items[0].moreFiles, 5);
+});
+
+test("citedEvidence counts a commit once even when several changes share it", () => {
+  const cited = citedEvidence("`a1b2c3d`", [evidences[0], { ...evidences[0], changeTitle: "Second change" }], snapshots);
+  assert.equal(cited.items.length, 1);
+  assert.equal(cited.files, 12);
+  assert.equal(cited.items[0].title, "Extract billing");
+});

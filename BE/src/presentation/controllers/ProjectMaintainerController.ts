@@ -467,7 +467,7 @@ export class ProjectMaintainerController {
       const { token } = req.params;
       const userId = req.user?.userId;
       const result = await this.uc.acceptInvitationUseCase.execute(token, userId);
-      sendSuccess(res, result, { message: "Invitation accepted. Welcome to the project!" });
+      sendSuccess(res, result, { message: "Invitation accepted. Welcome to the workspace!" });
     } catch (err) {
       next(err);
     }

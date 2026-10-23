@@ -18,7 +18,7 @@ export class GetProjectMembersUseCase {
   async execute(projectId: string): Promise<IProjectMember[]> {
     const project = await this.projectRepository.findById(projectId);
     if (!project) {
-      throw new NotFoundError("Project not found.");
+      throw new NotFoundError("Workspace not found.");
     }
 
     const members = await this.memberRepository.findByProjectId(projectId);

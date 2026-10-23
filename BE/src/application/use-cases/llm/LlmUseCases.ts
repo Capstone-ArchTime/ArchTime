@@ -45,7 +45,7 @@ export class UserLlmUseCases {
     const settings = await SystemSettingsModel.findOne().lean();
     let files: number | null = null;
     if (query.projectId) {
-      const projectId = objectId(query.projectId, "project ID");
+      const projectId = objectId(query.projectId, "workspace ID");
       await loadOwnedProject(projectId, userId);
       const filter = query.snapshotId ? { _id: objectId(query.snapshotId, "snapshot ID"), projectId } : { projectId };
       const snapshot = await SnapshotModel.findOne(filter).sort({ date: -1 }).select({ nodes: 1, edges: 1 }).lean();
@@ -93,7 +93,7 @@ export class UserLlmUseCases {
   }
 
   async myRuns(userId: string, query: { projectId?: unknown; page?: unknown; limit?: unknown }) {
-    const projectId = query.projectId ? objectId(query.projectId, "project ID") : undefined;
+    const projectId = query.projectId ? objectId(query.projectId, "workspace ID") : undefined;
     return LlmRunService.listForUser(userId, { projectId, page: Number(query.page) || 1, limit: Number(query.limit) || 20 });
   }
 
@@ -380,7 +380,7 @@ export class AdminLlmUseCases {
 
   async startBenchmark(body: unknown, adminId: string) {
     const input = asBody(body);
-    const projectId = objectId(input.projectId, "project ID");
+    const projectId = objectId(input.projectId, "workspace ID");
     const snapshotId = objectId(input.snapshotId, "snapshot ID");
     const ids = Array.isArray(input.modelIds) ? [...new Set(input.modelIds.map(String))] : [];
     if (ids.length < 2 || ids.length > 8) throw new BadRequestError("Pick between 2 and 8 models to compare.");
@@ -389,7 +389,7 @@ export class AdminLlmUseCases {
     if (models.length !== ids.length) throw new NotFoundError("One of the models was not found");
     const off = models.filter(m => !m.enabled);
     if (off.length) throw new BadRequestError(`Turn on ${off.map(m => m.displayName).join(", ")} first.`);
-    if (!await SnapshotModel.exists({ _id: snapshotId, projectId })) throw new NotFoundError("Snapshot not found in this project");
+    if (!await SnapshotModel.exists({ _id: snapshotId, projectId })) throw new NotFoundError("Snapshot not found in this workspace");
     const benchmarkId = new mongoose.Types.ObjectId().toString();
     const jobId = await MiningService.startBenchmarkJob(projectId, adminId, snapshotId, ids, benchmarkId);
     await AuditService.log({ action: AuditAction.LLM_BENCHMARK_START, userId: adminId, targetType: "project", targetId: projectId, details: { snapshotId, modelIds: ids, benchmarkId, jobId } });

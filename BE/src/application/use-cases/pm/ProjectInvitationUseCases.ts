@@ -32,7 +32,7 @@ export class InviteProjectMemberTokenUseCase {
 
   async execute(input: InviteMemberTokenInput): Promise<IProjectInvitation> {
     const project = await this.projectRepository.findById(input.projectId);
-    if (!project) throw new NotFoundError("Project not found.");
+    if (!project) throw new NotFoundError("Workspace not found.");
 
     const email = input.email?.trim().toLowerCase();
     if (!email) throw new BadRequestError("Recipient email is required.");
@@ -42,7 +42,7 @@ export class InviteProjectMemberTokenUseCase {
     if (existingUser) {
       const isMember = await this.memberRepository.findByProjectAndUserId(input.projectId, existingUser.id);
       if (isMember) {
-        throw new ConflictError("User is already a member of this project.");
+        throw new ConflictError("User is already a member of this workspace.");
       }
     }
 

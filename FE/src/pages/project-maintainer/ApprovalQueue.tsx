@@ -135,7 +135,7 @@ export default function ApprovalQueue() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Approval Queue</h2>
           <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
-            Review architectural changes proposed across the projects you maintain
+            Review architectural changes proposed across the workspaces you maintain
             {pendingCount > 0 && (
               <> &mdash; <span className="text-[#ffb03a] font-semibold">{pendingCount} awaiting your review</span></>
             )}.
@@ -145,12 +145,12 @@ export default function ApprovalQueue() {
 
         <div className="flex flex-wrap items-center gap-4">
           <Select
-            aria-label="Select project"
+            aria-label="Select workspace"
             value={selectedProject}
             onChange={setSelectedProject}
             className="min-w-60"
             options={projects.map(p => ({ value: p.id, label: p.name }))}
-            placeholder="Select a project"
+            placeholder="Select a workspace"
           />
           <Button type="primary" onClick={() => { form.resetFields(); setCreating(true); }} disabled={!selectedProject}>
             New proposal

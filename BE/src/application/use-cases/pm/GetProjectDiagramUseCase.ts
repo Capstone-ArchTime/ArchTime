@@ -17,7 +17,7 @@ export class GetProjectDiagramUseCase {
   async execute(projectId: string): Promise<GetDiagramResult> {
     const project = await this.projectRepository.findById(projectId);
     if (!project) {
-      throw new NotFoundError("Project not found.");
+      throw new NotFoundError("Workspace not found.");
     }
 
     let ws = await this.workspaceRepository.findByProjectId(projectId);

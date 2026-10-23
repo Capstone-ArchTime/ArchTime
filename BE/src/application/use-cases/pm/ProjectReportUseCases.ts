@@ -21,7 +21,7 @@ export class GetProjectReportsUseCase {
 
   async execute(projectId: string): Promise<IProjectReport[]> {
     const project = await this.projectRepository.findById(projectId);
-    if (!project) throw new NotFoundError("Project not found.");
+    if (!project) throw new NotFoundError("Workspace not found.");
 
     const docs = await ProjectReportModel.find({ projectId }).sort({ createdAt: -1 });
     return docs.map((d) => d.toJSON() as IProjectReport);
@@ -36,7 +36,7 @@ export class GenerateProjectReportUseCase {
 
   async execute(input: GenerateReportInput): Promise<IProjectReport> {
     const project = await this.projectRepository.findById(input.projectId);
-    if (!project) throw new NotFoundError("Project not found.");
+    if (!project) throw new NotFoundError("Workspace not found.");
 
     const type = input.type ?? ReportType.ARCHITECTURE_SUMMARY;
     const ws = await this.workspaceRepository.findByProjectId(input.projectId);

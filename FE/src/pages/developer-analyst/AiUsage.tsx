@@ -40,7 +40,7 @@ export default function AiUsage() {
 
   const columns: ColumnsType<LlmRun> = [
     { title: 'When', dataIndex: 'createdAt', render: (v: string) => new Date(v).toLocaleString() },
-    { title: 'Project', render: (_, r) => <Link to={`/architecture#project=${encodeURIComponent(r.project.id)}${r.snapshotId ? `&snapshot=${encodeURIComponent(r.snapshotId)}` : ''}`}>{r.project.name ?? r.project.id}</Link> },
+    { title: 'Workspace', render: (_, r) => <Link to={`/architecture#project=${encodeURIComponent(r.project.id)}${r.snapshotId ? `&snapshot=${encodeURIComponent(r.snapshotId)}` : ''}`}>{r.project.name ?? r.project.id}</Link> },
     { title: 'Model', render: (_, r) => <span><span className="font-medium">{r.model}</span><span className="block text-[11px] text-[#94a3b8]">{r.provider}{r.mode === 'name-only' ? ' · names only' : ''}</span></span> },
     { title: 'Input tokens', align: 'right', render: (_, r) => <span className="font-mono">{formatTokens(r.usage.inputTokens)}</span> },
     { title: 'Output tokens', align: 'right', render: (_, r) => <span className="font-mono">{formatTokens(r.usage.outputTokens)}</span> },
@@ -54,7 +54,7 @@ export default function AiUsage() {
   const t = result?.totals;
   return <FeaturePage title="AI Usage" description="Each time you asked an AI model to draw an architecture: the model used, tokens sent and received, time taken and cost." demo={false}
     actions={<div className="flex gap-2">
-      <Select allowClear placeholder="All projects" aria-label="Filter by project" className="min-w-56" value={projectId} onChange={(v?: string) => { setProjectId(v); setPage(1); }} options={projects.map(p => ({ value: p.id, label: p.name }))} />
+      <Select allowClear placeholder="All workspaces" aria-label="Filter by workspace" className="min-w-56" value={projectId} onChange={(v?: string) => { setProjectId(v); setPage(1); }} options={projects.map(p => ({ value: p.id, label: p.name }))} />
       <Button loading={loading} onClick={() => setRevision(v => v + 1)}>Refresh</Button>
     </div>}>
     {error && <Alert type="error" showIcon title={error} action={<Button onClick={() => setRevision(v => v + 1)}>Retry</Button>} />}

@@ -12,7 +12,7 @@ export class GetProjectWorkspaceUseCase {
   async execute(projectId: string): Promise<IWorkspace> {
     const project = await this.projectRepository.findById(projectId);
     if (!project) {
-      throw new NotFoundError("Project not found.");
+      throw new NotFoundError("Workspace not found.");
     }
 
     const saved = await this.workspaceRepository.findByProjectId(projectId);

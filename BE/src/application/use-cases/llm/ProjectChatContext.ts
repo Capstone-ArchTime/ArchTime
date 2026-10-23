@@ -7,6 +7,7 @@ export const CHAT_LIMITS = {
   snapshots: 15,
   evidences: 25,
   nodes: 60,
+  citedFiles: 8,
 } as const;
 
 export interface ChatTurn { role: "user" | "assistant"; content: string }
@@ -27,7 +28,24 @@ export interface ChatContextInput {
   evidences: ChatEvidence[]; evidenceTotal: number;
   structure: ChatStructure | null;
 }
-export interface ChatCitations { commits: string[]; files: number; dependencies: { added: number; removed: number } }
+/**
+ * One cited commit, so the browser can show what is behind the numbers. `evidence` items are the ones counted in the
+ * totals; `snapshot` items are commits that have a snapshot but no recorded change evidence (their numbers are not counted).
+ */
+export interface ChatCitationItem {
+  commit: string;
+  kind: "evidence" | "snapshot";
+  title: string;
+  type: string;
+  date: string;
+  author?: string;
+  summary?: string;
+  files: number;
+  dependencies: { added: number; removed: number };
+  sourceFiles: string[];
+  moreFiles: number;
+}
+export interface ChatCitations { commits: string[]; files: number; dependencies: { added: number; removed: number }; items: ChatCitationItem[] }
 
 /** Validates what the browser sent and keeps the most recent turns, starting and ending with the user. */
 export function parseChatMessages(input: unknown): ChatTurn[] {
@@ -61,6 +79,10 @@ const clip = (text: string, max: number) => {
 const day = (value: Date | string) => {
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? "unknown date" : d.toISOString().slice(0, 10);
+};
+const isoDate = (value: Date | string) => {
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? "" : d.toISOString();
 };
 export const shortHash = (hash: string) => String(hash ?? "").trim().toLowerCase().slice(0, 7);
 
@@ -130,16 +152,31 @@ export function citedEvidence(answer: string, evidences: ChatEvidence[], snapsho
     return false;
   };
   const commits = new Set<string>();
+  const items = new Map<string, ChatCitationItem>();
   let files = 0, added = 0, removed = 0;
-  for (const s of snapshots) if (matches(s.fullHash || s.hash) || matches(s.hash)) commits.add(shortHash(s.hash));
-  const counted = new Set<string>();
+  const citedSnapshots = snapshots.filter(s => matches(s.fullHash || s.hash) || matches(s.hash));
+  for (const s of citedSnapshots) commits.add(shortHash(s.hash));
   for (const e of evidences) {
     if (!matches(e.commit)) continue;
-    commits.add(shortHash(e.commit));
-    if (counted.has(shortHash(e.commit))) continue;
-    counted.add(shortHash(e.commit));
+    const key = shortHash(e.commit);
+    commits.add(key);
+    if (items.has(key)) continue;
     files += e.files; added += e.depsAdded; removed += e.depsRemoved;
+    const sourceFiles = e.sourceFiles ?? [];
+    items.set(key, {
+      commit: key, kind: "evidence", title: clip(e.changeTitle, 120), type: clip(e.type, 40), date: isoDate(e.date), summary: clip(e.summary, 300),
+      files: e.files, dependencies: { added: e.depsAdded, removed: e.depsRemoved },
+      sourceFiles: sourceFiles.slice(0, CHAT_LIMITS.citedFiles).map(f => clip(f, 160)), moreFiles: Math.max(0, sourceFiles.length - CHAT_LIMITS.citedFiles),
+    });
+  }
+  for (const s of citedSnapshots) {
+    const key = shortHash(s.hash);
+    if (items.has(key)) continue;
+    items.set(key, {
+      commit: key, kind: "snapshot", title: clip(s.title, 120), type: "SNAPSHOT", date: isoDate(s.date), author: clip(s.author, 60),
+      files: s.files, dependencies: { added: s.depAdded, removed: s.depRemoved }, sourceFiles: [], moreFiles: 0,
+    });
   }
   if (commits.size === 0) return null;
-  return { commits: [...commits], files, dependencies: { added, removed } };
+  return { commits: [...commits], files, dependencies: { added, removed }, items: [...commits].flatMap(c => items.get(c) ?? []) };
 }

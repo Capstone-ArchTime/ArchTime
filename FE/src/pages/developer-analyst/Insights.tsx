@@ -1,46 +1,43 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   Sparkles,
-  GitCommit,
-  CheckCircle2,
-  FileCode,
-  Network,
   Bot,
   Loader2,
   Box,
   Send,
   User,
-  RefreshCw,
+  Plus,
   MessageSquare,
-  AlertTriangle
+  AlertTriangle,
+  History,
+  Trash2,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { apiRequest } from '@/api/client';
-
-interface ChatEvidence {
-  commits: string[];
-  files: number;
-  dependencies: { added: number; removed: number };
-}
-
-interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-  evidence?: ChatEvidence | null;
-  isError?: boolean;
-}
+import AssistantMessage from '@/components/chat/AssistantMessage';
+import type { ChatEvidence } from '@/features/chat-answer';
+import {
+  describeWhen, fromStored, lastModel,
+  type ChatMessage, type ChatModelNote, type ConversationSummary,
+} from '@/features/chat-history';
 
 interface ChatResponse {
   data: {
     answer: string;
     evidence: ChatEvidence | null;
-    model: { name: string; host: string; external: boolean };
+    model: ChatModelNote;
     usage: { inputTokens: number; outputTokens: number } | null;
+    /** Where the exchange was saved; null when saving failed. */
+    conversation: { id: string; title: string } | null;
   };
+}
+
+async function fetchConversations(projectId: string, signal: AbortSignal): Promise<ConversationSummary[]> {
+  const res = await apiRequest<{ data?: { conversations?: ConversationSummary[] } }>(`/projects/${projectId}/chat/conversations`, { signal });
+  return res.data?.conversations ?? [];
 }
 
 interface ProjectOption { id: string; name: string }
@@ -48,7 +45,7 @@ interface ProjectOption { id: string; name: string }
 const CHAT_TIMEOUT_MS = 120_000;
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
 
-const WELCOME = 'Hello! I\'m ArchTime AI, your evidence-grounded architecture assistant. Pick a project, then ask about its architectural changes, coupling patterns, or why specific decisions were made. I only answer from the snapshots and change evidence stored for that project, and I label each claim FACT, INFERENCE or UNKNOWN.';
+const WELCOME = 'Hello! I\'m ArchTime AI, your evidence-grounded architecture assistant. Pick a workspace, then ask about its architectural changes, coupling patterns, or why specific decisions were made. I only answer from the snapshots and change evidence stored for that workspace, and I label each claim FACT, INFERENCE or UNKNOWN.';
 
 const SUGGESTED_QUESTIONS = [
   'What were the most important architectural changes?',
@@ -56,28 +53,6 @@ const SUGGESTED_QUESTIONS = [
   'How did the dependencies change over time?',
   'Which modules look the most coupled?'
 ];
-
-const LABEL_STYLES: Record<string, string> = {
-  FACT: 'bg-[#22c55e]/15 text-[#22c55e] border-[#22c55e]/30',
-  INFERENCE: 'bg-[#ffb03a]/15 text-[#ffb03a] border-[#ffb03a]/30',
-  UNKNOWN: 'bg-[#94a3b8]/15 text-[#94a3b8] border-[#94a3b8]/30'
-};
-
-/** Shows the model's [FACT] / [INFERENCE] / [UNKNOWN] labels as badges and `code` spans as code; everything else stays plain text. */
-function renderAnswer(text: string) {
-  return text.split(/(\[(?:FACT|INFERENCE|UNKNOWN)\]|`[^`\n]+`)/g).map((part, i) => {
-    if (part.length > 2 && part.startsWith('`') && part.endsWith('`')) {
-      return <code key={i} className="px-1 bg-[#242527]/60 text-[#3b82f6] text-[12px]" style={mono}>{part.slice(1, -1)}</code>;
-    }
-    const label = /^\[(FACT|INFERENCE|UNKNOWN)\]$/.exec(part)?.[1];
-    if (!label) return <React.Fragment key={i}>{part}</React.Fragment>;
-    return (
-      <span key={i} className={`inline-block px-1.5 mr-1 border text-[10px] font-semibold tracking-wider align-middle ${LABEL_STYLES[label]}`} style={mono}>
-        {label}
-      </span>
-    );
-  });
-}
 
 const Insights: React.FC = () => {
   const [projects, setProjects] = useState<ProjectOption[]>([]);
@@ -88,10 +63,17 @@ const Insights: React.FC = () => {
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [modelNote, setModelNote] = useState<{ name: string; host: string; external: boolean } | null>(null);
+  const [modelNote, setModelNote] = useState<ChatModelNote | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyStatus, setHistoryStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [historyNotice, setHistoryNotice] = useState('');
+  const [opening, setOpening] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const activeRequest = useRef<AbortController | null>(null);
+  const historyRequest = useRef<AbortController | null>(null);
   const counter = useRef(0);
 
   const nextId = (prefix: string) => `${prefix}-${++counter.current}`;
@@ -119,21 +101,82 @@ const Insights: React.FC = () => {
 
   useEffect(() => () => { activeRequest.current?.abort(); }, []);
 
+  const loadHistory = useCallback((projectId: string) => {
+    historyRequest.current?.abort();
+    const controller = new AbortController();
+    historyRequest.current = controller;
+    fetchConversations(projectId, controller.signal)
+      .then(list => {
+        if (controller.signal.aborted) return;
+        setConversations(list);
+        setHistoryStatus('ready');
+      })
+      .catch(() => { if (!controller.signal.aborted) setHistoryStatus('error'); });
+  }, []);
+
+  useEffect(() => {
+    if (selectedProjectId) loadHistory(selectedProjectId);
+    return () => { historyRequest.current?.abort(); };
+  }, [selectedProjectId, loadHistory]);
+
   const resetConversation = (text: string) => {
     activeRequest.current?.abort();
     setIsTyping(false);
+    setOpening(false);
     setModelNote(null);
+    setConversationId(null);
+    setHistoryNotice('');
     setMessages([{ id: 'welcome', role: 'assistant', content: text, timestamp: new Date() }]);
   };
 
   const handleProjectChange = (projectId: string) => {
     setSelectedProjectId(projectId);
-    resetConversation('Switched project. Ask me anything about its architecture.');
+    setConversations([]);
+    setHistoryStatus('loading');
+    resetConversation('Switched workspace. Ask me anything about its architecture.');
+  };
+
+  /** Puts a saved chat back on screen; asking again continues it. */
+  const openConversation = async (summary: ConversationSummary) => {
+    if (isTyping || opening || !selectedProjectId) return;
+    activeRequest.current?.abort();
+    const controller = new AbortController();
+    activeRequest.current = controller;
+    setOpening(true);
+    setHistoryNotice('');
+    try {
+      const res = await apiRequest<{ data: { conversation: { messages: unknown[] } } }>(
+        `/projects/${selectedProjectId}/chat/conversations/${summary.id}`, { signal: controller.signal });
+      if (controller.signal.aborted) return;
+      const stored = res.data.conversation.messages;
+      setMessages(fromStored(stored, nextId));
+      setModelNote(lastModel(stored));
+      setConversationId(summary.id);
+    } catch (error) {
+      if (!controller.signal.aborted) setHistoryNotice(error instanceof Error ? error.message : 'Could not open this chat.');
+    } finally {
+      if (activeRequest.current === controller) {
+        activeRequest.current = null;
+        setOpening(false);
+      }
+    }
+  };
+
+  const removeConversation = async (summary: ConversationSummary) => {
+    if (!selectedProjectId || !window.confirm(`Delete the saved chat "${summary.title}"? This cannot be undone.`)) return;
+    setHistoryNotice('');
+    try {
+      await apiRequest(`/projects/${selectedProjectId}/chat/conversations/${summary.id}`, { method: 'DELETE' });
+      setConversations(prev => prev.filter(c => c.id !== summary.id));
+      if (summary.id === conversationId) resetConversation('Chat deleted. How can I help you understand your architecture?');
+    } catch (error) {
+      setHistoryNotice(error instanceof Error ? error.message : 'Could not delete this chat.');
+    }
   };
 
   const handleSend = async (query: string) => {
     const text = query.trim();
-    if (!text || isTyping || !selectedProjectId) return;
+    if (!text || isTyping || opening || !selectedProjectId) return;
 
     const userMessage: ChatMessage = { id: nextId('user'), role: 'user', content: text, timestamp: new Date() };
     const history = [...messages, userMessage]
@@ -151,13 +194,25 @@ const Insights: React.FC = () => {
       const res = await apiRequest<ChatResponse>(`/projects/${selectedProjectId}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: history }),
+        body: JSON.stringify({ messages: history, ...(conversationId ? { conversationId } : {}) }),
         signal: controller.signal
       }, CHAT_TIMEOUT_MS);
       if (controller.signal.aborted) return;
       setModelNote(res.data.model);
+      const saved = res.data.conversation;
+      if (saved) {
+        setConversationId(saved.id);
+        const now = new Date().toISOString();
+        setConversations(prev => {
+          const existing = prev.find(c => c.id === saved.id);
+          return [
+            { id: saved.id, title: saved.title, messageCount: (existing?.messageCount ?? 0) + 2, createdAt: existing?.createdAt ?? now, updatedAt: now },
+            ...prev.filter(c => c.id !== saved.id)
+          ];
+        });
+      }
       setMessages(prev => [...prev, {
-        id: nextId('assistant'), role: 'assistant', content: res.data.answer, timestamp: new Date(), evidence: res.data.evidence
+        id: nextId('assistant'), role: 'assistant', content: res.data.answer, timestamp: new Date(), evidence: res.data.evidence, unsaved: !saved
       }]);
     } catch (error) {
       if (controller.signal.aborted) return;
@@ -203,7 +258,7 @@ const Insights: React.FC = () => {
             </div>
             <div className="flex items-end gap-3">
               <div className="flex flex-col gap-1">
-                <label htmlFor="insights-project" className="text-[10px] uppercase tracking-wider text-[#94a3b8]" style={mono}>Project</label>
+                <label htmlFor="insights-project" className="text-[10px] uppercase tracking-wider text-[#94a3b8]" style={mono}>Workspace</label>
                 <select
                   id="insights-project"
                   value={selectedProjectId}
@@ -211,24 +266,117 @@ const Insights: React.FC = () => {
                   disabled={projectsLoading || noProjects}
                   className="h-9 min-w-[200px] bg-[#080b0e] border border-[#242527] focus:border-[#3b82f6]/50 px-3 text-sm text-[#f4f4f6] focus:outline-none disabled:opacity-50"
                 >
-                  {projectsLoading && <option value="">Loading projects...</option>}
-                  {noProjects && <option value="">No projects</option>}
+                  {projectsLoading && <option value="">Loading workspaces...</option>}
+                  {noProjects && <option value="">No workspaces</option>}
                   {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </div>
               <button
-                onClick={() => resetConversation('Chat cleared. How can I help you understand your architecture?')}
+                type="button"
+                onClick={() => setHistoryOpen(open => !open)}
+                aria-expanded={historyOpen}
+                aria-controls="chat-history"
+                disabled={!canChat}
+                className={`flex items-center gap-2 h-9 px-3 text-xs border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${historyOpen ? 'text-[#3b82f6] border-[#3b82f6]/50 bg-[#3b82f6]/10' : 'text-[#94a3b8] hover:text-[#f4f4f6] border-[#242527] hover:border-[#3b82f6]/30'}`}
+              >
+                <History size={14} />
+                History{conversations.length > 0 ? ` (${conversations.length})` : ''}
+              </button>
+              <button
+                type="button"
+                onClick={() => resetConversation('New chat started. How can I help you understand your architecture?')}
                 className="flex items-center gap-2 h-9 px-3 text-xs text-[#94a3b8] hover:text-[#f4f4f6] border border-[#242527] hover:border-[#3b82f6]/30 transition-colors"
               >
-                <RefreshCw size={14} />
-                Clear Chat
+                <Plus size={14} />
+                New chat
               </button>
             </div>
           </div>
         </div>
 
         {/* CHAT CONTAINER */}
-        <div className="flex-1 flex flex-col bg-[#080b0e] border border-[#242527] overflow-hidden min-h-0">
+        <div className="relative flex-1 flex bg-[#080b0e] border border-[#242527] overflow-hidden min-h-0">
+
+          {/* Saved chats */}
+          {historyOpen && (
+            <aside
+              id="chat-history"
+              aria-label="Saved chats"
+              className="absolute inset-y-0 left-0 z-20 w-72 max-w-full md:static md:z-auto shrink-0 flex flex-col min-h-0 bg-[#0b0f13] border-r border-[#242527]"
+            >
+              <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-[#242527]">
+                <h3 className="text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-widest" style={mono}>Saved chats</h3>
+                <button
+                  type="button"
+                  onClick={() => setHistoryOpen(false)}
+                  aria-label="Close saved chats"
+                  className="w-6 h-6 flex items-center justify-center text-[#94a3b8] hover:text-[#f4f4f6] hover:bg-[#242527] focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              {historyNotice && <p role="alert" className="shrink-0 px-4 py-2 text-xs text-red-300 bg-red-500/10 border-b border-red-500/30">{historyNotice}</p>}
+
+              <div className="flex-1 overflow-y-auto min-h-0">
+                {historyStatus === 'loading' && (
+                  <p className="px-4 py-4 text-xs text-[#94a3b8] flex items-center gap-2"><Loader2 size={12} className="animate-spin" /> Loading saved chats...</p>
+                )}
+                {historyStatus === 'error' && (
+                  <div className="px-4 py-4 text-xs text-[#94a3b8] space-y-2">
+                    <p>Saved chats could not be loaded.</p>
+                    <button
+                      type="button"
+                      onClick={() => { setHistoryStatus('loading'); loadHistory(selectedProjectId); }}
+                      className="px-3 py-1.5 border border-[#242527] hover:border-[#3b82f6]/50 text-[#3b82f6]"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                )}
+                {historyStatus === 'ready' && conversations.length === 0 && (
+                  <p className="px-4 py-4 text-xs text-[#94a3b8] leading-relaxed">No saved chats for this workspace yet. Ask a question and it will appear here.</p>
+                )}
+                {historyStatus === 'ready' && conversations.length > 0 && (
+                  <ul className="divide-y divide-[#242527]">
+                    {conversations.map(conversation => {
+                      const current = conversation.id === conversationId;
+                      return (
+                        <li key={conversation.id} className={`flex items-stretch ${current ? 'bg-[#3b82f6]/10' : ''}`}>
+                          <button
+                            type="button"
+                            onClick={() => void openConversation(conversation)}
+                            disabled={isTyping || opening}
+                            aria-current={current ? 'true' : undefined}
+                            className="flex-1 min-w-0 text-left px-4 py-3 hover:bg-[#242527]/40 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[#3b82f6]"
+                          >
+                            <span className="block text-xs text-[#f4f4f6] line-clamp-2 break-words">{conversation.title}</span>
+                            <span className="block mt-1 text-[10px] text-[#94a3b8] font-mono" style={mono}>
+                              {describeWhen(conversation.updatedAt)} · {conversation.messageCount} messages
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void removeConversation(conversation)}
+                            aria-label={`Delete saved chat: ${conversation.title}`}
+                            className="shrink-0 w-10 flex items-center justify-center text-[#5f636b] hover:text-red-400 hover:bg-[#242527]/40 focus:outline-none focus-visible:text-red-400 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-red-400"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+
+              <p className="shrink-0 px-4 py-3 border-t border-[#242527] text-[10px] text-[#94a3b8] leading-relaxed">
+                Chats are saved to your account for this workspace. Only you can see them.
+              </p>
+            </aside>
+          )}
+
+          <div className="flex-1 flex flex-col min-w-0 min-h-0">
 
           {/* Chat Header */}
           <div className="shrink-0 p-4 border-b border-[#242527] bg-[#11161b] flex items-center gap-3">
@@ -241,7 +389,7 @@ const Insights: React.FC = () => {
             </div>
             <div className="ml-auto flex items-center gap-2">
               <span className={`w-2 h-2 rounded-full ${canChat ? 'bg-[#22c55e] animate-pulse' : 'bg-[#5f636b]'}`} />
-              <span className="text-xs text-[#94a3b8]">{canChat ? 'Ready' : 'No project selected'}</span>
+              <span className="text-xs text-[#94a3b8]">{canChat ? 'Ready' : 'No workspace selected'}</span>
             </div>
           </div>
 
@@ -249,7 +397,7 @@ const Insights: React.FC = () => {
           <div className="flex-1 overflow-y-auto p-6 space-y-6 min-h-0" aria-live="polite">
             {noProjects && (
               <div className="p-4 border border-[#ffb03a]/30 bg-[#ffb03a]/10 text-sm text-[#ffb03a]">
-                You have no projects yet. <Link to="/projects" className="underline">Add a project</Link> and let it finish mining before asking questions.
+                You have no workspaces yet. <Link to="/projects" className="underline">Add a workspace</Link> and let it finish mining before asking questions.
               </div>
             )}
 
@@ -280,39 +428,20 @@ const Insights: React.FC = () => {
                             : 'bg-[#11161b] border border-[#242527]'
                       }`}
                     >
-                      <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${message.isError ? 'text-red-300' : 'text-[#f4f4f6]'}`}>
-                        {message.role === 'assistant' && !message.isError ? renderAnswer(message.content) : message.content}
-                      </p>
-
-                      {message.evidence && (
-                        <div className="mt-4 pt-4 border-t border-[#242527]">
-                          <div className="flex items-center gap-2 mb-3">
-                            <CheckCircle2 size={12} className="text-[#22c55e]" />
-                            <span className="text-[10px] font-mono font-semibold text-[#22c55e] uppercase tracking-wider" style={mono}>Evidence cited</span>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {message.evidence.commits.map(commit => (
-                              <span key={commit} className="px-2 py-1 bg-[#242527]/50 border border-[#242527] text-[10px] font-mono text-[#3b82f6] flex items-center gap-1" style={mono}>
-                                <GitCommit size={10} /> {commit}
-                              </span>
-                            ))}
-                            {message.evidence.files > 0 && (
-                              <span className="px-2 py-1 bg-[#242527]/50 border border-[#242527] text-[10px] font-mono text-[#94a3b8] flex items-center gap-1" style={mono}>
-                                <FileCode size={10} /> {message.evidence.files} files
-                              </span>
-                            )}
-                            {(message.evidence.dependencies.added > 0 || message.evidence.dependencies.removed > 0) && (
-                              <span className="px-2 py-1 bg-[#242527]/50 border border-[#242527] text-[10px] font-mono text-[#94a3b8] flex items-center gap-1" style={mono}>
-                                <Network size={10} /> +{message.evidence.dependencies.added}/-{message.evidence.dependencies.removed} deps
-                              </span>
-                            )}
-                          </div>
-                        </div>
+                      {message.role === 'assistant' && !message.isError ? (
+                        <AssistantMessage content={message.content} evidence={message.evidence} projectId={selectedProjectId} />
+                      ) : (
+                        <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${message.isError ? 'text-red-300' : 'text-[#f4f4f6]'}`}>
+                          {message.content}
+                        </p>
                       )}
                     </div>
                     <p className="text-[10px] text-[#5f636b] mt-1 font-mono" style={mono}>
                       {message.timestamp.toLocaleTimeString()}
                     </p>
+                    {message.unsaved && (
+                      <p role="status" className="text-[10px] text-[#ffb03a] mt-1">This answer could not be saved to your history.</p>
+                    )}
                   </div>
 
                   {message.role === 'user' && (
@@ -353,7 +482,7 @@ const Insights: React.FC = () => {
                   <button
                     key={question}
                     onClick={() => void handleSend(question)}
-                    disabled={isTyping}
+                    disabled={isTyping || opening}
                     className="px-3 py-2 bg-[#11161b] border border-[#242527] hover:border-[#3b82f6]/50 text-xs text-[#94a3b8] hover:text-[#3b82f6] transition-colors disabled:opacity-50"
                   >
                     {question}
@@ -374,16 +503,16 @@ const Insights: React.FC = () => {
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
                   maxLength={4000}
-                  aria-label="Ask about this project's architecture"
-                  placeholder={canChat ? 'Ask about architectural changes, patterns, or decisions...' : 'Select a project to start'}
+                  aria-label="Ask about this workspace's architecture"
+                  placeholder={canChat ? 'Ask about architectural changes, patterns, or decisions...' : 'Select a workspace to start'}
                   className="w-full h-12 bg-[#080b0e] border border-[#242527] focus:border-[#3b82f6]/50 px-4 pr-12 text-sm text-[#f4f4f6] placeholder-[#5f636b] focus:outline-none transition-colors font-mono"
                   style={mono}
-                  disabled={isTyping || !canChat}
+                  disabled={isTyping || opening || !canChat}
                 />
               </div>
               <button
                 onClick={() => void handleSend(inputValue)}
-                disabled={!inputValue.trim() || isTyping || !canChat}
+                disabled={!inputValue.trim() || isTyping || opening || !canChat}
                 className="h-12 px-6 bg-[#3b82f6] hover:bg-[#3b82f6]/80 disabled:bg-[#242527] disabled:cursor-not-allowed text-[#080b0e] disabled:text-[#5f636b] font-semibold text-sm transition-colors flex items-center gap-2"
               >
                 <Send size={16} />
@@ -392,11 +521,12 @@ const Insights: React.FC = () => {
             </div>
             <p className="text-[10px] text-[#5f636b] mt-2 font-mono" style={mono}>
               <Box size={10} className="inline mr-1" />
-              Answers use this project&apos;s stored snapshots and change evidence.
+              Answers use this workspace&apos;s stored snapshots and change evidence.
               {modelNote
-                ? ` Model: ${modelNote.name}${modelNote.external ? ` — project data is sent to ${modelNote.host}.` : ` (hosted on ${modelNote.host}).`}`
-                : ' Project data is sent to the configured AI provider.'}
+                ? ` Model: ${modelNote.name}${modelNote.external ? ` — workspace data is sent to ${modelNote.host}.` : ` (hosted on ${modelNote.host}).`}`
+                : ' Workspace data is sent to the configured AI provider.'}
             </p>
+          </div>
           </div>
         </div>
       </div>

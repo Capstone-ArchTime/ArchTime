@@ -32,7 +32,7 @@ export class SaveProjectWorkspaceUseCase {
       req;
 
     if (!projectId) {
-      throw new BadRequestError("Project ID is required.", "VALIDATION_ERROR");
+      throw new BadRequestError("Workspace ID is required.", "VALIDATION_ERROR");
     }
 
     if (!diagram || !Array.isArray(diagram.components) || !Array.isArray(diagram.dependencies)) {
@@ -44,7 +44,7 @@ export class SaveProjectWorkspaceUseCase {
 
     const project = await this.projectRepository.findById(projectId);
     if (!project) {
-      throw new NotFoundError("Project not found.");
+      throw new NotFoundError("Workspace not found.");
     }
 
     try {

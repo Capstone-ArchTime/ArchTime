@@ -37,7 +37,7 @@ export default function ArchitectureMap() {
 
   useEffect(() => {
     const controller = new AbortController();
-    getProjects(controller.signal).then(setProjects).catch(cause => { if (!controller.signal.aborted) { setProjects([]); setError(cause instanceof Error ? cause.message : 'Could not load your projects.'); } });
+    getProjects(controller.signal).then(setProjects).catch(cause => { if (!controller.signal.aborted) { setProjects([]); setError(cause instanceof Error ? cause.message : 'Could not load your workspaces.'); } });
     return () => controller.abort();
   }, []);
 
@@ -54,17 +54,17 @@ export default function ArchitectureMap() {
             <h2 className="mb-1 text-3xl font-bold tracking-tight">Architecture Map</h2>
             <p className="max-w-2xl text-sm text-[#94a3b8]">Open a repository to explore its architecture in a full-screen workspace: layers on the left, the diagram in the middle, details on the right.</p>
           </div>
-          <Input allowClear prefix={<Search size={14} className="text-[#64748b]" />} placeholder="Search projects" aria-label="Search projects" className="!w-64" value={query} onChange={e => setQuery(e.target.value)} />
+          <Input allowClear prefix={<Search size={14} className="text-[#64748b]" />} placeholder="Search workspaces" aria-label="Search workspaces" className="!w-64" value={query} onChange={e => setQuery(e.target.value)} />
         </header>
         {error && <Alert type="error" showIcon title={error} />}
 
-        <section aria-label="Your projects" className="space-y-3">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-[#94a3b8]">Your projects</h3>
+        <section aria-label="Your workspaces" className="space-y-3">
+          <h3 className="text-xs font-medium uppercase tracking-wider text-[#94a3b8]">Your workspaces</h3>
           {projects === null ? <div className="p-10 text-center"><Spin /></div>
             : shown.length ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {shown.map(p => <Card key={p.id} to={`/workspace/${encodeURIComponent(p.id)}`} title={p.name} subtitle="Open architecture" icon={<FolderGit2 size={40} />} />)}
             </div>
-            : <Empty description={q ? ('No project matches "' + q + '".') : <span>No projects yet. <Link to="/projects">Add a repository</Link> to see its architecture.</span>} />}
+            : <Empty description={q ? ('No workspace matches "' + q + '".') : <span>No workspaces yet. <Link to="/projects">Add a repository</Link> to see its architecture.</span>} />}
         </section>
 
         <section aria-label="Samples" className="space-y-3">

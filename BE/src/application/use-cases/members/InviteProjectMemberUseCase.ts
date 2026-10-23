@@ -48,7 +48,7 @@ export class InviteProjectMemberUseCase {
 
     const project = await this.projectRepository.findById(req.projectId);
     if (!project) {
-      throw new NotFoundError("Project not found.");
+      throw new NotFoundError("Workspace not found.");
     }
 
     const existingMember = await this.memberRepository.findByProjectAndEmail(
@@ -57,7 +57,7 @@ export class InviteProjectMemberUseCase {
     );
     if (existingMember) {
       throw new ConflictError(
-        "A member with this email already exists in this project.",
+        "A member with this email already exists in this workspace.",
         "ALREADY_EXISTS",
       );
     }

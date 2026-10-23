@@ -121,12 +121,12 @@ export default function Reports() {
 
         <div className="flex flex-wrap gap-3 items-center">
           <Select
-            aria-label="Select project"
+            aria-label="Select workspace"
             value={selectedProject}
             onChange={setSelectedProject}
             className="min-w-60"
             options={projects.map(p => ({ value: p.id, label: p.name }))}
-            placeholder="Select a project"
+            placeholder="Select a workspace"
           />
           <Button loading={loading} onClick={refresh}>Refresh</Button>
         </div>
@@ -138,11 +138,11 @@ export default function Reports() {
 
           <div className="bg-[#161d24] border border-[#242527] p-6 space-y-5">
             <div>
-              <label className="text-[10px] text-[#94a3b8] uppercase tracking-widest block mb-2" style={{ fontFamily: fontFamily.mono }}>Project</label>
+              <label className="text-[10px] text-[#94a3b8] uppercase tracking-widest block mb-2" style={{ fontFamily: fontFamily.mono }}>Workspace</label>
               <div className="relative">
                 <FolderKanban size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
                 <div className="w-full h-10 bg-[#11161b] border border-[#242527] pl-9 pr-9 text-sm text-[#f4f4f6] flex items-center">
-                  {currentProject?.name ?? 'Select a project'}
+                  {currentProject?.name ?? 'Select a workspace'}
                 </div>
               </div>
             </div>
@@ -209,7 +209,7 @@ export default function Reports() {
                   <thead className="bg-[#161d24] border-b border-[#242527] text-[10px] text-[#94a3b8] uppercase tracking-wider" style={{ fontFamily: fontFamily.mono }}>
                     <tr>
                       <th className="px-5 py-3 font-medium">Report</th>
-                      <th className="px-5 py-3 font-medium">Project</th>
+                      <th className="px-5 py-3 font-medium">Workspace</th>
                       <th className="px-5 py-3 font-medium">Range</th>
                       <th className="px-5 py-3 font-medium">Status</th>
                       <th className="px-5 py-3 font-medium">Created</th>

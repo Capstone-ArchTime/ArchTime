@@ -296,7 +296,7 @@ export function useWorkspace(project: string) {
     try {
       if (localStorage.getItem(key) !== state.snapshot) {
         message.error(
-          'This project changed in another tab. Reload before saving to avoid overwriting newer changes.'
+          'This workspace changed in another tab. Reload before saving to avoid overwriting newer changes.'
         );
         return false;
       }

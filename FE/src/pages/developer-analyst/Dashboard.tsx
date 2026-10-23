@@ -112,11 +112,11 @@ const Dashboard: React.FC = () => {
               <FolderKanban size={48} className="text-[#f4f4f6]" />
             </div>
             <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-4"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>My Projects</h4>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>My Workspaces</h4>
             <div className="text-4xl font-bold text-[#f4f4f6] mb-1">
               {loading ? <Loader2 size={32} className="animate-spin" /> : String(stats?.projects ?? 0).padStart(2, '0')}
             </div>
-            <p className="text-xs text-[#94a3b8] mb-4">Active projects</p>
+            <p className="text-xs text-[#94a3b8] mb-4">Active workspaces</p>
             <div className="flex items-center gap-2 text-[10px] font-mono text-[#22c55e]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
               <div className="w-1.5 h-1.5 rounded-full bg-[#22c55e]"></div>
@@ -618,7 +618,7 @@ const Dashboard: React.FC = () => {
             <section>
                 <div className="mb-4 flex items-end justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase">Recent Projects</h3>
+                  <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase">Recent Workspaces</h3>
                 </div>
                 <Link to="/developer-analyst/projects" className="text-xs text-[#3b82f6] hover:underline">View all</Link>
               </div>
@@ -629,7 +629,7 @@ const Dashboard: React.FC = () => {
                   </div>
                 ) : recentProjects.length === 0 ? (
                   <div className="bg-[#11161b] border border-[#242527] p-6 text-center">
-                    <p className="text-sm text-[#94a3b8]">No projects yet. Create your first project to get started.</p>
+                    <p className="text-sm text-[#94a3b8]">No workspaces yet. Create your first workspace to get started.</p>
                   </div>
                 ) : (
                   recentProjects.map(project => (

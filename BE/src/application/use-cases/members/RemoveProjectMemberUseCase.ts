@@ -22,13 +22,13 @@ export class RemoveProjectMemberUseCase {
 
     const project = await this.projectRepository.findById(projectId);
     if (!project) {
-      throw new NotFoundError("Project not found.");
+      throw new NotFoundError("Workspace not found.");
     }
 
     // Owner cannot be removed as a member
     if (memberId.startsWith("owner-") || memberId === project.userId) {
       throw new ForbiddenError(
-        "Forbidden: the project owner cannot be removed.",
+        "Forbidden: the workspace owner cannot be removed.",
       );
     }
 
@@ -37,7 +37,7 @@ export class RemoveProjectMemberUseCase {
       memberId,
     );
     if (!removed) {
-      throw new NotFoundError("Project member not found.");
+      throw new NotFoundError("Workspace member not found.");
     }
 
     return true;

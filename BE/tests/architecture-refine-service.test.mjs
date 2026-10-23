@@ -123,7 +123,7 @@ test('a job whose model fails still completes and says it did so without AI', as
 test('a job on a missing snapshot fails with a message, not a crash', async () => {
   enable(fakeClient(() => '{}'));
   const jobId = await MiningService.startAbstractJob('64b0000000000000000000aa', OWNER).catch(e => e);
-  assert.match(String(jobId.message ?? jobId), /Project not found/);
+  assert.match(String(jobId.message ?? jobId), /Workspace not found/);
 });
 
 test('every refinement is recorded with its tokens, latency and quality, and the receipt shows them', async () => {
@@ -177,7 +177,7 @@ test('only the owner can start a refinement and only one job per project runs at
   let release;
   enable(fakeClient(() => new Promise((_, reject) => { release = () => reject(new LlmError('auth', 'stop')); }))); // holds the first job open
   const useCase = new ArchitectureUseCase();
-  await assert.rejects(useCase.refine(PROJECT, 'someone-else', {}), /Project not found/);
+  await assert.rejects(useCase.refine(PROJECT, 'someone-else', {}), /Workspace not found/);
   await assert.rejects(useCase.refine(PROJECT, OWNER, { snapshotId: 'bad' }), /Invalid snapshot ID/);
   await useCase.refine(PROJECT, OWNER, {});
   await assert.rejects(useCase.refine(PROJECT, OWNER, {}), /already queued or running/);

@@ -3,7 +3,7 @@ export type ProjectSummary = { id: string; name: string };
 export type Snapshot = { id: string; hash: string; title: string; date: string; nodes: { id: string; name: string; type: string }[]; edges: { source: string; target: string; type: string }[] };
 export async function getProjects(signal?: AbortSignal): Promise<ProjectSummary[]> {
   const body = await apiRequest<{ data?: { projects?: ProjectSummary[] } }>('/projects', { signal });
-  if (!Array.isArray(body?.data?.projects) || !body.data.projects.every(p => p && typeof p.id === 'string' && typeof p.name === 'string')) throw new Error('Invalid project response.');
+  if (!Array.isArray(body?.data?.projects) || !body.data.projects.every(p => p && typeof p.id === 'string' && typeof p.name === 'string')) throw new Error('Invalid workspace response.');
   return body.data.projects;
 }
 export async function getSnapshots(projectId: string, signal?: AbortSignal): Promise<Snapshot[]> {

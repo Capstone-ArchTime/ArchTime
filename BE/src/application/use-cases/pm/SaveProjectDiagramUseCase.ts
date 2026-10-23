@@ -25,7 +25,7 @@ export class SaveProjectDiagramUseCase {
 
     const project = await this.projectRepository.findById(projectId);
     if (!project) {
-      throw new NotFoundError("Project not found.");
+      throw new NotFoundError("Workspace not found.");
     }
 
     let ws = await this.workspaceRepository.findByProjectId(projectId);
@@ -61,7 +61,7 @@ export class ConfirmProjectDiagramUseCase {
   async execute(projectId: string, userId: string): Promise<{ diagram: IWorkspaceDiagram; revision: number }> {
     const project = await this.projectRepository.findById(projectId);
     if (!project) {
-      throw new NotFoundError("Project not found.");
+      throw new NotFoundError("Workspace not found.");
     }
 
     const ws = await this.workspaceRepository.findByProjectId(projectId);

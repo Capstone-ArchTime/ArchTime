@@ -56,7 +56,7 @@ export default function ArchitectureWorkspace() {
   }, []);
 
   const project = projects.find(p => p.id === projectId);
-  const title = sample ? sample.label.split(':')[0] : project?.name ?? 'Project';
+  const title = sample ? sample.label.split(':')[0] : project?.name ?? 'Workspace';
   useEffect(() => { document.title = `${title} · Architecture · ArchTime`; }, [title]);
 
   const base: ViewerState = useMemo(() => (projectId ? { project: projectId, ...(snapshotParam ? { snapshot: snapshotParam } : {}) } : { view: sample?.id }), [projectId, snapshotParam, sample?.id]);
@@ -100,7 +100,7 @@ export default function ArchitectureWorkspace() {
       <QualityPanel projectId={projectId} quality={payload.quality} view={payload.view} onSaved={arch.reload} /></section>}
     {payload.mapping?.receipt && <ReceiptSummary receipt={payload.mapping.receipt} />}
   </> : sample ? <section className="space-y-2 text-xs"><h3 className={sectionTitle}>Sample</h3>
-    <p className="text-[#94a3b8]">A hand-built example that follows the same rules as real output. Open one of your projects to see its own architecture.</p></section> : null;
+    <p className="text-[#94a3b8]">A hand-built example that follows the same rules as real output. Open one of your workspaces to see its own architecture.</p></section> : null;
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-[#080b0e] text-[#f4f4f6]">
@@ -108,7 +108,7 @@ export default function ArchitectureWorkspace() {
         <Link to="/architecture" className="shrink-0 font-bold tracking-tight text-[#3b82f6] hover:text-white" aria-label="ArchTime: all architectures">Arch<span className="text-white">Time</span></Link>
         <span className="text-[#2a3441]">/</span>
         <Dropdown trigger={['click']} menu={switcher}>
-          <button type="button" className="flex min-w-0 max-w-56 items-center gap-1 whitespace-nowrap rounded px-1.5 py-1 text-sm font-medium hover:bg-white/10" aria-label={`Switch project (now ${title})`}>
+          <button type="button" className="flex min-w-0 max-w-56 items-center gap-1 whitespace-nowrap rounded px-1.5 py-1 text-sm font-medium hover:bg-white/10" aria-label={`Switch workspace (now ${title})`}>
             <span className="truncate">{title}</span> <ChevronDown size={14} className="shrink-0 text-[#94a3b8]" />
           </button>
         </Dropdown>
@@ -127,7 +127,7 @@ export default function ArchitectureWorkspace() {
           {projectId && payload && aiControls()}
           {projectId && payload?.status === 'ready' && <Tooltip title="Group the files again by their dependencies (no AI)"><Button size="small" icon={<RefreshCw size={13} />} aria-label="Regenerate" loading={arch.generating} disabled={busy} onClick={() => void arch.generate()} /></Tooltip>}
           {projectId && <Dropdown trigger={['click']} menu={{ items: [
-            { key: 'detail', label: <Link to={`/project?projectId=${projectId}`}>Project details</Link> },
+            { key: 'detail', label: <Link to={`/project?projectId=${projectId}`}>Workspace details</Link> },
             { key: 'history', label: <Link to="/history">Architecture history</Link> },
             { key: 'usage', label: <Link to="/ai-usage">AI usage</Link> },
           ] }}><Button size="small" aria-label="More">⋯</Button></Dropdown>}

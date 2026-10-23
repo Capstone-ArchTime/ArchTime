@@ -52,7 +52,7 @@ export function WorkspacePage({
       return;
     }
     modal.confirm({
-      title: 'Switch project without saving?',
+      title: 'Switch workspace without saving?',
       content: 'The current diagram has unsaved changes.',
       okText: 'Discard and switch',
       cancelText: 'Keep editing',
@@ -84,7 +84,7 @@ export function WorkspacePage({
           </div>
           <div className="w-full lg:w-64 shrink-0">
             <label htmlFor="maintainer-project" className="block text-xs text-[#94a3b8] mb-2">
-              Project
+              Workspace
             </label>
             <Select
               id="maintainer-project"
