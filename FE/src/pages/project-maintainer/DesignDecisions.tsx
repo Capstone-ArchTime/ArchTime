@@ -1,8 +1,8 @@
 import { downloadText } from '@/features/download';
 import { useState } from 'react';
-import { Alert, App, Button, Empty, Form, Input, Modal, Select, Tag } from 'antd';
+import { App, Button, Empty, Form, Input, Modal, Select, Spin, Tag } from 'antd';
 import { Plus, BookOpen } from 'lucide-react';
-import { WorkspacePage, StorageError } from './workspace';
+import { WorkspacePage, StorageError, ConflictAlert } from './workspace';
 import { panel, useWorkspace } from './workspace-store';
 import type { Decision } from './workspace-store';
 import { usePagination } from '@/hooks/usePagination';
@@ -11,13 +11,13 @@ import PaginationBar from '@/components/PaginationBar';
 const statuses = ['Proposed', 'Accepted', 'Deprecated'] as const;
 const colors = { Proposed: 'gold', Accepted: 'green', Deprecated: 'default' };
 const adr = (number: number) => `ADR-${String(number).padStart(3, '0')}`;
-function exportDecision(d: Decision, project: string) {
-  const text = [`# ${adr(d.number)}: ${d.title}`, `Workspace: ${project}`, `Status: ${d.status}`, 'Source: local demo workspace', `Created: ${d.createdAt}`, `Updated: ${d.updatedAt}`, '## Context', d.context, '## Decision', d.decision, '## Alternatives', d.alternatives || 'None recorded.', '## Consequences', d.consequences, '## Component IDs', d.componentIds.join(', ') || 'None'].join('\n\n');
+function exportDecision(d: Decision, project: string, fromServer: boolean) {
+  const text = [`# ${adr(d.number)}: ${d.title}`, `Workspace: ${project}`, `Status: ${d.status}`, `Source: ${fromServer ? 'server workspace' : 'local demo workspace'}`, `Created: ${d.createdAt}`, `Updated: ${d.updatedAt}`, '## Context', d.context, '## Decision', d.decision, '## Alternatives', d.alternatives || 'None recorded.', '## Consequences', d.consequences, '## Component IDs', d.componentIds.join(', ') || 'None'].join('\n\n');
   downloadText(`${adr(d.number)}.md`, text, 'text/markdown;charset=utf-8');
 }
 
 function DecisionEditor({ project }: { project: string }) {
-  const { data, save, loadError, conflictError, reload } = useWorkspace(project);
+  const { data, save, loading, loadError, loadErrorMessage, conflictError, reload, resolvedProjectId } = useWorkspace(project);
   const { message } = App.useApp();
   const [editing, setEditing] = useState<Decision | null | undefined>();
   const [viewing, setViewing] = useState<Decision | null>(null);
@@ -33,28 +33,15 @@ function DecisionEditor({ project }: { project: string }) {
   for (const id of editing?.componentIds ?? []) {
     if (!componentOptions.some(c => c.value === id)) componentOptions.push({ value: id, label: 'Removed component (historical link)' });
   }
+  if (loading) return <div className="py-20 flex justify-center"><Spin /></div>;
   return <div className="space-y-5">
-    <StorageError visible={loadError} />
-    {conflictError && (
-      <Alert
-        type="error"
-        showIcon
-        message="Workspace Revision Conflict"
-        description={
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-1">
-            <span>{conflictError}</span>
-            <Button size="small" danger onClick={() => reload()}>
-              Reload latest
-            </Button>
-          </div>
-        }
-      />
-    )}
+    <StorageError visible={loadError} message={loadErrorMessage} onRetry={reload} />
+    <ConflictAlert error={conflictError} onReload={reload} />
     <div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-3"><BookOpen size={20} className="text-[#3b82f6]" /><span className="text-sm">{data.decisions.length} recorded decisions</span></div><Button type="primary" icon={<Plus size={14} />} disabled={loadError} onClick={() => open(null)}>Record decision</Button></div>
     <div className="flex flex-col sm:flex-row gap-3"><Input.Search aria-label="Search design decisions" placeholder="Search decisions, context, or ADR number" value={search} onChange={e => setSearch(e.target.value)} allowClear className="max-w-lg" /><Select aria-label="Filter by decision status" value={status} onChange={setStatus} className="w-full sm:w-44" options={['All', ...statuses].map(value => ({ value, label: value === 'All' ? 'All statuses' : value }))} /></div>
     {!filtered.length && <div className={panel}><Empty description={search || status !== 'All' ? 'No matching decisions.' : 'Record your first decision to preserve the reasoning behind your architecture.'} /></div>}
     <div className="space-y-3">{pagination.items.map(d => <article className={panel} key={d.id}>
-      <div className="flex flex-wrap justify-between gap-4"><div className="min-w-0 flex-1"><div className="flex items-center gap-3 mb-2"><span className="text-xs text-[#3b82f6] font-mono">{adr(d.number)}</span><Tag color={colors[d.status]}>{d.status}</Tag></div><button onClick={() => setViewing(d)} className="text-lg font-semibold text-left hover:text-[#3b82f6] focus-visible:outline focus-visible:outline-[#3b82f6] break-words">{d.title}</button><p className="text-sm text-[#94a3b8] mt-2 line-clamp-2 whitespace-pre-wrap break-words">{d.decision}</p><p className="text-xs text-[#94a3b8] mt-4">Updated {new Date(d.updatedAt).toLocaleString()} · {d.componentIds.length} linked components</p></div><div className="flex items-start gap-2"><Button size="small" onClick={() => setViewing(d)}>Read</Button><Button size="small" onClick={() => exportDecision(d, project)}>Export Markdown</Button><Button size="small" disabled={loadError} onClick={() => open(d)}>Edit</Button></div></div>
+      <div className="flex flex-wrap justify-between gap-4"><div className="min-w-0 flex-1"><div className="flex items-center gap-3 mb-2"><span className="text-xs text-[#3b82f6] font-mono">{adr(d.number)}</span><Tag color={colors[d.status]}>{d.status}</Tag></div><button onClick={() => setViewing(d)} className="text-lg font-semibold text-left hover:text-[#3b82f6] focus-visible:outline focus-visible:outline-[#3b82f6] break-words">{d.title}</button><p className="text-sm text-[#94a3b8] mt-2 line-clamp-2 whitespace-pre-wrap break-words">{d.decision}</p><p className="text-xs text-[#94a3b8] mt-4">Updated {new Date(d.updatedAt).toLocaleString()} · {d.componentIds.length} linked components</p></div><div className="flex items-start gap-2"><Button size="small" onClick={() => setViewing(d)}>Read</Button><Button size="small" onClick={() => exportDecision(d, project, !!resolvedProjectId)}>Export Markdown</Button><Button size="small" disabled={loadError} onClick={() => open(d)}>Edit</Button></div></div>
     </article>)}</div>
     <PaginationBar {...pagination} />
     <Modal title={editing ? `Edit ${adr(editing.number)}` : 'Record design decision'} width={720} open={editing !== undefined} onCancel={() => setEditing(undefined)} onOk={() => form.submit()} okText="Save decision">

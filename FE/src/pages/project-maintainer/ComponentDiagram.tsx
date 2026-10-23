@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Alert, App, Button, Empty, Form, Input, Modal, Popconfirm, Select, Tag } from 'antd';
+import { App, Button, Empty, Form, Input, Modal, Popconfirm, Select, Spin, Tag } from 'antd';
 import { CheckCircle2, Plus, Save } from 'lucide-react';
-import { WorkspacePage, StorageError } from './workspace';
+import { WorkspacePage, StorageError, ConflictAlert } from './workspace';
 import { panel, useWorkspace } from './workspace-store';
 import type { Component, Dependency, Diagram } from './workspace-store';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { downloadText } from '@/features/download';
 
 function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyChange: (dirty: boolean) => void }) {
-  const { data, save, loadError, conflictError, reload } = useWorkspace(project);
+  const { data, save, saving, loading, loadError, loadErrorMessage, conflictError, reload, loadVersion, resolvedProjectId } = useWorkspace(project);
   const { message, modal } = App.useApp();
   const [draft, setDraft] = useState<Diagram>(data.diagram);
   const [component, setComponent] = useState<Component | null | undefined>();
@@ -19,20 +19,22 @@ function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyCha
   const dirty = JSON.stringify(draft) !== JSON.stringify(data.diagram);
   useUnsavedChanges(dirty);
   useEffect(() => { onDirtyChange(dirty); }, [dirty, onDirtyChange]);
-  useEffect(() => {
-    if (!dirty) {
-      setDraft(data.diagram);
-    }
-  }, [data.diagram]);
+  // Take the loaded diagram on first load and after "Load latest version"; a save sets the draft itself.
+  const [draftVersion, setDraftVersion] = useState(loadVersion);
+  if (draftVersion !== loadVersion) {
+    setDraftVersion(loadVersion);
+    setDraft(data.diagram);
+  }
 
+  if (loading) return <div className="py-20 flex justify-center"><Spin /></div>;
   const options = draft.components.map(c => ({ label: c.name, value: c.id }));
   function update(next: Diagram) { setDraft({ ...next, confirmedAt: null }); }
   async function persist(confirm: boolean) {
     if (confirm && !draft.components.length) { message.error('Add at least one component before confirming.'); return; }
-    const next = { ...draft, revision: data.diagram.revision + (dirty ? 1 : 0), confirmedAt: confirm ? new Date().toISOString() : null };
-    const ok = await save({ ...data, diagram: next });
-    if (ok) {
-      setDraft(next);
+    const next = { ...draft, revision: data.diagram.revision, confirmedAt: confirm ? new Date().toISOString() : null };
+    const saved = await save({ ...data, diagram: next });
+    if (saved) {
+      setDraft(saved.diagram);
       message.success(confirm ? 'Component diagram confirmed.' : 'Diagram draft saved.');
     }
   }
@@ -44,26 +46,12 @@ function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyCha
   const height = Math.max(280, Math.ceil(draft.components.length / 3) * 180 + 50);
   const positions = new Map(draft.components.map((c, i) => [c.id, { x: 30 + (i % 3) * 250, y: 40 + Math.floor(i / 3) * 180 }]));
   return <div className="space-y-5">
-    <StorageError visible={loadError} />
-    {conflictError && (
-      <Alert
-        type="error"
-        showIcon
-        message="Workspace Revision Conflict"
-        description={
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-1">
-            <span>{conflictError}</span>
-            <Button size="small" danger onClick={() => reload()}>
-              Reload latest
-            </Button>
-          </div>
-        }
-      />
-    )}
-    <div className="flex flex-wrap gap-2"><Button onClick={() => downloadText('component-diagram.json', JSON.stringify({ project, diagram: data.diagram, source: 'local-demo' }, null, 2))} disabled={loadError}>Export saved diagram</Button><Button disabled={!dirty} onClick={() => modal.confirm({ title: 'Discard unsaved diagram changes?', okText: 'Discard', okButtonProps: { danger: true }, onOk: () => setDraft(data.diagram) })}>Discard changes</Button></div>
+    <StorageError visible={loadError} message={loadErrorMessage} onRetry={reload} />
+    <ConflictAlert error={conflictError} dirty={dirty} onReload={reload} />
+    <div className="flex flex-wrap gap-2"><Button onClick={() => downloadText('component-diagram.json', JSON.stringify({ project, diagram: data.diagram, source: resolvedProjectId ? 'server' : 'local-demo' }, null, 2))} disabled={loadError}>Export saved diagram</Button><Button disabled={!dirty} onClick={() => modal.confirm({ title: 'Discard unsaved diagram changes?', okText: 'Discard', okButtonProps: { danger: true }, onOk: () => setDraft(data.diagram) })}>Discard changes</Button></div>
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex flex-wrap items-center gap-2"><Tag color={draft.confirmedAt ? 'green' : 'gold'}>{draft.confirmedAt ? 'Confirmed' : 'Needs confirmation'}</Tag><span className="text-xs text-[#94a3b8]">Revision {data.diagram.revision}{dirty ? ' • Unsaved changes' : ' • Saved'}</span></div>
-      <div className="flex flex-wrap gap-2"><Button icon={<Save size={14} />} disabled={!dirty || loadError} onClick={() => persist(false)}>Save draft</Button><Button type="primary" icon={<CheckCircle2 size={14} />} disabled={loadError || !draft.components.length || (!!draft.confirmedAt && !dirty)} onClick={() => modal.confirm({ title: 'Confirm this component diagram?', content: 'The current components and dependencies will become the reviewed diagram. Further edits will require confirmation again.', onOk: () => persist(true) })}>Confirm diagram</Button></div>
+      <div className="flex flex-wrap gap-2"><Button icon={<Save size={14} />} loading={saving} disabled={!dirty || loadError} onClick={() => persist(false)}>Save draft</Button><Button type="primary" icon={<CheckCircle2 size={14} />} disabled={loadError || saving || !draft.components.length || (!!draft.confirmedAt && !dirty)} onClick={() => modal.confirm({ title: 'Confirm this component diagram?', content: 'The current components and dependencies will become the reviewed diagram. Further edits will require confirmation again.', onOk: () => persist(true) })}>Confirm diagram</Button></div>
     </div>
     {draft.confirmedAt && <p className="text-xs text-[#94a3b8]">Confirmed on {new Date(draft.confirmedAt).toLocaleString()}</p>}
     <div className={panel}>
