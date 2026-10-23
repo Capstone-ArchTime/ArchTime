@@ -11,6 +11,8 @@ import { NodemailerEmailService } from "./infrastructure/services/NodemailerEmai
 // ── Application ──
 import { PasswordResetUseCase } from "./application/use-cases/PasswordResetUseCase.js";
 import { ChangePasswordUseCase } from "./application/use-cases/ChangePasswordUseCase.js";
+import { UpdateProfileUseCase } from "./application/use-cases/UpdateProfileUseCase.js";
+import { LogoutAllDevicesUseCase } from "./application/use-cases/LogoutAllDevicesUseCase.js";
 import { RegisterUseCase } from "./application/use-cases/RegisterUseCase.js";
 import { VerifyEmailUseCase } from "./application/use-cases/VerifyEmailUseCase.js";
 import { ResendOtpUseCase } from "./application/use-cases/ResendOtpUseCase.js";
@@ -41,6 +43,14 @@ import { RemoveProjectMemberUseCase } from "./application/use-cases/members/Remo
 import { GetTeamMembersUseCase } from "./application/use-cases/members/GetTeamMembersUseCase.js";
 import { MemberController } from "./presentation/controllers/MemberController.js";
 import { createProjectRoleMiddleware } from "./presentation/middlewares/projectRole.js";
+import { ProjectAccessPolicy } from "./application/services/ProjectAccessPolicy.js";
+
+// ── Organizations ──
+import { MongoOrganizationRepository } from "./infrastructure/repositories/MongoOrganizationRepository.js";
+import { MongoOrganizationCredentialRepository } from "./infrastructure/repositories/MongoOrganizationCredentialRepository.js";
+import { OrganizationUseCases } from "./application/use-cases/organizations/OrganizationUseCases.js";
+import { OrganizationCredentialUseCases } from "./application/use-cases/organizations/OrganizationCredentialUseCases.js";
+import { OrganizationController } from "./presentation/controllers/OrganizationController.js";
 
 // ─────────────────────────────────────────
 // Infrastructure instances
@@ -49,7 +59,16 @@ export const userRepository = new MongoUserRepository();
 export const otpRepository = new MongoOtpRepository();
 export const projectRepository = new MongoProjectRepository();
 export const memberRepository = new MongoProjectMemberRepository();
+export const organizationRepository = new MongoOrganizationRepository();
+const organizationCredentialRepository = new MongoOrganizationCredentialRepository();
+/** One set of project permission rules (system overview §4) for every route that is not guarded by checkRole. */
+export const projectAccessPolicy = new ProjectAccessPolicy(projectRepository, memberRepository, organizationRepository);
 const bcryptHasher = new BcryptHasher();
+
+// ── Organizations ──
+const organizationUseCases = new OrganizationUseCases(organizationRepository, userRepository, projectRepository, memberRepository);
+const organizationCredentialUseCases = new OrganizationCredentialUseCases(organizationUseCases, organizationCredentialRepository, projectRepository);
+export const organizationController = new OrganizationController(organizationUseCases, organizationCredentialUseCases);
 const jwtTokenService = new JwtTokenService(
   env.jwtSecret,
   env.jwtExpiresIn,
@@ -98,10 +117,15 @@ const registerProjectUseCase = new RegisterProjectUseCase(
   projectRepository,
   memberRepository,
   userRepository,
+  {
+    requireOwner: (organizationId, userId) => organizationUseCases.requireOwner(organizationId, userId),
+    requireCredential: (organizationId, credentialId) => organizationCredentialUseCases.requireCredential(organizationId, credentialId),
+  },
 );
 const getAllProjectsUseCase = new GetAllProjectsUseCase(
   projectRepository,
   memberRepository,
+  projectAccessPolicy,
 );
 const getProjectByIdUseCase = new GetProjectByIdUseCase(
   projectRepository,
@@ -110,7 +134,7 @@ const getProjectByIdUseCase = new GetProjectByIdUseCase(
 const deleteProjectUseCase = new DeleteProjectUseCase(projectRepository);
 const mineProjectUseCase = new MineProjectUseCase();
 const getSnapshotsUseCase = new GetSnapshotsUseCase();
-const getMiningJobsUseCase = new GetMiningJobsUseCase();
+const getMiningJobsUseCase = new GetMiningJobsUseCase(projectAccessPolicy);
 const compareSnapshotsUseCase = new CompareSnapshotsUseCase();
 const getEvidencesUseCase = new GetEvidencesUseCase();
 
@@ -148,6 +172,8 @@ export const authController = new AuthController(
   getCurrentUserUseCase,
   new PasswordResetUseCase(userRepository, emailService, bcryptHasher),
   new ChangePasswordUseCase(userRepository, bcryptHasher),
+  new UpdateProfileUseCase(userRepository),
+  new LogoutAllDevicesUseCase(userRepository),
 );
 
 export const projectController = new ProjectController(
@@ -160,7 +186,7 @@ export const projectController = new ProjectController(
   compareSnapshotsUseCase,
   getEvidencesUseCase,
   getProjectByIdUseCase,
-  new MiningWorkflowUseCase(),
+  new MiningWorkflowUseCase(projectAccessPolicy),
   new ArchitectureUseCase(),
 );
 
@@ -196,6 +222,7 @@ export const memberController = new MemberController(
 export const projectRoleMiddleware = createProjectRoleMiddleware(
   projectRepository,
   memberRepository,
+  organizationRepository,
 );
 
 // ── Admin ──
@@ -269,7 +296,7 @@ export const adminMetricsController = new AdminMetricsController(
 import { AdminLlmUseCases, UserLlmUseCases } from "./application/use-cases/llm/LlmUseCases.js";
 import { AdminLlmController, LlmController } from "./presentation/controllers/LlmController.js";
 
-export const llmController = new LlmController(new UserLlmUseCases());
+export const llmController = new LlmController(new UserLlmUseCases(projectAccessPolicy));
 import { ProjectChatUseCase } from "./application/use-cases/llm/ProjectChatUseCase.js";
 import { ChatHistoryUseCases } from "./application/use-cases/llm/ChatHistoryUseCases.js";
 import { ProjectChatController } from "./presentation/controllers/ProjectChatController.js";
@@ -328,8 +355,10 @@ import {
   GetProjectReportDetailUseCase,
 } from "./application/use-cases/pm/ProjectReportUseCases.js";
 import { ProjectMaintainerController } from "./presentation/controllers/ProjectMaintainerController.js";
+import { MongoDecisionSourceVerifier } from "./infrastructure/services/MongoDecisionSourceVerifier.js";
 
 const evaluateRulesUseCase = new EvaluateProjectRulesUseCase(workspaceRepository, projectRepository);
+const decisionSourceVerifier = new MongoDecisionSourceVerifier();
 
 export const projectMaintainerController = new ProjectMaintainerController({
   dashboardUseCase: new GetProjectDashboardUseCase(
@@ -348,9 +377,9 @@ export const projectMaintainerController = new ProjectMaintainerController({
   toggleRuleUseCase: new ToggleProjectRuleUseCase(workspaceRepository, projectRepository),
   evaluateRulesUseCase,
   getDecisionsUseCase: new GetProjectDecisionsUseCase(workspaceRepository, projectRepository),
-  createDecisionUseCase: new CreateProjectDecisionUseCase(workspaceRepository, projectRepository),
+  createDecisionUseCase: new CreateProjectDecisionUseCase(workspaceRepository, projectRepository, decisionSourceVerifier),
   getDecisionDetailUseCase: new GetProjectDecisionDetailUseCase(workspaceRepository, projectRepository),
-  updateDecisionUseCase: new UpdateProjectDecisionUseCase(workspaceRepository, projectRepository),
+  updateDecisionUseCase: new UpdateProjectDecisionUseCase(workspaceRepository, projectRepository, decisionSourceVerifier),
   deleteDecisionUseCase: new DeleteProjectDecisionUseCase(workspaceRepository, projectRepository),
   getApprovalsUseCase: new GetProjectApprovalsUseCase(projectRepository),
   createApprovalUseCase: new CreateApprovalRequestUseCase(projectRepository),

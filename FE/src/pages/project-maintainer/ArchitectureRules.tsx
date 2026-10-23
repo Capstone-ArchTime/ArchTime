@@ -1,16 +1,16 @@
 import { evaluateRule } from '@/features/evaluate-rule';
 import { downloadText } from '@/features/download';
 import { useState } from 'react';
-import { Alert, App, Button, Empty, Form, Input, Modal, Popconfirm, Select, Switch, Tag } from 'antd';
+import { App, Button, Empty, Form, Input, Modal, Popconfirm, Select, Spin, Switch, Tag } from 'antd';
 import { Plus, ShieldCheck } from 'lucide-react';
-import { WorkspacePage, StorageError } from './workspace';
+import { WorkspacePage, StorageError, ConflictAlert } from './workspace';
 import { panel, useWorkspace } from './workspace-store';
 import type { Rule } from './workspace-store';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationBar from '@/components/PaginationBar';
 
 function RulesEditor({ project }: { project: string }) {
-  const { data, save, loadError, conflictError, reload } = useWorkspace(project);
+  const { data, save, saving, loading, loadError, loadErrorMessage, conflictError, reload } = useWorkspace(project);
   const { message } = App.useApp();
   const [editing, setEditing] = useState<Rule | null | undefined>();
   const [search, setSearch] = useState('');
@@ -24,23 +24,10 @@ function RulesEditor({ project }: { project: string }) {
   }
   const filtered = data.rules.filter(r => `${r.name} ${r.rationale}`.toLowerCase().includes(search.toLowerCase()) && (resultFilter === 'All' || result(r).label === resultFilter));
   const pagination = usePagination(filtered, JSON.stringify([search, resultFilter]));
+  if (loading) return <div className="py-20 flex justify-center"><Spin /></div>;
   return <div className="space-y-5">
-    <StorageError visible={loadError} />
-    {conflictError && (
-      <Alert
-        type="error"
-        showIcon
-        message="Workspace Revision Conflict"
-        description={
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-1">
-            <span>{conflictError}</span>
-            <Button size="small" danger onClick={() => reload()}>
-              Reload latest
-            </Button>
-          </div>
-        }
-      />
-    )}
+    <StorageError visible={loadError} message={loadErrorMessage} onRetry={reload} />
+    <ConflictAlert error={conflictError} onReload={reload} />
     <div className="flex flex-wrap gap-3"><Select aria-label="Filter rule results" className="min-w-44" value={resultFilter} onChange={setResultFilter} options={["All", "Satisfied", "Violation", "Needs review", "Disabled"].map(value => ({ value, label: value }))} /><Button disabled={loadError} onClick={() => downloadText("architecture-rules.json", JSON.stringify({ project, revision: data.diagram.revision, source: "archtime", rules: filtered.map(rule => ({ ...rule, result: result(rule).label })) }, null, 2))}>Export filtered results</Button></div>
     <div className="flex flex-wrap gap-3 items-center justify-between"><div className="flex items-center gap-3"><ShieldCheck size={20} className="text-[#3b82f6]" /><span className="text-sm">{data.rules.filter(r => r.enabled).length} active rules</span><Tag color="red">{data.rules.filter(r => result(r).label === 'Violation').length} violations</Tag></div><Button type="primary" icon={<Plus size={14} />} disabled={loadError || options.length < 2} onClick={() => open(null)}>Define rule</Button></div>
     <p className="text-xs text-[#94a3b8]">Results evaluate direct dependencies in the saved diagram, revision {data.diagram.revision} ({data.diagram.confirmedAt ? 'confirmed' : 'draft'}). They do not analyze repository source code.</p>
@@ -48,7 +35,7 @@ function RulesEditor({ project }: { project: string }) {
     <Input.Search aria-label="Search architecture rules" placeholder="Search rules by name or rationale" value={search} onChange={e => setSearch(e.target.value)} allowClear className="max-w-md" />
     {!filtered.length && <div className={panel}><Empty description={search ? 'No matching rules.' : 'No rules defined. Set boundaries for your architecture.'} /></div>}
     <div className="space-y-3">{pagination.items.map(rule => { const state = result(rule); return <article className={panel} key={rule.id}>
-      <div className="flex flex-wrap justify-between items-start gap-4"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold break-words">{rule.name}</h3><Tag color={state.color}>{state.label}</Tag><Tag color={rule.severity === 'error' ? 'red' : 'gold'}>{rule.severity}</Tag></div><p className="text-sm text-[#3b82f6] mt-3">{name(rule.source)} <span className="text-[#94a3b8]">{rule.constraint === 'forbidden' ? 'must not depend on' : 'must depend on'}</span> {name(rule.target)}</p><p className="text-sm text-[#94a3b8] whitespace-pre-wrap break-words mt-2">{rule.rationale}</p></div><div className="flex items-center gap-2"><Switch aria-label={`Enable ${rule.name}`} checked={rule.enabled} disabled={loadError} onChange={async enabled => { await save({ ...data, rules: data.rules.map(r => r.id === rule.id ? { ...r, enabled } : r) }); }} /><Button size="small" onClick={() => open(rule)} disabled={loadError}>Edit</Button><Popconfirm title="Delete this rule?" onConfirm={async () => { await save({ ...data, rules: data.rules.filter(r => r.id !== rule.id) }); }}><Button size="small" danger disabled={loadError}>Delete</Button></Popconfirm></div></div>
+      <div className="flex flex-wrap justify-between items-start gap-4"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold break-words">{rule.name}</h3><Tag color={state.color}>{state.label}</Tag><Tag color={rule.severity === 'error' ? 'red' : 'gold'}>{rule.severity}</Tag></div><p className="text-sm text-[#3b82f6] mt-3">{name(rule.source)} <span className="text-[#94a3b8]">{rule.constraint === 'forbidden' ? 'must not depend on' : 'must depend on'}</span> {name(rule.target)}</p><p className="text-sm text-[#94a3b8] whitespace-pre-wrap break-words mt-2">{rule.rationale}</p></div><div className="flex items-center gap-2"><Switch aria-label={`Enable ${rule.name}`} checked={rule.enabled} disabled={loadError || saving} onChange={async enabled => { await save({ ...data, rules: data.rules.map(r => r.id === rule.id ? { ...r, enabled } : r) }); }} /><Button size="small" onClick={() => open(rule)} disabled={loadError}>Edit</Button><Popconfirm title="Delete this rule?" onConfirm={async () => { await save({ ...data, rules: data.rules.filter(r => r.id !== rule.id) }); }}><Button size="small" danger disabled={loadError}>Delete</Button></Popconfirm></div></div>
     </article>; })}</div>
     <PaginationBar {...pagination} />
     <Modal title={editing ? 'Edit architecture rule' : 'Define architecture rule'} open={editing !== undefined} onCancel={() => setEditing(undefined)} onOk={() => form.submit()} okText="Save rule">

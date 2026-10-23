@@ -1,123 +1,113 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { App } from 'antd';
-import { useAuth } from '@/auth/auth-context';
-import { apiRequest, ApiError } from '@/api/client';
 import { getProjects } from '@/features/project-data';
-import { emptyWorkspace, fromServer, type Workspace } from '@/features/maintainer-workspace';
+import { emptyWorkspace, fetchServerWorkspace, isRevisionConflict, isServerProjectId, saveServerWorkspace } from '@/features/workspace-sync';
+import type { Workspace } from '@/features/workspace-sync';
 
 export const panel = 'border border-[#242527] bg-[#11161b] p-5';
-export type { Component, Dependency, Diagram, Rule, Decision, Workspace } from '@/features/maintainer-workspace';
+export type { Component, Dependency, Diagram, Rule, Decision, Workspace } from '@/features/workspace-sync';
 
-const OBJECT_ID = /^[0-9a-fA-F]{24}$/;
+type LoadState = {
+  data: Workspace;
+  /** The server id of the workspace; null until it has been found. */
+  projectId: string | null;
+  status: 'loading' | 'ready' | 'error';
+  error: string | null;
+  conflictError: string | null;
+  /** Increases on every (re)load, so editors know to replace their draft with what was loaded. */
+  loadVersion: number;
+};
 
-/** Loads and saves one workspace on the server, with revision checks so two maintainers never overwrite each other. */
+/** The workspace's id: the id itself, or (for links made before ids were used) the one with that name. Null when there is none. */
+async function resolveServerProject(project: string): Promise<string | null> {
+  if (isServerProjectId(project)) return project;
+  const match = (await getProjects()).find((p) => p.name.toLowerCase() === project.toLowerCase());
+  return match?.id ?? null;
+}
+
+/**
+ * A workspace is read from and written to the API only: if it cannot be loaded, editing is disabled instead of falling back
+ * to a copy that a later save would push over newer server data. Every save carries the revision that was loaded; the server
+ * rejects it with 409 when someone else saved in between.
+ */
 export function useWorkspace(project: string) {
   const { message } = App.useApp();
-  const { user } = useAuth();
+  const [state, setState] = useState<LoadState>({
+    data: emptyWorkspace(), projectId: null, status: 'loading', error: null, conflictError: null, loadVersion: 0,
+  });
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const loadRef = useRef(0);
 
-  const [state, setState] = useState<{
-    data: Workspace;
-    loadError: boolean;
-    loading: boolean;
-    conflictError: string | null;
-    resolvedProjectId: string | null;
-  }>({ data: emptyWorkspace(), loadError: false, loading: true, conflictError: null, resolvedProjectId: null });
-
-  const { data, loadError, loading, conflictError, resolvedProjectId } = state;
-  const isFetchingRef = useRef(false);
-
-  const loadServerWorkspace = useCallback(async () => {
-    if (isFetchingRef.current) return;
-    isFetchingRef.current = true;
-
+  const load = useCallback(async () => {
+    const attempt = ++loadRef.current;
+    let projectId: string | null = null;
     try {
-      let targetId: string | null = null;
-      if (OBJECT_ID.test(project)) {
-        targetId = project;
-      } else {
-        // Older links carry the workspace's name instead of its id.
-        const list = await getProjects();
-        targetId = list.find((p) => p.id === project || p.name.toLowerCase() === project.toLowerCase())?.id ?? null;
-      }
-      if (!targetId) throw new Error('Workspace not found.');
-
-      const res = await apiRequest<{ data?: { workspace?: any } }>(`/projects/${encodeURIComponent(targetId)}/workspace`);
-      const ws = res?.data?.workspace;
-      if (!ws) throw new Error('The server returned no workspace.');
-
-      setState((prev) => ({
-        ...prev,
-        data: fromServer(ws, emptyWorkspace()),
-        loadError: false,
-        loading: false,
-        conflictError: null,
-        resolvedProjectId: targetId,
-      }));
-    } catch {
-      setState((prev) => ({ ...prev, loadError: true, loading: false }));
-    } finally {
-      isFetchingRef.current = false;
+      projectId = await resolveServerProject(project);
+      if (!projectId) throw new Error('Workspace not found.');
+      const data = await fetchServerWorkspace(projectId);
+      if (attempt !== loadRef.current) return;
+      setState((prev) => ({ data, projectId, status: 'ready', error: null, conflictError: null, loadVersion: prev.loadVersion + 1 }));
+    } catch (err) {
+      if (attempt !== loadRef.current) return;
+      const error = err instanceof Error ? err.message : 'Could not load the workspace.';
+      setState((prev) => ({ ...prev, projectId, status: 'error', error }));
     }
   }, [project]);
 
   useEffect(() => {
-    loadServerWorkspace();
-  }, [loadServerWorkspace]);
+    const loads = loadRef;
+    load();
+    return () => { loads.current++; };
+  }, [load]);
 
-  // Save with Optimistic Concurrency Control: the server refuses a save made on an out-of-date revision.
-  const save = async (next: Workspace): Promise<boolean> => {
-    if (user?.role !== 'project-maintainer') {
-      message.error('Only project maintainers can save this workspace.');
-      return false;
-    }
-    if (loadError || !resolvedProjectId) {
-      message.error('This workspace could not be loaded, so saving is disabled. Reload and try again.');
-      return false;
-    }
+  const reload = useCallback(() => {
+    setState((prev) => ({ ...prev, status: 'loading', error: null }));
+    load();
+  }, [load]);
 
+  /** Returns the saved workspace, or null when nothing was saved (the reason has already been shown). */
+  const save = async (next: Workspace): Promise<Workspace | null> => {
+    const projectId = state.projectId;
+    if (state.status !== 'ready' || !projectId) {
+      message.error(state.status === 'loading' ? 'The workspace is still loading.' : 'The workspace could not be loaded, so saving is disabled.');
+      return null;
+    }
+    if (savingRef.current) {
+      message.warning('The previous change is still being saved. Try again in a moment.');
+      return null;
+    }
+    savingRef.current = true;
+    setSaving(true);
     try {
-      const res = await apiRequest<{ data?: { workspace?: any }; message?: string }>(
-        `/projects/${encodeURIComponent(resolvedProjectId)}/workspace`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            expectedRevision: data.diagram.revision,
-            diagram: next.diagram,
-            rules: next.rules,
-            decisions: next.decisions,
-          }),
-        }
-      );
-      const ws = res?.data?.workspace;
-      if (!ws) {
-        message.error('The server did not confirm the save. Please retry.');
-        return false;
+      const data = await saveServerWorkspace(projectId, state.data.diagram.revision, next);
+      setState((prev) => (prev.projectId === projectId ? { ...prev, data, conflictError: null } : prev));
+      return data;
+    } catch (err) {
+      if (isRevisionConflict(err)) {
+        const conflictError = (err as Error).message;
+        setState((prev) => ({ ...prev, conflictError }));
+        message.error('Not saved: someone else changed this workspace.');
+        return null;
       }
-      const updated = fromServer(ws, { ...next, diagram: { ...next.diagram, revision: next.diagram.revision + 1 } });
-      setState((prev) => ({ ...prev, data: updated, loadError: false, conflictError: null }));
-      return true;
-    } catch (err: any) {
-      if (err instanceof ApiError && (err.status === 409 || err.code === 'CONFLICT')) {
-        const conflictMsg =
-          err.message ||
-          'Workspace revision conflict: someone else modified this workspace. Please reload to avoid overwriting changes.';
-        setState((prev) => ({ ...prev, conflictError: conflictMsg }));
-        message.error(conflictMsg);
-        return false;
-      }
-      message.error(err.message || 'Could not save workspace to server. Please retry.');
-      return false;
+      message.error(err instanceof Error ? err.message : 'Could not save the workspace. Please retry.');
+      return null;
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   };
 
   return {
-    data,
+    data: state.data,
     save,
-    loadError,
-    loading,
-    conflictError,
-    resolvedProjectId,
-    reload: loadServerWorkspace,
+    saving,
+    loading: state.status === 'loading',
+    loadError: state.status === 'error',
+    loadErrorMessage: state.error,
+    conflictError: state.conflictError,
+    resolvedProjectId: state.projectId,
+    loadVersion: state.loadVersion,
+    reload,
   };
 }

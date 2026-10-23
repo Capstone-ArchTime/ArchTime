@@ -40,10 +40,228 @@ export function createAdminRouter(
   // ────────────────────────────────────────────────────────────
   // 1. User Management (SA-02)
   // ────────────────────────────────────────────────────────────
+  /**
+   * @swagger
+   * /api/admin/users:
+   *   get:
+   *     tags: [Admin - User Management]
+   *     summary: Lấy danh sách người dùng hệ thống (SA-02)
+   *     description: Hỗ trợ tìm kiếm theo tên/email, lọc theo vai trò (role), trạng thái (status) và phân trang.
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: page
+   *         schema: { type: integer, default: 1 }
+   *       - in: query
+   *         name: limit
+   *         schema: { type: integer, default: 10 }
+   *       - in: query
+   *         name: search
+   *         schema: { type: string }
+   *         description: Tìm theo tên hoặc email người dùng
+   *       - in: query
+   *         name: role
+   *         schema: { type: string, enum: [developer-analyst, system-administrator] }
+   *       - in: query
+   *         name: status
+   *         schema: { type: string, enum: [active, suspended] }
+   *     responses:
+   *       200:
+   *         description: Danh sách người dùng thành công
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success: { type: boolean, example: true }
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     users:
+   *                       type: array
+   *                       items: { $ref: "#/components/schemas/AdminUser" }
+   *                 meta: { $ref: "#/components/schemas/PaginationMeta" }
+   *       401:
+   *         $ref: "#/components/responses/Unauthorized"
+   *       403:
+   *         $ref: "#/components/responses/Forbidden"
+   */
   router.get("/users", userController.getUsers);
+
+  /**
+   * @swagger
+   * /api/admin/users/invite:
+   *   post:
+   *     tags: [Admin - User Management]
+   *     summary: Mời/tạo người dùng mới vào hệ thống (SA-02)
+   *     description: Tạo tài khoản với vai trò chỉ định và gửi email cấp mật khẩu tạm thời.
+   *     security:
+   *       - BearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [name, email, role]
+   *             properties:
+   *               name: { type: string, example: "Nguyen Van A" }
+   *               email: { type: string, format: email, example: "user@archtime.io" }
+   *               role: { type: string, enum: [developer-analyst, system-administrator], example: "developer-analyst" }
+   *               temporaryPassword: { type: string, example: "ArchTime#2026!" }
+   *     responses:
+   *       201:
+   *         description: Mời người dùng thành công
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success: { type: boolean, example: true }
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     user: { $ref: "#/components/schemas/AdminUser" }
+   *                     temporaryPassword: { type: string }
+   *                 message: { type: string, example: "User invited successfully." }
+   *       400:
+   *         $ref: "#/components/responses/ValidationError"
+   *       401:
+   *         $ref: "#/components/responses/Unauthorized"
+   *       403:
+   *         $ref: "#/components/responses/Forbidden"
+   *       409:
+   *         description: Email đã tồn tại
+   */
   router.post("/users/invite", userController.inviteUser);
+
+  /**
+   * @swagger
+   * /api/admin/users/{id}/role:
+   *   patch:
+   *     tags: [Admin - User Management]
+   *     summary: Cập nhật vai trò (role) của người dùng (SA-02)
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema: { type: string }
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [role]
+   *             properties:
+   *               role: { type: string, enum: [developer-analyst, system-administrator], example: "system-administrator" }
+   *     responses:
+   *       200:
+   *         description: Cập nhật vai trò thành công
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success: { type: boolean, example: true }
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     user: { $ref: "#/components/schemas/AdminUser" }
+   *                 message: { type: string, example: "User role updated successfully." }
+   *       400:
+   *         $ref: "#/components/responses/ValidationError"
+   *       401:
+   *         $ref: "#/components/responses/Unauthorized"
+   *       403:
+   *         $ref: "#/components/responses/Forbidden"
+   *       404:
+   *         $ref: "#/components/responses/NotFound"
+   */
   router.patch("/users/:id/role", userController.updateRole);
+
+  /**
+   * @swagger
+   * /api/admin/users/{id}/suspend:
+   *   patch:
+   *     tags: [Admin - User Management]
+   *     summary: Khóa / Đình chỉ tài khoản người dùng (SA-02)
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema: { type: string }
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               reason: { type: string, example: "Vi phạm quy định hệ thống" }
+   *     responses:
+   *       200:
+   *         description: Khóa tài khoản thành công
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success: { type: boolean, example: true }
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     user: { $ref: "#/components/schemas/AdminUser" }
+   *                 message: { type: string, example: "User suspended successfully." }
+   *       400:
+   *         description: Không thể tự khóa tài khoản của mình hoặc tài khoản admin duy nhất
+   *       401:
+   *         $ref: "#/components/responses/Unauthorized"
+   *       403:
+   *         $ref: "#/components/responses/Forbidden"
+   *       404:
+   *         $ref: "#/components/responses/NotFound"
+   */
   router.patch("/users/:id/suspend", userController.suspendUser);
+
+  /**
+   * @swagger
+   * /api/admin/users/{id}/reactivate:
+   *   patch:
+   *     tags: [Admin - User Management]
+   *     summary: Mở khóa / Kích hoạt lại tài khoản người dùng (SA-02)
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema: { type: string }
+   *     responses:
+   *       200:
+   *         description: Mở khóa tài khoản thành công
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success: { type: boolean, example: true }
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     user: { $ref: "#/components/schemas/AdminUser" }
+   *                 message: { type: string, example: "User reactivated successfully." }
+   *       401:
+   *         $ref: "#/components/responses/Unauthorized"
+   *       403:
+   *         $ref: "#/components/responses/Forbidden"
+   *       404:
+   *         $ref: "#/components/responses/NotFound"
+   */
   router.patch("/users/:id/reactivate", userController.reactivateUser);
 
   // ────────────────────────────────────────────────────────────

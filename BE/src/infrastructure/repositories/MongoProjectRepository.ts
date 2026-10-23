@@ -1,6 +1,15 @@
 import type { IProject, ProjectStatus, RepoVisibility } from "../../domain/entities/Project.js";
 import type { IProjectRepository } from "../../domain/interfaces/IProjectRepository.js";
+import mongoose from "mongoose";
 import { ProjectModel } from "../database/models/ProjectModel.js";
+import { ProjectMemberModel } from "../database/models/ProjectMemberModel.js";
+import { ChatConversationModel } from "../database/models/ChatConversationModel.js";
+import { WorkspaceModel } from "../database/models/WorkspaceModel.js";
+import { ArchitectureMappingModel } from "../database/models/ArchitectureMappingModel.js";
+import { ArchitectureReferenceModel } from "../database/models/ArchitectureReferenceModel.js";
+import { ApprovalRequestModel } from "../database/models/ApprovalRequestModel.js";
+import { ProjectReportModel } from "../database/models/ProjectReportModel.js";
+import { ProjectInvitationModel } from "../database/models/ProjectInvitationModel.js";
 
 export class MongoProjectRepository implements IProjectRepository {
   private toEntity(doc: Record<string, unknown>): IProject {
@@ -10,13 +19,31 @@ export class MongoProjectRepository implements IProjectRepository {
       description: doc.description as string | undefined,
       repoUrl: doc.repoUrl as string,
       visibility: doc.visibility as RepoVisibility,
-      token: doc.token as string | undefined,
+      // The repository token is deliberately left out: entities reach API responses. Mining reads it from the model.
       status: doc.status as ProjectStatus,
       history: doc.history as IProject["history"],
       userId: String(doc.userId),
+      ...(doc.organizationId ? { organizationId: String(doc.organizationId) } : {}),
+      ...(doc.credentialId ? { credentialId: String(doc.credentialId) } : {}),
       createdAt: doc.createdAt as Date,
       updatedAt: doc.updatedAt as Date,
     };
+  }
+
+  async findByOrganizationId(organizationId: string): Promise<IProject[]> {
+    const docs = await ProjectModel.find({ organizationId }).lean();
+    return docs.map(doc => this.toEntity(doc as Record<string, unknown>));
+  }
+
+  async findByIds(ids: string[]): Promise<IProject[]> {
+    const valid = ids.filter(id => mongoose.isValidObjectId(id));
+    if (valid.length === 0) return [];
+    const docs = await ProjectModel.find({ _id: { $in: valid } }).lean();
+    return docs.map(doc => this.toEntity(doc as Record<string, unknown>));
+  }
+
+  async countByCredentialId(credentialId: string): Promise<number> {
+    return ProjectModel.countDocuments({ credentialId });
   }
 
   async create(data: Omit<IProject, "id" | "createdAt" | "updatedAt">): Promise<IProject> {
@@ -25,6 +52,8 @@ export class MongoProjectRepository implements IProjectRepository {
   }
 
   async findById(id: string): Promise<IProject | null> {
+    // A malformed id names no project: 404, not a cast error.
+    if (!mongoose.isValidObjectId(id)) return null;
     const doc = await ProjectModel.findById(id).lean();
     if (!doc) return null;
     return this.toEntity(doc as Record<string, unknown>);
@@ -113,17 +142,20 @@ export class MongoProjectRepository implements IProjectRepository {
     const result = await ProjectModel.deleteOne(filter);
     if (result.deletedCount > 0) {
       // Clean up project members
-      try {
-        const { ProjectMemberModel } = await import(
-          "../database/models/ProjectMemberModel.js"
-        );
-        await ProjectMemberModel.deleteMany({ projectId: id });
-        const { ChatConversationModel } = await import(
-          "../database/models/ChatConversationModel.js"
-        );
-        await ChatConversationModel.deleteMany({ projectId: id });
-      } catch {
-        // ignore if model not ready
+      // Everything that describes the project goes with it. AI runs stay: they are the cost record of what was spent.
+      // Snapshots, evidence and jobs are removed by MiningService.purgeProject.
+      const results = await Promise.allSettled([
+        ProjectMemberModel.deleteMany({ projectId: id }),
+        ChatConversationModel.deleteMany({ projectId: id }),
+        WorkspaceModel.deleteMany({ projectId: id }),
+        ArchitectureMappingModel.deleteMany({ projectId: id }),
+        ArchitectureReferenceModel.deleteMany({ projectId: id }),
+        ApprovalRequestModel.deleteMany({ projectId: id }),
+        ProjectReportModel.deleteMany({ projectId: id }),
+        ProjectInvitationModel.deleteMany({ projectId: id }),
+      ]);
+      for (const r of results) {
+        if (r.status === "rejected") console.warn(`[projects] cleanup after deleting ${id} failed:`, r.reason);
       }
       return true;
     }

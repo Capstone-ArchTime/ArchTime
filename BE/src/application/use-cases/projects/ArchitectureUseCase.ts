@@ -5,7 +5,7 @@ import { ArchitectureService } from "../../../infrastructure/services/Architectu
 import { LlmRunService } from "../../../infrastructure/services/LlmRunService.js";
 import { SystemSettingsModel } from "../../../infrastructure/database/models/SystemSettingsModel.js";
 import { BadRequestError, ForbiddenError } from "../../../shared/errors/AppError.js";
-import { loadOwnedProject } from "./loadOwnedProject.js";
+import { loadProject } from "./loadOwnedProject.js";
 
 function snapshotIdOf(value: unknown): string | undefined {
   if (value === undefined || value === null || value === "") return undefined;
@@ -21,12 +21,12 @@ function modelIdOf(value: unknown): string | undefined {
 
 export class ArchitectureUseCase {
   public async get(projectId: string, userId: string, snapshotId?: unknown) {
-    await loadOwnedProject(projectId, userId);
+    await loadProject(projectId);
     return ArchitectureService.get(projectId, snapshotIdOf(snapshotId));
   }
 
   public async generate(projectId: string, userId: string, body: unknown) {
-    await loadOwnedProject(projectId, userId);
+    await loadProject(projectId);
     const input = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
     return ArchitectureService.generate(projectId, snapshotIdOf(input.snapshotId), {
       minComponents: input.minComponents as number | undefined,
@@ -36,7 +36,7 @@ export class ArchitectureUseCase {
 
   /** Starts a background job that groups and then refines with the chosen (else the default) AI model. Returns the job id. */
   public async refine(projectId: string, userId: string, body: unknown): Promise<string> {
-    await loadOwnedProject(projectId, userId);
+    await loadProject(projectId);
     const input = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
     const snapshotId = snapshotIdOf(input.snapshotId);
     const modelId = modelIdOf(input.modelId);
@@ -51,13 +51,13 @@ export class ArchitectureUseCase {
 
   /** The architecture the project's people say it has, used to score views (adjusted Rand index). */
   public async getReference(projectId: string, userId: string) {
-    await loadOwnedProject(projectId, userId);
+    await loadProject(projectId);
     return ArchitectureService.getReference(projectId);
   }
 
   /** Body: { components: [{ name, prefixes: [path prefix, ...] }] }; an empty list removes the reference. */
   public async saveReference(projectId: string, userId: string, body: unknown) {
-    await loadOwnedProject(projectId, userId);
+    await loadProject(projectId);
     const raw = (body && typeof body === "object" ? (body as Record<string, unknown>).components : undefined);
     if (!Array.isArray(raw) || raw.length > 40) throw new BadRequestError("components must be a list of at most 40 entries.");
     const seen = new Set<string>();
@@ -76,7 +76,7 @@ export class ArchitectureUseCase {
 
   /** The project's AI runs, newest first, with tokens and cost (and quality for the ones that drew an architecture; chat runs have none). */
   public async runs(projectId: string, userId: string, query: { page?: unknown; limit?: unknown }) {
-    await loadOwnedProject(projectId, userId);
+    await loadProject(projectId);
     return LlmRunService.listForProject(projectId, { page: Number(query.page) || 1, limit: Number(query.limit) || 20 });
   }
 }

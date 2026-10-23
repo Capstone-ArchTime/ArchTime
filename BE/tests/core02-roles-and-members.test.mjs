@@ -31,7 +31,7 @@ test('authorize: blocks unauthenticated requests with 401', () => {
 test('authorize: blocks insufficient role with 403 FORBIDDEN', () => {
   const middleware = authorize(UserRole.SYSTEM_ADMINISTRATOR);
   let error;
-  const req = { user: { userId: 'u1', role: UserRole.DEVELOPER_ANALYST } };
+  const req = { user: { userId: 'u1', role: UserRole.USER } };
   middleware(req, {}, (err) => { error = err; });
 
   assert.ok(error instanceof AppError);
@@ -40,10 +40,10 @@ test('authorize: blocks insufficient role with 403 FORBIDDEN', () => {
 });
 
 test('authorize: allows requests when user role matches allowed roles', () => {
-  const middleware = authorize(UserRole.PROJECT_MAINTAINER, UserRole.SYSTEM_ADMINISTRATOR);
+  const middleware = authorize(UserRole.USER, UserRole.SYSTEM_ADMINISTRATOR);
   let called = false;
   let error;
-  const req = { user: { userId: 'u1', role: UserRole.PROJECT_MAINTAINER } };
+  const req = { user: { userId: 'u1', role: UserRole.USER } };
   middleware(req, {}, (err) => {
     called = true;
     error = err;
@@ -110,7 +110,7 @@ test('projectRole: project owner has write and admin access', async () => {
 
   const req = {
     params: { id: 'p1' },
-    user: { userId: 'user-owner', role: UserRole.PROJECT_MAINTAINER },
+    user: { userId: 'user-owner', role: UserRole.USER },
   };
 
   let error;
@@ -152,7 +152,7 @@ test('projectRole: project maintainer member has write/admin access', async () =
 
   const req = {
     params: { id: 'p1' },
-    user: { userId: 'maintainer-user', role: UserRole.DEVELOPER_ANALYST },
+    user: { userId: 'maintainer-user', role: UserRole.USER },
   };
 
   let error;
@@ -195,7 +195,7 @@ test('projectRole: developer-analyst member has read access but blocked on write
   const checkRead = middlewareFactory('read');
   const reqRead = {
     params: { id: 'p1' },
-    user: { userId: 'dev-user', role: UserRole.DEVELOPER_ANALYST },
+    user: { userId: 'dev-user', role: UserRole.USER },
   };
   let readErr;
   await checkRead(reqRead, {}, (err) => { readErr = err; });
@@ -205,7 +205,7 @@ test('projectRole: developer-analyst member has read access but blocked on write
   const checkWrite = middlewareFactory('write');
   const reqWrite = {
     params: { id: 'p1' },
-    user: { userId: 'dev-user', role: UserRole.DEVELOPER_ANALYST },
+    user: { userId: 'dev-user', role: UserRole.USER },
   };
   let writeErr;
   await checkWrite(reqWrite, {}, (err) => { writeErr = err; });
@@ -250,7 +250,7 @@ test('projectRole: non-member blocked on private project, allowed read on public
   // Private project -> 403
   const reqPriv = {
     params: { id: 'p-priv' },
-    user: { userId: 'stranger', role: UserRole.DEVELOPER_ANALYST },
+    user: { userId: 'stranger', role: UserRole.USER },
   };
   let privErr;
   await checkRead(reqPriv, {}, (err) => { privErr = err; });
@@ -259,7 +259,7 @@ test('projectRole: non-member blocked on private project, allowed read on public
   // Public project -> 200 ok
   const reqPub = {
     params: { id: 'p-pub' },
-    user: { userId: 'stranger', role: UserRole.DEVELOPER_ANALYST },
+    user: { userId: 'stranger', role: UserRole.USER },
   };
   let pubErr;
   await checkRead(reqPub, {}, (err) => { pubErr = err; });

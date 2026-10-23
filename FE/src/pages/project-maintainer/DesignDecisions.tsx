@@ -1,8 +1,8 @@
 import { downloadText } from '@/features/download';
 import { useState } from 'react';
-import { Alert, App, Button, Empty, Form, Input, Modal, Select, Tag } from 'antd';
+import { App, Button, Empty, Form, Input, Modal, Select, Spin, Tag } from 'antd';
 import { Plus, BookOpen } from 'lucide-react';
-import { WorkspacePage, StorageError } from './workspace';
+import { WorkspacePage, StorageError, ConflictAlert } from './workspace';
 import { panel, useWorkspace } from './workspace-store';
 import type { Decision } from './workspace-store';
 import { usePagination } from '@/hooks/usePagination';
@@ -17,7 +17,7 @@ function exportDecision(d: Decision, project: string) {
 }
 
 function DecisionEditor({ project }: { project: string }) {
-  const { data, save, loadError, conflictError, reload } = useWorkspace(project);
+  const { data, save, loading, loadError, loadErrorMessage, conflictError, reload } = useWorkspace(project);
   const { message } = App.useApp();
   const [editing, setEditing] = useState<Decision | null | undefined>();
   const [viewing, setViewing] = useState<Decision | null>(null);
@@ -33,23 +33,10 @@ function DecisionEditor({ project }: { project: string }) {
   for (const id of editing?.componentIds ?? []) {
     if (!componentOptions.some(c => c.value === id)) componentOptions.push({ value: id, label: 'Removed component (historical link)' });
   }
+  if (loading) return <div className="py-20 flex justify-center"><Spin /></div>;
   return <div className="space-y-5">
-    <StorageError visible={loadError} />
-    {conflictError && (
-      <Alert
-        type="error"
-        showIcon
-        message="Workspace Revision Conflict"
-        description={
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-1">
-            <span>{conflictError}</span>
-            <Button size="small" danger onClick={() => reload()}>
-              Reload latest
-            </Button>
-          </div>
-        }
-      />
-    )}
+    <StorageError visible={loadError} message={loadErrorMessage} onRetry={reload} />
+    <ConflictAlert error={conflictError} onReload={reload} />
     <div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-3"><BookOpen size={20} className="text-[#3b82f6]" /><span className="text-sm">{data.decisions.length} recorded decisions</span></div><Button type="primary" icon={<Plus size={14} />} disabled={loadError} onClick={() => open(null)}>Record decision</Button></div>
     <div className="flex flex-col sm:flex-row gap-3"><Input.Search aria-label="Search design decisions" placeholder="Search decisions, context, or ADR number" value={search} onChange={e => setSearch(e.target.value)} allowClear className="max-w-lg" /><Select aria-label="Filter by decision status" value={status} onChange={setStatus} className="w-full sm:w-44" options={['All', ...statuses].map(value => ({ value, label: value === 'All' ? 'All statuses' : value }))} /></div>
     {!filtered.length && <div className={panel}><Empty description={search || status !== 'All' ? 'No matching decisions.' : 'Record your first decision to preserve the reasoning behind your architecture.'} /></div>}

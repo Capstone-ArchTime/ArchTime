@@ -22,4 +22,7 @@ export interface IProjectRepository {
     filter: AccessibleProjectsFilter,
   ): Promise<{ items: IProject[]; total: number }>;
   delete(id: string, userId?: string): Promise<boolean>;
+  findByOrganizationId(organizationId: string): Promise<IProject[]>;
+  findByIds(ids: string[]): Promise<IProject[]>;
+  countByCredentialId(credentialId: string): Promise<number>;
 }

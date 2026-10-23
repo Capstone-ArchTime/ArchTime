@@ -1,4 +1,4 @@
-import { UserStatus, type IUser, type UserRole } from "../../domain/entities/User.js";
+import { LEGACY_USER_ROLES, normalizeUserRole, UserRole, UserStatus, type IUser } from "../../domain/entities/User.js";
 import type {
   IUserRepository,
   UserFilter,
@@ -14,7 +14,7 @@ export class MongoUserRepository implements IUserRepository {
       username: doc.username as string | undefined,
       email: doc.email as string,
       passwordHash: (doc.passwordHash as string) ?? "",
-      role: doc.role as UserRole,
+      role: normalizeUserRole(doc.role),
       status: (doc.status as UserStatus) ?? UserStatus.ACTIVE,
       isVerified: (doc.isVerified as boolean) ?? false,
       tokenVersion: (doc.tokenVersion as number) ?? 0,
@@ -131,6 +131,35 @@ export class MongoUserRepository implements IUserRepository {
 
   async revokeSessions(userId: string): Promise<void> {
     await UserModel.findByIdAndUpdate(userId, { $inc: { tokenVersion: 1 } });
+  }
+
+  async existsByUsername(username: string, exceptUserId?: string): Promise<boolean> {
+    const query: Record<string, unknown> = { username: username.toLowerCase() };
+    if (exceptUserId) query._id = { $ne: exceptUserId };
+    return !!(await UserModel.exists(query));
+  }
+
+  async updateProfile(userId: string, patch: { name?: string; username?: string | null }): Promise<IUser | null> {
+    const $set: Record<string, unknown> = {};
+    const $unset: Record<string, 1> = {};
+    if (patch.name !== undefined) $set.name = patch.name;
+    if (patch.username === null) $unset.username = 1;
+    else if (patch.username !== undefined) $set.username = patch.username;
+    const update: Record<string, unknown> = {};
+    if (Object.keys($set).length) update.$set = $set;
+    if (Object.keys($unset).length) update.$unset = $unset;
+    const doc = await UserModel.findByIdAndUpdate(userId, update, { new: true }).lean();
+    if (!doc) return null;
+    return this.toEntity(doc as Record<string, unknown>);
+  }
+
+  /** Rewrites accounts that still hold a retired system role, and ends their sessions so new tokens carry the new role. */
+  static async migrateLegacyRoles(): Promise<number> {
+    const result = await UserModel.updateMany(
+      { role: { $in: LEGACY_USER_ROLES } },
+      { $set: { role: UserRole.USER }, $inc: { tokenVersion: 1 } },
+    );
+    return result.modifiedCount;
   }
 
   async countByRole(role: UserRole): Promise<number> {

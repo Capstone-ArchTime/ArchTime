@@ -66,7 +66,13 @@ export function createProjectRouter(
    *                 example: public
    *               token:
    *                 type: string
-   *                 description: GitHub personal access token (chỉ cần nếu repo private)
+   *                 description: GitHub personal access token (chỉ cần nếu repo private). Chỉ ghi, không bao giờ được trả về.
+   *               organizationId:
+   *                 type: string
+   *                 description: Tạo project trong tổ chức này (người gọi phải là Organization Owner). Bỏ trống = không gian cá nhân.
+   *               credentialId:
+   *                 type: string
+   *                 description: Credential của tổ chức dùng để clone (cần organizationId; không gửi kèm token).
    *     responses:
    *       201:
    *         description: Dự án đã được đăng ký
@@ -236,14 +242,17 @@ export function createProjectRouter(
    *       404:
    *         $ref: '#/components/responses/NotFound'
    */
-  router.get("/:id", checkRole("read"), projectController.getProjectById);
+  router.get("/:id", checkRole("metadata"), projectController.getProjectById);
 
   /**
    * @swagger
    * /api/projects/{id}:
    *   delete:
    *     tags: [Projects]
-   *     summary: Xóa dự án (Chỉ Owner / Maintainer / Admin)
+   *     summary: Xóa dự án (chỉ Project Owner hoặc Organization Owner)
+   *     description: |
+   *       Maintainer, Member và System Administrator không xóa được project (403).
+   *       Project thuộc tổ chức: Organization Owner xóa được; người không còn trong tổ chức bị từ chối kể cả khi là người tạo.
    *     security:
    *       - BearerAuth: []
    *     parameters:
@@ -270,7 +279,7 @@ export function createProjectRouter(
    *       404:
    *         $ref: '#/components/responses/NotFound'
    */
-  router.delete("/:id", checkRole("admin"), projectController.deleteProject);
+  router.delete("/:id", checkRole("owner"), projectController.deleteProject);
 
   /**
    * @swagger
@@ -293,7 +302,7 @@ export function createProjectRouter(
    *       404:
    *         $ref: '#/components/responses/NotFound'
    */
-  router.post("/:id/scan", projectController.scanProject);
+  router.post("/:id/scan", checkRole("write"), projectController.scanProject);
 
   /**
    * @swagger
@@ -368,7 +377,7 @@ export function createProjectRouter(
    *       401:
    *         $ref: '#/components/responses/Unauthorized'
    */
-  router.get("/:id/mining", projectController.getMiningOverview);
+  router.get("/:id/mining", checkRole("metadata"), projectController.getMiningOverview);
 
   /**
    * @swagger
@@ -395,7 +404,7 @@ export function createProjectRouter(
    *       401:
    *         $ref: '#/components/responses/Unauthorized'
    */
-  router.get("/:id/mining/estimate", projectController.estimateMining);
+  router.get("/:id/mining/estimate", checkRole("write"), projectController.estimateMining);
 
   /**
    * @swagger
@@ -806,8 +815,8 @@ export function createProjectRouter(
    *       401:
    *         $ref: '#/components/responses/Unauthorized'
    */
-  router.get("/:id/architecture", projectController.getArchitecture);
-  router.post("/:id/architecture", projectController.generateArchitecture);
+  router.get("/:id/architecture", checkRole("read"), projectController.getArchitecture);
+  router.post("/:id/architecture", checkRole("write"), projectController.generateArchitecture);
 
   /**
    * @swagger
@@ -840,7 +849,7 @@ export function createProjectRouter(
    *       403:
    *         description: Admin đã tắt quyền chọn model
    */
-  router.post("/:id/architecture/refine", projectController.refineArchitecture);
+  router.post("/:id/architecture/refine", checkRole("write"), projectController.refineArchitecture);
 
   /**
    * @swagger
@@ -858,7 +867,7 @@ export function createProjectRouter(
    *       200:
    *         description: "{ runs, totals, meta }"
    */
-  router.get("/:id/architecture/runs", projectController.getArchitectureRuns);
+  router.get("/:id/architecture/runs", checkRole("read"), projectController.getArchitectureRuns);
 
   /**
    * @swagger
@@ -886,8 +895,8 @@ export function createProjectRouter(
    *                 items: { type: object, properties: { name: { type: string, example: "Domain" }, prefixes: { type: array, items: { type: string }, example: ["BE/src/domain/"] } } }
    *     responses: { 200: { description: OK } }
    */
-  router.get("/:id/architecture/reference", projectController.getArchitectureReference);
-  router.put("/:id/architecture/reference", projectController.saveArchitectureReference);
+  router.get("/:id/architecture/reference", checkRole("read"), projectController.getArchitectureReference);
+  router.put("/:id/architecture/reference", checkRole("write"), projectController.saveArchitectureReference);
 
   // ────────────────────────────────────────────────────────────
   // Project Maintainer Routes (PM-01 to PM-07)
@@ -1159,6 +1168,9 @@ export function createProjectRouter(
      *         name: status
      *         schema: { type: string, enum: [Proposed, Accepted, Deprecated] }
      *       - in: query
+     *         name: origin
+     *         schema: { type: string, enum: [recorded, reconstructed] }
+     *       - in: query
      *         name: page
      *         schema: { type: integer, default: 1 }
      *       - in: query
@@ -1166,7 +1178,7 @@ export function createProjectRouter(
      *         schema: { type: integer, default: 10 }
      *     responses:
      *       200:
-     *         description: Danh sách quyết định kiến trúc
+     *         description: Danh sách quyết định kiến trúc, mỗi ADR kèm origin, sources, statusHistory, createdBy, updatedBy
      *   post:
      *     tags: [Projects - Decisions (ADR)]
      *     summary: Tạo quyết định thiết kế kiến trúc mới (PM-04)
@@ -1192,9 +1204,28 @@ export function createProjectRouter(
      *               consequences: { type: string, example: "Requires schema migrations" }
      *               status: { type: string, enum: [Proposed, Accepted, Deprecated], default: "Proposed" }
      *               componentIds: { type: array, items: { type: string }, example: ["db"] }
+     *               origin:
+     *                 type: string
+     *                 enum: [recorded, reconstructed]
+     *                 default: recorded
+     *                 description: "recorded: ghi lúc ra quyết định; reconstructed: viết bù sau từ lịch sử"
+     *               sources:
+     *                 type: array
+     *                 maxItems: 20
+     *                 description: Bằng chứng ADR dựa vào; mỗi nguồn phải tồn tại trong project này (400 nếu không)
+     *                 items:
+     *                   type: object
+     *                   required: [kind, ref]
+     *                   properties:
+     *                     kind: { type: string, enum: [commit, snapshot, evidence, approval] }
+     *                     ref: { type: string, description: "Commit hash (>= 7 ký tự) hoặc id của snapshot / evidence / approval" }
+     *                     note: { type: string, maxLength: 300 }
+     *                 example: [{ kind: commit, ref: "a1b2c3d", note: "Tách module auth" }]
      *     responses:
      *       201:
      *         description: Quyết định thiết kế đã tạo
+     *       400:
+     *         description: Thiếu trường bắt buộc, hoặc nguồn không tồn tại trong project
      */
     router.get("/:id/decisions", checkRole("read"), pmController.getDecisions);
     router.post("/:id/decisions", checkRole("write"), pmController.createDecision);
@@ -1247,9 +1278,19 @@ export function createProjectRouter(
      *               consequences: { type: string }
      *               status: { type: string, enum: [Proposed, Accepted, Deprecated] }
      *               componentIds: { type: array, items: { type: string } }
+     *               origin: { type: string, enum: [recorded, reconstructed] }
+     *               sources:
+     *                 type: array
+     *                 description: Khi gửi sẽ thay toàn bộ danh sách nguồn (cùng quy tắc kiểm tra như khi tạo)
+     *                 items:
+     *                   type: object
+     *                   properties:
+     *                     kind: { type: string, enum: [commit, snapshot, evidence, approval] }
+     *                     ref: { type: string }
+     *                     note: { type: string }
      *     responses:
      *       200:
-     *         description: Quyết định đã được cập nhật
+     *         description: Quyết định đã được cập nhật; đổi status được ghi thêm vào statusHistory
      *   delete:
      *     tags: [Projects - Decisions (ADR)]
      *     summary: Xóa quyết định thiết kế kiến trúc (PM-04)

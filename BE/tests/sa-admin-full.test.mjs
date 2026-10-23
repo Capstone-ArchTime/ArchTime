@@ -36,7 +36,7 @@ test("CancelAdminJobUseCase: successfully cancels queued or running job", async 
 
   try {
     const mockJob = {
-      _id: "job-123",
+      _id: "64b0000000000000000000a1",
       projectId: "proj-1",
       status: JobStatus.RUNNING,
       stage: "Cloning repo",
@@ -61,7 +61,7 @@ test("CancelAdminJobUseCase: successfully cancels queued or running job", async 
 
     const useCase = new CancelAdminJobUseCase();
     const result = await useCase.execute({
-      jobId: "job-123",
+      jobId: "64b0000000000000000000a1",
       adminUserId: "admin-1",
     });
 
@@ -69,7 +69,7 @@ test("CancelAdminJobUseCase: successfully cancels queued or running job", async 
     assert.equal(result.cancelledBy, "admin-1");
     assert.ok(result.cancelledAt);
     assert.equal(auditPayload?.action, AuditAction.JOB_CANCEL);
-    assert.equal(auditPayload?.targetId, "job-123");
+    assert.equal(auditPayload?.targetId, "64b0000000000000000000a1");
   } finally {
     MiningJobModel.findById = originalFindById;
     AuditService.log = originalAuditLog;
@@ -81,14 +81,14 @@ test("CancelAdminJobUseCase: throws 400 when job is already completed or failed"
 
   try {
     MiningJobModel.findById = async () => ({
-      _id: "job-done",
+      _id: "64b0000000000000000000a2",
       status: JobStatus.COMPLETED,
     });
 
     const useCase = new CancelAdminJobUseCase();
     await assert.rejects(
       async () => {
-        await useCase.execute({ jobId: "job-done", adminUserId: "admin-1" });
+        await useCase.execute({ jobId: "64b0000000000000000000a2", adminUserId: "admin-1" });
       },
       (err) => err instanceof AppError && err.statusCode === 400,
     );

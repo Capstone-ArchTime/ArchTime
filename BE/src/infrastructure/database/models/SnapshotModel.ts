@@ -16,6 +16,8 @@ export interface ISnapshot {
   depRemoved: number;
   nodes: { id: string; name: string; type: string }[];
   edges: { source: string; target: string; type: string }[];
+  /** Set when a scan found the commit no longer reachable from the remote's branches and tags (force-push, deleted branch). */
+  missingSince?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,6 +38,7 @@ const SnapshotSchema = new Schema<ISnapshotDocument>(
     archChanges: { type: Number, default: 0 },
     depAdded: { type: Number, default: 0 },
     depRemoved: { type: Number, default: 0 },
+    missingSince: { type: Date, default: null },
     nodes: [
       {
         id: { type: String },

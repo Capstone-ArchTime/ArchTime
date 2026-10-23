@@ -35,7 +35,7 @@ ArchitectureMappingModel.findOneAndUpdate = (filter, update) => {
   Object.assign(row, update.$set, { updatedAt: new Date() });
   return q(row);
 };
-ProjectModel.findOne = async filter => (filter._id === PROJECT && filter.userId === OWNER ? { _id: PROJECT } : null);
+ProjectModel.findOne = async filter => (filter._id === PROJECT ? { _id: PROJECT } : null); // who may act is checked on the route (projectRole)
 ProjectModel.findById = async id => (id === PROJECT ? { _id: PROJECT } : null);
 const jobs = [];
 MiningJobModel.exists = async () => (jobs.some(j => ['queued', 'running'].includes(j.status)) ? { _id: 1 } : null);
@@ -173,11 +173,12 @@ test('a user cannot pass a malformed model id', async () => {
   await assert.rejects(new ArchitectureUseCase().refine(PROJECT, OWNER, { modelId: 'nope' }), /Invalid model ID/);
 });
 
-test('only the owner can start a refinement and only one job per project runs at a time', async () => {
+test('refining needs an existing workspace, and only one job per project runs at a time', async () => {
   let release;
   enable(fakeClient(() => new Promise((_, reject) => { release = () => reject(new LlmError('auth', 'stop')); }))); // holds the first job open
   const useCase = new ArchitectureUseCase();
-  await assert.rejects(useCase.refine(PROJECT, 'someone-else', {}), /Workspace not found/);
+  // Who may refine (owner, organization owner, maintainer) is checked on the route by projectRole.
+  await assert.rejects(useCase.refine('64b0000000000000000000aa', OWNER, {}), /Workspace not found/);
   await assert.rejects(useCase.refine(PROJECT, OWNER, { snapshotId: 'bad' }), /Invalid snapshot ID/);
   await useCase.refine(PROJECT, OWNER, {});
   await assert.rejects(useCase.refine(PROJECT, OWNER, {}), /already queued or running/);

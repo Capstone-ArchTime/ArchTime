@@ -97,7 +97,6 @@ const options: swaggerJsdoc.Options = {
               type: "string",
               enum: [
                 "developer-analyst",
-                "project-maintainer",
                 "system-administrator",
               ],
               example: "developer-analyst",
@@ -117,12 +116,12 @@ const options: swaggerJsdoc.Options = {
           properties: {
             id: { type: "string", example: "64f1a2b3c4d5e6f7a8b9c0d1" },
             name: { type: "string", example: "Jane Doe" },
+            username: { type: "string", example: "janedoe" },
             email: { type: "string", format: "email", example: "dev@archtime.io" },
             role: {
               type: "string",
               enum: [
                 "developer-analyst",
-                "project-maintainer",
                 "system-administrator",
               ],
               example: "developer-analyst",
@@ -146,7 +145,7 @@ const options: swaggerJsdoc.Options = {
             email: { type: "string", format: "email", example: "jane.doe@example.com" },
             role: {
               type: "string",
-              enum: ["developer-analyst", "project-maintainer", "system-administrator"],
+              enum: ["developer-analyst", "system-administrator"],
               example: "developer-analyst",
             },
             temporaryPassword: { type: "string", example: "ArchTime#2026!" },
@@ -158,8 +157,8 @@ const options: swaggerJsdoc.Options = {
           properties: {
             role: {
               type: "string",
-              enum: ["developer-analyst", "project-maintainer", "system-administrator"],
-              example: "project-maintainer",
+              enum: ["developer-analyst", "system-administrator"],
+              example: "system-administrator",
             },
           },
         },
@@ -782,11 +781,15 @@ const options: swaggerJsdoc.Options = {
       { name: "Projects - Approvals", description: "Hàng đợi xét duyệt các thay đổi kiến trúc (PM-05)" },
       { name: "Projects - Invitations", description: "Mời thành viên và quản lý lời mời dự án (PM-06)" },
       { name: "Projects - Reports", description: "Tạo và tải báo cáo tổng hợp kiến trúc dự án (PM-07)" },
+      { name: "Projects - Revisions", description: "Gắn bước (onboarding) với revision và kiểm tra commit còn tồn tại" },
+      { name: "Organizations", description: "Tổ chức, thành viên (Owner / Member) và credential repo thuộc tổ chức" },
       { name: "Admin - User Management", description: "Quản trị người dùng hệ thống (System Administrator)" },
       { name: "Admin - Mining Jobs", description: "Giám sát và quản lý các tác vụ mining toàn hệ thống" },
       { name: "Admin - Audit Logs", description: "Nhật ký kiểm toán hoạt động hệ thống" },
       { name: "Admin - System Settings", description: "Cấu hình tham số hệ thống và quản lý API keys" },
       { name: "Admin - Metrics & Health", description: "Giám sát tài nguyên máy chủ và tình trạng các dịch vụ" },
+      { name: "Admin - AI Models", description: "Quản lý và benchmark mô hình AI (System Administrator)" },
+      { name: "AI Models", description: "Danh sách và lịch sử sử dụng AI models của người dùng" },
       { name: "Health", description: "Kiểm tra trạng thái server" },
     ],
   },

@@ -119,7 +119,7 @@ test("GetAdminUsersUseCase: returns paginated safe users with meta", async () =>
       name: "Bob Dev",
       email: "bob@archtime.io",
       passwordHash: "secret2",
-      role: UserRole.DEVELOPER_ANALYST,
+      role: UserRole.USER,
       status: UserStatus.ACTIVE,
       isVerified: true,
       tokenVersion: 0,
@@ -129,7 +129,7 @@ test("GetAdminUsersUseCase: returns paginated safe users with meta", async () =>
       name: "Charlie Suspended",
       email: "charlie@archtime.io",
       passwordHash: "secret3",
-      role: UserRole.PROJECT_MAINTAINER,
+      role: UserRole.USER,
       status: UserStatus.SUSPENDED,
       isVerified: true,
       tokenVersion: 1,
@@ -165,7 +165,7 @@ test("GetAdminUsersUseCase: filters by role and status and search", async () => 
       name: "Bob Dev",
       email: "bob@archtime.io",
       passwordHash: "secret2",
-      role: UserRole.DEVELOPER_ANALYST,
+      role: UserRole.USER,
       status: UserStatus.ACTIVE,
       isVerified: true,
     },
@@ -174,7 +174,7 @@ test("GetAdminUsersUseCase: filters by role and status and search", async () => 
       name: "Charlie Dev",
       email: "charlie@archtime.io",
       passwordHash: "secret3",
-      role: UserRole.DEVELOPER_ANALYST,
+      role: UserRole.USER,
       status: UserStatus.SUSPENDED,
       isVerified: true,
     },
@@ -182,8 +182,8 @@ test("GetAdminUsersUseCase: filters by role and status and search", async () => 
 
   const useCase = new GetAdminUsersUseCase(repo);
 
-  // Filter role = DEVELOPER_ANALYST
-  const devResult = await useCase.execute({ role: UserRole.DEVELOPER_ANALYST });
+  // Filter role = USER
+  const devResult = await useCase.execute({ role: UserRole.USER });
   assert.equal(devResult.users.length, 2);
 
   // Filter status = SUSPENDED
@@ -218,13 +218,13 @@ test("InviteUserUseCase: invites user, sets active and verified", async () => {
   const result = await useCase.execute({
     name: "Diana Prince",
     email: "diana@archtime.io",
-    role: UserRole.PROJECT_MAINTAINER,
+    role: UserRole.USER,
   });
 
   assert.ok(result.user);
   assert.equal(result.user.name, "Diana Prince");
   assert.equal(result.user.email, "diana@archtime.io");
-  assert.equal(result.user.role, UserRole.PROJECT_MAINTAINER);
+  assert.equal(result.user.role, UserRole.USER);
   assert.equal(result.user.status, UserStatus.ACTIVE);
   assert.equal(result.user.isVerified, true);
   assert.ok(result.temporaryPassword.length >= 8);
@@ -238,7 +238,7 @@ test("InviteUserUseCase: rejects duplicate email with 409 Conflict", async () =>
       name: "Existing User",
       email: "existing@archtime.io",
       passwordHash: "h",
-      role: UserRole.DEVELOPER_ANALYST,
+      role: UserRole.USER,
       status: UserStatus.ACTIVE,
       isVerified: true,
     },
@@ -251,7 +251,7 @@ test("InviteUserUseCase: rejects duplicate email with 409 Conflict", async () =>
       useCase.execute({
         name: "New Name",
         email: "existing@archtime.io",
-        role: UserRole.DEVELOPER_ANALYST,
+        role: UserRole.USER,
       }),
     (err) => err instanceof AppError && err.statusCode === 409,
   );
@@ -277,7 +277,7 @@ test("UpdateUserRoleUseCase: prevents demoting the last System Administrator", a
       name: "Bob Dev",
       email: "bob@archtime.io",
       passwordHash: "h",
-      role: UserRole.DEVELOPER_ANALYST,
+      role: UserRole.USER,
       status: UserStatus.ACTIVE,
       isVerified: true,
       tokenVersion: 0,
@@ -291,7 +291,7 @@ test("UpdateUserRoleUseCase: prevents demoting the last System Administrator", a
       useCase.execute({
         currentUserId: "admin-1",
         targetUserId: "admin-1",
-        newRole: UserRole.DEVELOPER_ANALYST,
+        newRole: UserRole.USER,
       }),
     (err) => {
       assert.ok(err instanceof AppError);
@@ -330,10 +330,10 @@ test("UpdateUserRoleUseCase: successfully updates role when multiple admins exis
   const updated = await useCase.execute({
     currentUserId: "admin-1",
     targetUserId: "admin-2",
-    newRole: UserRole.PROJECT_MAINTAINER,
+    newRole: UserRole.USER,
   });
 
-  assert.equal(updated.role, UserRole.PROJECT_MAINTAINER);
+  assert.equal(updated.role, UserRole.USER);
   assert.equal(updated.tokenVersion, 1); // Sessions revoked on role change
 });
 
@@ -427,7 +427,7 @@ test("SuspendUserUseCase: suspends target user and increments tokenVersion", asy
       name: "Dev",
       email: "dev@archtime.io",
       passwordHash: "h",
-      role: UserRole.DEVELOPER_ANALYST,
+      role: UserRole.USER,
       status: UserStatus.ACTIVE,
       isVerified: true,
       tokenVersion: 0,
@@ -463,7 +463,7 @@ test("LoginUseCase: blocks suspended users from logging in", async () => {
       name: "Suspended Guy",
       email: "suspended@archtime.io",
       passwordHash: "hash-pass",
-      role: UserRole.DEVELOPER_ANALYST,
+      role: UserRole.USER,
       status: UserStatus.SUSPENDED,
       isVerified: true,
       tokenVersion: 0,
@@ -497,7 +497,7 @@ test("RefreshTokenUseCase: blocks token refresh for suspended users", async () =
       name: "Suspended",
       email: "susp@archtime.io",
       passwordHash: "h",
-      role: UserRole.DEVELOPER_ANALYST,
+      role: UserRole.USER,
       status: UserStatus.SUSPENDED,
       isVerified: true,
       tokenVersion: 0,

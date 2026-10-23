@@ -19,7 +19,10 @@ import {
   projectMaintainerController,
   llmController,
   projectChatController,
+  organizationController,
 } from "./container.js";
+import { createOrganizationRouter } from "./presentation/routes/organization.routes.js";
+import { createRevisionRouter } from "./presentation/routes/revision.routes.js";
 import { createLlmRouter } from "./presentation/routes/llm.routes.js";
 import { createProjectChatRouter } from "./presentation/routes/projectChat.routes.js";
 import { createGitHubRouter } from './presentation/routes/github.routes.js';
@@ -43,6 +46,7 @@ app.use("/api/health", healthRouter);
 app.use('/api/auth/github', createGitHubRouter(env, new GitHubIdentityService(env.githubClientId, env.githubClientSecret, env.githubCallbackUrl), new GitHubLoginUseCase(), new MongoUserRepository(), jwtTokenService));
 app.use("/api/auth", createAuthRouter(authController, jwtTokenService));
 app.use("/api/projects", createProjectChatRouter(projectChatController, jwtTokenService, projectRoleMiddleware));
+app.use("/api/projects", createRevisionRouter(jwtTokenService, projectRoleMiddleware));
 app.use(
   "/api/projects",
   createProjectRouter(
@@ -61,6 +65,7 @@ app.get(
   memberController.getTeamMembers,
 );
 app.use("/api/llm", createLlmRouter(llmController, jwtTokenService));
+app.use("/api/organizations", createOrganizationRouter(organizationController, jwtTokenService));
 app.use("/api/admin", createAdminRouter(adminControllersConfig, jwtTokenService));
 
 // ── Error Handling ──

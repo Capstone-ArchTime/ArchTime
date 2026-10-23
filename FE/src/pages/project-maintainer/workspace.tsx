@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { Alert, App, Empty, Select, Tag } from 'antd';
+import { Alert, App, Button, Empty, Select, Tag } from 'antd';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useSearchParams } from 'react-router-dom';
 import { getProjects, type ProjectSummary } from '@/features/project-data';
@@ -108,13 +108,44 @@ export function WorkspacePage({
   );
 }
 
-export function StorageError({ visible }: { visible: boolean }) {
-  return visible ? (
+export function StorageError({ visible, message, onRetry }: { visible: boolean; message?: string | null; onRetry?: () => void }) {
+  if (!visible) return null;
+  return (
     <Alert
       type="error"
       showIcon
-      title="Saved workspace could not be loaded. Saving is disabled to protect existing data."
+      title="This workspace could not be loaded from the server. Editing is disabled until it loads."
+      description={message ?? undefined}
+      action={onRetry && <Button size="small" onClick={onRetry}>Retry</Button>}
       className="mb-5"
     />
-  ) : null;
+  );
+}
+
+/** Shown after a save was rejected because the workspace changed since it was loaded. Loading the latest version discards the draft. */
+export function ConflictAlert({ error, dirty, onReload }: { error: string | null; dirty?: boolean; onReload: () => void }) {
+  const { modal } = App.useApp();
+  if (!error) return null;
+  const reload = () => dirty
+    ? modal.confirm({
+      title: 'Load the latest version?',
+      content: 'Your unsaved changes will be discarded. Copy anything you want to keep before continuing.',
+      okText: 'Discard and load latest',
+      okButtonProps: { danger: true },
+      onOk: onReload,
+    })
+    : onReload();
+  return (
+    <Alert
+      type="error"
+      showIcon
+      title="Not saved: this workspace was changed by someone else"
+      description={
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-1">
+          <span>{error} Your changes were kept here but not saved.</span>
+          <Button size="small" danger onClick={reload}>Load latest version</Button>
+        </div>
+      }
+    />
+  );
 }

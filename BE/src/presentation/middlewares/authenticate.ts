@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import type { JwtTokenService } from "../../infrastructure/services/JwtTokenService.js";
 import { AppError, UnauthorizedError } from "../../shared/errors/AppError.js";
-import { UserStatus, type UserRole } from "../../domain/entities/User.js";
+import { UserStatus } from "../../domain/entities/User.js";
 import { MongoUserRepository } from "../../infrastructure/repositories/MongoUserRepository.js";
 
 export function createAuthenticateMiddleware(jwtService: JwtTokenService) {
@@ -28,7 +28,8 @@ export function createAuthenticateMiddleware(jwtService: JwtTokenService) {
       if (!user.isVerified) {
         throw new UnauthorizedError("Email not verified.");
       }
-      req.user = { userId: payload.userId, role: payload.role as UserRole };
+      // The stored role, not the token's, so a role change or the legacy-role migration applies at once.
+      req.user = { userId: payload.userId, role: user.role };
       next();
     } catch (err) {
       if (err instanceof AppError) {

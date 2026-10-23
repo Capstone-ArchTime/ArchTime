@@ -26,6 +26,9 @@ export interface IUserRepository {
   updateRole(userId: string, role: UserRole): Promise<IUser | null>;
   updateStatus(userId: string, status: UserStatus): Promise<IUser | null>;
   revokeSessions(userId: string): Promise<void>;
+  existsByUsername(username: string, exceptUserId?: string): Promise<boolean>;
+  /** `username: null` clears it. */
+  updateProfile(userId: string, patch: { name?: string; username?: string | null }): Promise<IUser | null>;
   countByRole(role: UserRole): Promise<number>;
   requestPasswordReset(userId: string, tokenHash: string, now: Date, expiresAt: Date): Promise<boolean>;
   resetPassword(email: string, tokenHash: string, passwordHash: string, now: Date): Promise<boolean>;
