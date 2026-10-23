@@ -2,17 +2,13 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { App } from 'antd';
 import { useAuth } from '@/auth/auth-context';
 import { demoProjects } from '@/features/maintainer-demo';
-import { apiRequest, ApiError } from '@/api/client';
 import { getProjects } from '@/features/project-data';
+import { fetchServerWorkspace, isRevisionConflict, isServerProjectId, saveServerWorkspace } from '@/features/workspace-sync';
+import type { Component, Decision, Dependency, Rule, Workspace } from '@/features/workspace-sync';
 
 export const projects = demoProjects;
 export const panel = 'border border-[#242527] bg-[#11161b] p-5';
-export type Component = { id: string; name: string; kind: string; description: string };
-export type Dependency = { id: string; source: string; target: string; label: string };
-export type Diagram = { components: Component[]; dependencies: Dependency[]; revision: number; confirmedAt: string | null };
-export type Rule = { id: string; name: string; source: string; target: string; constraint: 'forbidden' | 'required'; severity: 'error' | 'warning'; rationale: string; enabled: boolean };
-export type Decision = { id: string; number: number; title: string; status: 'Proposed' | 'Accepted' | 'Deprecated'; context: string; decision: string; alternatives: string; consequences: string; componentIds: string[]; createdAt: string; updatedAt: string };
-export type Workspace = { diagram: Diagram; rules: Rule[]; decisions: Decision[] };
+export type { Component, Dependency, Diagram, Rule, Decision, Workspace } from '@/features/workspace-sync';
 
 export function initialWorkspace(project: string): Workspace {
   const service = project === projects[1] ? 'Payment Service' : project === projects[2] ? 'Patient Service' : 'Catalog Service';
@@ -72,251 +68,156 @@ function isValidWorkspace(value: any): value is Workspace {
   return validComponents && validDependencies && validRules && validDecisions;
 }
 
+type LoadState = {
+  data: Workspace;
+  /** Server project id, or null for a sample workspace kept in this browser. */
+  projectId: string | null;
+  status: 'loading' | 'ready' | 'error';
+  error: string | null;
+  conflictError: string | null;
+  /** localStorage text the sample workspace was read from; detects edits made in another tab. */
+  snapshot: string | null;
+  /** Increases on every (re)load, so editors know to replace their draft with what was loaded. */
+  loadVersion: number;
+};
+
+async function resolveServerProject(project: string): Promise<string | null> {
+  if (isServerProjectId(project)) return project;
+  try {
+    const match = (await getProjects()).find((p) => p.name.toLowerCase() === project.toLowerCase());
+    return match?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A server workspace is read from and written to the API only: if it cannot be loaded, editing is disabled instead of
+ * falling back to a browser copy that a later save would push over newer server data. Every save carries the revision
+ * that was loaded; the server rejects it with 409 when someone else saved in between.
+ */
 export function useWorkspace(project: string) {
   const { message } = App.useApp();
   const { user } = useAuth();
   const key = `archtime:maintainer:v2:${user?.id}:${project}`;
-
-  const [state, setState] = useState<{
-    data: Workspace;
-    snapshot: string | null;
-    loadError: boolean;
-    loading: boolean;
-    conflictError: string | null;
-    resolvedProjectId: string | null;
-  }>(() => {
-    try {
-      const saved = localStorage.getItem(key);
-      if (!saved) {
-        return {
-          data: initialWorkspace(project),
-          snapshot: null,
-          loadError: false,
-          loading: true,
-          conflictError: null,
-          resolvedProjectId: null,
-        };
-      }
-      const value = JSON.parse(saved);
-      if (!isValidWorkspace(value)) throw new Error('Invalid workspace');
-      return {
-        data: value,
-        snapshot: saved,
-        loadError: false,
-        loading: true,
-        conflictError: null,
-        resolvedProjectId: null,
-      };
-    } catch {
-      return {
-        data: initialWorkspace(project),
-        snapshot: null,
-        loadError: false,
-        loading: true,
-        conflictError: null,
-        resolvedProjectId: null,
-      };
-    }
+  const [state, setState] = useState<LoadState>({
+    data: initialWorkspace(project), projectId: null, status: 'loading', error: null, conflictError: null, snapshot: null, loadVersion: 0,
   });
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const loadRef = useRef(0);
 
-  const { data, loadError, loading, conflictError, resolvedProjectId } = state;
-  const isFetchingRef = useRef(false);
+  const load = useCallback(async () => {
+    const attempt = ++loadRef.current;
+    const projectId = await resolveServerProject(project);
+    if (attempt !== loadRef.current) return;
 
-  // 1. Resolve project ID: Check if project is a 24-character ObjectId or matches a server project
-  const loadServerWorkspace = useCallback(async () => {
-    if (isFetchingRef.current) return;
-    isFetchingRef.current = true;
-
-    try {
-      let targetId: string | null = null;
-      if (/^[0-9a-fA-F]{24}$/.test(project)) {
-        targetId = project;
-      } else {
-        // Try looking up server projects by name
-        try {
-          const serverList = await getProjects();
-          const match = serverList.find(
-            (p) => p.name.toLowerCase() === project.toLowerCase() || p.id === project
-          );
-          if (match) targetId = match.id;
-        } catch {
-          // Offline or demo
-        }
+    if (projectId) {
+      try {
+        const data = await fetchServerWorkspace(projectId);
+        if (attempt !== loadRef.current) return;
+        setState((prev) => ({ data, projectId, status: 'ready', error: null, conflictError: null, snapshot: null, loadVersion: prev.loadVersion + 1 }));
+      } catch (err) {
+        if (attempt !== loadRef.current) return;
+        const error = err instanceof Error ? err.message : 'Could not load the workspace.';
+        setState((prev) => ({ ...prev, projectId, status: 'error', error }));
       }
-
-      if (targetId) {
-        const res = await apiRequest<{ data?: { workspace?: any } }>(
-          `/projects/${encodeURIComponent(targetId)}/workspace`
-        );
-        if (res?.data?.workspace) {
-          const ws = res.data.workspace;
-          const loaded: Workspace = {
-            diagram: {
-              components: ws.diagram?.components ?? [],
-              dependencies: ws.diagram?.dependencies ?? [],
-              revision: ws.diagram?.revision ?? ws.revision ?? 1,
-              confirmedAt: ws.diagram?.confirmedAt ?? null,
-            },
-            rules: ws.rules ?? [],
-            decisions: ws.decisions ?? [],
-          };
-          const snap = JSON.stringify(loaded);
-          setState((prev) => ({
-            ...prev,
-            data: loaded,
-            snapshot: snap,
-            loadError: false,
-            loading: false,
-            conflictError: null,
-            resolvedProjectId: targetId,
-          }));
-          try {
-            localStorage.setItem(key, snap);
-          } catch {}
-          return;
-        }
-      }
-
-      // If no server project ID found, read from localStorage fallback
-      const saved = localStorage.getItem(key);
-      if (saved) {
-        const val = JSON.parse(saved);
-        if (isValidWorkspace(val)) {
-          setState((prev) => ({
-            ...prev,
-            data: val,
-            snapshot: saved,
-            loadError: false,
-            loading: false,
-            conflictError: null,
-            resolvedProjectId: null,
-          }));
-          return;
-        }
-      }
-
-      setState((prev) => ({
-        ...prev,
-        data: initialWorkspace(project),
-        snapshot: null,
-        loadError: false,
-        loading: false,
-        conflictError: null,
-        resolvedProjectId: null,
-      }));
-    } catch (err: any) {
-      // If error fetching server workspace
-      setState((prev) => ({
-        ...prev,
-        loading: false,
-        loadError: false,
-        conflictError: null,
-      }));
-    } finally {
-      isFetchingRef.current = false;
+      return;
     }
+
+    let saved: string | null = null;
+    try { saved = localStorage.getItem(key); } catch { /* storage blocked */ }
+    let data = initialWorkspace(project);
+    if (saved) {
+      try {
+        const value = JSON.parse(saved);
+        if (!isValidWorkspace(value)) throw new Error('Invalid workspace');
+        data = value;
+      } catch {
+        setState((prev) => ({ ...prev, projectId: null, status: 'error', error: null, snapshot: saved }));
+        return;
+      }
+    }
+    setState((prev) => ({ data, projectId: null, status: 'ready', error: null, conflictError: null, snapshot: saved, loadVersion: prev.loadVersion + 1 }));
   }, [project, key]);
 
   useEffect(() => {
-    loadServerWorkspace();
-  }, [loadServerWorkspace]);
+    const loads = loadRef;
+    load();
+    return () => { loads.current++; };
+  }, [load]);
 
-  // 2. Save workspace with Optimistic Concurrency Control
-  const save = async (next: Workspace): Promise<boolean> => {
-    if (user?.role !== 'project-maintainer') {
-      message.error('Only project maintainers can save this workspace.');
-      return false;
+  const reload = useCallback(() => {
+    setState((prev) => ({ ...prev, status: 'loading', error: null }));
+    load();
+  }, [load]);
+
+  /** Returns the saved workspace, or null when nothing was saved (the reason has already been shown). */
+  const save = async (next: Workspace): Promise<Workspace | null> => {
+    if (state.status !== 'ready') {
+      message.error(state.status === 'loading' ? 'The workspace is still loading.' : 'The workspace could not be loaded, so saving is disabled.');
+      return null;
     }
-    if (loadError) {
-      message.error(
-        'Stored workspace could not be read. Restore browser storage before saving to avoid overwriting it.'
-      );
-      return false;
+    if (savingRef.current) {
+      message.warning('The previous change is still being saved. Try again in a moment.');
+      return null;
     }
-
-    // A. If connected to backend project, persist via API
-    if (resolvedProjectId) {
-      try {
-        const res = await apiRequest<{ data?: { workspace?: any }; message?: string }>(
-          `/projects/${encodeURIComponent(resolvedProjectId)}/workspace`,
-          {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              expectedRevision: data.diagram.revision,
-              diagram: next.diagram,
-              rules: next.rules,
-              decisions: next.decisions,
-            }),
-          }
-        );
-
-        if (res?.data?.workspace) {
-          const ws = res.data.workspace;
-          const updated: Workspace = {
-            diagram: {
-              components: ws.diagram?.components ?? next.diagram.components,
-              dependencies: ws.diagram?.dependencies ?? next.diagram.dependencies,
-              revision: ws.diagram?.revision ?? ws.revision ?? next.diagram.revision + 1,
-              confirmedAt: ws.diagram?.confirmedAt ?? next.diagram.confirmedAt,
-            },
-            rules: ws.rules ?? next.rules,
-            decisions: ws.decisions ?? next.decisions,
-          };
-          const snap = JSON.stringify(updated);
-          setState((prev) => ({
-            ...prev,
-            data: updated,
-            snapshot: snap,
-            loadError: false,
-            conflictError: null,
-          }));
-          try {
-            localStorage.setItem(key, snap);
-          } catch {}
-          return true;
-        }
-      } catch (err: any) {
-        if (err instanceof ApiError && (err.status === 409 || err.code === 'CONFLICT')) {
-          const conflictMsg =
-            err.message ||
-            'Workspace revision conflict: someone else modified this workspace. Please reload to avoid overwriting changes.';
-          setState((prev) => ({ ...prev, conflictError: conflictMsg }));
-          message.error(conflictMsg);
-          return false;
-        }
-
-        const msg = err.message || 'Could not save workspace to server. Please retry.';
-        message.error(msg);
-        return false;
-      }
-    }
-
-    // B. Local fallback for demo project without backend entity
+    savingRef.current = true;
+    setSaving(true);
     try {
-      if (localStorage.getItem(key) !== state.snapshot) {
-        message.error(
-          'This workspace changed in another tab. Reload before saving to avoid overwriting newer changes.'
-        );
-        return false;
+      if (state.projectId) {
+        const projectId = state.projectId;
+        try {
+          const data = await saveServerWorkspace(projectId, state.data.diagram.revision, next);
+          setState((prev) => (prev.projectId === projectId ? { ...prev, data, conflictError: null } : prev));
+          return data;
+        } catch (err) {
+          if (isRevisionConflict(err)) {
+            const conflictError = (err as Error).message;
+            setState((prev) => ({ ...prev, conflictError }));
+            message.error('Not saved: someone else changed this workspace.');
+            return null;
+          }
+          message.error(err instanceof Error ? err.message : 'Could not save the workspace. Please retry.');
+          return null;
+        }
       }
-      const snapshot = JSON.stringify(next);
-      localStorage.setItem(key, snapshot);
-      setState((prev) => ({ ...prev, data: next, snapshot, loadError: false, conflictError: null }));
-      return true;
-    } catch {
-      message.error('Could not save. Check browser storage permissions or available space.');
-      return false;
+
+      if (user?.role !== 'project-maintainer') {
+        message.error('Only project maintainers can save this workspace.');
+        return null;
+      }
+      try {
+        if (localStorage.getItem(key) !== state.snapshot) {
+          const conflictError = 'This workspace changed in another tab. Reload it before saving to avoid overwriting newer changes.';
+          setState((prev) => ({ ...prev, conflictError }));
+          message.error(conflictError);
+          return null;
+        }
+        const snapshot = JSON.stringify(next);
+        localStorage.setItem(key, snapshot);
+        setState((prev) => ({ ...prev, data: next, snapshot, conflictError: null }));
+        return next;
+      } catch {
+        message.error('Could not save. Check browser storage permissions or available space.');
+        return null;
+      }
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   };
 
   return {
-    data,
+    data: state.data,
     save,
-    loadError,
-    loading,
-    conflictError,
-    resolvedProjectId,
-    reload: loadServerWorkspace,
+    saving,
+    loading: state.status === 'loading',
+    loadError: state.status === 'error',
+    loadErrorMessage: state.error,
+    conflictError: state.conflictError,
+    resolvedProjectId: state.projectId,
+    loadVersion: state.loadVersion,
+    reload,
   };
 }
