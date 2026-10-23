@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { Alert, App, Select, Tag } from 'antd';
+import { Alert, App, Empty, Select, Tag } from 'antd';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { projects as fallbackDemoProjects } from './workspace-store';
 import { useSearchParams } from 'react-router-dom';
 import { getProjects, type ProjectSummary } from '@/features/project-data';
 
@@ -18,7 +17,8 @@ export function WorkspacePage({
   const [params, setParams] = useSearchParams();
   const requested = params.get('project') || params.get('projectId');
   const [serverProjects, setServerProjects] = useState<ProjectSummary[]>([]);
-  const [project, setProject] = useState(requested || fallbackDemoProjects[0]);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [project, setProject] = useState(requested ?? '');
   const [dirty, setDirty] = useState(false);
   const { modal } = App.useApp();
 
@@ -26,15 +26,13 @@ export function WorkspacePage({
     let active = true;
     getProjects()
       .then((list) => {
-        if (active && list.length) {
-          setServerProjects(list);
-          if (!requested) {
-            setProject(list[0].id);
-          }
-        }
+        if (!active) return;
+        setServerProjects(list);
+        setStatus('ready');
+        if (!requested && list.length) setProject(list[0].id);
       })
       .catch(() => {
-        // Demo or offline fallback
+        if (active) setStatus('error');
       });
     return () => {
       active = false;
@@ -61,15 +59,7 @@ export function WorkspacePage({
     });
   }
 
-  const isServerProject =
-    /^[0-9a-fA-F]{24}$/.test(project) || serverProjects.some((p) => p.id === project);
-
-  const selectOptions = [
-    ...serverProjects.map((p) => ({ value: p.id, label: `${p.name} (Cloud)` })),
-    ...fallbackDemoProjects
-      .filter((d) => !serverProjects.some((sp) => sp.name.toLowerCase() === d.toLowerCase()))
-      .map((p) => ({ value: p, label: `${p} (Sample)` })),
-  ];
+  const options = serverProjects.map((p) => ({ value: p.id, label: p.name }));
 
   return (
     <DashboardLayout>
@@ -89,26 +79,30 @@ export function WorkspacePage({
             <Select
               id="maintainer-project"
               className="w-full"
-              value={project}
+              value={project || undefined}
               onChange={changeProject}
-              options={selectOptions.length ? selectOptions : fallbackDemoProjects.map((p) => ({ value: p, label: p }))}
+              options={options}
+              loading={status === 'loading'}
+              disabled={!options.length}
+              placeholder={status === 'loading' ? 'Loading workspaces…' : 'No workspaces'}
             />
           </div>
         </header>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-[#94a3b8]">
-          {isServerProject ? (
-            <>
+        {status === 'error' && (
+          <Alert type="error" showIcon title="Workspaces could not be loaded. Check your connection and reload the page." />
+        )}
+        {status === 'ready' && !project && (
+          <Empty description="No workspaces yet. A workspace appears here once a repository has been registered." />
+        )}
+        {project && (
+          <>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-[#94a3b8]">
               <Tag color="green">API Synchronized</Tag>
               Persistent architecture workspace with Optimistic Concurrency Control (OCC revision tracking).
-            </>
-          ) : (
-            <>
-              <Tag color="blue">Local workspace</Tag>
-              Sample diagram to get started. Changes are saved in this browser only.
-            </>
-          )}
-        </div>
-        <div key={project}>{children(project, setDirty)}</div>
+            </div>
+            <div key={project}>{children(project, setDirty)}</div>
+          </>
+        )}
       </div>
     </DashboardLayout>
   );

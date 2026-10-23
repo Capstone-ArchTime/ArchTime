@@ -22,23 +22,13 @@ export class GetProjectDiagramUseCase {
 
     let ws = await this.workspaceRepository.findByProjectId(projectId);
     if (!ws) {
-      // Default fallback
-      const defaultName = `${project.name} Service`;
+      // No saved workspace yet: start it empty rather than with invented components.
       const initial = await this.workspaceRepository.create({
         projectId,
         revision: 1,
         diagram: {
-          components: [
-            { id: "web", name: "Web Application", kind: "UI", description: "Frontend UI" },
-            { id: "api", name: "API Gateway", kind: "Service", description: "API Routing" },
-            { id: "service", name: defaultName, kind: "Service", description: "Core Domain" },
-            { id: "db", name: "Database", kind: "Database", description: "Persistence" },
-          ],
-          dependencies: [
-            { id: "e1", source: "web", target: "api", label: "HTTPS" },
-            { id: "e2", source: "api", target: "service", label: "REST" },
-            { id: "e3", source: "service", target: "db", label: "SQL" },
-          ],
+          components: [],
+          dependencies: [],
           revision: 1,
           confirmedAt: null,
           confirmedBy: null,

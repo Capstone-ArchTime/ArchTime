@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, App, Button, Empty, Form, Input, Modal, Popconfirm, Select, Tag } from 'antd';
 import { CheckCircle2, Plus, Save } from 'lucide-react';
 import { WorkspacePage, StorageError } from './workspace';
@@ -8,9 +8,10 @@ import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { downloadText } from '@/features/download';
 
 function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyChange: (dirty: boolean) => void }) {
-  const { data, save, loadError, conflictError, reload } = useWorkspace(project);
+  const { data, save, loadError, conflictError, reload, loading } = useWorkspace(project);
   const { message, modal } = App.useApp();
   const [draft, setDraft] = useState<Diagram>(data.diagram);
+  const adoptedFirstLoad = useRef(false);
   const [component, setComponent] = useState<Component | null | undefined>();
   const [edgeOpen, setEdgeOpen] = useState(false);
   const [editingEdge, setEditingEdge] = useState<Dependency | null>(null);
@@ -20,10 +21,19 @@ function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyCha
   useUnsavedChanges(dirty);
   useEffect(() => { onDirtyChange(dirty); }, [dirty, onDirtyChange]);
   useEffect(() => {
+    if (loading) return;
+    // The draft starts empty and the server's diagram arrives later, so it always differs from what was loaded: the first
+    // load replaces it unconditionally. After that, a new server version only replaces a draft nobody has edited.
+    if (!adoptedFirstLoad.current) {
+      adoptedFirstLoad.current = true;
+      setDraft(data.diagram);
+      return;
+    }
     if (!dirty) {
       setDraft(data.diagram);
     }
-  }, [data.diagram]);
+  }, [data.diagram, loading]);
+  if (loading) return <p role="status" className="text-sm text-[#94a3b8]">Loading workspace…</p>;
 
   const options = draft.components.map(c => ({ label: c.name, value: c.id }));
   function update(next: Diagram) { setDraft({ ...next, confirmedAt: null }); }
@@ -60,7 +70,7 @@ function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyCha
         }
       />
     )}
-    <div className="flex flex-wrap gap-2"><Button onClick={() => downloadText('component-diagram.json', JSON.stringify({ project, diagram: data.diagram, source: 'local-demo' }, null, 2))} disabled={loadError}>Export saved diagram</Button><Button disabled={!dirty} onClick={() => modal.confirm({ title: 'Discard unsaved diagram changes?', okText: 'Discard', okButtonProps: { danger: true }, onOk: () => setDraft(data.diagram) })}>Discard changes</Button></div>
+    <div className="flex flex-wrap gap-2"><Button onClick={() => downloadText('component-diagram.json', JSON.stringify({ project, diagram: data.diagram, source: 'archtime' }, null, 2))} disabled={loadError}>Export saved diagram</Button><Button disabled={!dirty} onClick={() => modal.confirm({ title: 'Discard unsaved diagram changes?', okText: 'Discard', okButtonProps: { danger: true }, onOk: () => setDraft(data.diagram) })}>Discard changes</Button></div>
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex flex-wrap items-center gap-2"><Tag color={draft.confirmedAt ? 'green' : 'gold'}>{draft.confirmedAt ? 'Confirmed' : 'Needs confirmation'}</Tag><span className="text-xs text-[#94a3b8]">Revision {data.diagram.revision}{dirty ? ' • Unsaved changes' : ' • Saved'}</span></div>
       <div className="flex flex-wrap gap-2"><Button icon={<Save size={14} />} disabled={!dirty || loadError} onClick={() => persist(false)}>Save draft</Button><Button type="primary" icon={<CheckCircle2 size={14} />} disabled={loadError || !draft.components.length || (!!draft.confirmedAt && !dirty)} onClick={() => modal.confirm({ title: 'Confirm this component diagram?', content: 'The current components and dependencies will become the reviewed diagram. Further edits will require confirmation again.', onOk: () => persist(true) })}>Confirm diagram</Button></div>
