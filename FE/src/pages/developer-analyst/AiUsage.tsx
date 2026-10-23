@@ -7,12 +7,13 @@ import { getProjects } from '@/features/project-data';
 import type { ProjectSummary } from '@/features/project-data';
 import { formatCost, formatMs, formatPercent, formatTokens, getMyRuns, statusColor, statusLabel } from '@/features/llm-api';
 import type { LlmRun, PageMeta, RunTotals } from '@/features/llm-api';
+import { hasQuality, resultLabel, runKindNote } from '@/features/llm-run-view';
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return <div className={featurePanel}><p className="text-xs uppercase tracking-wider text-[#94a3b8]">{label}</p><p className="mt-2 text-2xl font-semibold font-mono">{value}</p>{hint && <p className="mt-1 text-xs text-[#94a3b8]">{hint}</p>}</div>;
 }
 
-/** Every time the user asked an AI model to draw an architecture: which model, tokens in/out/total, time, cost and outcome. */
+/** Every time the user asked an AI model something, to draw an architecture or to ask a question in AI Insights: which model, tokens in/out/total, time, cost and outcome. */
 export default function AiUsage() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [projectId, setProjectId] = useState<string | undefined>();
@@ -40,19 +41,19 @@ export default function AiUsage() {
 
   const columns: ColumnsType<LlmRun> = [
     { title: 'When', dataIndex: 'createdAt', render: (v: string) => new Date(v).toLocaleString() },
-    { title: 'Workspace', render: (_, r) => <Link to={`/architecture#project=${encodeURIComponent(r.project.id)}${r.snapshotId ? `&snapshot=${encodeURIComponent(r.snapshotId)}` : ''}`}>{r.project.name ?? r.project.id}</Link> },
-    { title: 'Model', render: (_, r) => <span><span className="font-medium">{r.model}</span><span className="block text-[11px] text-[#94a3b8]">{r.provider}{r.mode === 'name-only' ? ' · names only' : ''}</span></span> },
+    { title: 'Workspace', render: (_, r) => r.project.name ? <Link to={`/architecture#project=${encodeURIComponent(r.project.id)}${r.snapshotId ? `&snapshot=${encodeURIComponent(r.snapshotId)}` : ''}`}>{r.project.name}</Link> : <span className="text-[#94a3b8]">Deleted workspace</span> },
+    { title: 'Model', render: (_, r) => <span><span className="font-medium">{r.model}</span><span className="block text-[11px] text-[#94a3b8]">{r.provider}{runKindNote(r.mode) ? ` · ${runKindNote(r.mode)}` : ''}</span></span> },
     { title: 'Input tokens', align: 'right', render: (_, r) => <span className="font-mono">{formatTokens(r.usage.inputTokens)}</span> },
     { title: 'Output tokens', align: 'right', render: (_, r) => <span className="font-mono">{formatTokens(r.usage.outputTokens)}</span> },
     { title: 'Total tokens', align: 'right', render: (_, r) => <Tooltip title={r.usage.estimated ? 'The provider did not report usage; estimated from text length.' : undefined}><span className="font-mono font-semibold">{formatTokens(r.usage.totalTokens)}{r.usage.estimated ? '*' : ''}</span></Tooltip> },
     { title: 'Time', align: 'right', render: (_, r) => formatMs(r.latencyMs) },
     { title: 'Cost', align: 'right', render: (_, r) => formatCost(r.cost?.amount, r.cost?.currency) },
-    { title: 'Result', render: (_, r) => <Tooltip title={r.fallbackReason}><Tag color={statusColor[r.status]}>{statusLabel[r.status]}</Tag></Tooltip> },
-    { title: 'Quality', align: 'right', render: (_, r) => <Tooltip title={`Attempts ${r.quality.attemptsUsed} · validity ${formatPercent(r.quality.V)} · cohesion ${formatPercent(r.quality.M)} · roles ${formatPercent(r.quality.R)}${r.quality.G !== undefined ? ` · grounded names ${formatPercent(r.quality.G)} · no cycles ${formatPercent(r.quality.C)} · layering ${formatPercent(r.quality.L)} · balance ${formatPercent(r.quality.Bal)}` : ''}${r.quality.agreement !== undefined ? ` · matches reference ${formatPercent(Math.max(0, r.quality.agreement))}` : ''}`}>{r.status === 'accepted' ? formatPercent(r.quality.score) : '–'}</Tooltip> },
+    { title: 'Result', render: (_, r) => <Tooltip title={r.fallbackReason ?? (r.status === 'failed' && r.errorKind ? `Failed: ${r.errorKind.replace(/_/g, ' ')}` : undefined)}><Tag color={statusColor[r.status]}>{resultLabel(r, statusLabel)}</Tag></Tooltip> },
+    { title: 'Quality', align: 'right', render: (_, r) => !hasQuality(r) ? <Tooltip title="Quality is only scored when a model draws an architecture."><span><span aria-hidden="true">–</span><span className="sr-only">Not scored: quality is only scored when a model draws an architecture.</span></span></Tooltip> : <Tooltip title={`Attempts ${r.quality.attemptsUsed} · validity ${formatPercent(r.quality.V)} · cohesion ${formatPercent(r.quality.M)} · roles ${formatPercent(r.quality.R)}${r.quality.G !== undefined ? ` · grounded names ${formatPercent(r.quality.G)} · no cycles ${formatPercent(r.quality.C)} · layering ${formatPercent(r.quality.L)} · balance ${formatPercent(r.quality.Bal)}` : ''}${r.quality.agreement !== undefined ? ` · matches reference ${formatPercent(Math.max(0, r.quality.agreement))}` : ''}`}>{r.status === 'accepted' ? formatPercent(r.quality.score) : '–'}</Tooltip> },
   ];
 
   const t = result?.totals;
-  return <FeaturePage title="AI Usage" description="Each time you asked an AI model to draw an architecture: the model used, tokens sent and received, time taken and cost." demo={false}
+  return <FeaturePage title="AI Usage" description="Each time you asked an AI model to draw an architecture or asked a question in AI Insights: the model used, tokens sent and received, time taken and cost." demo={false}
     actions={<div className="flex gap-2">
       <Select allowClear placeholder="All workspaces" aria-label="Filter by workspace" className="min-w-56" value={projectId} onChange={(v?: string) => { setProjectId(v); setPage(1); }} options={projects.map(p => ({ value: p.id, label: p.name }))} />
       <Button loading={loading} onClick={() => setRevision(v => v + 1)}>Refresh</Button>
@@ -66,10 +67,10 @@ export default function AiUsage() {
       <Stat label="Cost" value={formatCost(t?.cost ?? 0)} hint="At the prices set by your administrator" />
     </div>
     <div className={featurePanel}>
-      {!loading && result && !result.runs.length ? <Empty description={<span>No AI runs yet. Use <b>Refine with AI</b> on the <Link to="/architecture">Architecture Map</Link>.</span>} /> :
+      {!loading && result && !result.runs.length ? <Empty description={<span>No AI runs yet. Use <b>Refine with AI</b> on the <Link to="/architecture">Architecture Map</Link> or ask a question in <Link to="/insights">AI Insights</Link>.</span>} /> :
         <Table<LlmRun> rowKey="id" size="small" loading={loading} columns={columns} dataSource={result?.runs ?? []} scroll={{ x: 1100 }}
           expandable={{ expandedRowRender: r => <div className="text-xs space-y-1">
-            {r.attempts.map(a => <p key={a.n}>Attempt {a.n}: {a.ok ? 'accepted' : a.errorKind ? `provider error (${a.errorKind})` : `rejected (${a.issueCodes.join(', ') || 'no answer'})`} · {formatTokens(a.inputTokens)} in / {formatTokens(a.outputTokens)} out · {formatMs(a.latencyMs)}</p>)}
+            {r.attempts.map(a => <p key={a.n}>Attempt {a.n}: {a.ok ? (r.mode === 'chat' ? 'answered' : 'accepted') : a.errorKind === 'other' ? 'failed (not a provider error)' : a.errorKind ? `provider error (${a.errorKind})` : `rejected (${a.issueCodes.join(', ') || 'no answer'})`} · {formatTokens(a.inputTokens)} in / {formatTokens(a.outputTokens)} out · {formatMs(a.latencyMs)}</p>)}
             {r.fallbackReason && <p className="text-[#94a3b8]">{r.fallbackReason}</p>}
           </div> }}
           pagination={{ current: result?.meta.page ?? page, pageSize: 20, total: result?.meta.total ?? 0, onChange: setPage, showSizeChanger: false }} />}

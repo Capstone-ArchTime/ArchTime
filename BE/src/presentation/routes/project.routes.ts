@@ -847,7 +847,7 @@ export function createProjectRouter(
    * /api/projects/{id}/architecture/runs:
    *   get:
    *     tags: [Projects]
-   *     summary: Lịch sử các lần AI vẽ kiến trúc của project (model, token input/output/total, latency, cost, chất lượng)
+   *     summary: Lịch sử các lần dùng AI của project (vẽ kiến trúc và câu hỏi ở AI Insights của mọi người dùng): model, token input/output/total, latency, cost; chất lượng chỉ có ở lần vẽ kiến trúc (mode chat thì quality là null)
    *     security:
    *       - BearerAuth: []
    *     parameters:

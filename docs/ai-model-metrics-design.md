@@ -76,7 +76,7 @@ latencyPer100  = latencyMs / max(1, filesSent) × 100        // chuẩn hoá the
 ```
 cost = (input − cacheRead)/1e6 · P_in + cacheRead/1e6 · P_cacheRead + output/1e6 · P_out
 ```
-Giá được **chụp lại vào run** (`pricingSnapshot`), nên khi Admin đổi giá về sau thì lịch sử không bị sai.
+Giá được **chụp lại vào run** (`cost.pricing`), nên khi Admin đổi giá về sau thì lịch sử không bị sai.
 
 **Chất lượng kiến trúc Q ∈ [0,1]**. Chỉ dùng tín hiệu tự động, kiểm chứng được:
 
@@ -199,22 +199,52 @@ Các thay đổi:
 ### 3.2 Collection mới `llmruns` (một bản ghi cho mỗi lần chạy AI)
 ```ts
 {
-  projectId, snapshotId, userId, jobId,
+  projectId, snapshotId?, userId, jobId?,                 // chat: không có snapshot và job (xem 3.2.1)
   modelId, modelKey, provider, model,          // denormalize để giữ lịch sử khi model bị xoá
   purpose: 'user' | 'benchmark',
-  mode: 'refine' | 'name-only', filesSent,
+  mode: 'refine' | 'name-only' | 'chat', filesSent,   // 'chat': xem 3.2.1
   status: 'accepted' | 'fallback' | 'failed' | 'cancelled',
   errorKind?, fallbackReason?,
   attempts: [{ n, ok, issueCodes[], inputTokens, outputTokens, latencyMs, errorKind? }],
   usage: { inputTokens, outputTokens, cacheReadTokens, reasoningTokens, totalTokens, estimated },
   latencyMs, wallMs,
-  cost: { amount, currency, pricingSnapshot },
-  quality: { score, pass, V, M, R, E, B, errors, warnings, modularity, baselineModularity, movedRatio, attemptsUsed },
+  cost: { amount, currency, pricing },
+  quality?: { score, pass, V, M, R, E, B, errors, warnings, modularity, baselineModularity, movedRatio, attemptsUsed },   // không có ở 'chat'
+  conversationId?,                              // chỉ ở 'chat'
   feedback?: { rating: 1 | 0, at },
   createdAt
 }
 Index: {userId:1,createdAt:-1}, {modelId:1,mode:1,createdAt:-1}, {projectId:1,createdAt:-1}
 ```
+
+#### 3.2.1 Lần hỏi mentor (`mode: 'chat'`)
+Mỗi câu hỏi gửi tới mentor (Project Chat, trang AI Insights) cũng là một bản ghi `llmruns`, để tài liệu hệ thống §8 ("mọi lần chạy AI được ghi lại với người dùng, project, token và chi phí") đúng cho cả hai loại.
+
+**Khi nào ghi**
+- Ghi cho **mọi câu hỏi đã gửi tới model**, kể cả khi lỗi: `status: 'failed'` và `errorKind` là loại lỗi của provider (`auth`, `billing`, `rate_limit`, `timeout`, `too_large`, ...) hoặc `other` nếu không phải lỗi của provider.
+- Hai kiểu "429" khác nhau: provider trả 429 thì **có** ghi (`failed`, `errorKind: 'rate_limit'`) vì câu hỏi đã tới model; còn giới hạn tốc độ của chính ArchTime (15 câu mỗi phút mỗi người) chặn trước khi hỏi model thì **không** ghi. Cũng không ghi khi chưa hỏi được model (chưa cấu hình AI, cuộc trò chuyện không hợp lệ).
+
+**Bản ghi chứa gì, khác run vẽ kiến trúc ở đâu**
+- Không có `snapshotId` và `jobId` (câu hỏi không thuộc một lần vẽ nào). `status` chỉ là `accepted` hoặc `failed` (không có `fallback`, `cancelled`). `purpose: 'user'`, `filesSent: 0`, `attempts` luôn đúng một phần tử.
+- `latencyMs` là thời gian provider trả lời (cộng dồn nếu một câu trả lời cần nhiều request); nếu provider chưa kịp trả gì thì là thời gian của cả lời gọi. `wallMs` luôn là thời gian của cả lời gọi model, gồm cả thử lại.
+- `usage` và `cost` tính như các run khác, `cost.pricing` chụp lại bảng giá như §3.1. Một câu trả lời có thể tốn nhiều request tới provider (thử lại, bỏ một tùy chọn) và mỗi request đã tới được provider đều bị tính tiền, nên `usage` là **tổng** của tất cả. Nếu provider đã báo token rồi ArchTime mới từ chối câu trả lời (ví dụ bị cắt), token và chi phí vẫn được giữ.
+- `conversationId` trỏ tới cuộc trò chuyện đã lưu (`chatconversations`). Câu hỏi đầu tiên của một cuộc trò chuyện mới mà model lỗi thì chưa có cuộc trò chuyện nào, nên bản ghi không có `conversationId`. Câu hỏi lỗi trong một cuộc trò chuyện đã có thì `conversationId` trỏ tới cuộc đó, dù lượt hỏi–đáp lỗi không được lưu vào đó. Vậy nó là con trỏ để đối chiếu, không bảo đảm cuộc trò chuyện có lượt tương ứng.
+- **Bản ghi không chứa nội dung câu hỏi hay câu trả lời**, chỉ chứa phần kế toán. Xóa cuộc trò chuyện không xóa bản ghi này vì nó là sổ chi phí.
+- Không có `quality` (trường này trở thành tùy chọn; API trả `quality: null`) và không chấm 👍/👎: `POST /api/llm/runs/:runId/feedback` với một run `chat` trả 404, như với run không tồn tại.
+
+**Thống kê**
+- **Bảng xếp hạng model loại `chat` ra** (`leaderboard` mặc định chỉ lấy `refine` và `name-only`), vì điểm model đo chất lượng vẽ kiến trúc.
+- Số run, token và chi phí thì tính cả `chat`: `runs/me` (trang AI Usage), `architecture/runs` và `llm-usage` của admin.
+- `GET /api/admin/llm-usage` thêm `chatRuns`, `chatAccepted` và `drawAvgLatencyMs` (tốc độ trung bình của riêng các lần vẽ kiến trúc; `null` nếu chưa có lần nào), để trang AI Metrics tính tỷ lệ thành công và tốc độ chỉ trên các lần vẽ trong khi token và chi phí vẫn đếm đủ cả hai loại.
+
+**Ai xem được**
+- Người hỏi: `GET /api/llm/runs/me` (trang AI Usage).
+- Chủ project: `GET /api/projects/:id/architecture/runs` liệt kê các lần dùng AI của **mọi người dùng** trong project, nên chủ project thấy cả `conversationId` của người khác nhưng không thấy nội dung.
+- Quản trị hệ thống: số tổng hợp ở `llm-usage`.
+
+**Độ tin cậy của việc ghi**
+- Ghi log là best-effort: lỗi khi ghi chỉ được báo trong log của server, không làm mất câu trả lời hay đổi lỗi trả cho người dùng.
+- Người dùng không phải chờ việc ghi quá 3 giây; nếu chậm hơn, việc ghi vẫn chạy tiếp ở nền.
 
 ### 3.3 Sửa collection hiện có
 | Collection | Thay đổi |
@@ -254,9 +284,9 @@ Index: {userId:1,createdAt:-1}, {modelId:1,mode:1,createdAt:-1}, {projectId:1,cr
 | GET | `/api/llm/models?projectId&snapshotId` | Danh sách model user được chọn, kèm `host/external/pricing/health/score` và cờ `recommended` theo mode của snapshot |
 | POST | `/api/projects/:id/architecture/refine` | body thêm `modelId?` |
 | GET | `/api/projects/:id/architecture` | `mapping.receipt` có thêm `usage, latencyMs, cost, runId` |
-| GET | `/api/projects/:id/architecture/runs` | Lịch sử các lần chạy AI của project |
-| GET | `/api/llm/runs/me?projectId&page&limit` | Lịch sử của tôi: model, token in/out/total, cost, latency, trạng thái, kèm tổng cộng |
-| POST | `/api/llm/runs/:runId/feedback` | 👍/👎 (tuỳ chọn) |
+| GET | `/api/projects/:id/architecture/runs` | Lịch sử các lần dùng AI của project: vẽ kiến trúc và câu hỏi ở AI Insights (§3.2.1) |
+| GET | `/api/llm/runs/me?projectId&page&limit` | Lịch sử của tôi: model, token in/out/total, cost, latency, trạng thái, kèm tổng cộng; gồm cả câu hỏi ở AI Insights (§3.2.1) |
+| POST | `/api/llm/runs/:runId/feedback` | 👍/👎 (tuỳ chọn); run `chat` không chấm được (404) |
 
 **Admin** (`/api/admin`, đã có `authorize(SYSTEM_ADMINISTRATOR)`):
 | Method | Path | Mô tả |
@@ -265,7 +295,7 @@ Index: {userId:1,createdAt:-1}, {modelId:1,mode:1,createdAt:-1}, {projectId:1,cr
 | PATCH/DELETE | `/llm-models/:id` | Sửa / xoá (nếu đã có run thì chỉ disable) |
 | POST | `/llm-models/:id/test` | Health check |
 | POST | `/llm-models/:id/default` | Đặt làm mặc định |
-| GET | `/llm-usage?from&to&modelId&userId&groupBy=day\|model\|user` | Tổng hợp token, cost, số run, tỷ lệ lỗi |
+| GET | `/llm-usage?from&to&modelId&userId&groupBy=day\|model\|user` | Tổng hợp token, cost, số run, tỷ lệ lỗi; thêm `chatRuns`, `chatAccepted`, `drawAvgLatencyMs` (§3.2.1) |
 | GET | `/llm-models/leaderboard?mode&windowDays&purpose&preset` | ModelScore và breakdown (q̄, S, L, C, T, n), kèm model đề xuất |
 | PUT | `/settings` | thêm `defaultModelId, scoring, allowUserModelChoice` |
 | POST | `/llm-models/benchmark` | `{snapshotId, modelIds[]}` (giai đoạn 6) |
@@ -277,9 +307,9 @@ Index: {userId:1,createdAt:-1}, {modelId:1,mode:1,createdAt:-1}, {projectId:1,cr
 | Trang | Thay đổi |
 |---|---|
 | `developer-analyst/ArchitectureMap.tsx` | `Select` chọn model cạnh nút "Refine with AI" (nhãn ⭐ Recommended, giá ước tính, tag External/Local, health). Modal xác nhận dùng host/model đã chọn. `receiptNote` hiển thị **Model · Input · Output · Total tokens · Latency · Cost**. |
-| **Mới** `developer-analyst/AiUsage.tsx` (nav "AI Usage") | Bảng các lần chạy của tôi, thẻ tổng token/cost, lọc theo project |
+| **Mới** `developer-analyst/AiUsage.tsx` (nav "AI Usage") | Bảng các lần chạy của tôi, thẻ tổng token/cost, lọc theo project. Câu hỏi ở AI Insights hiện cùng bảng (ghi "AI Insights chat", kết quả "Answered", không có chất lượng) |
 | **Mới** `system-administrator/AiModels.tsx` | CRUD model, nhập key (ẩn), giá, bật/tắt, đặt mặc định, nút Test, tag health |
-| **Mới** `system-administrator/AiMetrics.tsx` | Thẻ tổng (token, cost, run, lỗi), biểu đồ token theo ngày, leaderboard (score + breakdown + n + recommended), chọn preset trọng số, top user theo token, chạy benchmark |
+| **Mới** `system-administrator/AiMetrics.tsx` | Thẻ tổng (token, cost, run, lỗi), biểu đồ token theo ngày, leaderboard (score + breakdown + n + recommended), chọn preset trọng số, top user theo token, chạy benchmark. Câu hỏi ở AI Insights có trong số run, token và chi phí nhưng không có trong tỷ lệ thành công, tốc độ và điểm (chú thích dưới bảng xếp hạng, tooltip ở các cột Success và Avg time) |
 | `system-administrator/Dashboard.tsx` | Thẻ tóm tắt AI (token hôm nay, model mặc định, health) |
 | `features/architecture/api.ts`, `features/admin-api.ts`, mới `features/llm-api.ts` | Client API và kiểu dữ liệu |
 

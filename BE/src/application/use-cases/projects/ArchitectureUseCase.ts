@@ -74,7 +74,7 @@ export class ArchitectureUseCase {
     return ArchitectureService.saveReference(projectId, components, userId);
   }
 
-  /** The project's AI runs, newest first, with tokens, cost and quality. */
+  /** The project's AI runs, newest first, with tokens and cost (and quality for the ones that drew an architecture; chat runs have none). */
   public async runs(projectId: string, userId: string, query: { page?: unknown; limit?: unknown }) {
     await loadOwnedProject(projectId, userId);
     return LlmRunService.listForProject(projectId, { page: Number(query.page) || 1, limit: Number(query.limit) || 20 });
