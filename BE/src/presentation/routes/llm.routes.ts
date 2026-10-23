@@ -45,7 +45,7 @@ export function createLlmRouter(controller: LlmController, jwtTokenService: JwtT
    * /api/llm/runs/{runId}/feedback:
    *   post:
    *     tags: [AI Models]
-   *     summary: Đánh giá kết quả vẽ kiến trúc (1 = hữu ích, 0 = không); được tính vào điểm chất lượng. Lần hỏi ở AI Insights (mode chat) không đánh giá được: trả 404
+   *     summary: Đánh giá kết quả vẽ kiến trúc (1 = hữu ích, 0 = không); được tính vào điểm chất lượng. Lần hỏi ở AI Insights (mode chat) không đánh giá được và trả 404
    *     security: [{ BearerAuth: [] }]
    *     parameters: [{ in: path, name: runId, required: true, schema: { type: string } }]
    *     requestBody:
