@@ -237,9 +237,9 @@ Mỗi câu hỏi gửi tới mentor (Project Chat, trang AI Insights) cũng là 
 - Số run, token và chi phí thì tính cả `chat`: `runs/me` (trang AI Usage), `architecture/runs` và `llm-usage` của admin.
 - `GET /api/admin/llm-usage` thêm `chatRuns`, `chatAccepted` và `drawAvgLatencyMs` (tốc độ trung bình của riêng các lần vẽ kiến trúc; `null` nếu chưa có lần nào), để trang AI Metrics tính tỷ lệ thành công và tốc độ chỉ trên các lần vẽ trong khi token và chi phí vẫn đếm đủ cả hai loại.
 
-**Ai xem được**
-- Người hỏi: `GET /api/llm/runs/me` (trang AI Usage).
-- Chủ project: `GET /api/projects/:id/architecture/runs` liệt kê các lần dùng AI của **mọi người dùng** trong project, nên chủ project thấy cả `conversationId` của người khác nhưng không thấy nội dung.
+**Ai xem được** (theo bảng quyền ở tài liệu tổng quan: chi phí AI hiện ở project cho Owner và Maintainer, "của mình" cho Member)
+- Người hỏi: `GET /api/llm/runs/me` (trang AI Usage) liệt kê mọi lần dùng AI của chính mình, ở mọi project.
+- `GET /api/projects/:id/architecture/runs` cần quyền đọc project. Chủ project, maintainer và chủ tổ chức (cùng quản trị hệ thống với project cá nhân) thấy các lần dùng AI của **mọi người** trong project: không có tên người hỏi và không có nội dung, chỉ có `conversationId`, mà đọc một cuộc trò chuyện vẫn chỉ chủ của nó làm được. Thành viên và người xem (project công khai) chỉ thấy các lần của chính mình.
 - Quản trị hệ thống: số tổng hợp ở `llm-usage`.
 
 **Độ tin cậy của việc ghi**
@@ -284,7 +284,7 @@ Mỗi câu hỏi gửi tới mentor (Project Chat, trang AI Insights) cũng là 
 | GET | `/api/llm/models?projectId&snapshotId` | Danh sách model user được chọn, kèm `host/external/pricing/health/score` và cờ `recommended` theo mode của snapshot |
 | POST | `/api/projects/:id/architecture/refine` | body thêm `modelId?` |
 | GET | `/api/projects/:id/architecture` | `mapping.receipt` có thêm `usage, latencyMs, cost, runId` |
-| GET | `/api/projects/:id/architecture/runs` | Lịch sử các lần dùng AI của project: vẽ kiến trúc và câu hỏi ở AI Insights (§3.2.1) |
+| GET | `/api/projects/:id/architecture/runs` | Lịch sử các lần dùng AI của project: vẽ kiến trúc và câu hỏi ở AI Insights. Chủ project và maintainer thấy của mọi người, thành viên chỉ thấy của mình (§3.2.1) |
 | GET | `/api/llm/runs/me?projectId&page&limit` | Lịch sử của tôi: model, token in/out/total, cost, latency, trạng thái, kèm tổng cộng; gồm cả câu hỏi ở AI Insights (§3.2.1) |
 | POST | `/api/llm/runs/:runId/feedback` | 👍/👎 (tuỳ chọn); run `chat` không chấm được (404) |
 

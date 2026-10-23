@@ -179,8 +179,9 @@ export class LlmRunService {
     return this.page(filter, query);
   }
 
-  static async listForProject(projectId: string, query: { page?: number; limit?: number }) {
-    return this.page({ projectId, purpose: "user" }, query);
+  /** `userId` limits the list to one person's runs, for someone who may read the project but not see everyone's AI use. */
+  static async listForProject(projectId: string, query: { page?: number; limit?: number; userId?: string }) {
+    return this.page({ projectId, purpose: "user", ...(query.userId ? { userId: query.userId } : {}) }, query);
   }
 
   private static async page(filter: Record<string, unknown>, query: { page?: number; limit?: number }) {

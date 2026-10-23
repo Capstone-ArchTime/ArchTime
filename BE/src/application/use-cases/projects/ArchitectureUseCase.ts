@@ -74,9 +74,13 @@ export class ArchitectureUseCase {
     return ArchitectureService.saveReference(projectId, components, userId);
   }
 
-  /** The project's AI runs, newest first, with tokens and cost (and quality for the ones that drew an architecture; chat runs have none). */
-  public async runs(projectId: string, userId: string, query: { page?: unknown; limit?: unknown }) {
+  /**
+   * The project's AI runs, newest first, with tokens and cost (and quality for the ones that drew an architecture; chat runs have
+   * none). Owners and maintainers see everyone's. Anyone else who can read the project sees only their own, as in the system
+   * overview: AI cost is shown project-wide to the owner and maintainers, and a member sees theirs.
+   */
+  public async runs(projectId: string, userId: string, query: { page?: unknown; limit?: unknown }, seeEveryone = false) {
     await loadProject(projectId);
-    return LlmRunService.listForProject(projectId, { page: Number(query.page) || 1, limit: Number(query.limit) || 20 });
+    return LlmRunService.listForProject(projectId, { page: Number(query.page) || 1, limit: Number(query.limit) || 20, ...(seeEveryone ? {} : { userId }) });
   }
 }

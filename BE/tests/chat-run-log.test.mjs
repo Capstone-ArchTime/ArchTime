@@ -5,10 +5,13 @@ import { LlmRunModel } from "../src/infrastructure/database/models/LlmRunModel.t
 import { LlmModelModel } from "../src/infrastructure/database/models/LlmModelModel.ts";
 import { SystemSettingsModel } from "../src/infrastructure/database/models/SystemSettingsModel.ts";
 import { SnapshotModel } from "../src/infrastructure/database/models/SnapshotModel.ts";
+import { ProjectModel } from "../src/infrastructure/database/models/ProjectModel.ts";
 import { EvidenceModel } from "../src/infrastructure/database/models/EvidenceModel.ts";
 import { setLlmRuntime } from "../src/infrastructure/llm/runtime.ts";
 import { buildChatRun, LlmRunService } from "../src/infrastructure/services/LlmRunService.ts";
 import { ProjectChatUseCase, RUN_LOG_WAIT_MS } from "../src/application/use-cases/llm/ProjectChatUseCase.ts";
+import { ArchitectureUseCase } from "../src/application/use-cases/projects/ArchitectureUseCase.ts";
+import { ProjectController } from "../src/presentation/controllers/ProjectController.ts";
 import { LlmError } from "../src/domain/architecture/llm/types.ts";
 import { AppError } from "../src/shared/errors/AppError.ts";
 
@@ -154,6 +157,47 @@ test("a user's AI usage lists chat runs with no quality and a link to the conver
   assert.deepEqual(page.runs[1].quality, { score: 0.9 });
   assert.equal(page.totals.runs, 2);
   assert.equal(page.totals.totalTokens, 3500);
+});
+
+// ── Who sees a project's list of AI runs ──────────────────────────────────────────────────────────────────────────
+
+test("a project's run list can be limited to one person's own runs", async t => {
+  const filters = [];
+  t.mock.method(LlmRunModel, "find", f => { filters.push(f); return query([]); });
+  t.mock.method(LlmRunModel, "countDocuments", async () => 0);
+  t.mock.method(LlmRunModel, "aggregate", async () => []);
+  await LlmRunService.listForProject(PROJECT, {});
+  await LlmRunService.listForProject(PROJECT, { userId: "user-1" });
+  assert.deepEqual(filters[0], { projectId: PROJECT, purpose: "user" });
+  assert.deepEqual(filters[1], { projectId: PROJECT, purpose: "user", userId: "user-1" });
+});
+
+test("a person sees only their own runs in a project unless they are allowed to see everyone's", async t => {
+  const asked = [];
+  t.mock.method(ProjectModel, "findOne", async () => ({ id: PROJECT }));
+  t.mock.method(LlmRunService, "listForProject", async (projectId, q) => { asked.push({ projectId, ...q }); return { runs: [], totals: {}, meta: {} }; });
+  const useCase = new ArchitectureUseCase();
+  await useCase.runs(PROJECT, "member-1", {});
+  await useCase.runs(PROJECT, "member-1", {}, false);
+  await useCase.runs(PROJECT, "maintainer-1", {}, true);
+  assert.equal(asked[0].userId, "member-1", "the default is the person's own runs");
+  assert.equal(asked[1].userId, "member-1");
+  assert.equal("userId" in asked[2], false, "a maintainer's list is not narrowed to one person");
+  assert.equal(asked[2].projectId, PROJECT);
+});
+
+test("the route allows everyone's runs only to someone who may write to the project", async () => {
+  const seen = [];
+  const architectureUseCase = { runs: async (...args) => { seen.push(args); return { runs: [], totals: {}, meta: {} }; } };
+  const controller = new ProjectController(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, {}, architectureUseCase);
+  const call = async actions => {
+    const res = { status() { return this; }, json() { return this; } };
+    await controller.getArchitectureRuns({ user: { userId: "u-1" }, params: { id: PROJECT }, query: {}, projectAccess: actions ? { actions: new Set(actions) } : undefined }, res, error => { throw error; });
+  };
+  await call(["metadata", "read"]);                    // a member, or a viewer of a public project
+  await call(["metadata", "read", "write", "admin"]);  // a maintainer
+  await call(undefined);                               // no access information at all
+  assert.deepEqual(seen.map(args => args[3]), [false, true, false]);
 });
 
 // ── The chat use case logs every question that reaches a model ────────────────────────────────────────────────────
