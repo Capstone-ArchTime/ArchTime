@@ -1,3 +1,4 @@
+import "./setup-env.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CancelAdminJobUseCase } from "../src/application/use-cases/admin/CancelAdminJobUseCase.ts";
@@ -11,6 +12,7 @@ import { GetAdminMetricsUseCase } from "../src/application/use-cases/admin/GetAd
 import { GetAdminServicesStatusUseCase } from "../src/application/use-cases/admin/GetAdminServicesStatusUseCase.ts";
 import { MiningJobModel, JobStatus } from "../src/infrastructure/database/models/MiningJobModel.ts";
 import { SystemSettingsModel } from "../src/infrastructure/database/models/SystemSettingsModel.ts";
+import { LlmModelModel } from "../src/infrastructure/database/models/LlmModelModel.ts";
 import { AuditLogModel } from "../src/infrastructure/database/models/AuditLogModel.ts";
 import { ProjectModel } from "../src/infrastructure/database/models/ProjectModel.ts";
 import { UserModel } from "../src/infrastructure/database/models/UserModel.ts";
@@ -413,13 +415,23 @@ test("GetAdminMetricsUseCase: returns system and database metrics", async () => 
 });
 
 test("GetAdminServicesStatusUseCase: reports services health and config", async () => {
-  const useCase = new GetAdminServicesStatusUseCase();
-  const status = await useCase.execute();
+  // Nothing here may depend on the machine: no database connection and no AI models in the registry. Without the stub the
+  // model lookup waits ten seconds for a connection that never comes.
+  const originalFind = LlmModelModel.find;
+  LlmModelModel.find = () => ({ lean: async () => [] });
+  try {
+    const status = await new GetAdminServicesStatusUseCase().execute();
 
-  assert.ok(["healthy", "unhealthy"].includes(status.services.database.status));
-  assert.ok(["healthy", "degraded"].includes(status.services.git.status));
-  assert.ok(["healthy", "degraded"].includes(status.services.email.status));
-  assert.ok(["healthy", "degraded", "unhealthy"].includes(status.status));
+    assert.equal(status.services.database.status, "unhealthy"); // tests never connect
+    assert.ok(["healthy", "degraded"].includes(status.services.git.status));
+    assert.equal(status.services.email.status, "healthy"); // setup-env.mjs configures a mail account
+    assert.equal(status.services.email.details.configured, true);
+    assert.equal(status.services.aiProviders.status, "degraded"); // no registry model, no model in the environment
+    assert.equal(status.services.aiProviders.details.available, false);
+    assert.equal(status.status, "unhealthy");
+  } finally {
+    LlmModelModel.find = originalFind;
+  }
 });
 
 test("GetAdminLogsUseCase: maps audit events to log levels correctly", async () => {

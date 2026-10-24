@@ -29,7 +29,7 @@ The FE obtains identity from `GET /auth/me`; it does not trust role values in lo
 
 Route authorization is centralized in `src/auth/permissions.ts`. New workspace routes must be added both to the router under `RouteGuard` and to that permission map. API endpoints must still enforce their own authentication, role, and project membership rules: frontend guards are not a server security boundary. The current backend has no project membership API, so FE permissions are role-level only.
 
-Maintainer local workspaces use `archtime:maintainer:v2:<userId>:<project>`. Earlier unowned `v1` data is left untouched and is not automatically assigned to the next signed-in account. Browser-local data is not encrypted or synchronized to the server. Signing out removes authentication tokens, not saved workspace records.
+Maintainer workspaces (diagram, rules, ADRs) are stored on the server per project (`GET/PUT /api/projects/:id/workspace`) and are no longer kept in the browser. Older browser-local data under `archtime:maintainer:v1/v2` is not read or migrated. Signing out removes authentication tokens only.
 
 ## Pagination
 

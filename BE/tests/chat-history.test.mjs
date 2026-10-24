@@ -140,7 +140,9 @@ function chatSetup(t, { historyOverrides = {}, reply = "[FACT] `a1b2c3d` split b
     append: async input => { appended.push(input); return { id: ID, title: "Why?" }; },
     ...historyOverrides,
   };
-  return { useCase: new ProjectChatUseCase(history), asked, appended, checked };
+  // The run log is stood in for here; chat-run-log.test.mjs tests it. Without this each test would wait for a database.
+  const runs = [];
+  return { useCase: new ProjectChatUseCase(history, { record: async input => { runs.push(input); } }), asked, appended, checked, runs };
 }
 const project = { id: PROJECT, name: "Shop", description: "d", repoUrl: "https://github.com/org/shop.git" };
 const ask = (useCase, extra = {}) => useCase.execute({ project, userId: `u-${Math.random()}`, messages: [{ role: "user", content: "Why?" }], ...extra });
@@ -190,4 +192,9 @@ test("a history that cannot be written does not take the answer away", async t =
   const result = await ask(useCase);
   assert.ok(result.answer.includes("split billing"));
   assert.equal(result.conversation, null);
+});
+
+test("a conversation id is kept in one spelling, whatever case it arrived in", () => {
+  assert.equal(parseConversationId(ID.toUpperCase()), ID);
+  assert.equal(parseConversationId(ID), ID);
 });

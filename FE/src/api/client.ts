@@ -3,10 +3,13 @@ import { API_BASE_URL, readTokens, tokenStorage, verifySession } from '../auth/s
 export class ApiError extends Error {
   status: number;
   code?: string;
-  constructor(message: string, status: number, code?: string) {
+  /** Problems with single fields of the request, when the server sent them (for example "steps[2].title"). */
+  fields?: Record<string, string>;
+  constructor(message: string, status: number, code?: string, fields?: Record<string, string>) {
     super(message);
     this.status = status;
     this.code = code;
+    this.fields = fields;
   }
 }
 
@@ -49,7 +52,9 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, tim
           : response.status === 409
             ? 'Revision conflict: This workspace has been modified by someone else. Please reload before saving.'
             : `Request failed (${response.status}). Please retry.`;
-      throw new ApiError(detail, response.status, code);
+      const sent = typeof body?.error === 'object' && body?.error !== null ? body.error.fields : undefined;
+      const fields = sent && typeof sent === 'object' ? Object.fromEntries(Object.entries(sent).filter(([, problem]) => typeof problem === 'string')) as Record<string, string> : undefined;
+      throw new ApiError(detail, response.status, code, fields);
     }
     if (body === null) throw new Error('The server returned an invalid response.');
     return body as T;

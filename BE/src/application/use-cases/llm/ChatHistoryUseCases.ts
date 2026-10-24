@@ -19,7 +19,8 @@ export function conversationTitle(firstQuestion: string): string {
 export function parseConversationId(value: unknown): string | null {
   if (value === undefined || value === null || value === "") return null;
   if (typeof value !== "string" || !OBJECT_ID.test(value)) throw new BadRequestError("conversationId is not valid.");
-  return value;
+  // One spelling everywhere (ObjectIds are stored lower-case), so the same conversation is never two different strings.
+  return value.toLowerCase();
 }
 
 export interface SavedAnswer {

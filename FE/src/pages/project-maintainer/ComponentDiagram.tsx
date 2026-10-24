@@ -8,7 +8,7 @@ import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { downloadText } from '@/features/download';
 
 function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyChange: (dirty: boolean) => void }) {
-  const { data, save, saving, loading, loadError, loadErrorMessage, conflictError, reload, loadVersion, resolvedProjectId } = useWorkspace(project);
+  const { data, save, saving, loading, loadError, loadErrorMessage, conflictError, reload, loadVersion } = useWorkspace(project);
   const { message, modal } = App.useApp();
   const [draft, setDraft] = useState<Diagram>(data.diagram);
   const [component, setComponent] = useState<Component | null | undefined>();
@@ -48,7 +48,7 @@ function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyCha
   return <div className="space-y-5">
     <StorageError visible={loadError} message={loadErrorMessage} onRetry={reload} />
     <ConflictAlert error={conflictError} dirty={dirty} onReload={reload} />
-    <div className="flex flex-wrap gap-2"><Button onClick={() => downloadText('component-diagram.json', JSON.stringify({ project, diagram: data.diagram, source: resolvedProjectId ? 'server' : 'local-demo' }, null, 2))} disabled={loadError}>Export saved diagram</Button><Button disabled={!dirty} onClick={() => modal.confirm({ title: 'Discard unsaved diagram changes?', okText: 'Discard', okButtonProps: { danger: true }, onOk: () => setDraft(data.diagram) })}>Discard changes</Button></div>
+    <div className="flex flex-wrap gap-2"><Button onClick={() => downloadText('component-diagram.json', JSON.stringify({ project, diagram: data.diagram, source: 'archtime' }, null, 2))} disabled={loadError}>Export saved diagram</Button><Button disabled={!dirty} onClick={() => modal.confirm({ title: 'Discard unsaved diagram changes?', okText: 'Discard', okButtonProps: { danger: true }, onOk: () => setDraft(data.diagram) })}>Discard changes</Button></div>
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex flex-wrap items-center gap-2"><Tag color={draft.confirmedAt ? 'green' : 'gold'}>{draft.confirmedAt ? 'Confirmed' : 'Needs confirmation'}</Tag><span className="text-xs text-[#94a3b8]">Revision {data.diagram.revision}{dirty ? ' • Unsaved changes' : ' • Saved'}</span></div>
       <div className="flex flex-wrap gap-2"><Button icon={<Save size={14} />} loading={saving} disabled={!dirty || loadError} onClick={() => persist(false)}>Save draft</Button><Button type="primary" icon={<CheckCircle2 size={14} />} disabled={loadError || saving || !draft.components.length || (!!draft.confirmedAt && !dirty)} onClick={() => modal.confirm({ title: 'Confirm this component diagram?', content: 'The current components and dependencies will become the reviewed diagram. Further edits will require confirmation again.', onOk: () => persist(true) })}>Confirm diagram</Button></div>

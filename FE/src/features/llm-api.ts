@@ -31,9 +31,10 @@ export interface RunQuality {
 }
 export interface LlmRun {
   id: string; project: { id: string; name?: string }; snapshotId?: string; modelId: string | null; modelKey: string; provider: string; model: string;
-  purpose: 'user' | 'benchmark'; mode: 'refine' | 'name-only'; filesSent: number; status: 'accepted' | 'fallback' | 'failed' | 'cancelled';
-  errorKind?: string; fallbackReason?: string; usage: Usage; latencyMs: number; wallMs: number; cost: { amount: number; currency: string };
-  quality: RunQuality; attempts: { n: number; ok: boolean; issueCodes: string[]; inputTokens: number; outputTokens: number; latencyMs: number; errorKind?: string }[];
+  purpose: 'user' | 'benchmark'; mode: 'refine' | 'name-only' | 'chat'; filesSent: number; status: 'accepted' | 'fallback' | 'failed' | 'cancelled';
+  errorKind?: string; fallbackReason?: string; conversationId?: string; usage: Usage; latencyMs: number; wallMs: number; cost: { amount: number; currency: string };
+  /** Null for a mentor chat run: only drawing an architecture is scored. */
+  quality: RunQuality | null; attempts: { n: number; ok: boolean; issueCodes: string[]; inputTokens: number; outputTokens: number; latencyMs: number; errorKind?: string }[];
   feedback: { rating: 0 | 1 } | null; createdAt: string;
 }
 export interface RunTotals { runs: number; inputTokens: number; outputTokens: number; totalTokens: number; cost: number }
@@ -142,7 +143,7 @@ export async function updateLlmSettings(patch: { allowUserModelChoice?: boolean;
 
 export type ScorePreset = 'balanced' | 'quality' | 'budget' | 'custom';
 export interface ScoreWeights { quality: number; stability: number; latency: number; cost: number; tokens: number }
-export interface UsageRow { key: unknown; runs: number; accepted: number; failed: number; inputTokens: number; outputTokens: number; totalTokens: number; cost: number; avgLatencyMs: number; user?: { id: string; name?: string; email?: string } }
+export interface UsageRow { key: unknown; runs: number; accepted: number; failed: number; inputTokens: number; outputTokens: number; totalTokens: number; cost: number; avgLatencyMs: number; chatRuns: number; chatAccepted: number; drawAvgLatencyMs: number | null; user?: { id: string; name?: string; email?: string } }
 export interface UsageReport { totals: Omit<UsageRow, 'key' | 'user'>; groupBy: 'day' | 'model' | 'user'; rows: UsageRow[] }
 export const getLlmUsage = async (params: { from?: string; to?: string; modelId?: string; userId?: string; groupBy?: 'day' | 'model' | 'user' }, signal?: AbortSignal) =>
   data(await apiRequest<Envelope<UsageReport>>(`/admin/llm-usage${query(params)}`, { signal }), 'usage report');

@@ -1,6 +1,6 @@
 export const roles = ['developer-analyst', 'project-maintainer', 'system-administrator'] as const;
 export type Role = typeof roles[number];
-export type AuthUser = { id: string; name: string; email: string; role: Role };
+export type AuthUser = { id: string; name: string; email: string; role: Role; username?: string | null };
 
 export const roleHome: Record<Role, string> = {
   'developer-analyst': '/dashboard',
@@ -9,22 +9,25 @@ export const roleHome: Record<Role, string> = {
 };
 
 const routes: Record<Role, readonly string[]> = {
-  'developer-analyst': ['/dashboard', '/projects', '/project', '/history', '/architecture', '/compare', '/evidence', '/insights', '/reports', '/ai-usage'],
+  'developer-analyst': ['/dashboard', '/projects', '/project', '/history', '/architecture', '/compare', '/evidence', '/insights', '/reports', '/ai-usage', '/learning'],
   'project-maintainer': ['/project-maintainer', '/project-maintainer/approvals', '/project-maintainer/team', '/project-maintainer/reports', '/project-maintainer/component-diagram', '/project-maintainer/architecture-rules', '/project-maintainer/design-decisions'],
   'system-administrator': ['/system-administrator', '/system-administrator/users', '/system-administrator/audit-log', '/system-administrator/settings', '/system-administrator/mining-jobs', '/system-administrator/ai-models', '/system-administrator/ai-metrics'],
 };
 
 /** Paths with an id after them (the workspace of one project or sample). */
 const prefixes: Record<Role, readonly string[]> = {
-  'developer-analyst': ['/workspace/'],
+  'developer-analyst': ['/workspace/', '/learning/'],
   'project-maintainer': [],
   'system-administrator': [],
 };
 
+/** Pages every signed-in account has, whatever its role. */
+const sharedRoutes: readonly string[] = ['/profile'];
+
 export function canAccess(role: Role, path: string) {
   const pathname = path.split(/[?#]/)[0].replace(/\/+$/, '') || '/';
   if (!Object.hasOwn(routes, role)) return false;
-  return routes[role].includes(pathname) || prefixes[role].some(p => pathname.startsWith(p) && pathname.length > p.length);
+  return sharedRoutes.includes(pathname) || routes[role].includes(pathname) || prefixes[role].some(p => pathname.startsWith(p) && pathname.length > p.length);
 }
 
 export function loginDestination(role: Role, requested?: string) {

@@ -4,6 +4,8 @@ import mongoose from "mongoose";
 import { ProjectModel } from "../database/models/ProjectModel.js";
 import { ProjectMemberModel } from "../database/models/ProjectMemberModel.js";
 import { ChatConversationModel } from "../database/models/ChatConversationModel.js";
+import { OnboardingPathModel } from "../database/models/OnboardingPathModel.js";
+import { OnboardingAssignmentModel } from "../database/models/OnboardingAssignmentModel.js";
 import { WorkspaceModel } from "../database/models/WorkspaceModel.js";
 import { ArchitectureMappingModel } from "../database/models/ArchitectureMappingModel.js";
 import { ArchitectureReferenceModel } from "../database/models/ArchitectureReferenceModel.js";
@@ -147,6 +149,8 @@ export class MongoProjectRepository implements IProjectRepository {
       const results = await Promise.allSettled([
         ProjectMemberModel.deleteMany({ projectId: id }),
         ChatConversationModel.deleteMany({ projectId: id }),
+        OnboardingPathModel.deleteMany({ projectId: id }),
+        OnboardingAssignmentModel.deleteMany({ projectId: id }),
         WorkspaceModel.deleteMany({ projectId: id }),
         ArchitectureMappingModel.deleteMany({ projectId: id }),
         ArchitectureReferenceModel.deleteMany({ projectId: id }),

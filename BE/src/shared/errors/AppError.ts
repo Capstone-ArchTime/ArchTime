@@ -22,6 +22,7 @@ export type ErrorCode =
   // Input
   | "VALIDATION_ERROR"
   | "BAD_REQUEST"
+  | "PAYLOAD_TOO_LARGE"
   // Server
   | "RATE_LIMITED"
   | "INTERNAL_ERROR"

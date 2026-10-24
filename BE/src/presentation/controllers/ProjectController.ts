@@ -432,7 +432,8 @@ export class ProjectController {
         res.status(401).json({ success: false, message: "Unauthorized" });
         return;
       }
-      const { runs, totals, meta } = await this.architectureUseCase.runs(req.params.id, userId, req.query);
+      // Maintainers and owners (who may write to the project) see every user's runs; anyone else, only their own.
+      const { runs, totals, meta } = await this.architectureUseCase.runs(req.params.id, userId, req.query, req.projectAccess?.actions.has("write") === true);
       res.status(200).json({ success: true, data: { runs, totals }, meta });
     } catch (error: any) {
       next(error);

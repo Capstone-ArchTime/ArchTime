@@ -44,3 +44,14 @@ test('the architecture workspace of one project or sample is for developer-analy
   assert.equal(canAccess('system-administrator', '/workspace/abc'), false);
   assert.equal(canAccess('__proto__', '/workspace/abc'), false);
 });
+
+test('the profile page belongs to every signed-in account, and only that exact path', () => {
+  for (const role of roles) {
+    assert.equal(canAccess(role, '/profile'), true, role);
+    assert.equal(canAccess(role, '/profile/'), true, `${role} with a trailing slash`);
+    assert.equal(canAccess(role, '/profile/x'), false, role);
+    assert.equal(canAccess(role, '/profiles'), false, role);
+  }
+  for (const unknown of ['unknown', '__proto__', 'constructor']) assert.equal(canAccess(unknown, '/profile'), false, unknown);
+  assert.equal(loginDestination('system-administrator', '/profile'), '/profile');
+});

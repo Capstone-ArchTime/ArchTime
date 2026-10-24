@@ -8,7 +8,7 @@ import { Logo } from '@/components/Logo';
 import { useAuth } from '@/auth/auth-context';
 import { loginDestination } from '@/auth/permissions';
 import { authRequest } from '@/auth/requests';
-import { API_BASE_URL } from '@/auth/session';
+import { API_BASE_URL, clearSignInNotice, peekSignInNotice } from '@/auth/session';
 
 
 const fontFamily = {
@@ -26,6 +26,9 @@ const AuthPage: React.FC = () => {
   const { signIn } = useAuth();
 
   // Form States
+  // Read once and then forgotten, so it shows on the first visit only (the initializer may run twice in development).
+  const [notice] = useState(peekSignInNotice);
+  useEffect(() => { clearSignInNotice(); }, []);
   const [rememberMe, setRememberMe] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -188,6 +191,10 @@ const AuthPage: React.FC = () => {
                       : 'Trace how your software architecture evolves.'}
                   </p>
                 </div>
+
+                {!isRegister && notice && (
+                  <p role="status" className="mb-4 rounded border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm text-green-300">{notice}</p>
+                )}
 
                 <form onSubmit={handleSubmit} noValidate className="space-y-4">
 
