@@ -74,7 +74,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <button type="button" onClick={() => setSearchOpen(true)} aria-label="Search workspace pages" aria-keyshortcuts="Control+k Meta+k" className="flex items-center gap-3 border border-[#242527] bg-[#11161b] rounded h-10 px-3 text-[#94a3b8] hover:border-[#3b82f6]/50">
             <Search size={16} aria-hidden="true" /><span className="hidden sm:inline text-xs">Find a page…</span><kbd className="hidden md:inline text-[10px]">Ctrl K</kbd>
           </button>
-          <button type="button" aria-label="View account" onClick={() => modal.info({ title: 'Your account', content: <div className="space-y-2"><p>{user.name}</p><p className="break-all">{user.email}</p><p className="capitalize">{user.role.replaceAll('-', ' ')}</p></div> })} className="h-10 w-10 flex items-center justify-center rounded-full bg-[#161d24] border border-[#242527] text-[#60a5fa]"><User size={18} /></button>
+          <Link to="/profile" aria-label="View account" className="h-10 w-10 flex items-center justify-center rounded-full bg-[#161d24] border border-[#242527] text-[#60a5fa]"><User size={18} /></Link>
         </div>
       </header>
       <main id="main-content" ref={mainRef} tabIndex={-1} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 xl:p-9 focus:outline-none">

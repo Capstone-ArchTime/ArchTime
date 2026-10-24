@@ -1,6 +1,6 @@
 export const roles = ['developer-analyst', 'project-maintainer', 'system-administrator'] as const;
 export type Role = typeof roles[number];
-export type AuthUser = { id: string; name: string; email: string; role: Role };
+export type AuthUser = { id: string; name: string; email: string; role: Role; username?: string | null };
 
 export const roleHome: Record<Role, string> = {
   'developer-analyst': '/dashboard',
@@ -21,10 +21,13 @@ const prefixes: Record<Role, readonly string[]> = {
   'system-administrator': [],
 };
 
+/** Pages every signed-in account has, whatever its role. */
+const sharedRoutes: readonly string[] = ['/profile'];
+
 export function canAccess(role: Role, path: string) {
   const pathname = path.split(/[?#]/)[0].replace(/\/+$/, '') || '/';
   if (!Object.hasOwn(routes, role)) return false;
-  return routes[role].includes(pathname) || prefixes[role].some(p => pathname.startsWith(p) && pathname.length > p.length);
+  return sharedRoutes.includes(pathname) || routes[role].includes(pathname) || prefixes[role].some(p => pathname.startsWith(p) && pathname.length > p.length);
 }
 
 export function loginDestination(role: Role, requested?: string) {
