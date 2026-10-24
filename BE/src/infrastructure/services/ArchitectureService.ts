@@ -10,6 +10,10 @@ import { refineMapping } from "../../domain/architecture/llm/refine.js";
 import { DEFAULT_REFINE_OPTIONS } from "../../domain/architecture/llm/types.js";
 import type { RefineReceipt } from "../../domain/architecture/llm/types.js";
 import { validateView } from "../../domain/architecture/validate.js";
+import { matchComponents, trackLineages } from "../../domain/architecture/matching.js";
+import type { ComponentMatching, Lineage, MatchComponent } from "../../domain/architecture/matching.js";
+import { evaluateEvolution, UNASSIGNED_COMPONENT } from "../../domain/architecture/evaluation.js";
+import type { EvolutionEvaluation } from "../../domain/architecture/evaluation.js";
 import type { LlmCapability } from "../llm/runtime.js";
 import { LlmModelRegistry } from "../llm/registry.js";
 import { LlmRunService } from "./LlmRunService.js";
@@ -18,6 +22,8 @@ import { BadRequestError, NotFoundError } from "../../shared/errors/AppError.js"
 // Clustering runs in the request: it takes a few tens of milliseconds for typical repositories, so it only needs a size
 // guard. Asking a model takes much longer and runs as a background job (see ArchitectureJob).
 const MAX_FILES = 20_000;
+/** Snapshots followed by a lineage request (the most recent ones that have components). */
+const MAX_LINEAGE_SNAPSHOTS = 60;
 
 export interface ArchitecturePayload {
   status: "ready" | "missing";
@@ -32,6 +38,27 @@ export interface ArchitecturePayload {
 }
 
 type QualityContext = { reference: ReferenceComponent[] | null; previous: { snapshotId: string; components: { id: string; memberIds: string[] }[] } | null };
+
+export interface MatchedSide {
+  snapshot: { id: string; hash: string; title: string; date: Date };
+  /** The components were grouped from an older version of the snapshot graph or algorithm. */
+  stale: boolean;
+  components: { id: string; name: string; role: string; files: number }[];
+}
+
+export interface ArchitectureMatchPayload { before: MatchedSide; after: MatchedSide; matching: ComponentMatching }
+
+export interface ArchitectureLineagePayload {
+  snapshots: { id: string; hash: string; title: string; date: Date }[];
+  lineages: Lineage[];
+  byComponent: Record<string, Record<string, string>>;
+  steps: { from: string; to: string; summary: ComponentMatching["summary"]; changes: ComponentMatching["changes"] }[];
+}
+
+export interface ArchitectureEvaluationPayload extends Omit<EvolutionEvaluation, "snapshots"> {
+  snapshots: (EvolutionEvaluation["snapshots"][number] & { snapshot: { id: string; hash: string; title: string; date: Date }; generator: string })[];
+  hasReference: boolean;
+}
 
 export interface ArchitectureOptions { minComponents?: number; maxComponents?: number }
 
@@ -181,6 +208,89 @@ export class ArchitectureService {
       generator: result.generator, options: { minComponents, maxComponents }, components, receipt,
     });
     return this.payload(snapshot, graph, mapping, llm, compareWith);
+  }
+
+  /** The stored components of a snapshot as they appear in its view, without the unassigned-files bucket. */
+  private static matchable(snapshot: any, mapping: any): { components: MatchComponent[]; described: MatchedSide["components"] } {
+    const view = buildView(
+      { projectId: String(snapshot.projectId), snapshotId: String(snapshot._id), title: snapshot.title ?? "Snapshot", generator: mapping.generator },
+      this.toGraph(snapshot),
+      mapping.components,
+    );
+    const kept = view.components.filter(c => c.name !== UNASSIGNED_COMPONENT);
+    return {
+      components: kept.map(c => ({ id: c.id, name: c.name, memberIds: c.memberIds })),
+      described: kept.map(c => ({ id: c.id, name: c.name, role: c.role, files: c.memberIds.length })),
+    };
+  }
+
+  /**
+   * Which component of one snapshot became which of the other (see domain/architecture/matching.ts). The earlier snapshot
+   * by commit date is "before", whichever order the ids come in. Both snapshots need stored components.
+   */
+  public static async match(projectId: string, firstId: string, secondId: string): Promise<ArchitectureMatchPayload> {
+    const [first, second] = await Promise.all([
+      SnapshotModel.findOne({ _id: firstId, projectId }).lean(),
+      SnapshotModel.findOne({ _id: secondId, projectId }).lean(),
+    ]);
+    if (!first || !second) throw new NotFoundError("One or both snapshots not found in this workspace");
+    const [earlier, later] = new Date(first.date) <= new Date(second.date) ? [first, second] : [second, first];
+    const mappings = await ArchitectureMappingModel.find({ projectId, snapshotId: { $in: [String(earlier._id), String(later._id)] } }).lean();
+    const side = (snapshot: any) => {
+      const mapping = mappings.find(m => String(m.snapshotId) === String(snapshot._id));
+      if (!mapping) throw new BadRequestError(`Snapshot ${snapshot.hash} has no components yet. Generate its architecture first.`);
+      const graph = this.toGraph(snapshot);
+      const { components, described } = this.matchable(snapshot, mapping);
+      const stale = mapping.graphHash !== graphHash(graph) || mapping.algorithmVersion !== ALGORITHM_VERSION;
+      return { components, info: { snapshot: this.summary(snapshot), stale, components: described } as MatchedSide };
+    };
+    const a = side(earlier), b = side(later);
+    return { before: a.info, after: b.info, matching: matchComponents(a.components, b.components) };
+  }
+
+  /** The most recent snapshots that have stored components, oldest first, with their mappings. */
+  private static async mappedSnapshots(projectId: string) {
+    const mappings = await ArchitectureMappingModel.find({ projectId }).lean();
+    const bySnapshot = new Map(mappings.map(m => [String(m.snapshotId), m]));
+    const snapshots = bySnapshot.size
+      ? await SnapshotModel.find({ projectId, _id: { $in: [...bySnapshot.keys()] } }).sort({ date: -1 }).limit(MAX_LINEAGE_SNAPSHOTS).lean()
+      : [];
+    return { snapshots: snapshots.reverse(), bySnapshot };
+  }
+
+  /** Components followed through the project's snapshots that have them, oldest first. */
+  public static async lineage(projectId: string): Promise<ArchitectureLineagePayload> {
+    const { snapshots, bySnapshot } = await this.mappedSnapshots(projectId);
+    const tracked = trackLineages(snapshots.map(s => ({ snapshotId: String(s._id), components: this.matchable(s, bySnapshot.get(String(s._id))).components })));
+    return {
+      snapshots: snapshots.map(s => this.summary(s)),
+      lineages: tracked.lineages,
+      byComponent: tracked.byComponent,
+      steps: tracked.steps.map(st => ({ from: st.from, to: st.to, summary: st.matching.summary, changes: st.matching.changes })),
+    };
+  }
+
+  /**
+   * The recovered architecture against the directory baseline over the project's snapshots (see
+   * domain/architecture/evaluation.ts): agreement with the reference architecture, stability between snapshots, and the
+   * structural changes each one shows.
+   */
+  public static async evaluation(projectId: string, options: { depth?: number } = {}): Promise<ArchitectureEvaluationPayload> {
+    const [{ snapshots, bySnapshot }, reference] = await Promise.all([
+      this.mappedSnapshots(projectId),
+      ArchitectureReferenceModel.findOne({ projectId }).lean(),
+    ]);
+    const inputs = snapshots.map(s => {
+      const mapping = bySnapshot.get(String(s._id))!;
+      const view = buildView({ projectId, snapshotId: String(s._id), title: s.title ?? "Snapshot", generator: mapping.generator }, this.toGraph(s), mapping.components);
+      return { snapshotId: String(s._id), components: view.components.map(c => ({ id: c.id, name: c.name, memberIds: c.memberIds })), generator: mapping.generator };
+    });
+    const result = evaluateEvolution(inputs, { reference: reference?.components ?? null, baseline: options.depth ? { depth: options.depth } : {} });
+    return {
+      ...result,
+      snapshots: result.snapshots.map((e, i) => ({ ...e, snapshot: this.summary(snapshots[i]), generator: inputs[i].generator })),
+      hasReference: !!reference?.components?.length,
+    };
   }
 
   public static async getReference(projectId: string): Promise<ReferenceComponent[]> {

@@ -74,6 +74,32 @@ export class ArchitectureUseCase {
     return ArchitectureService.saveReference(projectId, components, userId);
   }
 
+  /** Which component of one snapshot became which of another. Query: { baseId, targetId }. */
+  public async match(projectId: string, userId: string, query: { baseId?: unknown; targetId?: unknown }) {
+    await loadProject(projectId);
+    const baseId = snapshotIdOf(query.baseId), targetId = snapshotIdOf(query.targetId);
+    if (!baseId || !targetId) throw new BadRequestError("Missing required query parameters: baseId, targetId.");
+    if (baseId === targetId) throw new BadRequestError("Choose two different snapshots.");
+    return ArchitectureService.match(projectId, baseId, targetId);
+  }
+
+  /** Every component followed through the snapshots that have components. */
+  public async lineage(projectId: string, userId: string) {
+    await loadProject(projectId);
+    return ArchitectureService.lineage(projectId);
+  }
+
+  /** The recovered architecture against the directory baseline over time. Query: { depth? } (folder levels, 1 to 6). */
+  public async evaluation(projectId: string, userId: string, query: { depth?: unknown }) {
+    await loadProject(projectId);
+    let depth: number | undefined;
+    if (query.depth !== undefined && query.depth !== "") {
+      depth = Number(query.depth);
+      if (!Number.isInteger(depth) || depth < 1 || depth > 6) throw new BadRequestError("depth must be a whole number from 1 to 6.");
+    }
+    return ArchitectureService.evaluation(projectId, { depth });
+  }
+
   /**
    * The project's AI runs, newest first, with tokens and cost (and quality for the ones that drew an architecture; chat runs have
    * none). Owners and maintainers see everyone's. Anyone else who can read the project sees only their own, as in the system

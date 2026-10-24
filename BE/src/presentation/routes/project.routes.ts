@@ -895,6 +895,55 @@ export function createProjectRouter(
    *                 items: { type: object, properties: { name: { type: string, example: "Domain" }, prefixes: { type: array, items: { type: string }, example: ["BE/src/domain/"] } } }
    *     responses: { 200: { description: OK } }
    */
+  /**
+   * @swagger
+   * /api/projects/{id}/architecture/match:
+   *   get:
+   *     tags: [Projects]
+   *     summary: Ghép component giữa hai snapshot (giữ nguyên, đổi tên, tách, gộp, tái cấu trúc, xoá, thêm)
+   *     description: >
+   *       Ghép qua các file chung, không qua id component (mỗi snapshot được phân cụm riêng). Snapshot có ngày commit sớm
+   *       hơn là "before". Cả hai snapshot phải đã có component (POST /api/projects/{id}/architecture).
+   *     security: [{ BearerAuth: [] }]
+   *     parameters:
+   *       - { in: path, name: id, required: true, schema: { type: string } }
+   *       - { in: query, name: baseId, required: true, schema: { type: string } }
+   *       - { in: query, name: targetId, required: true, schema: { type: string } }
+   *     responses:
+   *       200: { description: "{ before, after, matching: { links, changes, successor, moves, files, summary } }" }
+   *       400: { description: Thiếu snapshot, hai snapshot trùng nhau, hoặc snapshot chưa có component }
+   *       404: { description: Snapshot không thuộc workspace này }
+   * /api/projects/{id}/architecture/lineage:
+   *   get:
+   *     tags: [Projects]
+   *     summary: Theo dõi từng component qua các snapshot đã có component (tối đa 60 snapshot gần nhất)
+   *     security: [{ BearerAuth: [] }]
+   *     parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+   *     responses: { 200: { description: "{ snapshots, lineages, byComponent, steps }" } }
+   */
+  router.get("/:id/architecture/match", checkRole("read"), projectController.getArchitectureMatch);
+  router.get("/:id/architecture/lineage", checkRole("read"), projectController.getArchitectureLineage);
+
+  /**
+   * @swagger
+   * /api/projects/{id}/architecture/evaluation:
+   *   get:
+   *     tags: [Projects]
+   *     summary: So sánh kiến trúc khôi phục với baseline theo thư mục qua các snapshot (MoJoFM, độ ổn định, thay đổi cấu trúc)
+   *     description: >
+   *       Mỗi snapshot: MoJoFM của kiến trúc khôi phục và của baseline so với kiến trúc tham chiếu (nếu có), và MoJoFM
+   *       giữa kiến trúc khôi phục và baseline. Mỗi bước giữa hai snapshot liên tiếp: độ ổn định (MoJoFM) và số thay đổi
+   *       cấu trúc (ghép component) của từng bên. Dùng tối đa 60 snapshot gần nhất đã có component.
+   *     security: [{ BearerAuth: [] }]
+   *     parameters:
+   *       - { in: path, name: id, required: true, schema: { type: string } }
+   *       - { in: query, name: depth, schema: { type: integer, minimum: 1, maximum: 6 }, description: "Số cấp thư mục của baseline; bỏ trống = tự chọn theo snapshot mới nhất" }
+   *     responses:
+   *       200: { description: "{ baselineDepth, snapshots, steps, overall, hasReference }" }
+   *       400: { description: depth không hợp lệ }
+   */
+  router.get("/:id/architecture/evaluation", checkRole("read"), projectController.getArchitectureEvaluation);
+
   router.get("/:id/architecture/reference", checkRole("read"), projectController.getArchitectureReference);
   router.put("/:id/architecture/reference", checkRole("write"), projectController.saveArchitectureReference);
 

@@ -373,6 +373,45 @@ export class ProjectController {
     }
   };
 
+  public getArchitectureMatch = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        res.status(401).json({ success: false, message: "Unauthorized" });
+        return;
+      }
+      res.status(200).json({ success: true, data: await this.architectureUseCase.match(req.params.id, userId, req.query) });
+    } catch (error: any) {
+      next(error);
+    }
+  };
+
+  public getArchitectureLineage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        res.status(401).json({ success: false, message: "Unauthorized" });
+        return;
+      }
+      res.status(200).json({ success: true, data: await this.architectureUseCase.lineage(req.params.id, userId) });
+    } catch (error: any) {
+      next(error);
+    }
+  };
+
+  public getArchitectureEvaluation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        res.status(401).json({ success: false, message: "Unauthorized" });
+        return;
+      }
+      res.status(200).json({ success: true, data: await this.architectureUseCase.evaluation(req.params.id, userId, req.query) });
+    } catch (error: any) {
+      next(error);
+    }
+  };
+
   public saveArchitectureReference = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = (req as any).user?.userId;
