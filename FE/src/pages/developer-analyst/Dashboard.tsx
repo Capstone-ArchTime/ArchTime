@@ -12,10 +12,8 @@ import {
   Box,
   Sparkles,
   ArrowRight,
-  ChevronDown,
   Loader2
 } from 'lucide-react';
-import { Icon } from '@iconify/react';
 import { useAuth } from '@/auth/auth-context';
 import { apiRequest } from '@/api/client';
 
@@ -96,10 +94,10 @@ const Dashboard: React.FC = () => {
                 Reconstruct and trace how your software architecture evolves across repository history.
               </p>
             </div>
-            <button disabled title="Not available yet: this view uses sample data" aria-label="ANALYZE NEW REPOSITORY" className="shrink-0 h-10 px-5 bg-[#161d24] hover:bg-[#242527] border border-[#242527] text-[#f4f4f6] font-medium text-xs transition-colors flex items-center gap-2">
+            <Link to="/projects" className="shrink-0 h-10 px-5 bg-[#161d24] hover:bg-[#242527] border border-[#242527] text-[#f4f4f6] font-medium text-xs transition-colors flex items-center gap-2">
               <FolderGit2 size={16} className="text-[#3b82f6]" />
-              ANALYZE NEW REPOSITORY
-            </button>
+              ADD A REPOSITORY
+            </Link>
           </div>
           <div className="h-[1px] w-full bg-gradient-to-r from-[#242527] to-transparent mt-8"></div>
         </div>
@@ -331,10 +329,7 @@ const Dashboard: React.FC = () => {
                   </div>
                   
                   <div className="flex items-center gap-3 shrink-0 ml-8">
-                    <button disabled title="Not available yet: this view uses sample data" aria-label="V1.5" className="h-8 px-3 bg-[#11161b] border border-[#242527] text-[#94a3b8] hover:text-[#f4f4f6] font-mono text-xs transition-colors flex items-center gap-2"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                      v1.5 <ChevronDown size={14} />
-                    </button>
+                    
                     <Link to="/compare" className="h-8 px-4 bg-[#161d24] border border-[#242527] hover:border-[#3b82f6]/50 text-[#3b82f6] font-mono font-bold text-xs transition-[color,background-color,border-color,box-shadow,opacity,transform] shadow-[0_0_10px_rgba(56,189,248,0.05)]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       COMPARE
@@ -386,10 +381,7 @@ const Dashboard: React.FC = () => {
                       <td className="px-5 py-4 text-[#94a3b8] font-mono text-xs"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>2m 14s</td>
                       <td className="px-5 py-4 text-right">
-                        <button disabled title="Not available yet: this view uses sample data" aria-label="DETAILS &RARR;" className="text-[#3b82f6] hover:text-[#3b82f6]/80 font-mono text-xs font-semibold opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                          Details &rarr;
-                        </button>
+                        
                       </td>
                     </tr>
 
@@ -411,10 +403,7 @@ const Dashboard: React.FC = () => {
                       <td className="px-5 py-4 text-[#94a3b8] font-mono text-xs"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>3m 37s</td>
                       <td className="px-5 py-4 text-right">
-                        <button disabled title="Not available yet: this view uses sample data" aria-label="DETAILS &RARR;" className="text-[#3b82f6] hover:text-[#3b82f6]/80 font-mono text-xs font-semibold opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                          Details &rarr;
-                        </button>
+                        
                       </td>
                     </tr>
 
@@ -436,10 +425,7 @@ const Dashboard: React.FC = () => {
                       <td className="px-5 py-4 text-[#94a3b8] font-mono text-xs"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>1m 45s</td>
                       <td className="px-5 py-4 text-right">
-                        <button disabled title="Not available yet: this view uses sample data" aria-label="DETAILS &RARR;" className="text-[#3b82f6] hover:text-[#3b82f6]/80 font-mono text-xs font-semibold opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                          Details &rarr;
-                        </button>
+                        
                       </td>
                     </tr>
 
@@ -666,14 +652,10 @@ const Dashboard: React.FC = () => {
                   <h4 className="text-[#f4f4f6] font-bold text-sm mb-2">Start New Analysis</h4>
                   <p className="text-xs text-[#94a3b8] mb-5 max-w-[200px] mx-auto">Connect a repository and reconstruct its architectural history.</p>
                   <div className="flex gap-2 justify-center">
-                    <button disabled title="Not available yet: this view uses sample data" aria-label="GITHUB" className="flex items-center gap-1.5 px-3 py-1.5 bg-[#11161b] border border-[#242527] hover:border-[#94a3b8] text-[#f4f4f6] text-[10px] font-mono font-bold transition-colors"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                      <Icon icon="mdi:github" width="14" height="14" /> GITHUB
-                    </button>
-                    <button disabled title="Not available yet: this view uses sample data" aria-label="GITLAB" className="flex items-center gap-1.5 px-3 py-1.5 bg-[#11161b] border border-[#242527] hover:border-[#94a3b8] text-[#f4f4f6] text-[10px] font-mono font-bold transition-colors"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                      <Icon icon="mdi:gitlab" width="14" height="14" className="text-[#FC6D26]" /> GITLAB
-                    </button>
+                    <Link to="/projects" className="flex items-center gap-1.5 px-3 py-1.5 bg-[#11161b] border border-[#242527] hover:border-[#94a3b8] text-[#f4f4f6] text-[10px] font-mono font-bold transition-colors">
+                      <FolderGit2 size={14} /> ADD A REPOSITORY
+                    </Link>
+                    
                   </div>
               </div>
             </section>

@@ -10,8 +10,10 @@ import {
   XCircle,
   Clock,
 } from 'lucide-react';
-import { getProjects } from '@/features/project-data';
 import type { ProjectSummary } from '@/features/project-data';
+import { ApiError } from '@/api/client';
+import { ManagedWorkspaces } from './managed';
+import { describeAccessError, pickWorkspace } from './managed-access';
 import {
   getProjectDashboard,
   getProjectApprovals,
@@ -28,27 +30,17 @@ const statusMeta = {
 };
 
 export default function ProjectMaintainerDashboard() {
-  const [projects, setProjects] = useState<ProjectSummary[]>([]);
-  const [selectedProject, setSelectedProject] = useState<string>('');
+  return <ManagedWorkspaces title="Maintainer overview">{projects => <ProjectMaintainerDashboardView projects={projects} />}</ManagedWorkspaces>;
+}
+
+function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary[] }) {
+  const [selectedProject, setSelectedProject] = useState(() => pickWorkspace(projects));
   const [dashboard, setDashboard] = useState<ProjectDashboard | null>(null);
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    getProjects(controller.signal)
-      .then(res => {
-        setProjects(res);
-        if (res.length > 0 && !selectedProject) {
-          setSelectedProject(res[0].id);
-        }
-      })
-      .catch(() => {});
-    return () => controller.abort();
-  }, []);
 
   useEffect(() => {
     if (!selectedProject) {
@@ -59,7 +51,11 @@ export default function ProjectMaintainerDashboard() {
     setLoading(true);
 
     Promise.all([
-      getProjectDashboard(selectedProject, controller.signal).catch(() => null),
+      // A refusal is worth showing; the other panels just stay empty when their data is missing.
+      getProjectDashboard(selectedProject, controller.signal).catch(e => {
+        if (e instanceof ApiError && e.status === 403) throw e;
+        return null;
+      }),
       getProjectApprovals(selectedProject, { status: 'pending' }, controller.signal).catch(() => ({ data: { approvals: [] } })),
       getTeamMembers(controller.signal).catch(() => ({ data: { members: [] } })),
     ])
@@ -70,7 +66,7 @@ export default function ProjectMaintainerDashboard() {
         setError(null);
       })
       .catch(e => {
-        if (!controller.signal.aborted) setError(e.message);
+        if (!controller.signal.aborted) setError(describeAccessError(e, 'This workspace could not be loaded.'));
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);

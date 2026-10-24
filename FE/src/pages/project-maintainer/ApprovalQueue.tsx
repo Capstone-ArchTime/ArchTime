@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { App, Button, Empty, Form, Input, Modal, Select, Spin, Tag } from 'antd';
 import { CheckCircle2, XCircle, Clock, Filter, GitCommit } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { getProjects } from '@/features/project-data';
 import type { ProjectSummary } from '@/features/project-data';
+import { ManagedWorkspaces } from './managed';
+import { describeAccessError, pickWorkspace } from './managed-access';
 import {
   getProjectApprovals,
   createApproval,
@@ -30,9 +31,12 @@ const filterOptions: { key: 'all' | ApprovalStatus; label: string }[] = [
 ];
 
 export default function ApprovalQueue() {
+  return <ManagedWorkspaces title="Approval Queue">{projects => <ApprovalQueueView projects={projects} />}</ManagedWorkspaces>;
+}
+
+function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
   const { message } = App.useApp();
-  const [projects, setProjects] = useState<ProjectSummary[]>([]);
-  const [selectedProject, setSelectedProject] = useState<string>('');
+  const [selectedProject, setSelectedProject] = useState(() => pickWorkspace(projects));
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,19 +50,6 @@ export default function ApprovalQueue() {
   const [revision, setRevision] = useState(0);
 
   useEffect(() => {
-    const controller = new AbortController();
-    getProjects(controller.signal)
-      .then(res => {
-        setProjects(res);
-        if (res.length > 0 && !selectedProject) {
-          setSelectedProject(res[0].id);
-        }
-      })
-      .catch(() => {});
-    return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
     if (!selectedProject) return;
     const controller = new AbortController();
     setLoading(true);
@@ -68,7 +59,7 @@ export default function ApprovalQueue() {
         setError(null);
       })
       .catch(e => {
-        if (!controller.signal.aborted) setError(e.message);
+        if (!controller.signal.aborted) setError(describeAccessError(e, 'This workspace could not be loaded.'));
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -97,7 +88,7 @@ export default function ApprovalQueue() {
       form.resetFields();
       refresh();
     } catch (e) {
-      message.error(e instanceof Error ? e.message : 'Failed to create proposal.');
+      message.error(describeAccessError(e, 'Failed to create proposal.'));
     } finally {
       setSubmitting(false);
     }
@@ -118,7 +109,7 @@ export default function ApprovalQueue() {
       reviewForm.resetFields();
       refresh();
     } catch (e) {
-      message.error(e instanceof Error ? e.message : 'Failed to process review.');
+      message.error(describeAccessError(e, 'Failed to process review.'));
     } finally {
       setSubmitting(false);
     }
