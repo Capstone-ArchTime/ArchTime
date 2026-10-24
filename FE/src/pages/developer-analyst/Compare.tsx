@@ -15,6 +15,9 @@ import {
 
 import { API_BASE_URL } from '@/auth/session';
 import { App } from 'antd';
+import ComponentMatchPanel from '@/components/compare/ComponentMatchPanel';
+import { getComponentMatch } from '@/features/component-matching';
+import type { ComponentMatchResult } from '@/features/component-matching';
 
 const Compare: React.FC = () => {
   const { message } = App.useApp();
@@ -26,6 +29,7 @@ const Compare: React.FC = () => {
   const [targetId, setTargetId] = useState<string>('');
   const [compareData, setCompareData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [match, setMatch] = useState<{ result: ComponentMatchResult | null; error: string | null; loading: boolean; baseId: string; targetId: string } | null>(null);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -86,6 +90,7 @@ const Compare: React.FC = () => {
       return;
     }
     setLoading(true);
+    loadMatch(selectedProjectId, baseId, targetId);
     try {
       const token = readTokens().accessToken;
       const res = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}/snapshots/compare?baseId=${baseId}&targetId=${targetId}`, {
@@ -102,6 +107,18 @@ const Compare: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Component matching runs next to the file comparison; its failure (e.g. no components yet) does not hide the file diff.
+  const loadMatch = (projectId: string, base: string, target: string) => {
+    if (base === target) {
+      setMatch({ result: null, error: 'Choose two different revisions to match their components.', loading: false, baseId: base, targetId: target });
+      return;
+    }
+    setMatch({ result: null, error: null, loading: true, baseId: base, targetId: target });
+    getComponentMatch(projectId, base, target)
+      .then(result => setMatch(m => (m && m.baseId === base && m.targetId === target ? { ...m, result, loading: false } : m)))
+      .catch(err => setMatch(m => (m && m.baseId === base && m.targetId === target ? { ...m, error: err instanceof Error ? err.message : 'Could not match components.', loading: false } : m)));
   };
 
   const getBaseSnapshot = () => snapshots.find(s => s.id === baseId);
@@ -219,7 +236,7 @@ const Compare: React.FC = () => {
               <span className="text-[10px] font-mono text-[#94a3b8] uppercase pl-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>Workspace:</span>
               <select 
                 value={selectedProjectId} 
-                onChange={(e) => setSelectedProjectId(e.target.value)}
+                onChange={(e) => { setSelectedProjectId(e.target.value); setCompareData(null); setMatch(null); }}
                 className="appearance-none bg-transparent border-none text-xs font-bold text-[#f4f4f6] pl-2 pr-10 h-full outline-none cursor-pointer w-48"
               >
                 {projectsList.length > 0 ? projectsList.map(p => (
@@ -349,6 +366,10 @@ const Compare: React.FC = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {match && (
+          <ComponentMatchPanel projectId={selectedProjectId} baseId={match.baseId} targetId={match.targetId} result={match.result} error={match.error} loading={match.loading} />
         )}
 
         {/* SIDE-BY-SIDE GRAPH CONTAINER */}
