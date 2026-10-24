@@ -80,7 +80,7 @@ export const organizationController = new OrganizationController(organizationUse
 // ── Onboarding paths ──
 const onboardingPaths = new MongoPathStore();
 const onboardingAssignments = new MongoAssignmentStore();
-const onboardingDeps = createOnboardingDeps(memberRepository);
+const onboardingDeps = createOnboardingDeps(memberRepository, organizationRepository);
 export const onboardingController = new OnboardingController(
   new OnboardingPathUseCases(onboardingPaths, onboardingAssignments, onboardingDeps),
   new OnboardingLearningUseCases(onboardingPaths, onboardingAssignments, onboardingDeps),

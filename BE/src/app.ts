@@ -38,7 +38,8 @@ export const app = express();
 
 // ── Core Middleware ──
 app.use(cors({ origin: env.corsOrigin, credentials: true }));
-app.use(express.json());
+// A learning path can hold 50 steps of up to 4000 characters each (Vietnamese text takes up to 3 bytes a character), more than the 100 KB default.
+app.use(express.json({ limit: "2mb" }));
 
 // ── Swagger UI ──
 setupSwagger(app);

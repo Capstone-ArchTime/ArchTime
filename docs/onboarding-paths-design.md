@@ -34,8 +34,10 @@ Workspace chưa mine lần nào thì chưa có snapshot để ghim: bước comp
 
 | Việc | Cần quyền | Ai có |
 |---|---|---|
-| Soạn, sửa, xóa, công bố, giao, thu hồi lộ trình; xem tiến độ của mọi người | ghi vào project (`write`) | Project Owner, Maintainer, Organization Owner (và quản trị hệ thống với project cá nhân) |
+| Soạn, sửa, xóa, công bố, giao, thu hồi lộ trình; xem tiến độ của mọi người | ghi vào project (`write`) | Project Owner, Maintainer, Organization Owner (và quản trị hệ thống với project cá nhân: xem ghi chú dưới bảng) |
 | Học: xem lộ trình được giao cho mình, đánh dấu bước xong, trả lời câu hỏi | đọc project (`read`) **và** được giao lộ trình đó | người được giao |
+
+**Ghi chú về quản trị hệ thống.** Bảng §4.2 của tài liệu tổng quan để trống ô của System Administrator ở hai việc "soạn và giao onboarding path" và "xem tiến độ của người khác". Code hiện tại lệch một điểm so với bảng đó: `ProjectAccessPolicy` cho quản trị hệ thống toàn bộ quyền bảo trì (gồm `write`) trên project **cá nhân** (project của tổ chức thì chỉ có metadata), nên họ cũng soạn/giao lộ trình và xem tiến độ được ở project cá nhân. Chưa chặn riêng vì mọi tính năng ghi khác của project cá nhân (scan, mine, ADR, rule) đều đi qua cùng chính sách đó; nếu nhóm muốn siết thì sửa ở `ProjectAccessPolicy` cho mọi tính năng, không chỉ lộ trình.
 
 **Thành viên chỉ thấy tiến độ của bản thân.** Cụ thể:
 
@@ -43,7 +45,7 @@ Workspace chưa mine lần nào thì chưa có snapshot để ghim: bước comp
 - Danh sách tiến độ của mọi người (`/assignments`) cần quyền `write`, nên thành viên nhận 403, kể cả khi chính họ đang được giao lộ trình đó.
 - Đáp án đúng và lời giải thích của câu hỏi chỉ được gửi cho người đã trả lời đúng câu đó. Người khác trả lời đúng không mở khóa gì cho bạn.
 - Lộ trình chưa được giao cho bạn, hoặc chưa công bố, là 404 (không phân biệt "không tồn tại" với "không phải của bạn").
-- Người không còn là thành viên project không còn thấy lộ trình đó trong danh sách của mình.
+- Người không còn là thành viên project (hoặc đã rời tổ chức sở hữu project, chủ project cũng vậy) không còn thấy lộ trình đó trong danh sách của mình và không giao thêm lộ trình cho họ được.
 
 ## 4. API
 

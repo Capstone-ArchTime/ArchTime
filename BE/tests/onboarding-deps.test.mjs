@@ -156,6 +156,22 @@ test("the owner and active members belong to the project; invited people, strang
   assert.equal(await deps.isMember("not-an-id", aliceId), false);
 });
 
+test("in an organization's project, leaving the organization ends membership, even for the owner and active members", async t => {
+  if (!ready(t)) return;
+  const { id, ownerId, aliceId } = await seed();
+  await ProjectModel.collection.updateOne({ _id: new mongoose.Types.ObjectId(id) }, { $set: { organizationId: "org-1" } });
+  const insiders = new Set([ownerId]);
+  const inOrganization = createOnboardingDeps(new MongoProjectMemberRepository(), {
+    findMember: async (organizationId, userId) => (organizationId === "org-1" && insiders.has(userId) ? { organizationId, userId, role: "member" } : null),
+  });
+  assert.equal(await inOrganization.isMember(id, ownerId), true);
+  assert.equal(await inOrganization.isMember(id, aliceId), false, "an active project member who is not in the organization");
+  insiders.delete(ownerId);
+  assert.equal(await inOrganization.isMember(id, ownerId), false, "the owner after leaving the organization");
+  insiders.add(aliceId);
+  assert.equal(await inOrganization.isMember(id, aliceId), true);
+});
+
 test("people and project names are looked up by id, and ids that are not ids are ignored", async t => {
   if (!ready(t)) return;
   const { id, tag, ownerId, aliceId } = await seed();

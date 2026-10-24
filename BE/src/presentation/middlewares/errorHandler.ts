@@ -54,6 +54,12 @@ export function errorHandler(
     return;
   }
 
+  if ((err as { type?: string } | null)?.type === "entity.too.large") {
+    const body: ErrorResponse = { success: false, error: { code: "PAYLOAD_TOO_LARGE", message: "The request body is too large." } };
+    res.status(413).json(body);
+    return;
+  }
+
   // ── Lỗi không xác định (500) ─────────────────────────────────────────────
   // The detail goes to the server log only: it can name collections, fields or paths.
   console.error("[ErrorHandler]", err);

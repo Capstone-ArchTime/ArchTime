@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { assessStepRevision, type StepRevision, type StepRevisionAssessment } from "../../domain/onboarding/stepRevision.js";
 import { MemberStatus } from "../../domain/entities/ProjectMember.js";
 import type { IProjectMemberRepository } from "../../domain/interfaces/IProjectMemberRepository.js";
+import type { IOrganizationRepository } from "../../domain/interfaces/IOrganizationRepository.js";
 import type { OnboardingDeps } from "../../application/use-cases/onboarding/OnboardingPorts.js";
 import { NotFoundError } from "../../shared/errors/AppError.js";
 import { ProjectModel } from "../database/models/ProjectModel.js";
@@ -20,7 +21,10 @@ async function workspaceRevisionOf(projectId: string): Promise<number | null> {
 }
 
 /** The learning-path use cases' view of the rest of the system, backed by the real services and collections. */
-export function createOnboardingDeps(memberRepository: Pick<IProjectMemberRepository, "findByProjectAndUserId">): OnboardingDeps {
+export function createOnboardingDeps(
+  memberRepository: Pick<IProjectMemberRepository, "findByProjectAndUserId">,
+  organizationRepository?: Pick<IOrganizationRepository, "findMember">,
+): OnboardingDeps {
   return {
     async pin(projectId, commit) {
       try {
@@ -66,8 +70,10 @@ export function createOnboardingDeps(memberRepository: Pick<IProjectMemberReposi
 
     async isMember(projectId, userId) {
       if (!mongoose.isValidObjectId(projectId)) return false;
-      const project = await ProjectModel.findById(projectId).select("userId").lean();
+      const project = await ProjectModel.findById(projectId).select("userId organizationId").lean();
       if (!project) return false;
+      // Leaving the organization ends access to its projects, ownership included (ProjectAccessPolicy).
+      if (project.organizationId && !(await organizationRepository?.findMember(project.organizationId, userId))) return false;
       if (project.userId === userId) return true;
       const member = await memberRepository.findByProjectAndUserId(projectId, userId);
       return !!member && member.status === MemberStatus.ACTIVE;
