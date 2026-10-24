@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { verifySession, InvalidSessionError } from '../src/auth/session.ts';
 
-const user = { id: 'u1', name: 'Test', email: 'test@example.com', role: 'project-maintainer' };
+const user = { id: 'u1', name: 'Test', email: 'test@example.com', role: 'developer-analyst' };
 const tokens = { accessToken: 'old-access', refreshToken: 'refresh' };
 const response = (body, status = 200) => new Response(JSON.stringify(body), { status });
 

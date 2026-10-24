@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { App } from 'antd';
-import { getProjects } from '@/features/project-data';
+import { getManagedProjects } from '@/features/project-data';
+import { describeAccessError } from './managed-access';
 import { emptyWorkspace, fetchServerWorkspace, isRevisionConflict, isServerProjectId, saveServerWorkspace } from '@/features/workspace-sync';
 import type { Workspace } from '@/features/workspace-sync';
 
@@ -21,7 +22,7 @@ type LoadState = {
 /** The workspace's id: the id itself, or (for links made before ids were used) the one with that name. Null when there is none. */
 async function resolveServerProject(project: string): Promise<string | null> {
   if (isServerProjectId(project)) return project;
-  const match = (await getProjects()).find((p) => p.name.toLowerCase() === project.toLowerCase());
+  const match = (await getManagedProjects()).find((p) => p.name.toLowerCase() === project.toLowerCase());
   return match?.id ?? null;
 }
 
@@ -50,7 +51,7 @@ export function useWorkspace(project: string) {
       setState((prev) => ({ data, projectId, status: 'ready', error: null, conflictError: null, loadVersion: prev.loadVersion + 1 }));
     } catch (err) {
       if (attempt !== loadRef.current) return;
-      const error = err instanceof Error ? err.message : 'Could not load the workspace.';
+      const error = describeAccessError(err, 'Could not load the workspace.');
       setState((prev) => ({ ...prev, projectId, status: 'error', error }));
     }
   }, [project]);
@@ -90,7 +91,7 @@ export function useWorkspace(project: string) {
         message.error('Not saved: someone else changed this workspace.');
         return null;
       }
-      message.error(err instanceof Error ? err.message : 'Could not save the workspace. Please retry.');
+      message.error(describeAccessError(err, 'Could not save the workspace. Please retry.'));
       return null;
     } finally {
       savingRef.current = false;

@@ -1,23 +1,30 @@
-export const roles = ['developer-analyst', 'project-maintainer', 'system-administrator'] as const;
+/**
+ * System roles the server hands out. Maintaining a project is not one of them: it is a role on one project (owner,
+ * maintainer, or owner of its organization), which the server checks on every request to that project.
+ */
+export const roles = ['developer-analyst', 'system-administrator'] as const;
 export type Role = typeof roles[number];
 export type AuthUser = { id: string; name: string; email: string; role: Role; username?: string | null };
 
 export const roleHome: Record<Role, string> = {
   'developer-analyst': '/dashboard',
-  'project-maintainer': '/project-maintainer',
   'system-administrator': '/system-administrator',
 };
 
+/**
+ * Pages for maintaining a project. Any developer-analyst may open them; each lists only the workspaces the account
+ * maintains, and the server refuses everything else.
+ */
+export const maintainerRoutes: readonly string[] = ['/project-maintainer', '/project-maintainer/approvals', '/project-maintainer/team', '/project-maintainer/reports', '/project-maintainer/component-diagram', '/project-maintainer/architecture-rules', '/project-maintainer/design-decisions'];
+
 const routes: Record<Role, readonly string[]> = {
-  'developer-analyst': ['/dashboard', '/projects', '/project', '/history', '/architecture', '/compare', '/evidence', '/insights', '/reports', '/ai-usage', '/learning'],
-  'project-maintainer': ['/project-maintainer', '/project-maintainer/approvals', '/project-maintainer/team', '/project-maintainer/reports', '/project-maintainer/component-diagram', '/project-maintainer/architecture-rules', '/project-maintainer/design-decisions'],
+  'developer-analyst': ['/dashboard', '/projects', '/project', '/history', '/architecture', '/compare', '/evidence', '/insights', '/reports', '/ai-usage', '/learning', ...maintainerRoutes],
   'system-administrator': ['/system-administrator', '/system-administrator/users', '/system-administrator/audit-log', '/system-administrator/settings', '/system-administrator/mining-jobs', '/system-administrator/ai-models', '/system-administrator/ai-metrics'],
 };
 
 /** Paths with an id after them (the workspace of one project or sample). */
 const prefixes: Record<Role, readonly string[]> = {
   'developer-analyst': ['/workspace/', '/learning/'],
-  'project-maintainer': [],
   'system-administrator': [],
 };
 

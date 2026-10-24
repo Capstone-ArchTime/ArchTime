@@ -4,8 +4,9 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { FileText, Download, Calendar, FolderKanban } from 'lucide-react';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationBar from '@/components/PaginationBar';
-import { getProjects } from '@/features/project-data';
 import type { ProjectSummary } from '@/features/project-data';
+import { ManagedWorkspaces } from './managed';
+import { describeAccessError, pickWorkspace } from './managed-access';
 import { getProjectReports, generateReport } from '@/features/pm-api';
 import type { ProjectReport } from '@/features/pm-api';
 
@@ -26,10 +27,14 @@ function formatTimeAgo(dateStr: string): string {
   return date.toLocaleDateString();
 }
 
+/** Reports of every workspace the account can see; only its maintainers can create new ones (the server checks too). */
 export default function Reports() {
+  return <ManagedWorkspaces title="Reports" scope="readable">{(projects, managed) => <ReportsView projects={projects} managed={managed} />}</ManagedWorkspaces>;
+}
+
+function ReportsView({ projects, managed }: { projects: ProjectSummary[]; managed: ReadonlySet<string> }) {
   const { message } = App.useApp();
-  const [projects, setProjects] = useState<ProjectSummary[]>([]);
-  const [selectedProject, setSelectedProject] = useState<string>('');
+  const [selectedProject, setSelectedProject] = useState(() => pickWorkspace(projects));
   const [reports, setReports] = useState<ProjectReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,19 +45,6 @@ export default function Reports() {
   const [generating, setGenerating] = useState(false);
 
   const pagination = usePagination(reports);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    getProjects(controller.signal)
-      .then(res => {
-        setProjects(res);
-        if (res.length > 0 && !selectedProject) {
-          setSelectedProject(res[0].id);
-        }
-      })
-      .catch(() => {});
-    return () => controller.abort();
-  }, []);
 
   useEffect(() => {
     if (!selectedProject) {
@@ -68,7 +60,7 @@ export default function Reports() {
         setError(null);
       })
       .catch(e => {
-        if (!controller.signal.aborted) setError(e.message);
+        if (!controller.signal.aborted) setError(describeAccessError(e, 'This workspace could not be loaded.'));
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -92,7 +84,7 @@ export default function Reports() {
       message.success('Report generation started.');
       refresh();
     } catch (e) {
-      message.error(e instanceof Error ? e.message : 'Failed to generate report.');
+      message.error(describeAccessError(e, 'Failed to generate report.'));
     } finally {
       setGenerating(false);
     }
@@ -107,12 +99,13 @@ export default function Reports() {
   }
 
   const currentProject = projects.find(p => p.id === selectedProject);
+  const canGenerate = managed.has(selectedProject);
 
   return (
     <DashboardLayout>
       <div className="max-w-[1100px] mx-auto space-y-10">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Evolution Reports</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Reports</h2>
           <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
             Export architecture evolution reports for maintenance handoff and developer onboarding.
           </p>
@@ -133,7 +126,7 @@ export default function Reports() {
 
         {error && <p className="text-red-400">{error}</p>}
 
-        <section>
+        {canGenerate ? <section>
           <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-4" style={{ fontFamily: fontFamily.mono }}>New Export</h3>
 
           <div className="bg-[#161d24] border border-[#242527] p-6 space-y-5">
@@ -190,7 +183,7 @@ export default function Reports() {
               </button>
             </div>
           </div>
-        </section>
+        </section> : <p className="text-sm text-[#94a3b8]">Only maintainers of {currentProject?.name ?? 'this workspace'} can create new reports. Reports they made are listed below.</p>}
 
         <section>
           <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-4" style={{ fontFamily: fontFamily.mono }}>Previously Exported</h3>

@@ -8,10 +8,8 @@ import {
   Box,
   GitCommit,
   Clock,
-  ScanSearch,
   Download,
   CheckCircle2,
-  ExternalLink,
   ArrowRight,
   Sparkles,
   SearchCode
@@ -50,7 +48,7 @@ const ProjectDetail: React.FC = () => {
     projectData?.description ?? 'Cloud-native multi-tenant commerce engine.';
 
   return (
-    <DashboardLayout>
+    <DashboardLayout title={projectData?.name}>
       <div className="max-w-[1400px] mx-auto flex flex-col min-h-0 pb-12">
         {!projectId && <SampleDataNotice />}
         
@@ -84,9 +82,7 @@ const ProjectDetail: React.FC = () => {
                <Link to="/reports" className="h-10 px-5 bg-[#11161b] border border-[#242527] hover:border-[#3b82f6]/50 text-[#3b82f6] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.05)] uppercase tracking-wider">
                   <Download size={16} /> Export Report
                </Link>
-               <button disabled title="Not available yet: this view uses sample data" aria-label="ANALYZE REPOSITORY" className="h-10 px-5 bg-[#3b82f6] hover:bg-[#3b82f6]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)] uppercase tracking-wider">
-                  <ScanSearch size={16} /> Analyze Repository
-               </button>
+               
             </div>
           </div>
         </div>
@@ -307,10 +303,7 @@ const ProjectDetail: React.FC = () => {
                             </span>
                          </td>
                          <td className="p-4 text-right">
-                            <button disabled title="Not available yet: this view uses sample data" aria-label="Unavailable action" className="text-[10px] font-mono font-bold text-[#94a3b8] hover:text-[#3b82f6] transition-colors"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                               <ExternalLink size={14} />
-                            </button>
+                            
                          </td>
                        </tr>
                        
@@ -329,10 +322,7 @@ const ProjectDetail: React.FC = () => {
                             </span>
                          </td>
                          <td className="p-4 text-right">
-                            <button disabled title="Not available yet: this view uses sample data" aria-label="Unavailable action" className="text-[10px] font-mono font-bold text-[#94a3b8] hover:text-[#3b82f6] transition-colors"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                               <ExternalLink size={14} />
-                            </button>
+                            
                          </td>
                        </tr>
                        
@@ -351,10 +341,7 @@ const ProjectDetail: React.FC = () => {
                             </span>
                          </td>
                          <td className="p-4 text-right">
-                            <button disabled title="Not available yet: this view uses sample data" aria-label="Unavailable action" className="text-[10px] font-mono font-bold text-[#94a3b8] hover:text-[#3b82f6] transition-colors"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                               <ExternalLink size={14} />
-                            </button>
+                            
                          </td>
                        </tr>
                        
@@ -373,10 +360,7 @@ const ProjectDetail: React.FC = () => {
                             </span>
                          </td>
                          <td className="p-4 text-right">
-                            <button disabled title="Not available yet: this view uses sample data" aria-label="Unavailable action" className="text-[10px] font-mono font-bold text-[#94a3b8] hover:text-[#3b82f6] transition-colors"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                               <ExternalLink size={14} />
-                            </button>
+                            
                          </td>
                        </tr>
 

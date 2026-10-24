@@ -25,6 +25,8 @@ export class GetMiningJobsUseCase {
     const [docs, total] = await Promise.all([
       MiningJobModel.find(filter)
         .populate("projectId", "name")
+        // The monitor shows who asked for the job, not their account id.
+        .populate("requestedBy", "name")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)

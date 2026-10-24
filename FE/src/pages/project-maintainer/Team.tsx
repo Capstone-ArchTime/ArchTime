@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { App, Button, Empty, Form, Input, Modal, Select, Spin, Table, Tag } from 'antd';
 import FeaturePage from '@/components/FeaturePage';
-import { getProjects } from '@/features/project-data';
 import type { ProjectSummary } from '@/features/project-data';
+import { ManagedWorkspaces } from './managed';
+import { describeAccessError } from './managed-access';
 import {
   getTeamMembers,
   inviteProjectMember,
@@ -11,10 +12,16 @@ import {
   cancelInvitation,
 } from '@/features/pm-api';
 import type { TeamMember } from '@/features/pm-api';
+import { projectRoleLabel } from '@/features/role-labels';
+
+const roleOptions = ['developer-analyst', 'project-maintainer'].map(value => ({ value, label: projectRoleLabel(value) }));
 
 export default function Team() {
+  return <ManagedWorkspaces title="Team">{projects => <TeamView projects={projects} />}</ManagedWorkspaces>;
+}
+
+function TeamView({ projects }: { projects: ProjectSummary[] }) {
   const { message, modal } = App.useApp();
-  const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,17 +36,13 @@ export default function Team() {
     const controller = new AbortController();
     setLoading(true);
 
-    Promise.all([
-      getProjects(controller.signal),
-      getTeamMembers(controller.signal),
-    ])
-      .then(([projectsRes, membersRes]) => {
-        setProjects(projectsRes);
+    getTeamMembers(controller.signal)
+      .then(membersRes => {
         setMembers(membersRes.data.members);
         setError(null);
       })
       .catch(e => {
-        if (!controller.signal.aborted) setError(e.message);
+        if (!controller.signal.aborted) setError(describeAccessError(e, 'The team could not be loaded.'));
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -76,7 +79,7 @@ export default function Team() {
       setInviting(null);
       refresh();
     } catch (e) {
-      message.error(e instanceof Error ? e.message : 'Failed to send invitation.');
+      message.error(describeAccessError(e, 'Failed to send invitation.'));
     } finally {
       setSubmitting(false);
     }
@@ -88,7 +91,7 @@ export default function Team() {
       message.success('Role updated.');
       refresh();
     } catch (e) {
-      message.error(e instanceof Error ? e.message : 'Failed to update role.');
+      message.error(describeAccessError(e, 'Failed to update role.'));
     }
   }
 
@@ -108,7 +111,7 @@ export default function Team() {
           message.success(member.status === 'invited' ? 'Invitation revoked.' : 'Member removed.');
           refresh();
         } catch (e) {
-          message.error(e instanceof Error ? e.message : 'Operation failed.');
+          message.error(describeAccessError(e, 'Operation failed.'));
         }
       },
     });
@@ -124,6 +127,7 @@ export default function Team() {
       title="Team"
       description="Manage members and invitations across your maintained workspaces."
       error={error}
+      demo={false}
       actions={
         <div className="flex gap-2">
           <Button loading={loading} onClick={refresh}>Refresh</Button>
@@ -178,7 +182,7 @@ export default function Team() {
                 </div>
               ),
             },
-            { title: 'Role', dataIndex: 'role' },
+            { title: 'Role', dataIndex: 'role', render: (r: string) => projectRoleLabel(r) },
             {
               title: 'Workspaces',
               render: (_, m: TeamMember) => (
@@ -206,10 +210,7 @@ export default function Team() {
                       const projectId = m.projects[0];
                       if (projectId) handleUpdateRole(projectId, m.id, role);
                     }}
-                    options={[
-                      { value: 'developer-analyst', label: 'developer-analyst' },
-                      { value: 'project-maintainer', label: 'project-maintainer' },
-                    ]}
+                    options={roleOptions}
                     className="min-w-36"
                   />
                   <Button
@@ -251,10 +252,7 @@ export default function Team() {
             rules={[{ required: true }]}
           >
             <Select
-              options={[
-                { value: 'developer-analyst', label: 'Developer / Analyst' },
-                { value: 'project-maintainer', label: 'Project Maintainer' },
-              ]}
+              options={roleOptions}
             />
           </Form.Item>
         </Form>

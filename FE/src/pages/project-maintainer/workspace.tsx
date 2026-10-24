@@ -1,43 +1,37 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { Alert, App, Button, Empty, Select, Tag } from 'antd';
+import { Alert, App, Button, Select } from 'antd';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useSearchParams } from 'react-router-dom';
-import { getProjects, type ProjectSummary } from '@/features/project-data';
+import type { ProjectSummary } from '@/features/project-data';
+import { ManagedWorkspaces } from './managed';
+import { pickWorkspace } from './managed-access';
 
-export function WorkspacePage({
-  title,
-  description,
-  children,
-}: {
+export function WorkspacePage(props: {
   title: string;
   description: string;
   children: (project: string, onDirtyChange: (dirty: boolean) => void) => ReactNode;
 }) {
+  return <ManagedWorkspaces title={props.title}>{projects => <WorkspaceView {...props} projects={projects} />}</ManagedWorkspaces>;
+}
+
+function WorkspaceView({
+  title,
+  description,
+  children,
+  projects,
+}: {
+  title: string;
+  description: string;
+  children: (project: string, onDirtyChange: (dirty: boolean) => void) => ReactNode;
+  projects: ProjectSummary[];
+}) {
   const [params, setParams] = useSearchParams();
   const requested = params.get('project') || params.get('projectId');
-  const [serverProjects, setServerProjects] = useState<ProjectSummary[]>([]);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [project, setProject] = useState(requested ?? '');
+  const [project, setProject] = useState(() => pickWorkspace(projects, requested));
   const [dirty, setDirty] = useState(false);
   const { modal } = App.useApp();
-
-  useEffect(() => {
-    let active = true;
-    getProjects()
-      .then((list) => {
-        if (!active) return;
-        setServerProjects(list);
-        setStatus('ready');
-        if (!requested && list.length) setProject(list[0].id);
-      })
-      .catch(() => {
-        if (active) setStatus('error');
-      });
-    return () => {
-      active = false;
-    };
-  }, [requested]);
+  const notMaintained = !!requested && !projects.some(p => p.id === requested);
 
   function changeProject(next: string) {
     const proceed = () => {
@@ -59,7 +53,7 @@ export function WorkspacePage({
     });
   }
 
-  const options = serverProjects.map((p) => ({ value: p.id, label: p.name }));
+  const options = projects.map((p) => ({ value: p.id, label: p.name }));
 
   return (
     <DashboardLayout>
@@ -79,30 +73,16 @@ export function WorkspacePage({
             <Select
               id="maintainer-project"
               className="w-full"
-              value={project || undefined}
+              value={project}
               onChange={changeProject}
               options={options}
-              loading={status === 'loading'}
-              disabled={!options.length}
-              placeholder={status === 'loading' ? 'Loading workspaces…' : 'No workspaces'}
             />
           </div>
         </header>
-        {status === 'error' && (
-          <Alert type="error" showIcon title="Workspaces could not be loaded. Check your connection and reload the page." />
+        {notMaintained && project !== requested && (
+          <Alert type="warning" showIcon title="You do not maintain the workspace in this link, so one you maintain is shown instead." />
         )}
-        {status === 'ready' && !project && (
-          <Empty description="No workspaces yet. A workspace appears here once a repository has been registered." />
-        )}
-        {project && (
-          <>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-[#94a3b8]">
-              <Tag color="green">API Synchronized</Tag>
-              Persistent architecture workspace with Optimistic Concurrency Control (OCC revision tracking).
-            </div>
-            <div key={project}>{children(project, setDirty)}</div>
-          </>
-        )}
+        <div key={project}>{children(project, setDirty)}</div>
       </div>
     </DashboardLayout>
   );

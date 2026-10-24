@@ -308,7 +308,7 @@ const Projects: React.FC = () => {
         </div>
 
         {/* PROJECT LIST */}
-        <input aria-label="Search workspaces" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search workspaces?" className="h-11 w-full max-w-md px-4 border border-[#242527] bg-[#11161b] text-sm" />
+        <input aria-label="Search workspaces" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search workspaces…" className="h-11 w-full max-w-md px-4 border border-[#242527] bg-[#11161b] text-sm" />
         {!filteredProjects.length && <p role="status" className="text-[#94a3b8] text-sm">No workspaces match your search.</p>}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {pagination.items.map((project) => (
