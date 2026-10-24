@@ -11,13 +11,13 @@ import PaginationBar from '@/components/PaginationBar';
 const statuses = ['Proposed', 'Accepted', 'Deprecated'] as const;
 const colors = { Proposed: 'gold', Accepted: 'green', Deprecated: 'default' };
 const adr = (number: number) => `ADR-${String(number).padStart(3, '0')}`;
-function exportDecision(d: Decision, project: string, fromServer: boolean) {
-  const text = [`# ${adr(d.number)}: ${d.title}`, `Workspace: ${project}`, `Status: ${d.status}`, `Source: ${fromServer ? 'server workspace' : 'local demo workspace'}`, `Created: ${d.createdAt}`, `Updated: ${d.updatedAt}`, '## Context', d.context, '## Decision', d.decision, '## Alternatives', d.alternatives || 'None recorded.', '## Consequences', d.consequences, '## Component IDs', d.componentIds.join(', ') || 'None'].join('\n\n');
+function exportDecision(d: Decision, project: string) {
+  const text = [`# ${adr(d.number)}: ${d.title}`, `Workspace: ${project}`, `Status: ${d.status}`, 'Source: ArchTime workspace', `Created: ${d.createdAt}`, `Updated: ${d.updatedAt}`, '## Context', d.context, '## Decision', d.decision, '## Alternatives', d.alternatives || 'None recorded.', '## Consequences', d.consequences, '## Component IDs', d.componentIds.join(', ') || 'None'].join('\n\n');
   downloadText(`${adr(d.number)}.md`, text, 'text/markdown;charset=utf-8');
 }
 
 function DecisionEditor({ project }: { project: string }) {
-  const { data, save, loading, loadError, loadErrorMessage, conflictError, reload, resolvedProjectId } = useWorkspace(project);
+  const { data, save, loading, loadError, loadErrorMessage, conflictError, reload } = useWorkspace(project);
   const { message } = App.useApp();
   const [editing, setEditing] = useState<Decision | null | undefined>();
   const [viewing, setViewing] = useState<Decision | null>(null);
@@ -41,7 +41,7 @@ function DecisionEditor({ project }: { project: string }) {
     <div className="flex flex-col sm:flex-row gap-3"><Input.Search aria-label="Search design decisions" placeholder="Search decisions, context, or ADR number" value={search} onChange={e => setSearch(e.target.value)} allowClear className="max-w-lg" /><Select aria-label="Filter by decision status" value={status} onChange={setStatus} className="w-full sm:w-44" options={['All', ...statuses].map(value => ({ value, label: value === 'All' ? 'All statuses' : value }))} /></div>
     {!filtered.length && <div className={panel}><Empty description={search || status !== 'All' ? 'No matching decisions.' : 'Record your first decision to preserve the reasoning behind your architecture.'} /></div>}
     <div className="space-y-3">{pagination.items.map(d => <article className={panel} key={d.id}>
-      <div className="flex flex-wrap justify-between gap-4"><div className="min-w-0 flex-1"><div className="flex items-center gap-3 mb-2"><span className="text-xs text-[#3b82f6] font-mono">{adr(d.number)}</span><Tag color={colors[d.status]}>{d.status}</Tag></div><button onClick={() => setViewing(d)} className="text-lg font-semibold text-left hover:text-[#3b82f6] focus-visible:outline focus-visible:outline-[#3b82f6] break-words">{d.title}</button><p className="text-sm text-[#94a3b8] mt-2 line-clamp-2 whitespace-pre-wrap break-words">{d.decision}</p><p className="text-xs text-[#94a3b8] mt-4">Updated {new Date(d.updatedAt).toLocaleString()} · {d.componentIds.length} linked components</p></div><div className="flex items-start gap-2"><Button size="small" onClick={() => setViewing(d)}>Read</Button><Button size="small" onClick={() => exportDecision(d, project, !!resolvedProjectId)}>Export Markdown</Button><Button size="small" disabled={loadError} onClick={() => open(d)}>Edit</Button></div></div>
+      <div className="flex flex-wrap justify-between gap-4"><div className="min-w-0 flex-1"><div className="flex items-center gap-3 mb-2"><span className="text-xs text-[#3b82f6] font-mono">{adr(d.number)}</span><Tag color={colors[d.status]}>{d.status}</Tag></div><button onClick={() => setViewing(d)} className="text-lg font-semibold text-left hover:text-[#3b82f6] focus-visible:outline focus-visible:outline-[#3b82f6] break-words">{d.title}</button><p className="text-sm text-[#94a3b8] mt-2 line-clamp-2 whitespace-pre-wrap break-words">{d.decision}</p><p className="text-xs text-[#94a3b8] mt-4">Updated {new Date(d.updatedAt).toLocaleString()} · {d.componentIds.length} linked components</p></div><div className="flex items-start gap-2"><Button size="small" onClick={() => setViewing(d)}>Read</Button><Button size="small" onClick={() => exportDecision(d, project)}>Export Markdown</Button><Button size="small" disabled={loadError} onClick={() => open(d)}>Edit</Button></div></div>
     </article>)}</div>
     <PaginationBar {...pagination} />
     <Modal title={editing ? `Edit ${adr(editing.number)}` : 'Record design decision'} width={720} open={editing !== undefined} onCancel={() => setEditing(undefined)} onOk={() => form.submit()} okText="Save decision">

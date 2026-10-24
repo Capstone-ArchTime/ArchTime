@@ -30,7 +30,7 @@ These local branches are **stacked**, starting from `Feature/LoginPage` at `4011
 - Existing live endpoints used: `GET /api/health`, `GET /api/projects`, `GET /api/projects/jobs`, `GET /api/projects/:id/snapshots`, plus existing session verification/refresh.
 - Current project listing is owner-scoped by BE; it is not a managed-team project directory. Reports use only projects and revisions returned by that API.
 - User management, settings, team, approvals, and their action history are explicit local demos. No invitation email, role change, account suspension, repository authorization, key rotation, or server configuration mutation occurs.
-- Diagram/rules/ADRs keep the existing per-account, per-project browser storage. The three demo projects are separate from server projects. There is no automatic migration/upload of demo data.
+- Diagram/rules/ADRs are stored on the server per project (`/api/projects/:id/workspace`); the browser keeps no copy. Earlier browser-local workspace data is not read or migrated.
 - CPU/RAM/storage/queue-capacity metrics are shown as unavailable instead of fabricated values. Health only proves the existing health endpoint responded.
 - Job cancellation remains disabled with an explanation because BE has no cancellation endpoint. Unknown statuses do not crash rendering; failed requests retain last successful data with an error notice.
 - Reports are generated in FE from full snapshots. The diff uses component IDs and directed dependency `(source,target,type)` tuples; changes to properties of an existing component are not classified. It does not claim to analyze source code.

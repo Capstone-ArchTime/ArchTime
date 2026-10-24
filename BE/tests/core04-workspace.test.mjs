@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { GetProjectWorkspaceUseCase } from '../src/application/use-cases/workspace/GetProjectWorkspaceUseCase.ts';
+import { GetProjectDiagramUseCase } from '../src/application/use-cases/pm/GetProjectDiagramUseCase.ts';
 import { SaveProjectWorkspaceUseCase } from '../src/application/use-cases/workspace/SaveProjectWorkspaceUseCase.ts';
 import { AppError } from '../src/shared/errors/AppError.ts';
 
@@ -99,8 +100,8 @@ function createMockRepos() {
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. GetProjectWorkspaceUseCase
 // ─────────────────────────────────────────────────────────────────────────────
-test('GetProjectWorkspaceUseCase: returns default initial template when not yet in database', async () => {
-  const { projectRepo, workspaceRepo } = createMockRepos();
+test('GetProjectWorkspaceUseCase: a workspace nobody has saved yet starts empty, with no invented components', async () => {
+  const { projectRepo, workspaceRepo, workspaces } = createMockRepos();
   const useCase = new GetProjectWorkspaceUseCase(workspaceRepo, projectRepo);
 
   const ws = await useCase.execute('proj-1');
@@ -108,9 +109,22 @@ test('GetProjectWorkspaceUseCase: returns default initial template when not yet 
   assert.equal(ws.projectId, 'proj-1');
   assert.equal(ws.revision, 1);
   assert.equal(ws.diagram.revision, 1);
-  assert.equal(ws.diagram.components.length, 4);
-  assert.equal(ws.diagram.dependencies.length, 3);
-  assert.ok(ws.diagram.components.some((c) => c.name === 'Order Service Service'));
+  assert.deepEqual(ws.diagram.components, []);
+  assert.deepEqual(ws.diagram.dependencies, []);
+  assert.deepEqual(ws.rules, []);
+  assert.deepEqual(ws.decisions, []);
+  assert.equal(ws.diagram.confirmedAt, null);
+  assert.equal(workspaces.has('proj-1'), false, 'reading must not write anything');
+});
+
+test('GetProjectDiagramUseCase: the first read of an untouched workspace stores an empty diagram, not invented components', async () => {
+  const { projectRepo, workspaceRepo, workspaces } = createMockRepos();
+  const result = await new GetProjectDiagramUseCase(workspaceRepo, projectRepo).execute('proj-1');
+
+  assert.equal(result.revision, 1);
+  assert.deepEqual(result.diagram.components, []);
+  assert.deepEqual(result.diagram.dependencies, []);
+  assert.equal(workspaces.get('proj-1').diagram.components.length, 0);
 });
 
 test('GetProjectWorkspaceUseCase: throws NotFoundError when project does not exist', async () => {
@@ -138,6 +152,7 @@ test('SaveProjectWorkspaceUseCase: saves initial workspace with revision increme
 
   const initial = await getUseCase.execute('proj-1');
   assert.equal(initial.revision, 1);
+  assert.equal(initial.diagram.components.length, 0);
 
   const saved = await saveUseCase.execute({
     projectId: 'proj-1',
@@ -145,7 +160,8 @@ test('SaveProjectWorkspaceUseCase: saves initial workspace with revision increme
     diagram: {
       ...initial.diagram,
       components: [
-        ...initial.diagram.components,
+        { id: 'web', name: 'Web Application', kind: 'UI', description: 'User-facing application' },
+        { id: 'db', name: 'Database', kind: 'Database', description: 'Persistent data' },
         { id: 'c5', name: 'Notification Service', kind: 'Service', description: 'Async notifications' },
       ],
     },
@@ -167,7 +183,7 @@ test('SaveProjectWorkspaceUseCase: saves initial workspace with revision increme
 
   assert.equal(saved.revision, 2);
   assert.equal(saved.diagram.revision, 2);
-  assert.equal(saved.diagram.components.length, 5);
+  assert.equal(saved.diagram.components.length, 3);
   assert.equal(saved.rules.length, 1);
 });
 

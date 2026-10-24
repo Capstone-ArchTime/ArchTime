@@ -8,10 +8,19 @@ import {
   getLlmUsage, healthColor, startBenchmark, statusColor, statusLabel, updateLlmSettings,
 } from '@/features/llm-api';
 import type { AdminModel, BenchmarkDetail, BenchmarkSummary, BenchmarkTarget, Leaderboard, LeaderboardRow, ScorePreset, UsageReport, UsageRow } from '@/features/llm-api';
+import { drawingStats } from '@/features/llm-run-view';
 
 const RANGES = [{ value: 7, label: '7 days' }, { value: 30, label: '30 days' }, { value: 90, label: '90 days' }];
 const PRESETS: { value: ScorePreset; label: string }[] = [{ value: 'balanced', label: 'Balanced' }, { value: 'quality', label: 'Quality first' }, { value: 'budget', label: 'Budget' }];
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);
+
+/** The Runs tile's hint: how many drawings were accepted, and how many questions asked in AI Insights are in the count. */
+function runsHint(t: UsageReport['totals'] | undefined): string | undefined {
+  if (!t?.runs) return undefined;
+  const d = drawingStats(t);
+  const parts = [d.successRate === null ? null : `${formatPercent(d.successRate)} of ${d.runs} drawings accepted`, t.chatRuns ? `${t.chatRuns} AI Insights question${t.chatRuns === 1 ? '' : 's'}` : null];
+  return parts.filter(Boolean).join(' · ') || undefined;
+}
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return <div className={featurePanel}><p className="text-xs uppercase tracking-wider text-[#94a3b8]">{label}</p><p className="mt-2 text-2xl font-semibold font-mono">{value}</p>{hint && <p className="mt-1 text-xs text-[#94a3b8]">{hint}</p>}</div>;
@@ -72,7 +81,7 @@ const leaderboardColumns: ColumnsType<LeaderboardRow> = [
 function Weights({ board }: { board: Leaderboard }) {
   const w = board.weights;
   return <p className="text-xs text-[#94a3b8]">Score = 100 × ({w.quality.toFixed(2)}·Quality + {w.stability.toFixed(2)}·Stability + {w.latency.toFixed(2)}·Latency + {w.cost.toFixed(2)}·Cost + {w.tokens.toFixed(2)}·Tokens).
-    Latency, cost and tokens are relative to the best model (1 = best). Models need at least 3 runs and 50% success to be recommended (benchmarks: 1 run).</p>;
+    Latency, cost and tokens are relative to the best model (1 = best). Models need at least 3 runs and 50% success to be recommended (benchmarks: 1 run). Questions asked in AI Insights are included in the runs, tokens and cost figures but not in success, speed or scores.</p>;
 }
 
 function BenchmarkPanel({ models }: { models: AdminModel[] }) {
@@ -187,11 +196,11 @@ export default function AiMetrics() {
   const usageColumns = (first: ColumnsType<UsageRow>[number]): ColumnsType<UsageRow> => [
     first,
     { title: 'Runs', dataIndex: 'runs', align: 'right' },
-    { title: 'Success', align: 'right', render: (_, r) => formatPercent(r.runs ? r.accepted / r.runs : 0) },
+    { title: <Tooltip title="Architecture drawings accepted out of all drawings. Questions asked in AI Insights are not counted here.">Success</Tooltip>, align: 'right', render: (_, r) => { const d = drawingStats(r); return d.successRate === null ? '–' : formatPercent(d.successRate); } },
     { title: 'Input tokens', align: 'right', render: (_, r) => formatTokens(r.inputTokens) },
     { title: 'Output tokens', align: 'right', render: (_, r) => formatTokens(r.outputTokens) },
     { title: 'Total tokens', align: 'right', render: (_, r) => <b>{formatTokens(r.totalTokens)}</b> },
-    { title: 'Avg time', align: 'right', render: (_, r) => formatMs(r.avgLatencyMs) },
+    { title: <Tooltip title="Average time to draw an architecture. Questions asked in AI Insights are not counted here.">Avg time</Tooltip>, align: 'right', render: (_, r) => r.drawAvgLatencyMs == null ? '–' : formatMs(r.drawAvgLatencyMs) },
     { title: 'Cost', align: 'right', render: (_, r) => formatCost(r.cost) },
   ];
 
@@ -199,11 +208,11 @@ export default function AiMetrics() {
     actions={<Space wrap><Segmented value={days} onChange={v => setDays(Number(v))} options={RANGES} /><Button loading={loading} onClick={() => setRevision(v => v + 1)}>Refresh</Button></Space>}>
     {error && <Alert type="error" showIcon title={error} action={<Button onClick={() => setRevision(v => v + 1)}>Retry</Button>} />}
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-      <Stat label="Runs" value={formatTokens(t?.runs ?? 0)} hint={t?.runs ? `${formatPercent(t.accepted / t.runs)} accepted` : undefined} />
+      <Stat label="Runs" value={formatTokens(t?.runs ?? 0)} hint={runsHint(t)} />
       <Stat label="Input tokens" value={formatCompactTokens(t?.inputTokens ?? 0)} />
       <Stat label="Output tokens" value={formatCompactTokens(t?.outputTokens ?? 0)} />
       <Stat label="Cost" value={formatCost(t?.cost ?? 0)} hint="At the configured prices" />
-      <Stat label="Avg time / run" value={formatMs(t?.avgLatencyMs ?? 0)} />
+      <Stat label="Avg time / drawing" value={t?.drawAvgLatencyMs == null ? '–' : formatMs(t.drawAvgLatencyMs)} />
     </div>
     <div className={featurePanel}>{daily && <TokensByDay rows={daily.rows} days={days} />}</div>
 

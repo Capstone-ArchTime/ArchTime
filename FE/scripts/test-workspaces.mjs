@@ -1,3 +1,5 @@
+// Out of date: written when maintainer workspaces lived in the browser. They are now loaded from /api/projects/:id/workspace,
+// which the fixtures below do not mock, so the pages never leave their loading state. Not part of `npm test`.
 // Usage: node scripts/test-workspaces.mjs [path to an installed playwright package]
 // Run the FE dev server first. All backend traffic is intercepted with test fixtures.
 import { pathToFileURL } from 'node:url';

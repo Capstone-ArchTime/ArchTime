@@ -1,10 +1,11 @@
 ﻿import { useEffect, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { ElementType, ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { App, Button, Drawer, Input, Modal } from 'antd';
 import { ArrowUpRight, LogOut, Menu, Search, User } from 'lucide-react';
 import { useAuth } from '@/auth/auth-context';
 import { navItemsByRole } from './navigation';
+import { matchNavItem } from './nav-match';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
@@ -14,9 +15,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const mainRef = useRef<HTMLElement>(null);
-  const items = user ? navItemsByRole[user.role] : [];
+  const items: readonly { path: string; label: string; icon: ElementType }[] = user ? navItemsByRole[user.role] : [];
   const homePath = items[0]?.path ?? '/';
-  const currentPage = items.find(item => item.path === pathname)?.label ?? 'Workspace detail';
+  const currentItem = matchNavItem(items, pathname);
+  const currentPage = currentItem?.label ?? 'Workspace detail';
 
   useEffect(() => {
     document.title = `${currentPage} · ArchTime`;
@@ -40,7 +42,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   });
   const navigation = <nav aria-label="Workspace navigation" className="space-y-1">
     {items.map(item => {
-      const active = pathname === item.path;
+      const active = currentItem?.path === item.path;
       const Icon = item.icon;
       return <Link key={item.path} to={item.path} onClick={closeNavigation} aria-current={active ? 'page' : undefined}
         className={`flex items-center gap-3 rounded-md border px-3 py-3 text-sm transition-colors ${active ? 'border-[#3b82f6]/30 bg-[#3b82f6]/10 text-[#60a5fa]' : 'border-transparent text-[#94a3b8] hover:bg-[#161d24] hover:text-white'}`}>
@@ -72,7 +74,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <button type="button" onClick={() => setSearchOpen(true)} aria-label="Search workspace pages" aria-keyshortcuts="Control+k Meta+k" className="flex items-center gap-3 border border-[#242527] bg-[#11161b] rounded h-10 px-3 text-[#94a3b8] hover:border-[#3b82f6]/50">
             <Search size={16} aria-hidden="true" /><span className="hidden sm:inline text-xs">Find a page…</span><kbd className="hidden md:inline text-[10px]">Ctrl K</kbd>
           </button>
-          <button type="button" aria-label="View account" onClick={() => modal.info({ title: 'Your account', content: <div className="space-y-2"><p>{user.name}</p><p className="break-all">{user.email}</p><p className="capitalize">{user.role.replaceAll('-', ' ')}</p></div> })} className="h-10 w-10 flex items-center justify-center rounded-full bg-[#161d24] border border-[#242527] text-[#60a5fa]"><User size={18} /></button>
+          <Link to="/profile" aria-label="View account" className="h-10 w-10 flex items-center justify-center rounded-full bg-[#161d24] border border-[#242527] text-[#60a5fa]"><User size={18} /></Link>
         </div>
       </header>
       <main id="main-content" ref={mainRef} tabIndex={-1} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 xl:p-9 focus:outline-none">

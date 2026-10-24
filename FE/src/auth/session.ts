@@ -27,6 +27,12 @@ export function clearTokens() {
   }
 }
 
+const NOTICE_KEY = 'archtime:signin-notice';
+/** A line for the sign-in page to show once, for example why the person was signed out. Kept in the tab, not in the router state, so no redirect can drop it. */
+export function setSignInNotice(text: string) { try { sessionStorage.setItem(NOTICE_KEY, text); } catch { /* storage blocked: the notice is only a courtesy */ } }
+export function peekSignInNotice(): string | null { try { return sessionStorage.getItem(NOTICE_KEY); } catch { return null; } }
+export function clearSignInNotice() { try { sessionStorage.removeItem(NOTICE_KEY); } catch { /* idem */ } }
+
 // Always resolve identity and permissions on the server, never from browser-stored roles.
 export async function verifySession(tokens: Tokens, signal: AbortSignal) {
   signal = AbortSignal.any([signal, AbortSignal.timeout(15_000)]);

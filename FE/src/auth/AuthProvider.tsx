@@ -77,5 +77,5 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     return () => { disposed = true; active.current?.abort(); clearInterval(interval); window.removeEventListener('focus', onFocus); window.removeEventListener('storage', onStorage); };
   }, [revision]);
 
-  return <AuthContext.Provider value={{ user, loading, error, signIn, signOut, retry: () => { setLoading(true); setRevision(value => value + 1); } }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, loading, error, signIn, signOut, updateUser: patch => setUser(current => (current ? { ...current, ...patch } : current)), retry: () => { setLoading(true); setRevision(value => value + 1); } }}>{children}</AuthContext.Provider>;
 }

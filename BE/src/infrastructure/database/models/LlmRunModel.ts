@@ -2,7 +2,10 @@ import mongoose, { type Model, Schema } from "mongoose";
 import type { RunStatus } from "../../../domain/architecture/llm/metrics.js";
 import type { UsageTotals } from "../../../domain/architecture/llm/types.js";
 
-/** One request to draw (refine) an architecture with a model: what it cost, how long it took and how good the answer was. */
+/**
+ * One request to a model, kept for accounting: what it cost and how long it took. A refine or name-only run (drawing an
+ * architecture) also records how good the answer was; a chat run is one question to the mentor and holds no quality.
+ */
 export interface ILlmRun {
   projectId: string;
   snapshotId?: string;
@@ -16,7 +19,9 @@ export interface ILlmRun {
   purpose: "user" | "benchmark";
   /** Groups runs started together by one benchmark. */
   benchmarkId?: string;
-  mode: "refine" | "name-only";
+  mode: "refine" | "name-only" | "chat";
+  /** The saved conversation a chat run belongs to; the run holds no question or answer text, only the accounting. */
+  conversationId?: string;
   filesSent: number;
   status: RunStatus;
   errorKind?: string;
@@ -26,7 +31,8 @@ export interface ILlmRun {
   latencyMs: number;
   wallMs: number;
   cost: { amount: number; currency: string; pricing?: { inputPerMTok: number; outputPerMTok: number; cacheReadPerMTok?: number } };
-  quality: {
+  /** Absent for chat runs. */
+  quality?: {
     score: number; pass: number; V: number; M: number; R: number; E: number; B: number;
     errors: number; warnings: number; modularity: number; baselineModularity: number; movedRatio?: number; attemptsUsed: number; components: number;
     /** v2: name grounding, acyclicity, layering, size balance (0..1), what they found, and agreement with the reference / previous snapshot (ARI). */
@@ -49,7 +55,8 @@ const LlmRunSchema = new Schema<ILlmRun>(
     model: { type: String, required: true },
     purpose: { type: String, enum: ["user", "benchmark"], default: "user" },
     benchmarkId: { type: String },
-    mode: { type: String, enum: ["refine", "name-only"], required: true },
+    mode: { type: String, enum: ["refine", "name-only", "chat"], required: true },
+    conversationId: { type: String },
     filesSent: { type: Number, default: 0 },
     status: { type: String, enum: ["accepted", "fallback", "failed", "cancelled"], required: true },
     errorKind: { type: String },

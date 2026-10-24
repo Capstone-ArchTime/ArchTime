@@ -783,6 +783,7 @@ const options: swaggerJsdoc.Options = {
       { name: "Projects - Reports", description: "Tạo và tải báo cáo tổng hợp kiến trúc dự án (PM-07)" },
       { name: "Projects - Revisions", description: "Gắn bước (onboarding) với revision và kiểm tra commit còn tồn tại" },
       { name: "Organizations", description: "Tổ chức, thành viên (Owner / Member) và credential repo thuộc tổ chức" },
+      { name: "Onboarding", description: "Lộ trình onboarding: soạn, giao cho người mới, theo dõi tiến độ" },
       { name: "Admin - User Management", description: "Quản trị người dùng hệ thống (System Administrator)" },
       { name: "Admin - Mining Jobs", description: "Giám sát và quản lý các tác vụ mining toàn hệ thống" },
       { name: "Admin - Audit Logs", description: "Nhật ký kiểm toán hoạt động hệ thống" },

@@ -20,44 +20,14 @@ export class GetProjectWorkspaceUseCase {
       return saved;
     }
 
-    // Return initial default workspace template for this project
-    const defaultServiceName = `${project.name} Service`;
+    // Nobody has saved anything for this workspace yet, so it starts empty: no invented components or dependencies.
     const initial: IWorkspace = {
       id: `init-${projectId}`,
       projectId: project.id,
       revision: 1,
       diagram: {
-        components: [
-          {
-            id: "web",
-            name: "Web Application",
-            kind: "UI",
-            description: "User-facing application interface",
-          },
-          {
-            id: "api",
-            name: "API Gateway",
-            kind: "Service",
-            description: "Routes incoming requests and authentication",
-          },
-          {
-            id: "service",
-            name: defaultServiceName,
-            kind: "Service",
-            description: "Domain logic and core business operations",
-          },
-          {
-            id: "db",
-            name: "Database",
-            kind: "Database",
-            description: "Persistent domain datastore",
-          },
-        ],
-        dependencies: [
-          { id: "e1", source: "web", target: "api", label: "HTTPS" },
-          { id: "e2", source: "api", target: "service", label: "REST" },
-          { id: "e3", source: "service", target: "db", label: "SQL" },
-        ],
+        components: [],
+        dependencies: [],
         revision: 1,
         confirmedAt: null,
         confirmedBy: null,

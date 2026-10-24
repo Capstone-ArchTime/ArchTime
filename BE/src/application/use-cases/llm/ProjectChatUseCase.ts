@@ -1,9 +1,10 @@
 import type { IProject } from "../../../domain/entities/Project.js";
-import { LlmError } from "../../../domain/architecture/llm/types.js";
+import { LlmError, sumUsage } from "../../../domain/architecture/llm/types.js";
 import type { LlmMessage, LlmUsage } from "../../../domain/architecture/llm/types.js";
 import { EvidenceModel } from "../../../infrastructure/database/models/EvidenceModel.js";
 import { SnapshotModel } from "../../../infrastructure/database/models/SnapshotModel.js";
 import { LlmModelRegistry } from "../../../infrastructure/llm/registry.js";
+import { LlmRunService, type RecordChatRunInput } from "../../../infrastructure/services/LlmRunService.js";
 import { AppError, BadRequestError } from "../../../shared/errors/AppError.js";
 import {
   buildProjectContext, CHAT_LIMITS, citedEvidence, parseChatMessages,
@@ -62,12 +63,45 @@ export interface ProjectChatResult {
   conversation: { id: string; title: string } | null;
 }
 
+/** Where the accounting record of each question is written: LlmRunService in production, a stand-in in tests. */
+export interface ChatRunLog {
+  record(input: RecordChatRunInput): Promise<unknown>;
+}
+const runLog: ChatRunLog = { record: input => LlmRunService.recordChat(input) };
+
+/** How long the user may be kept waiting for the accounting record; a slower write carries on in the background. */
+export const RUN_LOG_WAIT_MS = 3_000;
+
 /**
  * Answers questions about one project's architecture history from its stored snapshots and change evidence, and saves
- * each question and answer to the user's conversation so it can be read back later.
+ * each question and answer to the user's conversation so it can be read back later. Every question that reaches a model
+ * is also logged as an AI run (who, which workspace, which model, tokens, cost, outcome), answered or not.
  */
 export class ProjectChatUseCase {
-  constructor(private readonly history = new ChatHistoryUseCases()) {}
+  constructor(
+    private readonly history = new ChatHistoryUseCases(),
+    private readonly runs: ChatRunLog = runLog,
+  ) {}
+
+  /**
+   * Accounting must never decide whether the user gets an answer, or which error: a log that fails is only reported, and a
+   * log that is slow is not waited for beyond a few seconds (the write carries on in the background).
+   */
+  private async logRun(input: RecordChatRunInput): Promise<void> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        this.runs.record(input),
+        new Promise<void>(resolve => {
+          timer = setTimeout(() => { console.warn("Project chat: logging the run is slow; the user is not kept waiting for it."); resolve(); }, RUN_LOG_WAIT_MS);
+        }),
+      ]);
+    } catch (error) {
+      console.error("Project chat: the run could not be logged.", error);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
 
   async execute(input: { project: IProject; userId: string; messages: unknown; conversationId?: unknown }): Promise<ProjectChatResult> {
     const askedAt = new Date();
@@ -100,32 +134,46 @@ export class ProjectChatUseCase {
     ];
 
     const resolved = await LlmModelRegistry.resolve();
-    let usage: LlmUsage | null = null;
+    // One answer can take more than one provider request (a retry, a dropped option) and each one that got through is billed.
+    const usages: LlmUsage[] = [];
+    let providerMs = 0;
     let answer: string;
+    const started = performance.now();
+    const usedTokens = (): LlmUsage | null => (usages.length ? sumUsage(usages.map(usage => ({ usage }))) : null);
+    // A run is logged from here on: the model is being asked, so it costs something whether or not it answers.
+    const run = (wallMs: number) => ({ projectId, userId: input.userId, model: resolved, usage: usedTokens(), latencyMs: providerMs > 0 ? providerMs : wallMs, wallMs });
     try {
-      answer = await resolved.client.complete(messages, { maxTokens: 2000, plain: true, onUsage: u => { usage = u; } });
+      answer = await resolved.client.complete(messages, { maxTokens: 2000, plain: true, onUsage: (u, ms) => { usages.push(u); providerMs += ms; } });
     } catch (error) {
+      await this.logRun({ ...run(Math.round(performance.now() - started)), conversationId, status: "failed", errorKind: error instanceof LlmError ? error.kind : "other" });
       throw toAppError(error);
     }
+    const wallMs = Math.round(performance.now() - started);
 
     const { info } = resolved.client;
-    const result = {
-      answer: answer.trim(),
-      evidence: citedEvidence(answer, evidences, snapshots),
-      model: { name: info.model, host: info.host, external: info.external },
-      usage: usage ? { inputTokens: (usage as LlmUsage).inputTokens, outputTokens: (usage as LlmUsage).outputTokens } : null,
-    };
-
-    // The answer is already paid for: a history that cannot be written must not take it away. The page is told it was not saved.
     let conversation: ProjectChatResult["conversation"] = null;
     try {
-      conversation = await this.history.append({
-        conversationId, projectId, userId: input.userId, question: turns[turns.length - 1].content, askedAt,
-        answer: { content: result.answer, evidence: result.evidence, model: result.model, usage: result.usage },
-      });
-    } catch (error) {
-      console.error("Project chat: the conversation could not be saved.", error);
+      const used = usedTokens();
+      const result = {
+        answer: answer.trim(),
+        evidence: citedEvidence(answer, evidences, snapshots),
+        model: { name: info.model, host: info.host, external: info.external },
+        usage: used ? { inputTokens: used.inputTokens, outputTokens: used.outputTokens } : null,
+      };
+
+      // The answer is already paid for: a history that cannot be written must not take it away. The page is told it was not saved.
+      try {
+        conversation = await this.history.append({
+          conversationId, projectId, userId: input.userId, question: turns[turns.length - 1].content, askedAt,
+          answer: { content: result.answer, evidence: result.evidence, model: result.model, usage: result.usage },
+        });
+      } catch (error) {
+        console.error("Project chat: the conversation could not be saved.", error);
+      }
+      return { ...result, conversation };
+    } finally {
+      // Logged even if shaping the reply fails: the model answered, and that was paid for.
+      await this.logRun({ ...run(wallMs), conversationId: conversation?.id ?? conversationId, status: "accepted" });
     }
-    return { ...result, conversation };
   }
 }

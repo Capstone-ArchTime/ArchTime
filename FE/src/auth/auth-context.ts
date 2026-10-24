@@ -8,6 +8,8 @@ export type AuthState = {
   error: string | null;
   signIn: (tokens: Tokens, rememberMe?: boolean) => Promise<AuthUser>;
   signOut: () => void;
+  /** Updates the signed-in user's details here after the server accepted a change, so the page does not wait for the next check. */
+  updateUser: (patch: Partial<AuthUser>) => void;
   retry: () => void;
 };
 export const AuthContext = createContext<AuthState | null>(null);

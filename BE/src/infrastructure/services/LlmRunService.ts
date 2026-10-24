@@ -2,9 +2,9 @@ import mongoose from "mongoose";
 import type { MappingComponent } from "../../domain/architecture/buildView.js";
 import type { ValidationResult } from "../../domain/architecture/types.js";
 import type { ViewAssessment } from "../../domain/architecture/quality.js";
-import type { RefineReceipt } from "../../domain/architecture/llm/types.js";
+import type { LlmUsage, RefineReceipt, UsageTotals } from "../../domain/architecture/llm/types.js";
 import { modelStats, modularity, normalizeWeights, runCost, runQuality, SCORE_PRESETS, scoreModels } from "../../domain/architecture/llm/metrics.js";
-import type { ModelCandidate, ModelStats, RunSample, RunStatus, ScorePreset, ScoreWeights } from "../../domain/architecture/llm/metrics.js";
+import type { ModelCandidate, ModelStats, Pricing, RunSample, RunStatus, ScorePreset, ScoreWeights } from "../../domain/architecture/llm/metrics.js";
 import { LlmRunModel } from "../database/models/LlmRunModel.js";
 import type { ILlmRun } from "../database/models/LlmRunModel.js";
 import { LlmModelModel } from "../database/models/LlmModelModel.js";
@@ -31,6 +31,12 @@ export interface RecordRunInput {
   maxMoveRatio: number;
   wallMs: number;
 }
+
+/** What a run cost at the model's price, with the price itself so a later change of price does not rewrite history. */
+const costOf = (usage: UsageTotals, pricing: Pricing | null | undefined): ILlmRun["cost"] => ({
+  amount: runCost(usage, pricing), currency: pricing?.currency ?? "USD",
+  ...(pricing ? { pricing: { inputPerMTok: pricing.inputPerMTok, outputPerMTok: pricing.outputPerMTok, ...(pricing.cacheReadPerMTok !== undefined ? { cacheReadPerMTok: pricing.cacheReadPerMTok } : {}) } } : {}),
+});
 
 const groupsOf = (components: MappingComponent[]) => new Map(components.flatMap(c => c.memberIds.map(f => [f, c.id] as [string, string])));
 
@@ -75,10 +81,7 @@ export function buildRun(input: RecordRunInput): Omit<ILlmRun, "createdAt"> {
       inputTokens: a.usage?.inputTokens ?? 0, outputTokens: a.usage?.outputTokens ?? 0, latencyMs: a.latencyMs ?? 0, ...(a.errorKind ? { errorKind: a.errorKind } : {}),
     })),
     usage, latencyMs: receipt.latencyMs ?? 0, wallMs: input.wallMs,
-    cost: {
-      amount: runCost(usage, pricing), currency: pricing?.currency ?? "USD",
-      ...(pricing ? { pricing: { inputPerMTok: pricing.inputPerMTok, outputPerMTok: pricing.outputPerMTok, ...(pricing.cacheReadPerMTok !== undefined ? { cacheReadPerMTok: pricing.cacheReadPerMTok } : {}) } } : {}),
-    },
+    cost: costOf(usage, pricing),
     quality: {
       ...quality, errors, warnings, modularity: round(mod), baselineModularity: round(baseline),
       ...(receipt.movedRatio !== undefined ? { movedRatio: receipt.movedRatio } : {}), attemptsUsed, components: input.components.length,
@@ -87,6 +90,46 @@ export function buildRun(input: RecordRunInput): Omit<ILlmRun, "createdAt"> {
         ...(a.agreement ? { agreement: a.agreement.score } : {}), ...(a.stability ? { stability: a.stability.score } : {}),
       } : {}),
     },
+  };
+}
+
+export interface RecordChatRunInput {
+  projectId: string;
+  userId: string;
+  /** The saved conversation the question went into; absent when the question failed before one existed. */
+  conversationId?: string | null;
+  model: Pick<ResolvedModel, "modelId" | "modelKey" | "pricing" | "client">;
+  status: "accepted" | "failed";
+  /** Why the provider gave no answer (LlmErrorKind); only kept for a failed run. */
+  errorKind?: string;
+  /** What the provider reported, when it got as far as answering. */
+  usage: LlmUsage | null;
+  /** How long the provider took, and how long the whole call took, in milliseconds. */
+  latencyMs: number;
+  wallMs: number;
+}
+
+/**
+ * Builds the stored record of one question to the mentor: who asked, about which workspace, which model, tokens, cost and
+ * outcome. It holds no question or answer text (the saved conversation has those) and no quality, which only drawing an
+ * architecture is scored on.
+ */
+export function buildChatRun(input: RecordChatRunInput): Omit<ILlmRun, "createdAt"> {
+  const u = input.usage;
+  const usage: UsageTotals = {
+    inputTokens: u?.inputTokens ?? 0, outputTokens: u?.outputTokens ?? 0, cacheReadTokens: u?.cacheReadTokens ?? 0,
+    reasoningTokens: u?.reasoningTokens ?? 0, totalTokens: (u?.inputTokens ?? 0) + (u?.outputTokens ?? 0), estimated: u?.estimated ?? false,
+  };
+  const accepted = input.status === "accepted";
+  const errorKind = !accepted && input.errorKind ? { errorKind: input.errorKind } : {};
+  const { info } = input.model.client;
+  return {
+    projectId: input.projectId, userId: input.userId, ...(input.conversationId ? { conversationId: input.conversationId } : {}),
+    modelId: input.model.modelId, modelKey: input.model.modelKey, provider: info.provider, model: info.model,
+    purpose: "user", mode: "chat", filesSent: 0, status: input.status, ...errorKind,
+    attempts: [{ n: 1, ok: accepted, issueCodes: [], inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, latencyMs: input.latencyMs, ...errorKind }],
+    usage, latencyMs: input.latencyMs, wallMs: input.wallMs,
+    cost: costOf(usage, input.model.pricing),
   };
 }
 
@@ -118,14 +161,27 @@ export class LlmRunService {
     }
   }
 
+  /** Stores one question to the mentor. Like record(), it must never break what it accounts for: a failure is logged and null returned. */
+  static async recordChat(input: RecordChatRunInput): Promise<{ id: string; cost: { amount: number; currency: string } } | null> {
+    try {
+      const run = buildChatRun(input);
+      const doc = await LlmRunModel.create(run);
+      return { id: String(doc._id ?? (doc as any).id), cost: { amount: run.cost.amount, currency: run.cost.currency } };
+    } catch (error) {
+      console.warn(`[llm] could not record a chat run for project ${input.projectId}:`, error instanceof Error ? error.message : error);
+      return null;
+    }
+  }
+
   static async listForUser(userId: string, query: { projectId?: string; page?: number; limit?: number }) {
     const filter: Record<string, unknown> = { userId, purpose: "user" };
     if (query.projectId) filter.projectId = query.projectId;
     return this.page(filter, query);
   }
 
-  static async listForProject(projectId: string, query: { page?: number; limit?: number }) {
-    return this.page({ projectId, purpose: "user" }, query);
+  /** `userId` limits the list to one person's runs, for someone who may read the project but not see everyone's AI use. */
+  static async listForProject(projectId: string, query: { page?: number; limit?: number; userId?: string }) {
+    return this.page({ projectId, purpose: "user", ...(query.userId ? { userId: query.userId } : {}) }, query);
   }
 
   private static async page(filter: Record<string, unknown>, query: { page?: number; limit?: number }) {
@@ -149,7 +205,8 @@ export class LlmRunService {
 
   static async setFeedback(runId: string, userId: string, rating: 0 | 1) {
     if (!mongoose.isValidObjectId(runId)) throw new NotFoundError("Run not found");
-    const run = await LlmRunModel.findOneAndUpdate({ _id: runId, userId }, { $set: { feedback: { rating, at: new Date() } } }, { new: true }).lean();
+    // A rating is a verdict on a drawn architecture; a question to AI Insights has nothing to rate and no quality to change.
+    const run = await LlmRunModel.findOneAndUpdate({ _id: runId, userId, mode: { $ne: "chat" } }, { $set: { feedback: { rating, at: new Date() } } }, { new: true }).lean();
     if (!run) throw new NotFoundError("Run not found");
     return present(run);
   }
@@ -166,6 +223,11 @@ export class LlmRunService {
       failed: { $sum: { $cond: [{ $in: ["$status", ["failed", "fallback"]] }, 1, 0] } },
       inputTokens: { $sum: "$usage.inputTokens" }, outputTokens: { $sum: "$usage.outputTokens" }, totalTokens: { $sum: "$usage.totalTokens" },
       cost: { $sum: "$cost.amount" }, avgLatencyMs: { $avg: "$latencyMs" },
+      // Questions asked in AI Insights belong in the ledger above (runs, tokens, cost) but not in how reliable or how fast
+      // drawing an architecture is: these let a reader take them out. $avg skips the nulls.
+      chatRuns: { $sum: { $cond: [{ $eq: ["$mode", "chat"] }, 1, 0] } },
+      chatAccepted: { $sum: { $cond: [{ $and: [{ $eq: ["$mode", "chat"] }, { $eq: ["$status", "accepted"] }] }, 1, 0] } },
+      drawAvgLatencyMs: { $avg: { $cond: [{ $ne: ["$mode", "chat"] }, "$latencyMs", null] } },
     };
     const key = query.groupBy === "model" ? { modelKey: "$modelKey", modelId: "$modelId", model: "$model", provider: "$provider" }
       : query.groupBy === "user" ? "$userId"
@@ -181,7 +243,7 @@ export class LlmRunService {
       const byId = new Map(users.map(u => [String(u._id), u]));
       rows = rows.map(r => ({ ...r, user: byId.get(String(r.key)) ? { id: String(r.key), name: byId.get(String(r.key))!.name, email: byId.get(String(r.key))!.email } : { id: String(r.key) } }));
     }
-    const t = totals[0] ?? { runs: 0, accepted: 0, failed: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, cost: 0, avgLatencyMs: 0 };
+    const t = totals[0] ?? { runs: 0, accepted: 0, failed: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, cost: 0, avgLatencyMs: 0, chatRuns: 0, chatAccepted: 0, drawAvgLatencyMs: null };
     delete (t as any)._id;
     return { totals: t, groupBy: query.groupBy ?? "day", rows };
   }
@@ -196,7 +258,8 @@ export class LlmRunService {
     const match: Record<string, unknown> = {};
     if (query.benchmarkId) match.benchmarkId = query.benchmarkId;
     else match.createdAt = { $gte: new Date(Date.now() - windowDays * 86_400_000) };
-    if (query.mode) match.mode = query.mode;
+    // Models are scored on drawing architectures. Mentor chat has no quality to score, and its runs would drag the averages down.
+    match.mode = query.mode ?? { $in: ["refine", "name-only"] };
     if (query.purpose && query.purpose !== "all") match.purpose = query.purpose;
 
     const [models, runs] = await Promise.all([
@@ -249,7 +312,7 @@ function present(r: any) {
   const project = r.projectId && typeof r.projectId === "object" ? { id: String(r.projectId._id), name: r.projectId.name } : { id: String(r.projectId) };
   return {
     id: String(r._id), project, snapshotId: r.snapshotId, jobId: r.jobId, modelId: r.modelId ?? null, modelKey: r.modelKey, provider: r.provider, model: r.model,
-    purpose: r.purpose, mode: r.mode, filesSent: r.filesSent, status: r.status, errorKind: r.errorKind, fallbackReason: r.fallbackReason,
-    usage: r.usage, latencyMs: r.latencyMs, wallMs: r.wallMs, cost: r.cost, quality: r.quality, attempts: r.attempts, feedback: r.feedback ?? null, createdAt: r.createdAt,
+    purpose: r.purpose, mode: r.mode, conversationId: r.conversationId, filesSent: r.filesSent, status: r.status, errorKind: r.errorKind, fallbackReason: r.fallbackReason,
+    usage: r.usage, latencyMs: r.latencyMs, wallMs: r.wallMs, cost: r.cost, quality: r.mode === "chat" ? null : r.quality ?? null, attempts: r.attempts, feedback: r.feedback ?? null, createdAt: r.createdAt,
   };
 }

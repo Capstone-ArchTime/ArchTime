@@ -7,6 +7,11 @@ export type Rule = { id: string; name: string; source: string; target: string; c
 export type Decision = { id: string; number: number; title: string; status: 'Proposed' | 'Accepted' | 'Deprecated'; context: string; decision: string; alternatives: string; consequences: string; componentIds: string[]; createdAt: string; updatedAt: string };
 export type Workspace = { diagram: Diagram; rules: Rule[]; decisions: Decision[] };
 
+/** What a workspace holds before anyone has saved anything to it: nothing is invented for the maintainer. */
+export function emptyWorkspace(): Workspace {
+  return { diagram: { components: [], dependencies: [], revision: 1, confirmedAt: null }, rules: [], decisions: [] };
+}
+
 export const isServerProjectId = (value: string) => /^[0-9a-f]{24}$/i.test(value);
 
 const text = (value: unknown) => (typeof value === 'string' ? value : '');

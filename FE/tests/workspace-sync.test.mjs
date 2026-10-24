@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchServerWorkspace, fromServer, isRevisionConflict, isServerProjectId, saveServerWorkspace } from '../src/features/workspace-sync.ts';
+import { emptyWorkspace, fetchServerWorkspace, fromServer, isRevisionConflict, isServerProjectId, saveServerWorkspace } from '../src/features/workspace-sync.ts';
 Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, writable: true, value: undefined });
 Object.defineProperty(globalThis, 'localStorage', { configurable: true, writable: true, value: undefined });
 function storage(initial = {}) {
@@ -59,4 +59,29 @@ test('a load failure is surfaced instead of being treated as an empty workspace'
 test('only Mongo ids are treated as server projects', () => {
   assert.ok(isServerProjectId('65f0c0ffee0000000000abcd'));
   assert.ok(!isServerProjectId('E-Commerce Platform'));
+});
+
+test('a workspace nobody has saved yet is empty: no sample components, rules or decisions', () => {
+  const ws = emptyWorkspace();
+  assert.deepEqual(ws.diagram.components, []);
+  assert.deepEqual(ws.diagram.dependencies, []);
+  assert.deepEqual(ws.rules, []);
+  assert.deepEqual(ws.decisions, []);
+  assert.equal(ws.diagram.revision, 1);
+  assert.equal(ws.diagram.confirmedAt, null);
+});
+
+test('every call gives a fresh empty workspace, so editing one never changes the next', () => {
+  const a = emptyWorkspace();
+  a.diagram.components.push({ id: 'x', name: 'X', kind: 'Service', description: '' });
+  assert.equal(emptyWorkspace().diagram.components.length, 0);
+});
+
+test('lists the server leaves out become empty lists, never undefined', () => {
+  const ws = fromServer({ revision: 3 });
+  assert.deepEqual(ws.diagram.components, []);
+  assert.deepEqual(ws.diagram.dependencies, []);
+  assert.deepEqual(ws.rules, []);
+  assert.deepEqual(ws.decisions, []);
+  assert.equal(ws.diagram.revision, 3);
 });
