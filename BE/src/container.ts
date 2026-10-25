@@ -166,6 +166,7 @@ const getProjectMembersUseCase = new GetProjectMembersUseCase(
 );
 const updateProjectMemberRoleUseCase = new UpdateProjectMemberRoleUseCase(
   memberRepository,
+  projectRepository,
 );
 const removeProjectMemberUseCase = new RemoveProjectMemberUseCase(
   memberRepository,
@@ -174,6 +175,7 @@ const removeProjectMemberUseCase = new RemoveProjectMemberUseCase(
 const getTeamMembersUseCase = new GetTeamMembersUseCase(
   memberRepository,
   projectRepository,
+  projectAccessPolicy,
 );
 
 // ─────────────────────────────────────────

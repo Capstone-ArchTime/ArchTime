@@ -9,10 +9,10 @@ import {
   inviteProjectMember,
   updateMemberRole,
   removeMember,
-  cancelInvitation,
 } from '@/features/pm-api';
 import type { TeamMember } from '@/features/pm-api';
 import { projectRoleLabel } from '@/features/role-labels';
+import { filterTeamRows, teamRows, type TeamRow } from './team-rows';
 
 const roleOptions = ['developer-analyst', 'project-maintainer'].map(value => ({ value, label: projectRoleLabel(value) }));
 
@@ -55,11 +55,8 @@ function TeamView({ projects }: { projects: ProjectSummary[] }) {
     setRevision(v => v + 1);
   }
 
-  const filtered = members.filter(
-    m =>
-      `${m.name} ${m.email}`.toLowerCase().includes(query.toLowerCase()) &&
-      (projectFilter === 'all' || m.projects.includes(projectFilter))
-  );
+  const filtered = filterTeamRows(teamRows(members), query, projectFilter);
+  const projectName = (id: string) => projects.find(p => p.id === id)?.name ?? id;
 
   function openInvite(projectId: string) {
     form.resetFields();
@@ -95,20 +92,18 @@ function TeamView({ projects }: { projects: ProjectSummary[] }) {
     }
   }
 
-  async function handleRemove(member: TeamMember, projectId: string) {
+  async function handleRemove(row: TeamRow) {
+    const invited = row.status === 'invited';
     modal.confirm({
-      title: member.status === 'invited' ? 'Revoke invitation?' : 'Remove member?',
-      content: member.status === 'invited'
-        ? 'This will cancel the pending invitation.'
-        : 'This member will no longer have access to this workspace.',
+      title: invited ? 'Revoke invitation?' : 'Remove member?',
+      content: invited
+        ? `This will cancel ${row.email}'s pending invitation to ${projectName(row.projectId)}.`
+        : `${row.name} will no longer have access to ${projectName(row.projectId)}.`,
       onOk: async () => {
         try {
-          if (member.status === 'invited') {
-            await cancelInvitation(projectId, member.id);
-          } else {
-            await removeMember(projectId, member.id);
-          }
-          message.success(member.status === 'invited' ? 'Invitation revoked.' : 'Member removed.');
+          // An invited row is a membership record too (not a token invitation), so both go through the member route.
+          await removeMember(row.projectId, row.memberId);
+          message.success(invited ? 'Invitation revoked.' : 'Member removed.');
           refresh();
         } catch (e) {
           message.error(describeAccessError(e, 'Operation failed.'));
@@ -166,7 +161,7 @@ function TeamView({ projects }: { projects: ProjectSummary[] }) {
         </div>
       ) : (
         <Table
-          rowKey="id"
+          rowKey="key"
           dataSource={filtered}
           loading={loading}
           scroll={{ x: 850 }}
@@ -175,24 +170,29 @@ function TeamView({ projects }: { projects: ProjectSummary[] }) {
           columns={[
             {
               title: 'Member',
-              render: (_, m: TeamMember) => (
+              render: (_, r: TeamRow) => (
                 <div>
-                  {m.name}
-                  <p className="text-xs text-[#94a3b8]">{m.email}</p>
+                  {r.name}
+                  <p className="text-xs text-[#94a3b8]">{r.email}</p>
                 </div>
               ),
             },
-            { title: 'Role', dataIndex: 'role', render: (r: string) => projectRoleLabel(r) },
+            { title: 'Workspace', render: (_, r: TeamRow) => <Tag>{projectName(r.projectId)}</Tag> },
             {
-              title: 'Workspaces',
-              render: (_, m: TeamMember) => (
-                <div className="flex flex-wrap gap-1">
-                  {m.projects.map(p => {
-                    const project = projects.find(pr => pr.id === p || pr.name === p);
-                    return <Tag key={p}>{project?.name ?? p}</Tag>;
-                  })}
-                </div>
-              ),
+              title: 'Role',
+              render: (_, r: TeamRow) =>
+                r.isOwner ? (
+                  projectRoleLabel('owner')
+                ) : (
+                  <Select
+                    size="small"
+                    aria-label={`Role of ${r.name} in ${projectName(r.projectId)}`}
+                    value={r.role}
+                    onChange={role => handleUpdateRole(r.projectId, r.memberId, role)}
+                    options={roleOptions}
+                    className="min-w-36"
+                  />
+                ),
             },
             {
               title: 'Status',
@@ -201,30 +201,19 @@ function TeamView({ projects }: { projects: ProjectSummary[] }) {
             },
             {
               title: 'Actions',
-              render: (_, m: TeamMember) => (
-                <div className="flex gap-2">
-                  <Select
-                    size="small"
-                    value={m.role}
-                    onChange={role => {
-                      const projectId = m.projects[0];
-                      if (projectId) handleUpdateRole(projectId, m.id, role);
-                    }}
-                    options={roleOptions}
-                    className="min-w-36"
-                  />
+              render: (_, r: TeamRow) =>
+                r.isOwner ? (
+                  <span className="text-xs text-[#94a3b8]">Workspace owner</span>
+                ) : (
                   <Button
                     danger
                     size="small"
-                    onClick={() => {
-                      const projectId = m.projects[0];
-                      if (projectId) handleRemove(m, projectId);
-                    }}
+                    aria-label={`${r.status === 'invited' ? 'Revoke' : 'Remove'} ${r.name} from ${projectName(r.projectId)}`}
+                    onClick={() => handleRemove(r)}
                   >
-                    {m.status === 'invited' ? 'Revoke' : 'Remove'}
+                    {r.status === 'invited' ? 'Revoke' : 'Remove'}
                   </Button>
-                </div>
-              ),
+                ),
             },
           ]}
         />

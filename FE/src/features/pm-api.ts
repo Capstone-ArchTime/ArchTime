@@ -59,7 +59,7 @@ export async function updateMemberRole(
   role: string,
   signal?: AbortSignal
 ): Promise<{ data: { member: ProjectMember } }> {
-  return apiRequest(`/projects/${projectId}/members/${memberId}/role`, {
+  return apiRequest(`/projects/${projectId}/members/${memberId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ role }),
@@ -97,14 +97,23 @@ export async function cancelInvitation(
 }
 
 // Team members across all projects (for maintainer)
+export interface TeamMembership {
+  projectId: string;
+  /** The id the member routes of that workspace take. */
+  memberId: string;
+  /** "owner" for the workspace owner, else the membership role. */
+  role: string;
+  status: 'active' | 'invited';
+}
+
 export interface TeamMember {
   id: string;
-  userId: string;
   name: string;
   email: string;
   role: string;
   status: 'active' | 'invited';
   projects: string[];
+  memberships: TeamMembership[];
 }
 
 export interface TeamMembersResponse {
