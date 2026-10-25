@@ -1,5 +1,6 @@
 import { readTokens } from '@/auth/session';
-import SampleDataNotice from '@/components/SampleDataNotice';
+import { getWorkspaces, mayHaveSnapshots, type Workspace } from '@/features/workspace-summary';
+import { Link as RouterLink } from 'react-router-dom';
 import React, { useState, useCallback, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -28,7 +29,8 @@ import { Modal } from 'antd';
 const Evidence: React.FC = () => {
 
   const location = useLocation();
-  const [projectsList, setProjectsList] = useState<any[]>([]);
+  const [projectsList, setProjectsList] = useState<Workspace[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [evidenceData, setEvidenceData] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -48,28 +50,15 @@ const Evidence: React.FC = () => {
   const [repository, setRepository] = useState('all');
 
   useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const token = readTokens().accessToken;
-        const res = await fetch(`${API_BASE_URL}/projects`, { headers: { Authorization: `Bearer ${token}` } });
-        if (res.ok) {
-          const data = await res.json();
-          const pList = data.data?.projects || [];
-          setProjectsList(pList);
-          
-          const searchParams = new URLSearchParams(location.search);
-          const pId = searchParams.get('projectId');
-          if (pId && pList.find((p: any) => p.id === pId)) {
-            setSelectedProjectId(pId);
-          } else if (pList.length > 0) {
-            setSelectedProjectId(pList[0].id);
-          }
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    fetchProjects();
+    const controller = new AbortController();
+    getWorkspaces(controller.signal).then(({ workspaces }) => {
+      // Evidence is written while commits are mined, so only workspaces with mined commits can have any.
+      const pList = workspaces.filter(mayHaveSnapshots);
+      setProjectsList(pList);
+      const pId = new URLSearchParams(location.search).get('projectId');
+      setSelectedProjectId(pList.find(p => p.id === pId)?.id ?? pList[0]?.id ?? '');
+    }).catch(e => { if (!controller.signal.aborted) { setProjectsList([]); setLoadError(e instanceof Error ? e.message : 'Could not load your workspaces.'); } });
+    return () => controller.abort();
   }, [location.search]);
 
   useEffect(() => {
@@ -145,7 +134,6 @@ const Evidence: React.FC = () => {
   return (
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-6 flex flex-col min-h-[calc(100dvh-140px)] relative">
-        {evidenceData.length === 0 && !loading && <SampleDataNotice />}
         
         {/* HEADER */}
         <div className="shrink-0 space-y-6">
@@ -170,9 +158,9 @@ const Evidence: React.FC = () => {
                     onChange={(e) => setSelectedProjectId(e.target.value)}
                     className="appearance-none bg-transparent border-none text-xs font-bold text-[#f4f4f6] pl-2 pr-10 h-full outline-none cursor-pointer w-48"
                   >
-                    {projectsList.length > 0 ? projectsList.map(p => (
+                    {projectsList?.length ? projectsList.map(p => (
                       <option key={p.id} value={p.id} className="bg-[#161d24]">{p.name}</option>
-                    )) : <option value="" className="bg-[#161d24]">No Workspaces Found</option>}
+                    )) : <option value="" className="bg-[#161d24]">No mined workspaces</option>}
                   </select>
                   <ChevronDown size={14} className="text-[#94a3b8] absolute right-3 pointer-events-none group-hover:text-[#f4f4f6]" />
                 </div>
@@ -244,7 +232,11 @@ const Evidence: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#242527]">
-                {!loading && !filtered.length && <tr><td colSpan={7} className="p-8 text-center text-sm text-[#94a3b8]" role="status">No changes match these filters.</td></tr>}
+                {!loading && !filtered.length && <tr><td colSpan={7} className="p-8 text-center text-sm text-[#94a3b8]" role="status">
+                  {loadError ?? (projectsList?.length === 0
+                    ? <>No workspace has mined commits yet. Evidence is recorded while commits are mined: <RouterLink to="/projects" className="text-[#3b82f6] hover:underline">go to Workspaces</RouterLink> and choose Manage mining.</>
+                    : evidenceData.length === 0 ? 'No architectural changes were recorded for the mined commits of this workspace.' : 'No changes match these filters.')}
+                </td></tr>}
                 {pagination.items.map((item: any) => (
                   <tr 
                     key={item.id} 
