@@ -65,12 +65,13 @@ export class MemberController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const { memberId } = req.params;
+      const { id: projectId, memberId } = req.params;
       const { role } = req.body;
 
       const member = await this.updateProjectMemberRoleUseCase.execute(
         memberId,
         role as ProjectMemberRole,
+        projectId,
       );
 
       sendSuccess(res, { member }, {

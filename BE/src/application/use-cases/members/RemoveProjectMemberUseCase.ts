@@ -25,8 +25,11 @@ export class RemoveProjectMemberUseCase {
       throw new NotFoundError("Workspace not found.");
     }
 
-    // Owner cannot be removed as a member
-    if (memberId.startsWith("owner-") || memberId === project.userId) {
+    // Owner cannot be removed as a member (by id, or through their own membership record)
+    const member = memberId.startsWith("owner-")
+      ? null
+      : (await this.memberRepository.findByProjectId(projectId)).find((m) => m.id === memberId);
+    if (memberId.startsWith("owner-") || memberId === project.userId || (member?.userId && member.userId === project.userId)) {
       throw new ForbiddenError(
         "Forbidden: the workspace owner cannot be removed.",
       );
