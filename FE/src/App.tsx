@@ -40,6 +40,7 @@ const Profile = lazy(() => import("@/pages/Profile"));
 const ArchitectureWorkspace = lazy(() => import("@/pages/developer-analyst/ArchitectureWorkspace"));
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
+const AcceptInvitation = lazy(() => import('@/pages/AcceptInvitation'));
 const GitHubCallback = lazy(() => import('@/pages/GitHubCallback'));
 
 function RootLayout() {
@@ -60,6 +61,7 @@ const router = createBrowserRouter(createRoutesFromElements(
     <Route path="/forgot-password" element={<ResetPassword />} />
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="/verify-email" element={<VerifyEmail />} />
+    <Route path="/invitations/accept" element={<AcceptInvitation />} />
     <Route element={<RouteGuard />}>
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/projects" element={<Projects />} />
