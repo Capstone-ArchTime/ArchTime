@@ -74,3 +74,10 @@ test('the profile page belongs to every signed-in account, and only that exact p
   for (const unknown of ['unknown', '__proto__', 'constructor']) assert.equal(canAccess(unknown, '/profile'), false, unknown);
   assert.equal(loginDestination('system-administrator', '/profile'), '/profile');
 });
+
+test('organizations belong to developer-analyst accounts: the list and one organization by id', () => {
+  assert.equal(canAccess('developer-analyst', '/organizations'), true);
+  assert.equal(canAccess('developer-analyst', '/organizations/65f000000000000000000001'), true);
+  assert.equal(canAccess('system-administrator', '/organizations'), false);
+  assert.equal(canAccess('system-administrator', '/organizations/65f000000000000000000001'), false);
+});

@@ -29,9 +29,9 @@ test('all navigation destinations are authorized for their displayed role', () =
   }
 });
 
-test('the sidebar of a developer-analyst has five entries, six with the Maintain group', () => {
-  assert.deepEqual(topLevel(navGroupsFor('developer-analyst', { maintains: false })), ['Dashboard', 'Workspaces', 'Analyze', 'Learning', 'Reports']);
-  assert.deepEqual(topLevel(navGroupsFor('developer-analyst', { maintains: true })), ['Dashboard', 'Workspaces', 'Analyze', 'Learning', 'Reports', 'Maintain']);
+test('the sidebar of a developer-analyst has six entries, seven with the Maintain group', () => {
+  assert.deepEqual(topLevel(navGroupsFor('developer-analyst', { maintains: false })), ['Dashboard', 'Workspaces', 'Organizations', 'Analyze', 'Learning', 'Reports']);
+  assert.deepEqual(topLevel(navGroupsFor('developer-analyst', { maintains: true })), ['Dashboard', 'Workspaces', 'Organizations', 'Analyze', 'Learning', 'Reports', 'Maintain']);
   assert.deepEqual(analyzeNavItems.map(item => item.path), ['/history', '/architecture', '/compare', '/evidence', '/insights']);
   assert.equal(topLevel(navGroupsFor('system-administrator', { maintains: true })).length, 7, 'administrators keep their own seven pages');
 });
