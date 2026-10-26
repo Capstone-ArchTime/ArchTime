@@ -44,7 +44,7 @@ export type PathProgress = { path: { id: string; title: string; status: PathStat
 /** The body of a create or save request; see payloadFromDraft in onboarding-view.ts. */
 export type PathPayload = Record<string, unknown>;
 
-export type ManagedProject = { id: string; name: string };
+export type { ProjectSummary as ManagedProject } from './project-data';
 export type ProjectMember = { userId: string; name: string; email: string; role: string; status: string };
 
 type Envelope<T> = { data?: T };
@@ -80,11 +80,7 @@ export async function answerStep(projectId: string, pathId: string, stepId: stri
 
 // ── Mentors ──
 
-export async function getManagedProjects(signal?: AbortSignal): Promise<ManagedProject[]> {
-  const d = data(await apiRequest<Envelope<{ projects: ManagedProject[] }>>('/projects?scope=managed&limit=100', { signal }), 'list of workspaces');
-  if (!Array.isArray(d.projects)) throw new Error('The server returned an invalid list of workspaces.');
-  return d.projects.map(p => ({ id: p.id, name: p.name }));
-}
+export { getManagedProjects } from './project-data';
 
 export async function listPaths(projectId: string, signal?: AbortSignal): Promise<PathSummary[]> {
   const d = data(await apiRequest<Envelope<{ paths: PathSummary[] }>>(base(projectId), { signal }), 'list of learning paths');

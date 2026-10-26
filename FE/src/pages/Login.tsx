@@ -42,7 +42,7 @@ const AuthPage: React.FC = () => {
 
   const activeRequest = useRef<AbortController | null>(null);
   useEffect(() => {
-    document.title = isRegister ? 'Create account ? ArchTime' : 'Sign in ? ArchTime';
+    document.title = isRegister ? 'Create account · ArchTime' : 'Sign in · ArchTime';
     return () => activeRequest.current?.abort();
   }, [isRegister]);
 

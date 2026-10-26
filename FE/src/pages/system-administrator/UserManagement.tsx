@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { App, Button, Empty, Form, Input, Modal, Select, Spin, Table, Tag } from 'antd';
 import FeaturePage from '@/components/FeaturePage';
 import { roles } from '@/auth/permissions';
+import { useAuth } from '@/auth/auth-context';
+import { systemRoleLabel } from '@/features/role-labels';
 import {
   getAdminUsers,
   inviteUser,
@@ -13,6 +15,7 @@ import type { AdminUser } from '@/features/admin-api';
 
 export default function UserManagement() {
   const { message, modal } = App.useApp();
+  const me = useAuth().user?.id;
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -115,7 +118,7 @@ export default function UserManagement() {
     >
       <div className="flex flex-wrap gap-3">
         {roleCounts.map(({ role: r, count }) => (
-          <Tag key={r}>{r}: {count}</Tag>
+          <Tag key={r}>{systemRoleLabel(r)}: {count}</Tag>
         ))}
       </div>
 
@@ -135,7 +138,7 @@ export default function UserManagement() {
           className="min-w-52"
           options={['all', ...roles].map(value => ({
             value,
-            label: value === 'all' ? 'All roles' : value,
+            label: value === 'all' ? 'All roles' : systemRoleLabel(value),
           }))}
         />
         <Select
@@ -171,7 +174,7 @@ export default function UserManagement() {
                 </div>
               ),
             },
-            { title: 'Role', dataIndex: 'role' },
+            { title: 'Role', dataIndex: 'role', render: (r: string) => systemRoleLabel(r) },
             {
               title: 'Status',
               dataIndex: 'status',
@@ -188,7 +191,8 @@ export default function UserManagement() {
             },
             {
               title: 'Actions',
-              render: (_, u: AdminUser) => (
+              // No role change or suspension for the signed-in administrator: either could lock them out.
+              render: (_, u: AdminUser) => u.id === me ? <span className="text-xs text-[#94a3b8]">This is you</span> : (
                 <div className="flex gap-2">
                   <Button onClick={() => open(u)}>Edit role</Button>
                   {u.status !== 'invited' && (
@@ -234,7 +238,7 @@ export default function UserManagement() {
             label="Platform role"
             rules={[{ required: true }]}
           >
-            <Select options={roles.map(value => ({ value, label: value }))} />
+            <Select options={roles.map(value => ({ value, label: systemRoleLabel(value) }))} />
           </Form.Item>
         </Form>
       </Modal>

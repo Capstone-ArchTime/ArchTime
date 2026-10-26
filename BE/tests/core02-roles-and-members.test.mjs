@@ -318,6 +318,7 @@ test('InviteProjectMemberUseCase: adds member and handles existing vs new users'
 test('RemoveProjectMemberUseCase: prevents removing project owner', async () => {
   const memberRepo = {
     deleteByProjectAndId: async () => true,
+    findByProjectId: async () => [],
   };
   const projectRepo = {
     findById: async () => ({ id: 'p1', userId: 'owner-123' }),
@@ -349,6 +350,7 @@ test('GetTeamMembersUseCase: aggregates projects by member email', async () => {
   };
   const projectRepo = {
     findByUserId: async () => [{ id: 'p1' }, { id: 'p2' }],
+    findByIds: async (ids) => ids.map(id => ({ id, userId: 'someone-else' })),
   };
 
   const getTeam = new GetTeamMembersUseCase(memberRepo, projectRepo);
@@ -361,4 +363,106 @@ test('GetTeamMembersUseCase: aggregates projects by member email', async () => {
   const alice = result.find(m => m.email === 'alice@test.com');
   assert.ok(alice);
   assert.deepEqual(alice.projects, ['p1', 'p2']);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Team page: one entry per workspace, the owner marked, actions scoped to the workspace
+// ─────────────────────────────────────────────────────────────────────────────
+const teamProjects = {
+  a: { id: 'a', userId: 'u-owner' },
+  b: { id: 'b', userId: 'u-owner' },
+  org: { id: 'org', userId: 'u-other', organizationId: 'o1' },
+};
+const teamMembers = [
+  { id: 'm-own-a', projectId: 'a', userId: 'u-owner', email: 'owner@test', name: 'Owner', role: 'project-maintainer', status: 'active' },
+  { id: 'm-own-b', projectId: 'b', userId: 'u-owner', email: 'owner@test', name: 'Owner', role: 'project-maintainer', status: 'active' },
+  { id: 'm-sam-a', projectId: 'a', userId: 'u-sam', email: 'sam@test', name: 'Sam', role: 'developer-analyst', status: 'active' },
+  { id: 'm-sam-b', projectId: 'b', userId: 'u-sam', email: 'sam@test', name: 'Sam', role: 'project-maintainer', status: 'active' },
+  { id: 'm-org', projectId: 'org', userId: 'u-other', email: 'other@test', name: 'Other', role: 'project-maintainer', status: 'active' },
+  { id: 'm-x', projectId: 'x', userId: 'u-x', email: 'x@test', name: 'X', role: 'developer-analyst', status: 'active' },
+];
+function teamRepos() {
+  const members = teamMembers.map(m => ({ ...m }));
+  const memberRepo = {
+    findAll: async ({ projectId } = {}) => members.filter(m => !projectId || m.projectId === projectId),
+    findByProjectId: async (projectId) => members.filter(m => m.projectId === projectId),
+    findByUserId: async (userId) => members.filter(m => m.userId === userId),
+    updateRole: async (id, role) => { const m = members.find(x => x.id === id); if (m) m.role = role; return m ?? null; },
+    deleteByProjectAndId: async (projectId, id) => {
+      const i = members.findIndex(m => m.projectId === projectId && m.id === id);
+      if (i < 0) return false;
+      members.splice(i, 1);
+      return true;
+    },
+  };
+  const projectRepo = {
+    findById: async (id) => teamProjects[id] ?? null,
+    findByIds: async (ids) => ids.map(id => teamProjects[id]).filter(Boolean),
+    findByUserId: async (userId) => Object.values(teamProjects).filter(p => p.userId === userId),
+  };
+  return { members, memberRepo, projectRepo };
+}
+
+test('GetTeamMembersUseCase: lists every membership per workspace and marks the owner', async () => {
+  const { memberRepo, projectRepo } = teamRepos();
+  const team = await new GetTeamMembersUseCase(memberRepo, projectRepo).execute({ userId: 'u-owner', userRole: UserRole.USER });
+
+  assert.deepEqual(team.map(m => m.email).sort(), ['owner@test', 'sam@test']);
+  const owner = team.find(m => m.email === 'owner@test');
+  assert.deepEqual(owner.memberships.map(ms => [ms.projectId, ms.memberId, ms.role]), [['a', 'm-own-a', 'owner'], ['b', 'm-own-b', 'owner']]);
+  assert.equal(owner.role, 'owner');
+  const sam = team.find(m => m.email === 'sam@test');
+  assert.deepEqual(sam.memberships.map(ms => [ms.projectId, ms.memberId, ms.role]), [['a', 'm-sam-a', 'developer-analyst'], ['b', 'm-sam-b', 'project-maintainer']]);
+  assert.deepEqual(sam.projects, ['a', 'b']);
+});
+
+test('GetTeamMembersUseCase: with the access policy, an organization owner manages its workspaces without a membership', async () => {
+  const { memberRepo, projectRepo } = teamRepos();
+  const policy = {
+    readableProjects: async () => [
+      { project: teamProjects.org, access: { role: 'organization-owner', actions: new Set(['metadata', 'read', 'write', 'admin', 'owner']) } },
+      { project: teamProjects.a, access: { role: 'developer-analyst', actions: new Set(['metadata', 'read']) } },
+    ],
+  };
+  const getTeam = new GetTeamMembersUseCase(memberRepo, projectRepo, policy);
+  const team = await getTeam.execute({ userId: 'u-org-owner', userRole: UserRole.USER });
+  assert.deepEqual(team.map(m => m.memberships.map(ms => ms.memberId)), [['m-org']]);
+  // the workspace's own owner is marked even though the caller reached it through the organization
+  assert.equal(team[0].memberships[0].role, 'owner');
+
+  // a workspace the caller only reads is not theirs to manage
+  assert.deepEqual(await getTeam.execute({ userId: 'u-org-owner', userRole: UserRole.USER, projectId: 'a' }), []);
+});
+
+test('GetTeamMembersUseCase: without the policy, a pending maintainer membership grants nothing', async () => {
+  const { memberRepo, projectRepo, members } = teamRepos();
+  members.find(m => m.id === 'm-sam-b').status = 'invited';
+  const team = await new GetTeamMembersUseCase(memberRepo, projectRepo).execute({ userId: 'u-sam', userRole: UserRole.USER });
+  assert.deepEqual(team, []);
+});
+
+test('UpdateProjectMemberRoleUseCase: changes the member of the given workspace only, never the owner', async () => {
+  const { memberRepo, projectRepo, members } = teamRepos();
+  const update = new UpdateProjectMemberRoleUseCase(memberRepo, projectRepo);
+
+  const updated = await update.execute('m-sam-b', ProjectMemberRole.MEMBER, 'b');
+  assert.equal(updated.role, ProjectMemberRole.MEMBER);
+  assert.equal(members.find(m => m.id === 'm-sam-a').role, ProjectMemberRole.MEMBER);
+
+  // a maintainer of workspace a cannot reach a membership of another workspace through a's route
+  await assert.rejects(update.execute('m-org', ProjectMemberRole.MEMBER, 'a'), (err) => err.statusCode === 404);
+  await assert.rejects(update.execute('m-own-a', ProjectMemberRole.MEMBER, 'a'), (err) => err.statusCode === 403 && err.code === 'FORBIDDEN');
+  assert.equal(members.find(m => m.id === 'm-own-a').role, ProjectMemberRole.MAINTAINER);
+});
+
+test('RemoveProjectMemberUseCase: refuses the owner\'s own membership record', async () => {
+  const { memberRepo, projectRepo, members } = teamRepos();
+  const remove = new RemoveProjectMemberUseCase(memberRepo, projectRepo);
+
+  await assert.rejects(remove.execute('a', 'm-own-a'), (err) => err.statusCode === 403 && err.code === 'FORBIDDEN');
+  assert.ok(members.some(m => m.id === 'm-own-a'));
+
+  assert.equal(await remove.execute('b', 'm-sam-b'), true);
+  assert.deepEqual(members.filter(m => m.userId === 'u-sam').map(m => m.id), ['m-sam-a']);
+  await assert.rejects(remove.execute('a', 'm-sam-b'), (err) => err.statusCode === 404);
 });

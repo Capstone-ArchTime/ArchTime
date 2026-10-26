@@ -7,7 +7,7 @@ export type AdminData = { users: DemoUser[]; events: AuditEvent[]; settings: { m
 const seed: AdminData = {
   users: [
     { id: 'demo-analyst', name: 'Jamie Tran', email: 'jamie@example.com', role: 'developer-analyst', status: 'active', lastActive: 'Sample account' },
-    { id: 'demo-maintainer', name: 'Alex Le', email: 'alex@example.com', role: 'project-maintainer', status: 'active', lastActive: 'Sample account' },
+    { id: 'demo-maintainer', name: 'Alex Le', email: 'alex@example.com', role: 'developer-analyst', status: 'active', lastActive: 'Sample account' },
     { id: 'demo-suspended', name: 'Kim Pham', email: 'kim@example.com', role: 'developer-analyst', status: 'suspended', lastActive: 'Sample account' },
   ], events: [], settings: { maxConcurrentJobs: 4, maxRepoSizeGb: 10 },
 };

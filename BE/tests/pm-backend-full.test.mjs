@@ -616,3 +616,25 @@ test("ProjectDashboard: aggregates health score, rules compliance, and team metr
     ApprovalRequestModel.countDocuments = origApprCount;
   }
 });
+
+test("ProjectInvitations: the email links to the frontend's accept page at the configured address", async () => {
+  const projectRepo = createMockProjectRepo([{ id: "p1", name: "ArchTime Core" }]);
+  const memberRepo = createMockMemberRepo([]);
+  const userRepo = createMockUserRepo([]);
+  const origCreate = ProjectInvitationModel.create;
+  const origDeleteMany = ProjectInvitationModel.deleteMany;
+  const sent = [];
+  try {
+    ProjectInvitationModel.deleteMany = async () => ({ deletedCount: 0 });
+    ProjectInvitationModel.create = async (doc) => ({ ...doc, toJSON: () => ({ ...doc }) });
+    const email = { async sendProjectInvitation(to, projectName, role, url) { sent.push({ to, projectName, role, url }); } };
+    const invite = new InviteProjectMemberTokenUseCase(projectRepo, memberRepo, userRepo, email, "https://archtime.example.edu/");
+    const invitation = await invite.execute({ projectId: "p1", email: "New@Archtime.io", invitedBy: "u-owner" });
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(sent.length, 1);
+    assert.equal(sent[0].url, `https://archtime.example.edu/invitations/accept?token=${invitation.token}`);
+  } finally {
+    ProjectInvitationModel.create = origCreate;
+    ProjectInvitationModel.deleteMany = origDeleteMany;
+  }
+});

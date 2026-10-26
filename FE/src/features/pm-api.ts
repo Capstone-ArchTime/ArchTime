@@ -59,7 +59,7 @@ export async function updateMemberRole(
   role: string,
   signal?: AbortSignal
 ): Promise<{ data: { member: ProjectMember } }> {
-  return apiRequest(`/projects/${projectId}/members/${memberId}/role`, {
+  return apiRequest(`/projects/${projectId}/members/${memberId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ role }),
@@ -97,14 +97,23 @@ export async function cancelInvitation(
 }
 
 // Team members across all projects (for maintainer)
+export interface TeamMembership {
+  projectId: string;
+  /** The id the member routes of that workspace take. */
+  memberId: string;
+  /** "owner" for the workspace owner, else the membership role. */
+  role: string;
+  status: 'active' | 'invited';
+}
+
 export interface TeamMember {
   id: string;
-  userId: string;
   name: string;
   email: string;
   role: string;
   status: 'active' | 'invited';
   projects: string[];
+  memberships: TeamMembership[];
 }
 
 export interface TeamMembersResponse {
@@ -234,11 +243,39 @@ export interface ProjectDashboardResponse {
   data: ProjectDashboard;
 }
 
+/** What GET /projects/:id/dashboard sends (BE GetProjectDashboardUseCase), as far as the page uses it. */
+type ServerDashboard = {
+  project?: { id?: unknown; name?: unknown; description?: unknown };
+  architecture?: { revision?: unknown; componentsCount?: unknown; confirmedAt?: unknown };
+  rules?: { total?: unknown; active?: unknown; violationsCount?: unknown };
+  decisions?: { total?: unknown };
+  approvals?: { pendingCount?: unknown };
+  team?: { totalMembers?: unknown };
+};
+
+const count = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : 0);
+
+/** Turns the server's workspace summary into the shape the maintainer overview shows. */
+export function toProjectDashboard(server: ServerDashboard | undefined): ProjectDashboard {
+  const project = server?.project;
+  if (!project || typeof project.id !== 'string' || typeof project.name !== 'string') throw new Error('The server returned an invalid workspace summary.');
+  const confirmedAt = server.architecture?.confirmedAt;
+  return {
+    project: { id: project.id, name: project.name, description: typeof project.description === 'string' ? project.description : undefined },
+    diagram: { componentsCount: count(server.architecture?.componentsCount), revision: count(server.architecture?.revision), confirmedAt: typeof confirmedAt === 'string' && confirmedAt ? confirmedAt : undefined },
+    rules: { total: count(server.rules?.total), enabled: count(server.rules?.active), violations: count(server.rules?.violationsCount) },
+    decisions: { total: count(server.decisions?.total) },
+    approvals: { pending: count(server.approvals?.pendingCount) },
+    team: { active: count(server.team?.totalMembers), invited: 0 },
+  };
+}
+
 export async function getProjectDashboard(
   projectId: string,
   signal?: AbortSignal
 ): Promise<ProjectDashboardResponse> {
-  return apiRequest<ProjectDashboardResponse>(`/projects/${projectId}/dashboard`, { signal });
+  const body = await apiRequest<{ data?: { dashboard?: ServerDashboard } }>(`/projects/${encodeURIComponent(projectId)}/dashboard`, { signal });
+  return { data: toProjectDashboard(body?.data?.dashboard) };
 }
 
 // Reports

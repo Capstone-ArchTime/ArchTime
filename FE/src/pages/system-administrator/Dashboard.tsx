@@ -84,6 +84,12 @@ export default function Dashboard() {
   }, [revision]);
 
   const isLoading = healthLoading || metricsLoading || servicesLoading;
+  const metricTiles = [
+    { label: 'CPU load', value: metrics?.cpu, unit: '%' },
+    { label: 'Memory', value: metrics?.memory, unit: '%' },
+    { label: 'Repository storage', value: metrics?.storage, unit: 'GB' },
+    { label: 'Queue capacity', value: metrics?.queueCapacity, unit: '%' },
+  ].filter(tile => metricsLoading || tile.value !== undefined);
 
   return (
     <FeaturePage
@@ -111,11 +117,12 @@ export default function Dashboard() {
         {healthError && <Alert type="error" message={healthError} />}
       </section>
 
-      <section className={featurePanel}>
+      {/* Panels with no data from the server are left out instead of showing empty tiles. */}
+      {(servicesLoading || services.length > 0) && <section className={featurePanel}>
         <h3 className="font-semibold mb-3">Services Status</h3>
         {servicesLoading ? (
           <Spin size="small" />
-        ) : services.length ? (
+        ) : (
           <div className="flex flex-wrap gap-3">
             {services.map(s => (
               <Tag key={s.name} color={s.status === 'healthy' ? 'green' : s.status === 'degraded' ? 'gold' : 'red'}>
@@ -123,29 +130,17 @@ export default function Dashboard() {
               </Tag>
             ))}
           </div>
-        ) : (
-          <p className="text-sm text-[#94a3b8]">No service status available.</p>
         )}
-      </section>
+      </section>}
 
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'CPU load', value: metrics?.cpu, unit: '%' },
-          { label: 'Memory', value: metrics?.memory, unit: '%' },
-          { label: 'Repository storage', value: metrics?.storage, unit: 'GB' },
-          { label: 'Queue capacity', value: metrics?.queueCapacity, unit: '%' },
-        ].map(({ label, value, unit }) => (
+      {metricTiles.length > 0 && <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {metricTiles.map(({ label, value, unit }) => (
           <div key={label} className={featurePanel}>
             <p className="text-xs text-[#94a3b8]">{label}</p>
-            <p className="text-3xl my-3">
-              {metricsLoading ? <Spin size="small" /> : value !== undefined ? `${value}${unit}` : '—'}
-            </p>
-            {value === undefined && !metricsLoading && (
-              <p className="text-xs text-[#94a3b8]">Metrics API required</p>
-            )}
+            <p className="text-3xl my-3">{metricsLoading ? <Spin size="small" /> : `${value}${unit}`}</p>
           </div>
         ))}
-      </section>
+      </section>}
 
       <div className="flex flex-wrap gap-3">
         {[

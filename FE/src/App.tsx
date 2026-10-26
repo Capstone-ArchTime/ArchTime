@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { App as AntApp, ConfigProvider, Result, theme } from 'antd';
 import { StyleProvider } from '@ant-design/cssinjs';
 import { MotionConfig } from 'motion/react';
-import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, Outlet, Link, useLocation } from 'react-router-dom';
+import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, Outlet, Link, Navigate, useLocation } from 'react-router-dom';
 import AuthProvider from '@/auth/AuthProvider';
 import RouteGuard from '@/auth/RouteGuard';
 import PageLoading from '@/components/PageLoading';
@@ -21,7 +21,6 @@ const ArchitectureMap = lazy(() => import("@/pages/developer-analyst/Architectur
 const Compare = lazy(() => import("@/pages/developer-analyst/Compare"));
 const Evidence = lazy(() => import("@/pages/developer-analyst/Evidence"));
 const Insights = lazy(() => import("@/pages/developer-analyst/Insights"));
-const Reports = lazy(() => import("@/pages/developer-analyst/Reports"));
 const ProjectDetail = lazy(() => import("@/pages/developer-analyst/ProjectDetail"));
 const ProjectMaintainerDashboard = lazy(() => import("@/pages/project-maintainer/Dashboard"));
 const ProjectMaintainerReports = lazy(() => import("@/pages/project-maintainer/Reports"));
@@ -42,6 +41,7 @@ const MyWork = lazy(() => import("@/pages/MyWork"));
 const ArchitectureWorkspace = lazy(() => import("@/pages/developer-analyst/ArchitectureWorkspace"));
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
+const AcceptInvitation = lazy(() => import('@/pages/AcceptInvitation'));
 const GitHubCallback = lazy(() => import('@/pages/GitHubCallback'));
 
 function RootLayout() {
@@ -62,6 +62,7 @@ const router = createBrowserRouter(createRoutesFromElements(
     <Route path="/forgot-password" element={<ResetPassword />} />
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="/verify-email" element={<VerifyEmail />} />
+    <Route path="/invitations/accept" element={<AcceptInvitation />} />
     <Route element={<RouteGuard />}>
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/projects" element={<Projects />} />
@@ -70,7 +71,7 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path="/compare" element={<Compare />} />
       <Route path="/evidence" element={<Evidence />} />
       <Route path="/insights" element={<Insights />} />
-      <Route path="/reports" element={<Reports />} />
+      <Route path="/reports" element={<ProjectMaintainerReports />} />
       <Route path="/ai-usage" element={<AiUsage />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/my-work" element={<MyWork />} />
@@ -84,7 +85,7 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path="/project-maintainer" element={<ProjectMaintainerDashboard />} />
       <Route path="/project-maintainer/approvals" element={<ApprovalQueue />} />
       <Route path="/project-maintainer/team" element={<Team />} />
-      <Route path="/project-maintainer/reports" element={<ProjectMaintainerReports />} />
+      <Route path="/project-maintainer/reports" element={<Navigate to="/reports" replace />} />
       <Route path="/project-maintainer/component-diagram" element={<ComponentDiagram />} />
       <Route path="/project-maintainer/architecture-rules" element={<ArchitectureRules />} />
       <Route path="/project-maintainer/design-decisions" element={<DesignDecisions />} />

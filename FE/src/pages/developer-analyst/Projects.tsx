@@ -1,5 +1,4 @@
 import { readTokens } from '@/auth/session';
-import SampleDataNotice from '@/components/SampleDataNotice';
 import React, { useState, useCallback, useEffect } from 'react';
 import { API_BASE_URL } from '@/auth/session';
 import { App } from 'antd';
@@ -8,7 +7,6 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   FolderKanban,
   Activity,
-  GitPullRequest,
   Plus,
   ArrowRight,
   GitCommit,
@@ -23,6 +21,7 @@ import { usePagination } from '@/hooks/usePagination';
 import PaginationBar from '@/components/PaginationBar';
 import MiningPanel from '@/components/MiningPanel';
 import { Link } from 'react-router-dom';
+import { byRecent, getWorkspaces, hasMinedHistory, nextStep, STATUS_LABELS, type Workspace } from '@/features/workspace-summary';
 
 const Projects: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,112 +36,22 @@ const Projects: React.FC = () => {
   const [projectDescription, setProjectDescription] = useState('');
   const [repoUrl, setRepoUrl] = useState('');
 
-  // Hardcoded projects data based on user spec as fallback/initial
-  const [projectsList, setProjectsList] = useState<any[]>([
-    {
-      id: 1,
-      name: 'E-Commerce Platform',
-      description: 'Cloud-native multi-tenant commerce engine.',
-      repos: 4,
-      lastAnalyzed: '2 hours ago',
-      changes: 38,
-      status: 'COMPLETED',
-      nodes: [
-        { cx: 20, cy: 30, r: 4, color: '#3b82f6' },
-        { cx: 50, cy: 20, r: 4, color: '#3b82f6' },
-        { cx: 50, cy: 40, r: 4, color: '#ffb03a', glow: true },
-        { cx: 80, cy: 30, r: 4, color: '#3b82f6' },
-      ],
-      links: [
-        { d: "M 20 30 C 35 30, 35 20, 50 20", color: "#3b82f6" },
-        { d: "M 20 30 C 35 30, 35 40, 50 40", color: "#3b82f6" },
-        { d: "M 50 20 C 65 20, 65 30, 80 30", color: "#3b82f6" },
-        { d: "M 50 40 C 65 40, 65 30, 80 30", color: "#ffb03a" },
-      ]
-    },
-    {
-      id: 2,
-      name: 'Payment Platform',
-      description: 'High-throughput payment gateway.',
-      repos: 2,
-      lastAnalyzed: 'Yesterday',
-      changes: 21,
-      status: 'COMPLETED',
-      nodes: [
-        { cx: 20, cy: 30, r: 4, color: '#3b82f6' },
-        { cx: 50, cy: 30, r: 4, color: '#3b82f6' },
-        { cx: 80, cy: 15, r: 4, color: '#ffb03a', glow: true },
-        { cx: 80, cy: 45, r: 4, color: '#3b82f6' },
-      ],
-      links: [
-        { d: "M 20 30 L 50 30", color: "#3b82f6" },
-        { d: "M 50 30 C 65 30, 65 15, 80 15", color: "#ffb03a" },
-        { d: "M 50 30 C 65 30, 65 45, 80 45", color: "#3b82f6" },
-      ]
-    },
-    {
-      id: 3,
-      name: 'Healthcare Connect',
-      description: 'Healthcare integration platform.',
-      repos: 3,
-      lastAnalyzed: '3 days ago',
-      changes: 15,
-      status: 'COMPLETED',
-      nodes: [
-        { cx: 30, cy: 20, r: 4, color: '#3b82f6' },
-        { cx: 30, cy: 40, r: 4, color: '#3b82f6' },
-        { cx: 70, cy: 30, r: 4, color: '#3b82f6' },
-      ],
-      links: [
-        { d: "M 30 20 C 50 20, 50 30, 70 30", color: "#3b82f6" },
-        { d: "M 30 40 C 50 40, 50 30, 70 30", color: "#3b82f6" },
-      ]
-    }
-  ]);
+  const [projectsList, setProjectsList] = useState<Workspace[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     try {
-      const token = readTokens().accessToken;
-      if (!token) return;
-      
-      const response = await fetch(`${API_BASE_URL}/projects`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.data?.projects?.length > 0) {
-          const mapped = data.data.projects.map((p: any) => ({
-            id: p.id,
-            name: p.name,
-            description: p.description || 'Repository connection.',
-            repos: 1,
-            lastAnalyzed: 'Just now',
-            changes: 0,
-            status: p.status,
-            nodes: [{ cx: 50, cy: 30, r: 6, color: '#3b82f6' }],
-            links: []
-          }));
-          
-          setProjectsList((prev: any[]) => {
-            const result = [...mapped];
-            prev.forEach(old => {
-              if (!mapped.find((m: any) => m.id === old.id)) {
-                result.push(old);
-              }
-            });
-            return result;
-          });
-        }
-      }
+      const { workspaces } = await getWorkspaces();
+      setProjectsList([...workspaces].sort(byRecent));
+      setLoadError(null);
     } catch (e) {
-      console.error(e);
+      setLoadError(e instanceof Error ? e.message : 'Could not load your workspaces.');
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchProjects();
-  }, []);
+  }, [fetchProjects]);
 
   const handleConnect = async () => {
     if (!projectName.trim() || !repoUrl.trim()) {
@@ -201,13 +110,7 @@ const Projects: React.FC = () => {
     }
   };
 
-  const handleDeleteProject = async (id: string | number) => {
-    // Only allow deletion of non-hardcoded items for demo purposes if id is a string (MongoDB ObjectId)
-    if (typeof id === 'number') {
-      message.warning('Cannot delete sample workspaces.');
-      return;
-    }
-    
+  const handleDeleteProject = async (id: string) => {
     try {
       const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
         method: 'DELETE',
@@ -217,9 +120,8 @@ const Projects: React.FC = () => {
       });
       if (response.ok) {
         message.success('Workspace deleted successfully');
+        setProjectsList(prev => prev?.filter(p => p.id !== id) ?? prev);
         fetchProjects();
-        // Also clean up state if it doesn't immediately refetch
-        setProjectsList(prev => prev.filter(p => p.id !== id));
       } else {
         const err = await response.json().catch(() => ({}));
         message.error(err.message || 'Failed to delete workspace');
@@ -230,12 +132,11 @@ const Projects: React.FC = () => {
   };
 
   const [search, setSearch] = useState('');
-  const filteredProjects = projectsList.filter(project => `${project.name} ${project.description}`.toLowerCase().includes(search.trim().toLowerCase()));
+  const filteredProjects = (projectsList ?? []).filter(project => `${project.name} ${project.description}`.toLowerCase().includes(search.trim().toLowerCase()));
   const pagination = usePagination(filteredProjects, search);
   return (
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-10 relative">
-        <SampleDataNotice />
         
         {/* HEADER */}
         <div>
@@ -263,190 +164,125 @@ const Projects: React.FC = () => {
           <div className="h-[1px] w-full bg-gradient-to-r from-[#242527] to-transparent mt-8"></div>
         </div>
 
-        {/* PROJECT SUMMARY METRICS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          
-          <div className="flex items-center gap-4 bg-[#161d24] border border-[#242527] p-5">
-            <div className="w-12 h-12 bg-[#080b0e] border border-[#242527] flex items-center justify-center">
-              <FolderKanban size={20} className="text-[#94a3b8]" />
-            </div>
-            <div>
-              <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-1"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Total Repositories</h4>
-              <div className="text-2xl font-bold text-[#f4f4f6] font-mono"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                {String(projectsList.length).padStart(2, '0')}
-              </div>
-            </div>
+        {loadError && (
+          <div role="alert" className="border border-[#ef4444]/40 bg-[#ef4444]/5 p-4 text-sm text-[#fca5a5] flex flex-wrap items-center justify-between gap-3">
+            <span>{loadError}</span>
+            <button type="button" onClick={fetchProjects} className="h-8 px-3 border border-[#ef4444]/40 text-xs font-semibold">Try again</button>
           </div>
+        )}
 
-
-          <div className="flex items-center gap-4 bg-[#161d24] border border-[#242527] p-5">
-            <div className="w-12 h-12 bg-[#080b0e] border border-[#242527] flex items-center justify-center">
-              <Activity size={20} className="text-[#3b82f6]" />
+        {projectsList === null ? (
+          !loadError && <div className="flex items-center justify-center p-12"><Loader2 size={24} className="animate-spin text-[#3b82f6]" aria-label="Loading workspaces" /></div>
+        ) : projectsList.length === 0 ? (
+          <section aria-labelledby="first-workspace-title" className="bg-[#11161b] border border-dashed border-[#242527] p-10 text-center">
+            <FolderGit2 size={28} className="text-[#3b82f6] mx-auto mb-4" aria-hidden="true" />
+            <h3 id="first-workspace-title" className="text-lg font-bold text-[#f4f4f6] mb-2">Create your first workspace</h3>
+            <p className="text-sm text-[#94a3b8] max-w-md mx-auto mb-6">A workspace connects one Git repository. After creating it you scan its history, mine commits and group files into components.</p>
+            <div className="flex flex-wrap justify-center gap-3">
+              <button type="button" onClick={() => setIsModalOpen(true)} className="h-10 px-5 bg-[#3b82f6] hover:bg-[#60a5fa] text-[#080b0e] font-bold text-xs flex items-center gap-2">
+                <Plus size={16} aria-hidden="true" /> New workspace
+              </button>
+              <Link to="/workspace/sample/shophub" className="h-10 px-5 bg-[#161d24] hover:bg-[#242527] border border-[#242527] text-[#f4f4f6] text-xs font-medium flex items-center">
+                Explore a sample workspace
+              </Link>
             </div>
-            <div>
-              <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-1"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Active Analyses</h4>
-              <div className="text-2xl font-bold text-[#f4f4f6] font-mono"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>02</div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 bg-[#161d24] border border-[#242527] p-5">
-            <div className="w-12 h-12 bg-[#080b0e] border border-[#242527] flex items-center justify-center">
-              <GitPullRequest size={20} className="text-[#ffb03a]" />
-            </div>
-            <div>
-              <h4 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-1"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Architectural Changes</h4>
-              <div className="text-2xl font-bold text-[#f4f4f6] font-mono"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>64</div>
-            </div>
-          </div>
-
-        </div>
-
-        {/* PROJECT LIST */}
-        <input aria-label="Search workspaces" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search workspaces?" className="h-11 w-full max-w-md px-4 border border-[#242527] bg-[#11161b] text-sm" />
-        {!filteredProjects.length && <p role="status" className="text-[#94a3b8] text-sm">No workspaces match your search.</p>}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {pagination.items.map((project) => (
-            <div key={project.id} className="bg-[#11161b] border border-[#242527] hover:border-[#3b82f6]/50 overflow-hidden transition-colors flex flex-col group">
-              
-              {/* SVG GRAPH PREVIEW */}
-              <div className="h-32 w-full bg-[#080b0e] border-b border-[#242527] relative flex items-center justify-center overflow-hidden">
-                <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#F5F7FA 1px, transparent 1px)', backgroundSize: '16px 16px' }}></div>
-                
-                <svg viewBox="0 0 100 60" className="w-full h-full opacity-70 group-hover:opacity-100 transition-opacity group-hover:scale-105 duration-500">
-                  <defs>
-                    <filter id={`glow-amber-mini-${project.id}`} x="-50%" y="-50%" width="200%" height="200%">
-                      <feGaussianBlur stdDeviation="2" result="blur" />
-                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                    </filter>
-                  </defs>
-                  
-                  <g fill="none" strokeWidth="1" opacity="0.6">
-                    {project.links.map((link: { d: string; color: string }, i: number) => (
-                      <path key={i} d={link.d} stroke={link.color} />
-                    ))}
-                  </g>
-                  
-                  <g>
-                    {project.nodes.map((node: { cx: number; cy: number; r: number; color: string; glow?: boolean }, i: number) => (
-                      <circle 
-                        key={i} 
-                        cx={node.cx} 
-                        cy={node.cy} 
-                        r={node.r} 
-                        fill={node.color} 
-                        filter={node.glow ? `url(#glow-amber-mini-${project.id})` : undefined}
-                      />
-                    ))}
-                  </g>
-                </svg>
-              </div>
-
-              {/* CARD CONTENT */}
-              <div className="p-6 flex-1 flex flex-col">
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="text-[#f4f4f6] font-bold text-lg tracking-tight group-hover:text-[#3b82f6] transition-colors">{project.name}</h3>
-                  <button 
-                    onClick={() => handleDeleteProject(project.id)} 
-                    className="text-[#94a3b8] hover:text-[#ef4444] transition-colors p-1"
-                    title="Delete Workspace"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-                
-                <p className="text-[#94a3b8] text-sm mb-6 line-clamp-2 leading-relaxed flex-1">
-                  {project.description}
-                </p>
-                
-                <div className="grid grid-cols-2 gap-y-4 gap-x-2 mb-6">
-                  <div>
-                    <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider mb-1"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repositories</div>
-                    <div className="text-[#f4f4f6] text-sm font-mono flex items-center gap-1.5"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                      <FolderGit2 size={14} className="text-[#94a3b8]" />
-                      {project.repos}
-                    </div>
+          </section>
+        ) : (
+          <>
+            {/* PROJECT SUMMARY METRICS */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                { icon: FolderKanban, label: 'Workspaces', value: projectsList.length, color: 'text-[#94a3b8]' },
+                { icon: GitCommit, label: 'Commits found', value: projectsList.reduce((sum, p) => sum + (p.totalCommits ?? 0), 0), color: 'text-[#3b82f6]' },
+                { icon: Activity, label: 'Mined workspaces', value: projectsList.filter(hasMinedHistory).length, color: 'text-[#ffb03a]' },
+              ].map(({ icon: Icon, label, value, color }) => (
+                <div key={label} className="flex items-center gap-4 bg-[#161d24] border border-[#242527] p-5">
+                  <div className="w-12 h-12 bg-[#080b0e] border border-[#242527] flex items-center justify-center">
+                    <Icon size={20} className={color} aria-hidden="true" />
                   </div>
                   <div>
-                    <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider mb-1"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Last Analyzed</div>
-                    <div className="text-[#f4f4f6] text-sm font-mono flex items-center gap-1.5"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                      <Activity size={14} className="text-[#94a3b8]" />
-                      {project.lastAnalyzed}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider mb-1"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Arch Changes</div>
-                    <div className="text-[#ffb03a] text-sm font-mono font-bold flex items-center gap-1.5"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                      <GitCommit size={14} />
-                      {project.changes}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider mb-1"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Analysis Status</div>
-                    <div className="text-[#22c55e] text-[11px] font-mono font-bold flex items-center gap-1.5"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#22c55e]"></div>
-                      {project.status}
-                    </div>
+                    <h3 className="text-[10px] font-mono font-semibold text-[#94a3b8] tracking-widest uppercase mb-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{label}</h3>
+                    <div className="text-2xl font-bold text-[#f4f4f6] font-mono" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{value}</div>
                   </div>
                 </div>
-                
-                {typeof project.id === 'string' && (
-                  <button
-                    type="button"
-                    onClick={() => setMiningProject({ id: project.id, name: project.name })}
-                    className="w-full h-11 mb-3 bg-[#3b82f6]/10 hover:bg-[#3b82f6]/20 border border-[#3b82f6]/40 text-[#3b82f6] text-xs font-bold flex items-center justify-center gap-2"
-                  >
-                    MANAGE MINING
-                  </button>
-                )}
-                {(project.id === 1 || typeof project.id === 'string') ? (
-                  <div className="mt-auto flex gap-2">
-                    <Link
-                      to={typeof project.id === 'string' ? `/workspace/${encodeURIComponent(project.id)}` : "/workspace/sample/shophub"}
-                      className="flex-1 h-11 bg-[#3b82f6] hover:bg-[#60a5fa] text-[#080b0e] font-semibold text-sm flex items-center justify-center gap-2"
-                    >
-                      Open architecture <ArrowRight size={14} aria-hidden="true" />
-                    </Link>
-                    <Link
-                      to={typeof project.id === 'string' ? `/project?projectId=${project.id}` : "/project"}
-                      aria-label={`Details of ${project.name}`}
-                      title="Workspace details"
-                      className="h-11 px-3 bg-[#161d24] hover:bg-[#242527] border border-[#242527] text-xs flex items-center justify-center"
-                    >
-                      Details
-                    </Link>
-                  </div>
-                ) : (
-                  <button
-                    disabled
-                    className="w-full h-11 bg-[#161d24] border border-[#242527] text-xs mt-auto"
-                    title="No architecture snapshot has been connected for this sample workspace"
-                  >
-                    Snapshot unavailable
-                  </button>
-                )}
-              </div>
-
-              
+              ))}
             </div>
-          ))}
-        </div>
+
+            {/* PROJECT LIST */}
+            <input aria-label="Search workspaces" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search workspaces…" className="h-11 w-full max-w-md px-4 border border-[#242527] bg-[#11161b] text-sm" />
+            {!filteredProjects.length && <p role="status" className="text-[#94a3b8] text-sm">No workspaces match your search.</p>}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {pagination.items.map((project) => {
+                const step = nextStep(project);
+                return (
+                  <div key={project.id} className="bg-[#11161b] border border-[#242527] hover:border-[#3b82f6]/50 overflow-hidden transition-colors flex flex-col group">
+                    <div className="p-6 flex-1 flex flex-col">
+                      <div className="flex items-start justify-between mb-2 gap-2">
+                        <h3 className="text-[#f4f4f6] font-bold text-lg tracking-tight group-hover:text-[#3b82f6] transition-colors break-words">{project.name}</h3>
+                        {project.role === 'owner' && (
+                          <button
+                            onClick={() => handleDeleteProject(project.id)}
+                            className="text-[#94a3b8] hover:text-[#ef4444] transition-colors p-1"
+                            title="Delete workspace"
+                            aria-label={`Delete ${project.name}`}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+
+                      <p className="text-[#94a3b8] text-sm mb-6 line-clamp-2 leading-relaxed flex-1 break-all">
+                        {project.description || project.repoUrl || 'No description.'}
+                      </p>
+
+                      <dl className="grid grid-cols-2 gap-y-4 gap-x-2 mb-6">
+                        <div>
+                          <dt className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider mb-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>Status</dt>
+                          <dd className="text-[#f4f4f6] text-sm font-mono" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{STATUS_LABELS[project.status]}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider mb-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>Commits found</dt>
+                          <dd className="text-[#f4f4f6] text-sm font-mono" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{project.totalCommits ?? 'Not scanned'}</dd>
+                        </div>
+                        <div className="col-span-2">
+                          <dt className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider mb-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>Next step</dt>
+                          <dd className="text-[#94a3b8] text-xs leading-relaxed">{step.hint}</dd>
+                        </div>
+                      </dl>
+
+                      <button
+                        type="button"
+                        onClick={() => setMiningProject({ id: project.id, name: project.name })}
+                        className="w-full h-11 mb-3 bg-[#3b82f6]/10 hover:bg-[#3b82f6]/20 border border-[#3b82f6]/40 text-[#3b82f6] text-xs font-bold flex items-center justify-center gap-2"
+                      >
+                        MANAGE MINING
+                      </button>
+                      <div className="mt-auto flex gap-2">
+                        <Link
+                          to={`/workspace/${encodeURIComponent(project.id)}`}
+                          className="flex-1 h-11 bg-[#3b82f6] hover:bg-[#60a5fa] text-[#080b0e] font-semibold text-sm flex items-center justify-center gap-2"
+                        >
+                          Open architecture <ArrowRight size={14} aria-hidden="true" />
+                        </Link>
+                        <Link
+                          to={`/project?projectId=${encodeURIComponent(project.id)}`}
+                          aria-label={`Details of ${project.name}`}
+                          title="Workspace details"
+                          className="h-11 px-3 bg-[#161d24] hover:bg-[#242527] border border-[#242527] text-xs flex items-center justify-center"
+                        >
+                          Details
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <PaginationBar {...pagination} />
+          </>
+        )}
 
         {/* BOTTOM PADDING */}
-        <PaginationBar {...pagination} />
         <div className="h-10"></div>
         
       </div>

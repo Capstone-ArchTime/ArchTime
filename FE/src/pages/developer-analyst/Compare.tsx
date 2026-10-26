@@ -1,5 +1,5 @@
 import { readTokens } from '@/auth/session';
-import SampleDataNotice from '@/components/SampleDataNotice';
+import { getWorkspaces, mayHaveSnapshots, type Workspace } from '@/features/workspace-summary';
 import { Link, useLocation } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -22,8 +22,10 @@ import type { ComponentMatchResult } from '@/features/component-matching';
 const Compare: React.FC = () => {
   const { message } = App.useApp();
   const location = useLocation();
-  const [projectsList, setProjectsList] = useState<any[]>([]);
+  const [projectsList, setProjectsList] = useState<Workspace[] | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [snapshotsFor, setSnapshotsFor] = useState('');
+  const snapshotsLoaded = snapshotsFor === selectedProjectId;
   const [snapshots, setSnapshots] = useState<any[]>([]);
   const [baseId, setBaseId] = useState<string>('');
   const [targetId, setTargetId] = useState<string>('');
@@ -32,29 +34,15 @@ const Compare: React.FC = () => {
   const [match, setMatch] = useState<{ result: ComponentMatchResult | null; error: string | null; loading: boolean; baseId: string; targetId: string } | null>(null);
 
   useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const token = readTokens().accessToken;
-        const res = await fetch(`${API_BASE_URL}/projects`, { headers: { Authorization: `Bearer ${token}` } });
-        if (res.ok) {
-          const data = await res.json();
-          const pList = data.data?.projects || [];
-          setProjectsList(pList);
-          
-          const searchParams = new URLSearchParams(location.search);
-          const pId = searchParams.get('projectId');
-          if (pId && pList.find((p: any) => p.id === pId)) {
-            setSelectedProjectId(pId);
-          } else if (pList.length > 0) {
-            setSelectedProjectId(pList[0].id);
-          }
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    fetchProjects();
-  }, [location.search]);
+    const controller = new AbortController();
+    getWorkspaces(controller.signal).then(({ workspaces }) => {
+      const pList = workspaces.filter(mayHaveSnapshots);
+      setProjectsList(pList);
+      const pId = new URLSearchParams(location.search).get('projectId');
+      setSelectedProjectId(pList.find(p => p.id === pId)?.id ?? pList[0]?.id ?? '');
+    }).catch(e => { if (!controller.signal.aborted) { setProjectsList([]); message.error(e instanceof Error ? e.message : 'Could not load your workspaces.'); } });
+    return () => controller.abort();
+  }, [location.search, message]);
 
   useEffect(() => {
     if (!selectedProjectId) return;
@@ -79,6 +67,8 @@ const Compare: React.FC = () => {
         }
       } catch (e) {
         console.error(e);
+      } finally {
+        setSnapshotsFor(selectedProjectId);
       }
     };
     fetchSnapshots();
@@ -129,10 +119,10 @@ const Compare: React.FC = () => {
       return (
         <g>
           <text x="250" y="200" fill="#5f636b" fontSize="14" textAnchor="middle" fontFamily="sans-serif">
-            Không có dữ liệu kiến trúc
+            No architecture data
           </text>
           <text x="250" y="220" fill="#5f636b" fontSize="12" textAnchor="middle" fontFamily="sans-serif">
-            (Bản chụp này không chứa module/component nào)
+            (This revision has no recorded modules)
           </text>
         </g>
       );
@@ -216,7 +206,6 @@ const Compare: React.FC = () => {
   return (
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-8 flex flex-col min-h-0">
-        {!compareData && <SampleDataNotice />}
         
         {/* HEADER */}
         <div className="shrink-0">
@@ -239,9 +228,9 @@ const Compare: React.FC = () => {
                 onChange={(e) => { setSelectedProjectId(e.target.value); setCompareData(null); setMatch(null); }}
                 className="appearance-none bg-transparent border-none text-xs font-bold text-[#f4f4f6] pl-2 pr-10 h-full outline-none cursor-pointer w-48"
               >
-                {projectsList.length > 0 ? projectsList.map(p => (
+                {projectsList?.length ? projectsList.map(p => (
                   <option key={p.id} value={p.id} className="bg-[#161d24]">{p.name}</option>
-                )) : <option value="" className="bg-[#161d24]">No Workspaces Found</option>}
+                )) : <option value="" className="bg-[#161d24]">No mined workspaces</option>}
               </select>
               <ChevronDown size={14} className="text-[#94a3b8] absolute right-3 pointer-events-none group-hover:text-[#f4f4f6]" />
             </div>
@@ -250,6 +239,18 @@ const Compare: React.FC = () => {
           <div className="h-[1px] w-full bg-gradient-to-r from-[#242527] to-transparent mt-4"></div>
         </div>
 
+        {projectsList?.length === 0 ? (
+          <section className="bg-[#11161b] border border-dashed border-[#242527] p-10 text-center" aria-labelledby="no-compare-title">
+            <h3 id="no-compare-title" className="text-lg font-bold text-[#f4f4f6] mb-2">Nothing to compare yet</h3>
+            <p className="text-sm text-[#94a3b8] max-w-md mx-auto mb-6">Comparing needs a workspace with at least two mined commits. Create a workspace or mine more of its history.</p>
+            <Link to="/projects" className="inline-flex h-10 px-5 bg-[#3b82f6] hover:bg-[#60a5fa] text-[#080b0e] font-bold text-xs items-center">Go to workspaces</Link>
+          </section>
+        ) : <>
+        {snapshotsLoaded && snapshots.length < 2 && (
+          <p role="status" className="bg-[#11161b] border border-[#242527] p-4 text-sm text-[#94a3b8]">
+            This workspace has {snapshots.length === 0 ? 'no mined commits' : 'only one mined commit'}. Mine more of its history from <Link to="/projects" className="text-[#3b82f6] hover:underline">Workspaces</Link> to compare two revisions.
+          </p>
+        )}
         {/* REVISION SELECTORS */}
         <div className="flex flex-col md:flex-row items-stretch gap-4 shrink-0">
           
@@ -287,7 +288,7 @@ const Compare: React.FC = () => {
             </div>
             <button 
               onClick={handleCompare}
-              disabled={loading}
+              disabled={loading || snapshots.length < 2}
               className="px-4 py-1.5 bg-[#3b82f6] hover:bg-[#3b82f6]/90 text-[#080b0e] font-bold text-[10px] tracking-wider transition-colors shadow-[0_0_10px_rgba(56,189,248,0.15)] uppercase disabled:opacity-50"
             >
               {loading ? 'Comparing...' : 'Compare'}
@@ -538,7 +539,7 @@ const Compare: React.FC = () => {
               GENERATE REPORT
            </Link>
         </div>
-
+        </>}
       </div>
     </DashboardLayout>
   );

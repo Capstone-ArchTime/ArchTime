@@ -1,475 +1,187 @@
-import SampleDataNotice from '@/components/SampleDataNotice';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { API_BASE_URL, readTokens } from '@/auth/session';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import {
-  FolderGit2,
-  Box,
-  GitCommit,
-  Clock,
-  ScanSearch,
-  Download,
-  CheckCircle2,
-  ExternalLink,
-  ArrowRight,
-  Sparkles,
-  SearchCode
-} from 'lucide-react';
-import { Icon } from '@iconify/react';
+import { Box, GitCommit, Clock, Layers, ArrowRight, SearchCode, Loader2, ExternalLink, FolderGit2 } from 'lucide-react';
+import { getMiningOverview, type MiningOverview } from '@/features/mining-api';
+import { getSnapshotPage, getWorkspace, nextStep, STATUS_LABELS, structuralChanges, type SnapshotRow, type Workspace } from '@/features/workspace-summary';
+
+const mono = { fontFamily: '"JetBrains Mono", monospace' };
+type Loaded = { workspace: Workspace; mining: MiningOverview | null; recent: SnapshotRow[]; latest: SnapshotRow | null };
+
+function Metric({ icon: Icon, value, label }: { icon: React.ElementType; value: React.ReactNode; label: string }) {
+  return (
+    <div className="bg-[#11161b] border border-[#242527] p-5 flex items-center gap-4">
+      <div className="w-12 h-12 bg-[#242527] flex items-center justify-center text-[#f4f4f6] shrink-0"><Icon size={22} aria-hidden="true" /></div>
+      <div className="min-w-0">
+        <div className="text-xl font-bold font-mono text-[#f4f4f6] truncate" style={mono}>{value}</div>
+        <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-widest font-bold mt-1" style={mono}>{label}</div>
+      </div>
+    </div>
+  );
+}
 
 const ProjectDetail: React.FC = () => {
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get('projectId');
-  const [projectData, setProjectData] = useState<{
-    name: string;
-    description?: string;
-    repoUrl?: string;
-    status?: string;
-  } | null>(null);
+  // Results are kept with the workspace they belong to, so switching workspaces never shows the previous one.
+  const [loaded, setLoaded] = useState<(Loaded & { id: string }) | null>(null);
+  const [failure, setFailure] = useState<{ id: string; message: string } | null>(null);
+  const data = loaded && loaded.id === projectId ? loaded : null;
+  const error = failure && failure.id === projectId ? failure.message : null;
 
+  const load = useCallback((id: string, signal?: AbortSignal) => {
+    // The mining overview and commits are extras: a workspace whose history cannot be read still shows its own fields.
+    Promise.all([
+      getWorkspace(id, signal),
+      getMiningOverview(id, signal).catch(() => null),
+      getSnapshotPage(id, { limit: 100, summary: true }, signal).catch(() => null),
+      getSnapshotPage(id, { limit: 1 }, signal).catch(() => null),
+    ]).then(([workspace, mining, page, latest]) => setLoaded({ id, workspace, mining, recent: page ? structuralChanges(page.rows) : [], latest: latest?.rows[0] ?? null }))
+      .catch(err => { if (!signal?.aborted) setFailure({ id, message: err instanceof Error ? err.message : 'Could not load this workspace.' }); });
+  }, []);
   useEffect(() => {
     if (!projectId) return;
-    const token = readTokens().accessToken;
-    if (!token) return;
+    const controller = new AbortController();
+    load(projectId, controller.signal);
+    return () => controller.abort();
+  }, [projectId, load]);
 
-    fetch(`${API_BASE_URL}/projects/${projectId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.data?.project) {
-          setProjectData(data.data.project);
-        }
-      })
-      .catch(console.error);
-  }, [projectId]);
+  if (!projectId) {
+    return (
+      <DashboardLayout title="Workspace details">
+        <div className="max-w-xl mx-auto mt-16 bg-[#11161b] border border-[#242527] p-8 text-center">
+          <FolderGit2 size={28} className="text-[#3b82f6] mx-auto mb-4" aria-hidden="true" />
+          <h2 className="text-lg font-bold text-[#f4f4f6] mb-2">Choose a workspace</h2>
+          <p className="text-sm text-[#94a3b8] mb-6">Open a workspace from the list to see its repository, mining progress and recent structural changes.</p>
+          <Link to="/projects" className="inline-flex h-10 px-5 bg-[#3b82f6] hover:bg-[#60a5fa] text-[#080b0e] font-bold text-xs items-center">Go to workspaces</Link>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
-  const displayName = projectData?.name ?? 'E-Commerce Platform';
-  const displayDescription =
-    projectData?.description ?? 'Cloud-native multi-tenant commerce engine.';
+  const w = data?.workspace;
+  const q = `projectId=${encodeURIComponent(projectId)}`;
+  const step = w ? nextStep(w) : null;
+  const mined = data?.mining?.mined;
+  const tabs = [
+    { label: 'Architecture', to: `/workspace/${encodeURIComponent(projectId)}` },
+    { label: 'History', to: `/history?${q}` },
+    { label: 'Compare', to: `/compare?${q}` },
+    { label: 'Evidence', to: `/evidence?${q}` },
+    { label: 'Reports', to: '/reports' },
+  ];
 
   return (
-    <DashboardLayout>
+    <DashboardLayout title={w?.name}>
       <div className="max-w-[1400px] mx-auto flex flex-col min-h-0 pb-12">
-        {!projectId && <SampleDataNotice />}
-        
-        {/* HEADER */}
-        <div className="shrink-0 space-y-6 pt-2">
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#161d24] border border-[#242527] mb-4">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] shadow-[0_0_5px_#3b82f6]"></div>
-                <span className="text-[10px] font-mono text-[#3b82f6] tracking-wider font-semibold uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Workspace Observatory</span>
+        {error && (
+          <div role="alert" className="border border-[#ef4444]/40 bg-[#ef4444]/5 p-4 text-sm text-[#fca5a5] flex flex-wrap items-center justify-between gap-3">
+            <span>{error}</span>
+            <button type="button" onClick={() => { setFailure(null); load(projectId); }} className="h-8 px-3 border border-[#ef4444]/40 text-xs font-semibold">Try again</button>
+          </div>
+        )}
+        {!w ? (
+          !error && <div className="flex items-center justify-center p-16"><Loader2 size={24} className="animate-spin text-[#3b82f6]" aria-label="Loading workspace" /></div>
+        ) : (
+          <>
+            <div className="shrink-0 space-y-6 pt-2">
+              <div>
+                <div className="flex items-center gap-2 mb-2 text-sm font-mono text-[#94a3b8]" style={mono}>
+                  <Link to="/projects" className="hover:text-[#f4f4f6] transition-colors">Workspaces</Link>
+                  <span aria-hidden="true">/</span>
+                  <span className="text-[#3b82f6]">{w.name}</span>
+                </div>
+                <h2 className="text-4xl font-bold tracking-tight text-[#f4f4f6] mb-2 break-words">{w.name}</h2>
+                <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
+                  {w.description || 'No description was given when this workspace was created.'}
+                </p>
+                {w.repoUrl && (
+                  <a href={w.repoUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-xs font-mono text-[#3b82f6] hover:underline break-all" style={mono}>
+                    {w.repoUrl} <ExternalLink size={12} aria-hidden="true" />
+                  </a>
+                )}
               </div>
-              
-              <div className="flex items-center gap-2 mb-2 text-sm font-mono text-[#94a3b8]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                 <Link to="/projects" className="hover:text-[#f4f4f6] transition-colors">ArchTime</Link>
-                 <span>/</span>
-                 <Link to="/projects" className="hover:text-[#f4f4f6] transition-colors">Workspaces</Link>
-                 <span>/</span>
-                 <span className="text-[#3b82f6]">{displayName}</span>
-              </div>
-              
-              <h2 className="text-4xl font-bold tracking-tight text-[#f4f4f6] mb-2">{displayName}</h2>
-              <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
-                {displayDescription}
-              </p>
             </div>
 
-            
-            <div className="flex items-center gap-3 shrink-0">
-               <Link to="/reports" className="h-10 px-5 bg-[#11161b] border border-[#242527] hover:border-[#3b82f6]/50 text-[#3b82f6] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.05)] uppercase tracking-wider">
-                  <Download size={16} /> Export Report
-               </Link>
-               <button disabled title="Not available yet: this view uses sample data" aria-label="ANALYZE REPOSITORY" className="h-10 px-5 bg-[#3b82f6] hover:bg-[#3b82f6]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)] uppercase tracking-wider">
-                  <ScanSearch size={16} /> Analyze Repository
-               </button>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+              <Metric icon={Layers} value={STATUS_LABELS[w.status]} label="Status" />
+              <Metric icon={GitCommit} value={w.totalCommits ?? 'Not scanned'} label="Commits found" />
+              <Metric icon={Box} value={mined ? mined.count : '—'} label="Commits mined" />
+              <Metric icon={Clock} value={mined?.lastDate ? new Date(mined.lastDate).toLocaleDateString() : '—'} label="Newest mined commit" />
             </div>
-          </div>
-        </div>
 
-        {/* STATUS METRICS */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-          <div className="bg-[#11161b] border border-[#242527] p-5 flex items-center gap-4">
-             <div className="w-12 h-12 bg-[#242527] flex items-center justify-center text-[#f4f4f6]">
-               <FolderGit2 size={24} />
-             </div>
-             <div>
-               <div className="text-2xl font-bold font-mono text-[#f4f4f6]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>4</div>
-               <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-widest font-bold mt-1"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repositories</div>
-             </div>
-          </div>
-          <div className="bg-[#11161b] border border-[#242527] p-5 flex items-center gap-4">
-             <div className="w-12 h-12 bg-[#ffb03a]/10 border border-[#ffb03a]/20 flex items-center justify-center text-[#ffb03a]">
-               <Box size={24} />
-             </div>
-             <div>
-               <div className="text-2xl font-bold font-mono text-[#ffb03a]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>38</div>
-               <div className="text-[10px] font-mono text-[#ffb03a]/70 uppercase tracking-widest font-bold mt-1"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Arch Changes</div>
-             </div>
-          </div>
-          <div className="bg-[#11161b] border border-[#242527] p-5 flex items-center gap-4">
-             <div className="w-12 h-12 bg-[#3b82f6]/10 border border-[#3b82f6]/20 flex items-center justify-center text-[#3b82f6]">
-               <GitCommit size={24} />
-             </div>
-             <div>
-               <div className="text-2xl font-bold font-mono text-[#3b82f6]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>86</div>
-               <div className="text-[10px] font-mono text-[#3b82f6]/70 uppercase tracking-widest font-bold mt-1"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Commits Analyzed</div>
-             </div>
-          </div>
-          <div className="bg-[#11161b] border border-[#242527] p-5 flex items-center gap-4">
-             <div className="w-12 h-12 bg-[#242527] flex items-center justify-center text-[#94a3b8]">
-               <Clock size={24} />
-             </div>
-             <div>
-               <div className="text-2xl font-bold font-mono text-[#f4f4f6] text-lg"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>2h ago</div>
-               <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-widest font-bold mt-1"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Last Analyzed</div>
-             </div>
-          </div>
-        </div>
+            <nav aria-label="Workspace views" className="mt-8 border-b border-[#242527] flex gap-8 overflow-x-auto custom-scrollbar">
+              <span aria-current="page" className="pb-3 border-b-2 border-[#3b82f6] text-[#3b82f6] font-bold text-xs tracking-wider uppercase whitespace-nowrap">Overview</span>
+              {tabs.map(t => (
+                <Link key={t.label} to={t.to} className="pb-3 border-b-2 border-transparent hover:border-[#5f636b] text-[#94a3b8] hover:text-[#f4f4f6] font-bold text-xs tracking-wider uppercase whitespace-nowrap transition-colors">{t.label}</Link>
+              ))}
+            </nav>
 
-        {/* NAVIGATION TABS */}
-        <div className="mt-8 border-b border-[#242527] flex gap-8 overflow-x-auto custom-scrollbar">
-           <div className="pb-3 border-b-2 border-[#3b82f6] text-[#3b82f6] font-bold text-xs tracking-wider uppercase whitespace-nowrap cursor-pointer">
-              Overview
-           </div>
-           <div className="pb-3 border-b-2 border-transparent hover:border-[#5f636b] text-[#94a3b8] hover:text-[#f4f4f6] font-bold text-xs tracking-wider uppercase whitespace-nowrap cursor-pointer transition-colors">
-              Repositories
-           </div>
-           <Link to="/history" className="pb-3 border-b-2 border-transparent hover:border-[#5f636b] text-[#94a3b8] hover:text-[#f4f4f6] font-bold text-xs tracking-wider uppercase whitespace-nowrap cursor-pointer transition-colors">
-              Architecture
-           </Link>
-           <Link to="/history" className="pb-3 border-b-2 border-transparent hover:border-[#5f636b] text-[#94a3b8] hover:text-[#f4f4f6] font-bold text-xs tracking-wider uppercase whitespace-nowrap cursor-pointer transition-colors">
-              History
-           </Link>
-           <Link to="/compare" className="pb-3 border-b-2 border-transparent hover:border-[#5f636b] text-[#94a3b8] hover:text-[#f4f4f6] font-bold text-xs tracking-wider uppercase whitespace-nowrap cursor-pointer transition-colors">
-              Compare
-           </Link>
-           <Link to="/evidence" className="pb-3 border-b-2 border-transparent hover:border-[#5f636b] text-[#94a3b8] hover:text-[#f4f4f6] font-bold text-xs tracking-wider uppercase whitespace-nowrap cursor-pointer transition-colors">
-              Changes
-           </Link>
-           <Link to="/evidence" className="pb-3 border-b-2 border-transparent hover:border-[#5f636b] text-[#94a3b8] hover:text-[#f4f4f6] font-bold text-xs tracking-wider uppercase whitespace-nowrap cursor-pointer transition-colors">
-              Evidence
-           </Link>
-           <Link to="/insights" className="pb-3 border-b-2 border-transparent hover:border-[#5f636b] text-[#94a3b8] hover:text-[#f4f4f6] font-bold text-xs tracking-wider uppercase whitespace-nowrap cursor-pointer transition-colors">
-              AI Insights
-           </Link>
-           <Link to="/reports" className="pb-3 border-b-2 border-transparent hover:border-[#5f636b] text-[#94a3b8] hover:text-[#f4f4f6] font-bold text-xs tracking-wider uppercase whitespace-nowrap cursor-pointer transition-colors">
-              Reports
-           </Link>
-        </div>
-
-        {/* OVERVIEW CONTENT */}
-        <div className="flex flex-col xl:flex-row gap-6 mt-8">
-           
-           {/* LEFT COLUMN (70%) */}
-           <div className="flex-[2.5] flex flex-col gap-6 min-w-0">
-              
-              {/* LARGE ARCHITECTURE GRAPH */}
-              <div className="bg-[#080b0e] border border-[#242527] overflow-hidden shadow-2xl relative flex flex-col">
-                 <div className="p-4 border-b border-[#242527] bg-[#080b0e] flex items-center justify-between z-10">
-                    <h3 className="text-sm font-bold text-[#f4f4f6] tracking-wide uppercase">Current Architecture</h3>
-                    <div className="text-[10px] font-mono text-[#3b82f6] uppercase tracking-widest font-bold"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Live Status</div>
-                 </div>
-                 
-                 <div className="relative w-full h-[350px]">
-                    <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#F5F7FA 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
-                    
-                    <svg viewBox="0 0 800 400" className="w-full h-full absolute inset-0" preserveAspectRatio="xMidYMid meet">
-                       <defs>
-                         <filter id="glow-cyan-dash" x="-20%" y="-20%" width="140%" height="140%">
-                           <feGaussianBlur stdDeviation="3" result="blur" />
-                           <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                         </filter>
-                       </defs>
-
-                       {/* LINES */}
-                       <g fill="none" strokeWidth="2" opacity="0.6">
-                          <path d="M 400 80 L 400 150" stroke="#3b82f6" />
-                          
-                          <path d="M 400 150 C 250 150, 250 200, 250 250" stroke="#3b82f6" />
-                          <path d="M 400 150 C 550 150, 550 200, 550 250" stroke="#3b82f6" />
-                          <path d="M 400 150 L 400 250" stroke="#3b82f6" />
-                          
-                          <path d="M 400 250 C 650 250, 650 250, 700 250" stroke="#3b82f6" />
-                          
-                          <path d="M 400 290 L 400 350" stroke="#3b82f6" />
-                          <path d="M 250 290 C 250 330, 400 330, 400 350" stroke="#3b82f6" />
-                          <path d="M 550 290 C 550 330, 400 330, 400 350" stroke="#3b82f6" />
-                       </g>
-
-                       {/* NODES */}
-                       <g>
-                         {/* API GATEWAY */}
-                         <g transform="translate(320, 40)">
-                           <rect width="160" height="40" rx="4" fill="#161d24" stroke="#3b82f6" strokeWidth="2" filter="url(#glow-cyan-dash)" opacity="0.3" />
-                           <rect width="160" height="40" rx="4" fill="#161d24" stroke="#3b82f6" strokeWidth="2" />
-                           <circle cx="20" cy="20" r="4" fill="#3b82f6" />
-                           <text x="35" y="24" fill="#f4f4f6" fontSize="13" fontFamily="monospace" fontWeight="bold">API GATEWAY</text>
-                         </g>
-
-                         {/* ORDER MODULE */}
-                         <g transform="translate(170, 250)">
-                           <rect width="160" height="40" rx="4" fill="#161d24" stroke="#3b82f6" strokeOpacity="0.5" />
-                           <circle cx="20" cy="20" r="4" fill="#3b82f6" />
-                           <text x="35" y="24" fill="#f4f4f6" fontSize="13" fontFamily="monospace" fontWeight="bold">ORDER_SERVICE</text>
-                         </g>
-
-                         {/* INVENTORY MODULE */}
-                         <g transform="translate(320, 250)">
-                           <rect width="160" height="40" rx="4" fill="#161d24" stroke="#3b82f6" strokeOpacity="0.5" />
-                           <circle cx="20" cy="20" r="4" fill="#3b82f6" />
-                           <text x="35" y="24" fill="#f4f4f6" fontSize="11" fontFamily="monospace" fontWeight="bold">INVENTORY_SERVICE</text>
-                         </g>
-
-                         {/* PAYMENT MODULE */}
-                         <g transform="translate(470, 250)">
-                           <rect width="160" height="40" rx="4" fill="#161d24" stroke="#3b82f6" strokeOpacity="0.5" />
-                           <circle cx="20" cy="20" r="4" fill="#3b82f6" />
-                           <text x="35" y="24" fill="#f4f4f6" fontSize="13" fontFamily="monospace" fontWeight="bold">PAYMENT_SERVICE</text>
-                         </g>
-                         
-                         {/* USER MODULE */}
-                         <g transform="translate(620, 250)">
-                           <rect width="160" height="40" rx="4" fill="#161d24" stroke="#3b82f6" strokeOpacity="0.5" />
-                           <circle cx="20" cy="20" r="4" fill="#3b82f6" />
-                           <text x="35" y="24" fill="#f4f4f6" fontSize="13" fontFamily="monospace" fontWeight="bold">USER_SERVICE</text>
-                         </g>
-
-                         {/* DATABASE */}
-                         <g transform="translate(320, 350)">
-                           <rect width="160" height="40" rx="4" fill="#161d24" stroke="#5f636b" strokeOpacity="0.5" />
-                           <circle cx="20" cy="20" r="4" fill="#5f636b" />
-                           <text x="35" y="24" fill="#94a3b8" fontSize="13" fontFamily="monospace" fontWeight="bold">SHARED_DB</text>
-                         </g>
-                       </g>
-                    </svg>
-                 </div>
-                 
-                 <div className="p-4 bg-[#080b0e] border-t border-[#242527] text-[10px] font-mono text-[#94a3b8] flex items-center justify-between"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                    <span>Recent structural changes detected: Payment extracted, Dependencies updated.</span>
-                    <Link to="/history" className="text-[#3b82f6] hover:underline flex items-center gap-1 font-bold">
-                       VIEW TIMELINE <ArrowRight size={12} />
+            <div className="flex flex-col xl:flex-row gap-6 mt-8">
+              <div className="flex-[2.5] flex flex-col gap-6 min-w-0">
+                {step && (
+                  <section aria-labelledby="next-step-title" className="bg-[#11161b] border border-[#3b82f6]/30 p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div className="flex-1">
+                      <h3 id="next-step-title" className="text-sm font-bold text-[#f4f4f6] tracking-wide uppercase mb-1">Next step: {step.label}</h3>
+                      <p className="text-xs text-[#94a3b8] leading-relaxed">{step.hint}</p>
+                    </div>
+                    <Link to={step.to} className="shrink-0 h-9 px-4 bg-[#3b82f6] hover:bg-[#60a5fa] text-[#080b0e] text-xs font-bold flex items-center gap-2">
+                      {step.action === 'open' ? 'Open architecture' : 'Go to workspaces'} <ArrowRight size={14} aria-hidden="true" />
                     </Link>
-                 </div>
-              </div>
+                  </section>
+                )}
 
-              {/* REPOSITORIES LIST */}
-              <div className="bg-[#11161b] border border-[#242527] overflow-hidden flex flex-col">
-                 <div className="p-4 border-b border-[#242527] bg-[#161d24] flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-[#f4f4f6] tracking-wide uppercase">Connected Repositories</h3>
-                 </div>
-                 <div className="overflow-x-auto">
-                   <table className="w-full text-left border-collapse min-w-[600px]">
-                     <thead>
-                       <tr className="border-b border-[#242527] bg-[#080b0e]">
-                         <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository</th>
-                         <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Provider</th>
-                         <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Branch</th>
-                         <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Commits</th>
-                         <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Status</th>
-                         <th className="p-4 text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-wider text-right"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Action</th>
-                       </tr>
-                     </thead>
-                     <tbody className="divide-y divide-[#242527]">
-                       
-                       <tr className="group hover:bg-[#242527]/30 transition-colors">
-                         <td className="p-4 text-sm font-bold text-[#f4f4f6] font-mono"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>payment-service</td>
-                         <td className="p-4"><Icon icon="mdi:github" width="16" height="16" className="text-[#94a3b8]" /></td>
-                         <td className="p-4 text-xs font-mono text-[#94a3b8]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>main</td>
-                         <td className="p-4 text-xs font-mono text-[#94a3b8]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>124</td>
-                         <td className="p-4">
-                            <span className="flex items-center gap-1.5 text-[10px] font-mono font-bold text-[#22c55e] uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                               <CheckCircle2 size={12} /> Syncing
-                            </span>
-                         </td>
-                         <td className="p-4 text-right">
-                            <button disabled title="Not available yet: this view uses sample data" aria-label="Unavailable action" className="text-[10px] font-mono font-bold text-[#94a3b8] hover:text-[#3b82f6] transition-colors"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                               <ExternalLink size={14} />
-                            </button>
-                         </td>
-                       </tr>
-                       
-                       <tr className="group hover:bg-[#242527]/30 transition-colors">
-                         <td className="p-4 text-sm font-bold text-[#f4f4f6] font-mono"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>order-service</td>
-                         <td className="p-4"><Icon icon="mdi:github" width="16" height="16" className="text-[#94a3b8]" /></td>
-                         <td className="p-4 text-xs font-mono text-[#94a3b8]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>main</td>
-                         <td className="p-4 text-xs font-mono text-[#94a3b8]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>842</td>
-                         <td className="p-4">
-                            <span className="flex items-center gap-1.5 text-[10px] font-mono font-bold text-[#22c55e] uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                               <CheckCircle2 size={12} /> Syncing
-                            </span>
-                         </td>
-                         <td className="p-4 text-right">
-                            <button disabled title="Not available yet: this view uses sample data" aria-label="Unavailable action" className="text-[10px] font-mono font-bold text-[#94a3b8] hover:text-[#3b82f6] transition-colors"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                               <ExternalLink size={14} />
-                            </button>
-                         </td>
-                       </tr>
-                       
-                       <tr className="group hover:bg-[#242527]/30 transition-colors">
-                         <td className="p-4 text-sm font-bold text-[#f4f4f6] font-mono"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>inventory-service</td>
-                         <td className="p-4"><Icon icon="mdi:gitlab" width="16" height="16" className="text-[#ffb03a]" /></td>
-                         <td className="p-4 text-xs font-mono text-[#94a3b8]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>develop</td>
-                         <td className="p-4 text-xs font-mono text-[#94a3b8]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>45</td>
-                         <td className="p-4">
-                            <span className="flex items-center gap-1.5 text-[10px] font-mono font-bold text-[#22c55e] uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                               <CheckCircle2 size={12} /> Syncing
-                            </span>
-                         </td>
-                         <td className="p-4 text-right">
-                            <button disabled title="Not available yet: this view uses sample data" aria-label="Unavailable action" className="text-[10px] font-mono font-bold text-[#94a3b8] hover:text-[#3b82f6] transition-colors"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                               <ExternalLink size={14} />
-                            </button>
-                         </td>
-                       </tr>
-                       
-                       <tr className="group hover:bg-[#242527]/30 transition-colors">
-                         <td className="p-4 text-sm font-bold text-[#f4f4f6] font-mono"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>user-service</td>
-                         <td className="p-4"><Icon icon="mdi:github" width="16" height="16" className="text-[#94a3b8]" /></td>
-                         <td className="p-4 text-xs font-mono text-[#94a3b8]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>main</td>
-                         <td className="p-4 text-xs font-mono text-[#94a3b8]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>210</td>
-                         <td className="p-4">
-                            <span className="flex items-center gap-1.5 text-[10px] font-mono font-bold text-[#94a3b8] uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                               <Clock size={12} /> Pending
-                            </span>
-                         </td>
-                         <td className="p-4 text-right">
-                            <button disabled title="Not available yet: this view uses sample data" aria-label="Unavailable action" className="text-[10px] font-mono font-bold text-[#94a3b8] hover:text-[#3b82f6] transition-colors"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                               <ExternalLink size={14} />
-                            </button>
-                         </td>
-                       </tr>
-
-                     </tbody>
-                   </table>
-                 </div>
-              </div>
-
-           </div>
-
-           {/* RIGHT COLUMN (30%) */}
-           <div className="flex-1 flex flex-col gap-6 min-w-0">
-              
-              {/* LATEST AI INSIGHT */}
-              <div className="bg-[#11161b] border border-[#3b82f6]/30 overflow-hidden relative group">
-                 <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/5 to-transparent pointer-events-none"></div>
-                 <div className="p-5 relative z-10">
-                    <div className="flex items-center justify-between mb-4">
-                       <h3 className="text-sm font-bold text-[#f4f4f6] tracking-wide uppercase flex items-center gap-2">
-                         <Sparkles size={16} className="text-[#3b82f6]" /> AI Insight
-                       </h3>
-                       <div className="px-2 py-0.5 bg-[#3b82f6]/10 border border-[#3b82f6]/20 text-[9px] font-mono font-bold text-[#3b82f6] uppercase tracking-widest"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                          New
-                       </div>
+                <section aria-labelledby="latest-title" className="bg-[#11161b] border border-[#242527]">
+                  <div className="p-4 border-b border-[#242527] bg-[#161d24]">
+                    <h3 id="latest-title" className="text-sm font-bold text-[#f4f4f6] tracking-wide uppercase">Latest mined revision</h3>
+                  </div>
+                  {data.latest ? (
+                    <div className="p-5 space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-mono text-[#3b82f6]" style={mono}><GitCommit size={14} aria-hidden="true" /> {data.latest.hash}</div>
+                      <p className="text-sm font-bold text-[#f4f4f6]">{data.latest.title}</p>
+                      <p className="text-xs text-[#94a3b8]">{data.latest.author || 'Unknown author'} · {new Date(data.latest.date).toLocaleDateString()}</p>
+                      <p className="text-xs text-[#94a3b8]">{data.latest.modules} modules and {data.latest.dependencies} dependencies recorded at this commit.</p>
+                      <Link to={`/history?${q}`} className="inline-flex items-center gap-1 text-xs font-bold text-[#3b82f6] hover:underline">View timeline <ArrowRight size={12} aria-hidden="true" /></Link>
                     </div>
-                    
-                    <h4 className="text-sm font-bold text-[#f4f4f6] mb-2 leading-snug">
-                       Payment service extraction reduces Order module blast radius.
-                    </h4>
-                    <p className="text-xs text-[#94a3b8] mb-4 leading-relaxed line-clamp-3">
-                       Based on repository evidence from commit d82f91a, extracting the Payment responsibilities successfully decoupled 8 external dependencies from the core Order processing engine.
-                    </p>
-                    
-                    <Link to="/insights" className="inline-flex h-9 px-4 items-center justify-center gap-2 text-[10px] font-mono font-bold text-[#080b0e] bg-[#3b82f6] hover:bg-[#3b82f6]/90 transition-colors uppercase w-full"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                       View Insight <ArrowRight size={14} />
+                  ) : (
+                    <p className="p-5 text-sm text-[#94a3b8]">No commits have been mined yet. Once mining stores a commit, its modules and dependencies show here.</p>
+                  )}
+                </section>
+              </div>
+
+              <div className="flex-1 flex flex-col gap-6 min-w-0">
+                <section aria-labelledby="recent-changes-title" className="bg-[#11161b] border border-[#242527] overflow-hidden flex flex-col flex-1">
+                  <div className="p-5 border-b border-[#242527] bg-[#161d24]">
+                    <h3 id="recent-changes-title" className="text-sm font-bold text-[#f4f4f6] tracking-wide uppercase">Recent structural changes</h3>
+                  </div>
+                  {data.recent.length ? (
+                    <ul className="divide-y divide-[#242527] flex-1">
+                      {data.recent.map(c => (
+                        <li key={c.id}>
+                          <Link to={`/evidence?${q}&commit=${encodeURIComponent(c.hash)}`} className="block p-4 hover:bg-[#242527]/30 transition-colors group">
+                            <div className="flex items-center gap-2 mb-1.5 text-[10px] font-mono text-[#94a3b8]" style={mono}>
+                              <span className="text-[#ffb03a]">{c.hash}</span>
+                              <span>{new Date(c.date).toLocaleDateString()}</span>
+                            </div>
+                            <div className="text-sm font-bold text-[#f4f4f6] group-hover:text-[#3b82f6] transition-colors line-clamp-2">{c.title}</div>
+                            <div className="text-[10px] font-mono text-[#94a3b8] mt-1" style={mono}>+{c.depAdded} / −{c.depRemoved} dependencies</div>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="p-5 text-sm text-[#94a3b8] flex-1">No structural changes found in the mined commits yet.</p>
+                  )}
+                  <div className="p-4 border-t border-[#242527] bg-[#080b0e]">
+                    <Link to={`/evidence?${q}`} className="inline-flex h-9 px-4 items-center justify-center gap-2 text-[10px] font-mono font-bold text-[#94a3b8] border border-[#242527] hover:border-[#5f636b] hover:text-[#f4f4f6] transition-colors uppercase w-full" style={mono}>
+                      View all changes <SearchCode size={14} aria-hidden="true" />
                     </Link>
-                 </div>
+                  </div>
+                </section>
               </div>
-
-              {/* RECENT CHANGES */}
-              <div className="bg-[#11161b] border border-[#242527] overflow-hidden flex flex-col flex-1">
-                 <div className="p-5 border-b border-[#242527] bg-[#161d24] flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-[#f4f4f6] tracking-wide uppercase">Recent Changes</h3>
-                 </div>
-                 
-                 <div className="divide-y divide-[#242527] flex-1">
-                    
-                    <div className="p-4 hover:bg-[#242527]/30 transition-colors group cursor-pointer">
-                       <div className="flex items-center gap-2 mb-1.5">
-                         <span className="px-1.5 py-0.5 bg-[#ffb03a]/10 border border-[#ffb03a]/20 text-[#ffb03a] text-[9px] font-mono font-bold uppercase tracking-widest"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Module Extraction</span>
-                         <span className="text-[10px] font-mono text-[#94a3b8]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>2h ago</span>
-                       </div>
-                       <div className="text-sm font-bold text-[#f4f4f6] group-hover:text-[#3b82f6] transition-colors">PaymentService extracted</div>
-                    </div>
-
-                    <div className="p-4 hover:bg-[#242527]/30 transition-colors group cursor-pointer">
-                       <div className="flex items-center gap-2 mb-1.5">
-                         <span className="px-1.5 py-0.5 bg-[#3b82f6]/10 border border-[#3b82f6]/20 text-[#3b82f6] text-[9px] font-mono font-bold uppercase tracking-widest"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Dependency</span>
-                         <span className="text-[10px] font-mono text-[#94a3b8]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Yesterday</span>
-                       </div>
-                       <div className="text-sm font-bold text-[#f4f4f6] group-hover:text-[#3b82f6] transition-colors">Order dependency changed</div>
-                    </div>
-
-                    <div className="p-4 hover:bg-[#242527]/30 transition-colors group cursor-pointer">
-                       <div className="flex items-center gap-2 mb-1.5">
-                         <span className="px-1.5 py-0.5 bg-[#ffb03a]/10 border border-[#ffb03a]/20 text-[#ffb03a] text-[9px] font-mono font-bold uppercase tracking-widest"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Module Split</span>
-                         <span className="text-[10px] font-mono text-[#94a3b8]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>3 days ago</span>
-                       </div>
-                       <div className="text-sm font-bold text-[#f4f4f6] group-hover:text-[#3b82f6] transition-colors">Settlement pipeline decoupled</div>
-                    </div>
-                    
-                 </div>
-
-                 <div className="p-4 border-t border-[#242527] bg-[#080b0e]">
-                    <Link to="/evidence" className="inline-flex h-9 px-4 items-center justify-center gap-2 text-[10px] font-mono font-bold text-[#94a3b8] border border-[#242527] hover:border-[#5f636b] hover:text-[#f4f4f6] transition-colors uppercase w-full"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                       View All Changes <SearchCode size={14} />
-                    </Link>
-                 </div>
-              </div>
-
-           </div>
-           
-        </div>
-
+            </div>
+          </>
+        )}
       </div>
     </DashboardLayout>
   );

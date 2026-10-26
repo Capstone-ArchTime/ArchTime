@@ -10,14 +10,18 @@ import {
   XCircle,
   Clock,
 } from 'lucide-react';
-import { getProjects } from '@/features/project-data';
 import type { ProjectSummary } from '@/features/project-data';
+import { ApiError } from '@/api/client';
+import { ManagedWorkspaces } from './managed';
+import { describeAccessError, pickWorkspace } from './managed-access';
 import {
   getProjectDashboard,
   getProjectApprovals,
   getTeamMembers,
 } from '@/features/pm-api';
-import type { ProjectDashboard, Approval, TeamMember } from '@/features/pm-api';
+import type { ProjectDashboard, Approval } from '@/features/pm-api';
+import { projectRoleLabel } from '@/features/role-labels';
+import { filterTeamRows, teamRows, type TeamRow } from './team-rows';
 
 const fontFamily = { mono: '"JetBrains Mono", monospace' };
 
@@ -28,27 +32,17 @@ const statusMeta = {
 };
 
 export default function ProjectMaintainerDashboard() {
-  const [projects, setProjects] = useState<ProjectSummary[]>([]);
-  const [selectedProject, setSelectedProject] = useState<string>('');
+  return <ManagedWorkspaces title="Maintainer overview">{projects => <ProjectMaintainerDashboardView projects={projects} />}</ManagedWorkspaces>;
+}
+
+function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary[] }) {
+  const [selectedProject, setSelectedProject] = useState(() => pickWorkspace(projects));
   const [dashboard, setDashboard] = useState<ProjectDashboard | null>(null);
   const [approvals, setApprovals] = useState<Approval[]>([]);
-  const [team, setTeam] = useState<TeamMember[]>([]);
+  const [team, setTeam] = useState<TeamRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    getProjects(controller.signal)
-      .then(res => {
-        setProjects(res);
-        if (res.length > 0 && !selectedProject) {
-          setSelectedProject(res[0].id);
-        }
-      })
-      .catch(() => {});
-    return () => controller.abort();
-  }, []);
 
   useEffect(() => {
     if (!selectedProject) {
@@ -59,18 +53,22 @@ export default function ProjectMaintainerDashboard() {
     setLoading(true);
 
     Promise.all([
-      getProjectDashboard(selectedProject, controller.signal).catch(() => null),
+      // A refusal is worth showing; the other panels just stay empty when their data is missing.
+      getProjectDashboard(selectedProject, controller.signal).catch(e => {
+        if (e instanceof ApiError && e.status === 403) throw e;
+        return null;
+      }),
       getProjectApprovals(selectedProject, { status: 'pending' }, controller.signal).catch(() => ({ data: { approvals: [] } })),
       getTeamMembers(controller.signal).catch(() => ({ data: { members: [] } })),
     ])
       .then(([dashboardRes, approvalsRes, teamRes]) => {
         setDashboard(dashboardRes?.data ?? null);
         setApprovals(approvalsRes.data.approvals.slice(0, 5));
-        setTeam(teamRes.data.members.filter(m => m.projects.includes(selectedProject)).slice(0, 6));
+        setTeam(filterTeamRows(teamRows(teamRes.data.members), '', selectedProject).slice(0, 6));
         setError(null);
       })
       .catch(e => {
-        if (!controller.signal.aborted) setError(e.message);
+        if (!controller.signal.aborted) setError(describeAccessError(e, 'This workspace could not be loaded.'));
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -245,7 +243,7 @@ export default function ProjectMaintainerDashboard() {
             ) : (
               <div className="grid grid-cols-2 gap-3">
                 {team.map(member => (
-                  <div key={member.id} className="bg-[#11161b] border border-[#242527] p-4 flex flex-col items-center text-center gap-2">
+                  <div key={member.key} className="bg-[#11161b] border border-[#242527] p-4 flex flex-col items-center text-center gap-2">
                     <div className="relative">
                       <div className="w-12 h-12 rounded-full bg-[#161d24] border border-[#242527] flex items-center justify-center text-sm font-bold text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>
                         {member.name.slice(0, 2).toUpperCase()}
@@ -257,7 +255,7 @@ export default function ProjectMaintainerDashboard() {
                     </div>
                     <div className="min-w-0 w-full">
                       <h4 className="text-[#f4f4f6] text-xs font-bold truncate" style={{ fontFamily: fontFamily.mono }}>{member.name}</h4>
-                      <p className="text-[10px] text-[#94a3b8] truncate">{member.role}</p>
+                      <p className="text-[10px] text-[#94a3b8] truncate">{projectRoleLabel(member.role)}</p>
                     </div>
                   </div>
                 ))}

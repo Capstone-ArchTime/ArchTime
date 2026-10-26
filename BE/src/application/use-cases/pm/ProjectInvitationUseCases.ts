@@ -28,6 +28,8 @@ export class InviteProjectMemberTokenUseCase {
     private readonly memberRepository: IProjectMemberRepository,
     private readonly userRepository: IUserRepository,
     private readonly emailService?: IEmailService,
+    /** Where the frontend runs; the email links to its /invitations/accept page. */
+    private readonly frontendUrl = "http://localhost:5173",
   ) {}
 
   async execute(input: InviteMemberTokenInput): Promise<IProjectInvitation> {
@@ -67,7 +69,7 @@ export class InviteProjectMemberTokenUseCase {
     });
 
     if (this.emailService?.sendProjectInvitation) {
-      const inviteUrl = `http://localhost:5173/invitations/accept?token=${token}`;
+      const inviteUrl = `${this.frontendUrl.replace(/\/+$/, "")}/invitations/accept?token=${encodeURIComponent(token)}`;
       this.emailService
         .sendProjectInvitation(email, project.name, invitation.role, inviteUrl)
         .catch((err: any) => {

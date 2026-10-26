@@ -1,6 +1,6 @@
-import { readTokens } from '@/auth/session';
-import SampleDataNotice from '@/components/SampleDataNotice';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { apiRequest } from '@/api/client';
+import { getWorkspaces, mayHaveSnapshots, type Workspace } from '@/features/workspace-summary';
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
@@ -19,145 +19,82 @@ import {
 
 import { usePagination } from '@/hooks/usePagination';
 import PaginationBar from '@/components/PaginationBar';
-import { API_BASE_URL } from '@/auth/session';
-
-// Mock Commit Data
-const mockCommits = [
-  {
-    hash: 'a82f91a',
-    version: 'v1.0',
-    title: 'Initial API Gateway implementation',
-    author: 'alex@example.com',
-    date: 'Sep 10, 2026',
-    files: 24,
-    archChanges: 0,
-    depAdded: 12,
-    depRemoved: 0,
-    linesAdded: 1250,
-    linesRemoved: 0,
-    nodes: [],
-    edges: []
-  }
-];
 
 const ArchitectureHistory: React.FC = () => {
-  const [allCommits, setAllCommits] = useState<any[]>(mockCommits);
-  const [commits, setCommits] = useState<any[]>(mockCommits);
-  const [projectsList, setProjectsList] = useState<any[]>([]);
-  const [branchesList, setBranchesList] = useState<string[]>(['main']);
+  const [searchParams] = useSearchParams();
+  const [history, setHistory] = useState<{ id: string; commits: any[]; error: string | null } | null>(null);
+  const [projectsList, setProjectsList] = useState<Workspace[] | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [selectedBranch, setSelectedBranch] = useState<string>('main');
   const [searchInput, setSearchInput] = useState('');
   const [appliedSearchQuery, setAppliedSearchQuery] = useState('');
+  const [listError, setListError] = useState<string | null>(null);
+  const [chosenCommit, setChosenCommit] = useState<string>('');
+  // Commits belong to the workspace they were loaded for; until the selected one's arrive, it is loading.
+  const current = history && history.id === selectedProjectId ? history : null;
+  const loadingSnapshots = !!selectedProjectId && !current;
+  const allCommits = React.useMemo(() => current?.commits ?? [], [current]);
+  const loadError = listError ?? current?.error ?? null;
+  const branchesList = React.useMemo(() => Array.from(new Set(allCommits.flatMap((c: any) => c.branches))) as string[], [allCommits]);
+  const [branchChoice, setBranchChoice] = useState<string | null>(null);
+  // '' means every branch: the default when the repository has no main or master (tags only, or no branch information).
+  const defaultBranch = ['main', 'master'].find(b => branchesList.includes(b)) ?? '';
+  const selectedBranch = branchChoice !== null && (branchChoice === '' || branchesList.includes(branchChoice)) ? branchChoice : defaultBranch;
+  const setSelectedBranch = setBranchChoice;
+  const commits = React.useMemo(() => {
+    const q = appliedSearchQuery.trim().toLowerCase();
+    return (selectedBranch ? allCommits.filter(c => c.branches.includes(selectedBranch)) : allCommits)
+      .filter(c => !q || c.title.toLowerCase().includes(q) || c.hash.toLowerCase().includes(q) || c.author.toLowerCase().includes(q));
+  }, [allCommits, selectedBranch, appliedSearchQuery]);
   const pagination = usePagination(commits, '', 5);
-  const [activeCommit, setActiveCommit] = useState(commits[0]?.hash);
-  
-  const currentCommit = commits.find(c => c.hash === activeCommit) || commits[0] || mockCommits[0];
+  const activeCommit = commits.some(c => c.hash === chosenCommit) ? chosenCommit : commits[0]?.hash ?? '';
+  const setActiveCommit = setChosenCommit;
+
+  const currentCommit = commits.find(c => c.hash === activeCommit) || commits[0];
   const isBaseState = activeCommit === commits[0]?.hash;
+  const selectedProject = projectsList?.find(p => p.id === selectedProjectId);
 
   React.useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const token = readTokens().accessToken;
-        const res = await fetch(`${API_BASE_URL}/projects`, { headers: { Authorization: `Bearer ${token}` }});
-        if (res.ok) {
-          const data = await res.json();
-          const completedProjects = data.data.projects.filter((p: any) => p.status === 'COMPLETED');
-          setProjectsList(completedProjects);
-          if (completedProjects.length > 0) {
-            setSelectedProjectId(completedProjects[0].id);
-          }
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    fetchProjects();
-  }, []);
+    const controller = new AbortController();
+    getWorkspaces(controller.signal).then(({ workspaces }) => {
+      // Every workspace with mined commits, whatever its status says about the rest of its history.
+      const withHistory = workspaces.filter(mayHaveSnapshots);
+      setProjectsList(withHistory);
+      const wanted = searchParams.get('projectId');
+      setSelectedProjectId(withHistory.find(p => p.id === wanted)?.id ?? withHistory[0]?.id ?? null);
+    }).catch(e => { if (!controller.signal.aborted) setListError(e instanceof Error ? e.message : 'Could not load your workspaces.'); });
+    return () => controller.abort();
+  }, [searchParams]);
 
   React.useEffect(() => {
     if (!selectedProjectId) return;
-    const fetchSnapshots = async () => {
-      try {
-        const token = readTokens().accessToken;
-        const snapRes = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}/snapshots`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (snapRes.ok) {
-          const snapData = await snapRes.json();
-          if (snapData.data.snapshots.length > 0) {
-            const fetchedCommits = snapData.data.snapshots.map((s: any) => ({
-              hash: s.hash,
-              version: s.version,
-              title: s.title,
-              author: s.author,
-              date: new Date(s.date).toLocaleDateString(),
-              branches: s.branches || [],
-              files: s.files,
-              archChanges: s.archChanges,
-              depAdded: s.depAdded,
-              depRemoved: s.depRemoved,
-              linesAdded: s.linesAdded || 0,
-              linesRemoved: s.linesRemoved || 0,
-              nodes: s.nodes || [],
-              edges: s.edges || []
-            })).reverse();
-            
-            setAllCommits(fetchedCommits);
-            
-            // Extract unique branches
-            const uniqueBranches = Array.from(new Set(fetchedCommits.flatMap((c: any) => c.branches)));
-            if (uniqueBranches.length > 0) {
-              setBranchesList(uniqueBranches as string[]);
-              const initialBranch = (uniqueBranches as string[]).includes('main') ? 'main' : uniqueBranches[0] as string;
-              setSelectedBranch(initialBranch);
-            }
-          } else {
-            setAllCommits(mockCommits);
-            setCommits(mockCommits);
-            setActiveCommit(mockCommits[0].hash);
-            setBranchesList(['main']);
-            setSelectedBranch('main');
-          }
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    fetchSnapshots();
+    const controller = new AbortController();
+    const id = selectedProjectId;
+    apiRequest<{ data?: { snapshots?: any[] } }>(`/projects/${encodeURIComponent(selectedProjectId)}/snapshots`, { signal: controller.signal }).then(snapData => {
+      const fetchedCommits = (snapData.data?.snapshots ?? []).map((s: any) => ({
+        hash: s.hash,
+        version: s.version || s.hash,
+        title: s.title,
+        author: s.author || 'Unknown author',
+        date: new Date(s.date).toLocaleDateString(),
+        branches: s.branches || [],
+        files: s.files ?? 0,
+        archChanges: s.archChanges ?? 0,
+        depAdded: s.depAdded ?? 0,
+        depRemoved: s.depRemoved ?? 0,
+        nodes: s.nodes || [],
+        edges: s.edges || []
+      })).reverse();
+      setHistory({ id, commits: fetchedCommits, error: null });
+    }).catch(e => {
+      if (!controller.signal.aborted) setHistory({ id, commits: [], error: e instanceof Error ? e.message : 'Could not load the mined commits.' });
+    });
+    return () => controller.abort();
   }, [selectedProjectId]);
 
-  // Filter commits when branch or applied search query changes
-  React.useEffect(() => {
-    if (allCommits === mockCommits) return;
-    
-    let filtered = allCommits.filter(c => c.branches && c.branches.includes(selectedBranch));
-    
-    if (appliedSearchQuery.trim() !== '') {
-      const q = appliedSearchQuery.toLowerCase();
-      filtered = filtered.filter(c => 
-        c.title.toLowerCase().includes(q) || 
-        c.hash.toLowerCase().includes(q) ||
-        c.author.toLowerCase().includes(q)
-      );
-    }
-
-    if (filtered.length > 0) {
-      setCommits(filtered);
-      // Only reset active commit if the current one is filtered out
-      if (!filtered.find(c => c.hash === activeCommit)) {
-        setActiveCommit(filtered[0].hash);
-      }
-    } else {
-      setCommits([]);
-      setActiveCommit('');
-    }
-  }, [selectedBranch, appliedSearchQuery, allCommits]);
 
   return (
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-6 flex flex-col min-h-[calc(100dvh-140px)]">
-        <SampleDataNotice />
         
         {/* HEADER & TOP CONTROLS */}
         <div className="shrink-0 space-y-6">
@@ -173,7 +110,7 @@ const ArchitectureHistory: React.FC = () => {
                 Reconstruct how the system architecture evolved across repository revisions.
               </p>
             </div>
-            <Link to="/compare" className="shrink-0 h-10 px-5 bg-[#11161b] hover:bg-[#242527] border border-[#242527] text-[#3b82f6] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.05)]">
+            <Link to={selectedProjectId ? `/compare?projectId=${encodeURIComponent(selectedProjectId)}` : '/compare'} className="shrink-0 h-10 px-5 bg-[#11161b] hover:bg-[#242527] border border-[#242527] text-[#3b82f6] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.05)]">
               <GitCompare size={16} />
               COMPARE REVISIONS
             </Link>
@@ -192,15 +129,15 @@ const ArchitectureHistory: React.FC = () => {
                 onChange={(e) => setSelectedProjectId(e.target.value)}
                 className="appearance-none bg-transparent border-none text-xs font-bold text-[#f4f4f6] pl-2 pr-8 h-full outline-none cursor-pointer"
               >
-                {projectsList.length > 0 ? projectsList.map(p => (
+                {projectsList?.length ? projectsList.map(p => (
                   <option key={p.id} value={p.id} className="bg-[#161d24]">{p.name}</option>
-                )) : <option value="" className="bg-[#161d24]">No Workspaces Completed</option>}
+                )) : <option value="" className="bg-[#161d24]">No mined workspaces</option>}
               </select>
               <ChevronDown size={14} className="text-[#94a3b8] absolute right-3 pointer-events-none group-hover:text-[#f4f4f6]" />
             </div>
             
 
-            <div className="relative group flex items-center h-9 bg-[#080b0e] border border-[#242527] hover:border-[#5f636b] transition-colors">
+            {branchesList.length > 0 && <div className="relative group flex items-center h-9 bg-[#080b0e] border border-[#242527] hover:border-[#5f636b] transition-colors">
               <span className="text-[10px] font-mono text-[#94a3b8] uppercase pl-4"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Branch</span>
               <div className="flex items-center gap-1.5 pl-2 pr-8 text-[#3b82f6]">
@@ -210,13 +147,14 @@ const ArchitectureHistory: React.FC = () => {
                   onChange={(e) => setSelectedBranch(e.target.value)}
                   className="appearance-none bg-transparent border-none text-xs font-bold text-[#f4f4f6] h-full outline-none cursor-pointer"
                 >
+                  <option value="" className="bg-[#161d24]">All branches</option>
                   {branchesList.map(b => (
                     <option key={b} value={b} className="bg-[#161d24]">{b}</option>
                   ))}
                 </select>
               </div>
               <ChevronDown size={14} className="text-[#94a3b8] absolute right-3 pointer-events-none group-hover:text-[#f4f4f6]" />
-            </div>
+            </div>}
 
             <div className="flex items-center h-9 px-4 bg-[#080b0e] border border-[#242527] gap-2 ml-auto">
               <span className="text-[10px] font-mono text-[#94a3b8] uppercase"
@@ -259,7 +197,30 @@ const ArchitectureHistory: React.FC = () => {
           </div>
         </div>
 
-        {/* MAIN CONTENT SPLIT */}
+        {loadError && (
+          <div role="alert" className="border border-[#ef4444]/40 bg-[#ef4444]/5 p-4 text-sm text-[#fca5a5]">{loadError}</div>
+        )}
+
+        {projectsList?.length === 0 ? (
+          <section className="bg-[#11161b] border border-dashed border-[#242527] p-10 text-center" aria-labelledby="no-history-title">
+            <Layers size={28} className="text-[#3b82f6] mx-auto mb-4" aria-hidden="true" />
+            <h3 id="no-history-title" className="text-lg font-bold text-[#f4f4f6] mb-2">No architecture history yet</h3>
+            <p className="text-sm text-[#94a3b8] max-w-md mx-auto mb-6">The history appears once commits of a workspace have been mined. Create a workspace or open one and choose Manage mining.</p>
+            <div className="flex flex-wrap justify-center gap-3">
+              <Link to="/projects" className="h-10 px-5 bg-[#3b82f6] hover:bg-[#60a5fa] text-[#080b0e] font-bold text-xs flex items-center">Go to workspaces</Link>
+              <Link to="/workspace/sample/shophub" className="h-10 px-5 bg-[#161d24] hover:bg-[#242527] border border-[#242527] text-[#f4f4f6] text-xs font-medium flex items-center">Explore a sample workspace</Link>
+            </div>
+          </section>
+        ) : selectedProject && !loadingSnapshots && !loadError && allCommits.length === 0 ? (
+          <section className="bg-[#11161b] border border-dashed border-[#242527] p-10 text-center" role="status">
+            <h3 className="text-lg font-bold text-[#f4f4f6] mb-2">{selectedProject.status === 'ANALYZING' ? 'Mining is still running' : 'No mined commits'}</h3>
+            <p className="text-sm text-[#94a3b8] max-w-md mx-auto mb-6">{selectedProject.status === 'ANALYZING' ? 'The first commits appear here as soon as their analysis is stored. Come back in a moment.' : 'This workspace has no stored commits. Mine part of its history from the Workspaces page.'}</p>
+            <Link to="/projects" className="inline-flex h-10 px-5 bg-[#161d24] hover:bg-[#242527] border border-[#242527] text-[#f4f4f6] text-xs font-medium items-center">Go to workspaces</Link>
+          </section>
+        ) : allCommits.length > 0 && commits.length === 0 ? (
+          <p role="status" className="bg-[#11161b] border border-[#242527] p-6 text-sm text-[#94a3b8]">No commits match this search on this branch.</p>
+        ) : currentCommit && (
+        /* MAIN CONTENT SPLIT */
         <div className="flex-1 flex flex-col xl:flex-row gap-6 min-h-0">
           
           {/* LEFT: TIMELINE & GRAPH (70%) */}
@@ -282,7 +243,7 @@ const ArchitectureHistory: React.FC = () => {
                       role="button"
                       tabIndex={0}
                       aria-pressed={isActive}
-                      aria-label={`View revision ${commit.version}`}
+                      aria-label={`View revision ${commit.hash}: ${commit.title}`}
                       onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setActiveCommit(commit.hash); } }}
                       onClick={() => setActiveCommit(commit.hash)}
                     >
@@ -380,14 +341,7 @@ const ArchitectureHistory: React.FC = () => {
                            strokeDasharray={edge.type === 'imports' ? '4 4' : 'none'}
                          />
                        );
-                     }) : (
-                       <>
-                         {/* Fallback lines */}
-                         <path d="M 400 150 L 400 250" stroke="#3b82f6" />
-                         <path d="M 400 150 C 250 150, 250 200, 250 250" stroke="#3b82f6" />
-                         <path d="M 250 290 L 250 380" stroke="#3b82f6" />
-                       </>
-                     )}
+                     }) : null}
                   </g>
 
                   {/* NODES */}
@@ -407,19 +361,7 @@ const ArchitectureHistory: React.FC = () => {
                          </g>
                        );
                     }) : (
-                      <>
-                        <g transform="translate(320, 110)">
-                          <rect width="160" height="40" rx="4" fill="#161d24" stroke="#3b82f6" strokeWidth="2" filter="url(#glow-cyan)" opacity="0.3" />
-                          <rect width="160" height="40" rx="4" fill="#161d24" stroke="#3b82f6" strokeWidth="2" />
-                          <circle cx="20" cy="20" r="4" fill="#3b82f6" />
-                          <text x="35" y="24" fill="#f4f4f6" fontSize="13" fontFamily="monospace" fontWeight="bold">API GATEWAY</text>
-                        </g>
-                        <g transform="translate(170, 250)">
-                          <rect width="160" height="40" rx="4" fill="#161d24" stroke="#3b82f6" strokeOpacity="0.5" />
-                          <circle cx="20" cy="20" r="4" fill="#3b82f6" />
-                          <text x="35" y="24" fill="#f4f4f6" fontSize="13" fontFamily="monospace" fontWeight="bold">USER_SERVICE</text>
-                        </g>
-                      </>
+                      <text x="400" y="200" fill="#94a3b8" fontSize="14" textAnchor="middle">This commit has no recorded modules.</text>
                     )}
                   </g>
 
@@ -525,47 +467,11 @@ const ArchitectureHistory: React.FC = () => {
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>{currentCommit?.files}</div>
                 </div>
 
-                <div className="h-[1px] w-full bg-[#242527]"></div>
-
-                {/* Code Changes */}
-                <div>
-                  <div className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider flex items-center gap-1.5 mb-3"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                    <GitCommit size={12} /> Code Changes
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-[#22c55e]/10 border border-[#22c55e]/20 p-3">
-                      <div className="text-[10px] font-mono text-[#22c55e] mb-1"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Lines Added</div>
-                      <div className="text-lg font-mono text-[#22c55e] font-bold"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>+{currentCommit?.linesAdded || 0}</div>
-                    </div>
-                    <div className="bg-[#ef4444]/10 border border-[#ef4444]/20 p-3">
-                      <div className="text-[10px] font-mono text-[#ef4444] mb-1"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Lines Removed</div>
-                      <div className="text-lg font-mono text-[#ef4444] font-bold"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>-{currentCommit?.linesRemoved || 0}</div>
-                    </div>
-                  </div>
-                  {(currentCommit?.linesAdded || currentCommit?.linesRemoved) ? (
-                    <div className="mt-3 h-2 bg-[#242527] overflow-hidden flex">
-                      <div
-                        className="h-full bg-[#22c55e]"
-                        style={{ width: `${(currentCommit.linesAdded / (currentCommit.linesAdded + currentCommit.linesRemoved)) * 100}%` }}
-                      />
-                      <div
-                        className="h-full bg-[#ef4444]"
-                        style={{ width: `${(currentCommit.linesRemoved / (currentCommit.linesAdded + currentCommit.linesRemoved)) * 100}%` }}
-                      />
-                    </div>
-                  ) : null}
-                </div>
-
               </div>
 
               {/* Action Button */}
               <div className="p-5 border-t border-[#242527] bg-[#080b0e]">
-                <Link to={`/evidence?projectId=${selectedProjectId || ''}&commit=${currentCommit?.hash || ''}`} className="w-full h-10 bg-[#ffb03a]/10 hover:bg-[#ffb03a]/20 border border-[#ffb03a]/50 text-[#ffb03a] font-bold text-xs transition-colors flex items-center justify-center gap-2">
+                <Link to={`/evidence?projectId=${encodeURIComponent(selectedProjectId || '')}&commit=${encodeURIComponent(currentCommit?.hash || '')}`} className="w-full h-10 bg-[#ffb03a]/10 hover:bg-[#ffb03a]/20 border border-[#ffb03a]/50 text-[#ffb03a] font-bold text-xs transition-colors flex items-center justify-center gap-2">
                   <GitMerge size={16} />
                   VIEW EVIDENCE
                 </Link>
@@ -575,7 +481,7 @@ const ArchitectureHistory: React.FC = () => {
           </div>
           
         </div>
-        
+        )}
       </div>
     </DashboardLayout>
   );

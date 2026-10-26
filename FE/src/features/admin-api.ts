@@ -5,7 +5,7 @@ export interface AdminUser {
   id: string;
   name: string;
   email: string;
-  role: 'developer-analyst' | 'project-maintainer' | 'system-administrator';
+  role: 'developer-analyst' | 'system-administrator';
   status: 'active' | 'suspended' | 'invited';
   lastActive?: string;
   createdAt?: string;

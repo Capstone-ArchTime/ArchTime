@@ -1,20 +1,27 @@
 import { useEffect, useState } from 'react';
 import { App, Button, Empty, Form, Input, Modal, Select, Spin, Table, Tag } from 'antd';
 import FeaturePage from '@/components/FeaturePage';
-import { getProjects } from '@/features/project-data';
 import type { ProjectSummary } from '@/features/project-data';
+import { ManagedWorkspaces } from './managed';
+import { describeAccessError } from './managed-access';
 import {
   getTeamMembers,
   inviteProjectMember,
   updateMemberRole,
   removeMember,
-  cancelInvitation,
 } from '@/features/pm-api';
 import type { TeamMember } from '@/features/pm-api';
+import { projectRoleLabel } from '@/features/role-labels';
+import { filterTeamRows, teamRows, type TeamRow } from './team-rows';
+
+const roleOptions = ['developer-analyst', 'project-maintainer'].map(value => ({ value, label: projectRoleLabel(value) }));
 
 export default function Team() {
+  return <ManagedWorkspaces title="Team">{projects => <TeamView projects={projects} />}</ManagedWorkspaces>;
+}
+
+function TeamView({ projects }: { projects: ProjectSummary[] }) {
   const { message, modal } = App.useApp();
-  const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,17 +36,13 @@ export default function Team() {
     const controller = new AbortController();
     setLoading(true);
 
-    Promise.all([
-      getProjects(controller.signal),
-      getTeamMembers(controller.signal),
-    ])
-      .then(([projectsRes, membersRes]) => {
-        setProjects(projectsRes);
+    getTeamMembers(controller.signal)
+      .then(membersRes => {
         setMembers(membersRes.data.members);
         setError(null);
       })
       .catch(e => {
-        if (!controller.signal.aborted) setError(e.message);
+        if (!controller.signal.aborted) setError(describeAccessError(e, 'The team could not be loaded.'));
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -52,11 +55,8 @@ export default function Team() {
     setRevision(v => v + 1);
   }
 
-  const filtered = members.filter(
-    m =>
-      `${m.name} ${m.email}`.toLowerCase().includes(query.toLowerCase()) &&
-      (projectFilter === 'all' || m.projects.includes(projectFilter))
-  );
+  const filtered = filterTeamRows(teamRows(members), query, projectFilter);
+  const projectName = (id: string) => projects.find(p => p.id === id)?.name ?? id;
 
   function openInvite(projectId: string) {
     form.resetFields();
@@ -76,7 +76,7 @@ export default function Team() {
       setInviting(null);
       refresh();
     } catch (e) {
-      message.error(e instanceof Error ? e.message : 'Failed to send invitation.');
+      message.error(describeAccessError(e, 'Failed to send invitation.'));
     } finally {
       setSubmitting(false);
     }
@@ -88,27 +88,25 @@ export default function Team() {
       message.success('Role updated.');
       refresh();
     } catch (e) {
-      message.error(e instanceof Error ? e.message : 'Failed to update role.');
+      message.error(describeAccessError(e, 'Failed to update role.'));
     }
   }
 
-  async function handleRemove(member: TeamMember, projectId: string) {
+  async function handleRemove(row: TeamRow) {
+    const invited = row.status === 'invited';
     modal.confirm({
-      title: member.status === 'invited' ? 'Revoke invitation?' : 'Remove member?',
-      content: member.status === 'invited'
-        ? 'This will cancel the pending invitation.'
-        : 'This member will no longer have access to this workspace.',
+      title: invited ? 'Revoke invitation?' : 'Remove member?',
+      content: invited
+        ? `This will cancel ${row.email}'s pending invitation to ${projectName(row.projectId)}.`
+        : `${row.name} will no longer have access to ${projectName(row.projectId)}.`,
       onOk: async () => {
         try {
-          if (member.status === 'invited') {
-            await cancelInvitation(projectId, member.id);
-          } else {
-            await removeMember(projectId, member.id);
-          }
-          message.success(member.status === 'invited' ? 'Invitation revoked.' : 'Member removed.');
+          // An invited row is a membership record too (not a token invitation), so both go through the member route.
+          await removeMember(row.projectId, row.memberId);
+          message.success(invited ? 'Invitation revoked.' : 'Member removed.');
           refresh();
         } catch (e) {
-          message.error(e instanceof Error ? e.message : 'Operation failed.');
+          message.error(describeAccessError(e, 'Operation failed.'));
         }
       },
     });
@@ -124,6 +122,7 @@ export default function Team() {
       title="Team"
       description="Manage members and invitations across your maintained workspaces."
       error={error}
+      demo={false}
       actions={
         <div className="flex gap-2">
           <Button loading={loading} onClick={refresh}>Refresh</Button>
@@ -162,7 +161,7 @@ export default function Team() {
         </div>
       ) : (
         <Table
-          rowKey="id"
+          rowKey="key"
           dataSource={filtered}
           loading={loading}
           scroll={{ x: 850 }}
@@ -171,24 +170,29 @@ export default function Team() {
           columns={[
             {
               title: 'Member',
-              render: (_, m: TeamMember) => (
+              render: (_, r: TeamRow) => (
                 <div>
-                  {m.name}
-                  <p className="text-xs text-[#94a3b8]">{m.email}</p>
+                  {r.name}
+                  <p className="text-xs text-[#94a3b8]">{r.email}</p>
                 </div>
               ),
             },
-            { title: 'Role', dataIndex: 'role' },
+            { title: 'Workspace', render: (_, r: TeamRow) => <Tag>{projectName(r.projectId)}</Tag> },
             {
-              title: 'Workspaces',
-              render: (_, m: TeamMember) => (
-                <div className="flex flex-wrap gap-1">
-                  {m.projects.map(p => {
-                    const project = projects.find(pr => pr.id === p || pr.name === p);
-                    return <Tag key={p}>{project?.name ?? p}</Tag>;
-                  })}
-                </div>
-              ),
+              title: 'Role',
+              render: (_, r: TeamRow) =>
+                r.isOwner ? (
+                  projectRoleLabel('owner')
+                ) : (
+                  <Select
+                    size="small"
+                    aria-label={`Role of ${r.name} in ${projectName(r.projectId)}`}
+                    value={r.role}
+                    onChange={role => handleUpdateRole(r.projectId, r.memberId, role)}
+                    options={roleOptions}
+                    className="min-w-36"
+                  />
+                ),
             },
             {
               title: 'Status',
@@ -197,33 +201,19 @@ export default function Team() {
             },
             {
               title: 'Actions',
-              render: (_, m: TeamMember) => (
-                <div className="flex gap-2">
-                  <Select
-                    size="small"
-                    value={m.role}
-                    onChange={role => {
-                      const projectId = m.projects[0];
-                      if (projectId) handleUpdateRole(projectId, m.id, role);
-                    }}
-                    options={[
-                      { value: 'developer-analyst', label: 'developer-analyst' },
-                      { value: 'project-maintainer', label: 'project-maintainer' },
-                    ]}
-                    className="min-w-36"
-                  />
+              render: (_, r: TeamRow) =>
+                r.isOwner ? (
+                  <span className="text-xs text-[#94a3b8]">Workspace owner</span>
+                ) : (
                   <Button
                     danger
                     size="small"
-                    onClick={() => {
-                      const projectId = m.projects[0];
-                      if (projectId) handleRemove(m, projectId);
-                    }}
+                    aria-label={`${r.status === 'invited' ? 'Revoke' : 'Remove'} ${r.name} from ${projectName(r.projectId)}`}
+                    onClick={() => handleRemove(r)}
                   >
-                    {m.status === 'invited' ? 'Revoke' : 'Remove'}
+                    {r.status === 'invited' ? 'Revoke' : 'Remove'}
                   </Button>
-                </div>
-              ),
+                ),
             },
           ]}
         />
@@ -251,10 +241,7 @@ export default function Team() {
             rules={[{ required: true }]}
           >
             <Select
-              options={[
-                { value: 'developer-analyst', label: 'Developer / Analyst' },
-                { value: 'project-maintainer', label: 'Project Maintainer' },
-              ]}
+              options={roleOptions}
             />
           </Form.Item>
         </Form>
