@@ -1,4 +1,4 @@
-import { LayoutDashboard, FolderKanban, History, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, FileText, Users2, SlidersHorizontal, ScrollText, Activity, Boxes, Cpu, Gauge, Coins, GraduationCap, UserRound } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, History, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, FileText, Users2, SlidersHorizontal, ScrollText, Activity, Boxes, Cpu, Gauge, Coins, GraduationCap, UserRound, Briefcase } from 'lucide-react';
 
 export const navItemsByRole = {
   'developer-analyst': [
@@ -12,6 +12,7 @@ export const navItemsByRole = {
     { path: '/learning', label: 'Learning', icon: GraduationCap },
     { path: '/reports', label: 'Reports', icon: FileBarChart },
     { path: '/ai-usage', label: 'AI Usage', icon: Coins },
+    { path: '/my-work', label: 'My work', icon: Briefcase },
     { path: '/profile', label: 'My profile', icon: UserRound },
   ],
   'project-maintainer': [
@@ -22,6 +23,7 @@ export const navItemsByRole = {
     { path: '/project-maintainer/architecture-rules', label: 'Architecture Rules', icon: ShieldCheck },
     { path: '/project-maintainer/design-decisions', label: 'Design Decisions', icon: BookOpen },
     { path: '/project-maintainer/reports', label: 'Evolution Reports', icon: FileText },
+    { path: '/my-work', label: 'My work', icon: Briefcase },
     { path: '/profile', label: 'My profile', icon: UserRound },
   ],
   'system-administrator': [
@@ -32,6 +34,7 @@ export const navItemsByRole = {
     { path: '/system-administrator/mining-jobs', label: 'Mining Jobs Monitor', icon: Activity },
     { path: '/system-administrator/ai-models', label: 'AI Models', icon: Cpu },
     { path: '/system-administrator/ai-metrics', label: 'AI Usage & Metrics', icon: Gauge },
+    { path: '/my-work', label: 'My work', icon: Briefcase },
     { path: '/profile', label: 'My profile', icon: UserRound },
   ],
 } as const;
