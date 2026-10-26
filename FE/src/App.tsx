@@ -39,6 +39,7 @@ const Learning = lazy(() => import("@/pages/developer-analyst/Learning"));
 const LearningPath = lazy(() => import("@/pages/developer-analyst/LearningPath"));
 const PathEditor = lazy(() => import("@/pages/developer-analyst/PathEditor"));
 const Profile = lazy(() => import("@/pages/Profile"));
+const MyWork = lazy(() => import("@/pages/MyWork"));
 const ArchitectureWorkspace = lazy(() => import("@/pages/developer-analyst/ArchitectureWorkspace"));
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
@@ -77,6 +78,7 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path="/reports" element={<ProjectMaintainerReports />} />
       <Route path="/ai-usage" element={<AiUsage />} />
       <Route path="/profile" element={<Profile />} />
+      <Route path="/my-work" element={<MyWork />} />
       <Route path="/learning" element={<Learning />} />
       <Route path="/learning/manage/:projectId/new" element={<PathEditor />} />
       <Route path="/learning/manage/:projectId/:pathId" element={<PathEditor />} />

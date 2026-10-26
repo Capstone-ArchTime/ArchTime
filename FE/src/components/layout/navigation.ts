@@ -1,5 +1,5 @@
 import type { ElementType } from 'react';
-import { LayoutDashboard, FolderKanban, History, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, Users2, SlidersHorizontal, ScrollText, Activity, Boxes, Cpu, Gauge, Coins, GraduationCap, UserRound, ChartNetwork, Building2 } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, History, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, Users2, SlidersHorizontal, ScrollText, Activity, Boxes, Cpu, Gauge, Coins, GraduationCap, UserRound, ChartNetwork, Briefcase, Building2 } from 'lucide-react';
 import type { Role } from '@/auth/permissions';
 
 export type NavItem = { path: string; label: string; icon: ElementType };
@@ -38,10 +38,14 @@ const adminNavItems: readonly NavItem[] = [
 /** Personal pages, reached from the account menu in the header instead of the sidebar. */
 export const accountMenuItems: Record<Role, readonly NavItem[]> = {
   'developer-analyst': [
+    { path: '/my-work', label: 'My work', icon: Briefcase },
     { path: '/profile', label: 'My profile', icon: UserRound },
     { path: '/ai-usage', label: 'AI Usage', icon: Coins },
   ],
-  'system-administrator': [{ path: '/profile', label: 'My profile', icon: UserRound }],
+  'system-administrator': [
+    { path: '/my-work', label: 'My work', icon: Briefcase },
+    { path: '/profile', label: 'My profile', icon: UserRound },
+  ],
 };
 
 /** The heading over a role's navigation, also shown above the page title. */
