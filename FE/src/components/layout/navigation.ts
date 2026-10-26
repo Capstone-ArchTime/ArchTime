@@ -1,5 +1,5 @@
 import type { ElementType } from 'react';
-import { LayoutDashboard, FolderKanban, History, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, Users2, SlidersHorizontal, ScrollText, Activity, Boxes, Cpu, Gauge, Coins, GraduationCap, UserRound, ChartNetwork } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, History, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, Users2, SlidersHorizontal, ScrollText, Activity, Boxes, Cpu, Gauge, Coins, GraduationCap, UserRound, ChartNetwork, Building2 } from 'lucide-react';
 import type { Role } from '@/auth/permissions';
 
 export type NavItem = { path: string; label: string; icon: ElementType };
@@ -62,7 +62,7 @@ export const isMaintainPath = (pathname: string) => pathname === '/project-maint
 export function navGroupsFor(role: Role, { maintains, pathname = '' }: { maintains?: boolean; pathname?: string } = {}): NavGroup[] {
   if (role !== 'developer-analyst') return [{ items: adminNavItems }];
   const groups: NavGroup[] = [
-    { items: [{ path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }, { path: '/projects', label: 'Workspaces', icon: FolderKanban }] },
+    { items: [{ path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }, { path: '/projects', label: 'Workspaces', icon: FolderKanban }, { path: '/organizations', label: 'Organizations', icon: Building2 }] },
     { label: 'Analyze', icon: ChartNetwork, items: analyzeNavItems },
     { items: [{ path: '/learning', label: 'Learning', icon: GraduationCap }, { path: '/reports', label: 'Reports', icon: FileBarChart }] },
   ];

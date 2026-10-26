@@ -22,6 +22,8 @@ import PaginationBar from '@/components/PaginationBar';
 import MiningPanel from '@/components/MiningPanel';
 import { Link } from 'react-router-dom';
 import { byRecent, getWorkspaces, hasMinedHistory, nextStep, STATUS_LABELS, type Workspace } from '@/features/workspace-summary';
+import { buildRegistration, listCredentials, listOrganizations, workspaceSpaces } from '@/features/organizations-api';
+import type { Credential, Organization } from '@/features/organizations-api';
 
 const Projects: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,6 +37,30 @@ const Projects: React.FC = () => {
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
   const [repoUrl, setRepoUrl] = useState('');
+  // Where the workspace goes: '' is the personal space; otherwise an organization the account owns.
+  const [organizations, setOrganizations] = useState<Organization[] | null>(null);
+  const [organizationId, setOrganizationId] = useState('');
+  const [credentials, setCredentials] = useState<Credential[] | null>(null);
+  const [access, setAccess] = useState<'token' | 'credential'>('credential');
+  const [credentialId, setCredentialId] = useState('');
+  // Without credentials to choose from, an organization workspace clones with a personal token like a personal one.
+  const effectiveAccess = organizationId && credentials?.length ? access : 'token';
+
+  useEffect(() => {
+    if (!isModalOpen || organizations) return;
+    listOrganizations().then(setOrganizations).catch(() => setOrganizations([]));
+  }, [isModalOpen, organizations]);
+
+  useEffect(() => {
+    if (!organizationId) return;
+    let active = true;
+    listCredentials(organizationId)
+      .then(list => { if (active) { setCredentials(list); setCredentialId(list[0]?.id ?? ''); } })
+      .catch(() => { if (active) { setCredentials([]); setCredentialId(''); } });
+    return () => { active = false; };
+  }, [organizationId]);
+
+  const chooseSpace = (id: string) => { setOrganizationId(id); setCredentials(null); setCredentialId(''); };
 
   const [projectsList, setProjectsList] = useState<Workspace[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -54,12 +80,12 @@ const Projects: React.FC = () => {
   }, [fetchProjects]);
 
   const handleConnect = async () => {
-    if (!projectName.trim() || !repoUrl.trim()) {
-      message.error('Workspace Name and Repository URL are required.');
-      return;
-    }
-    if (visibility === 'private' && !token.trim()) {
-      message.error('Personal Access Token or SSH Key is required for private repositories.');
+    const built = buildRegistration({
+      name: projectName, description: projectDescription, repoUrl, visibility: visibility === 'private' ? 'private' : 'public',
+      organizationId, access: effectiveAccess, token, credentialId,
+    });
+    if ('problem' in built) {
+      message.error(built.problem);
       return;
     }
     setIsSubmitting(true);
@@ -71,13 +97,7 @@ const Projects: React.FC = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${readTokens().accessToken}`
         },
-        body: JSON.stringify({
-          name: projectName,
-          description: projectDescription,
-          repoUrl,
-          visibility,
-          token
-        })
+        body: JSON.stringify(built.body)
       });
       
       if (response.ok) {
@@ -99,9 +119,11 @@ const Projects: React.FC = () => {
         setProjectName('');
         setProjectDescription('');
         setRepoUrl('');
+        chooseSpace('');
+        setAccess('credential');
       } else {
         const err = await response.json().catch(() => ({}));
-        message.error(err.message || 'Failed to register repository');
+        message.error(err.error?.message || err.message || 'Failed to register repository');
       }
     } catch (error) {
       message.error('Network error. Please try again.');
@@ -359,6 +381,25 @@ const Projects: React.FC = () => {
                 </div>
 
                 <div className="space-y-1.5">
+                  <label htmlFor="project-space" className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Space</label>
+                  <select
+                    id="project-space"
+                    value={organizationId}
+                    onChange={(e) => chooseSpace(e.target.value)}
+                    className="w-full h-10 bg-[#161d24] border border-[#242527] px-3 text-sm text-[#f4f4f6] focus:outline-none focus:border-[#3b82f6]/50 focus:ring-1 focus:ring-[#3b82f6]/20"
+                  >
+                    {workspaceSpaces(organizations ?? []).map(o => <option key={o.value} value={o.value} className="bg-[#161d24]">{o.label}</option>)}
+                  </select>
+                  <p className="text-[10px] text-[#94a3b8]">
+                    {organizationId
+                      ? 'Every owner of the organization maintains this workspace. Members see it once given a role.'
+                      : 'Only you, and the people you invite, can open it.'}
+                    {organizations && organizations.some(o => o.myRole === 'member') && ' Only owners can add workspaces to an organization.'}
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
                   <span className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository Provider</span>
                   <div className="grid grid-cols-2 gap-3">
@@ -406,7 +447,43 @@ const Projects: React.FC = () => {
                   </div>
                 </div>
 
-                {visibility === 'private' && (
+                {visibility === 'private' && organizationId && (
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
+              style={{ fontFamily: '"JetBrains Mono", monospace' }}>Clone with</span>
+                    {credentials === null ? (
+                      <p className="text-xs text-[#94a3b8]">Loading the organization's credentials…</p>
+                    ) : credentials.length ? (
+                      <>
+                        <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Clone with">
+                          {(['credential', 'token'] as const).map(kind => (
+                            <label key={kind} className="flex items-center justify-center h-10 bg-[#161d24] border border-[#242527] cursor-pointer hover:border-[#94a3b8] transition-colors has-[:checked]:border-[#3b82f6] has-[:checked]:bg-[#3b82f6]/5">
+                              <input type="radio" name="clone-with" className="sr-only" checked={access === kind} onChange={() => setAccess(kind)} />
+                              <span className="text-xs font-bold text-[#f4f4f6]">{kind === 'credential' ? 'Organization credential' : 'Personal token'}</span>
+                            </label>
+                          ))}
+                        </div>
+                        {access === 'credential' && (
+                          <select
+                            aria-label="Organization credential"
+                            value={credentialId}
+                            onChange={(e) => setCredentialId(e.target.value)}
+                            className="w-full h-10 bg-[#161d24] border border-[#242527] px-3 text-sm text-[#f4f4f6] focus:outline-none focus:border-[#3b82f6]/50"
+                          >
+                            {credentials.map(c => <option key={c.id} value={c.id} className="bg-[#161d24]">{c.name} (••••{c.last4})</option>)}
+                          </select>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-xs text-[#94a3b8]">
+                        This organization has no credentials yet, so use a personal token below, or{' '}
+                        <Link to={`/organizations/${encodeURIComponent(organizationId)}`} onClick={closeModal} className="text-[#3b82f6] hover:underline">add one to the organization</Link>.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {visibility === 'private' && effectiveAccess === 'token' && (
                   <div className="space-y-1.5">
                     <label htmlFor="auth-token" className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-wider block"
               style={{ fontFamily: '"JetBrains Mono", monospace' }}>Personal Access Token (PAT) / SSH Key</label>
