@@ -409,6 +409,7 @@ export const projectMaintainerController = new ProjectMaintainerController({
     memberRepository,
     userRepository,
     emailService,
+    env.corsOrigin,
   ),
   getInvitationsUseCase: new GetProjectInvitationsUseCase(),
   cancelInvitationUseCase: new CancelProjectInvitationUseCase(),
