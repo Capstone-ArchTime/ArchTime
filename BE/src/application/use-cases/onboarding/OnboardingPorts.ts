@@ -1,5 +1,9 @@
-import type { IOnboardingAssignment, IOnboardingPath } from "../../../domain/entities/OnboardingPath.js";
+import type { IOnboardingAssignment, IOnboardingPath, IOnboardingStep } from "../../../domain/entities/OnboardingPath.js";
 import type { StepRevision, StepRevisionAssessment } from "../../../domain/onboarding/stepRevision.js";
+import type { ReferenceWorkspace } from "../../../domain/onboarding/stepReference.js";
+
+/** What is needed to judge a step: what it points at and the revision it was pinned to. */
+export type AssessedStep = Pick<IOnboardingStep, "kind" | "componentId" | "adrId" | "revision">;
 
 export type NewPath = Omit<IOnboardingPath, "id" | "createdAt" | "updatedAt">;
 export type PathContent = Pick<IOnboardingPath, "title" | "description" | "status" | "steps" | "updatedBy">;
@@ -38,14 +42,16 @@ export interface WorkspaceFacts {
   revision: number | null;
   componentIds: ReadonlySet<string>;
   adrIds: ReadonlySet<string>;
+  /** The components, dependencies and decisions a step's fingerprint is taken from. */
+  refs: ReferenceWorkspace;
 }
 
 /** What the use cases need to know about the rest of the system. */
 export interface OnboardingDeps {
   /** Resolves a commit (or, without one, the latest mined snapshot) to the revision a step is written against. */
   pin(projectId: string, commit?: string): Promise<{ revision: StepRevision; title?: string }>;
-  /** Whether each revision still holds, in the order given. */
-  assess(projectId: string, revisions: StepRevision[]): Promise<StepRevisionAssessment[]>;
+  /** Whether each step still holds, in the order given: its commit, and the component or decision it is about. */
+  assess(projectId: string, steps: AssessedStep[]): Promise<StepRevisionAssessment[]>;
   workspace(projectId: string): Promise<WorkspaceFacts>;
   /** Whether the person belongs to the project now: its owner or an active member. */
   isMember(projectId: string, userId: string): Promise<boolean>;

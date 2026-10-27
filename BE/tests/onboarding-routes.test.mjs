@@ -154,6 +154,8 @@ test("a learner reads only their own copy of a path and their own progress", asy
   const list = await call("bob", "GET", "/onboarding/me");
   assert.equal(list.status, 200);
   assert.deepEqual(list.body.data.paths.map(p => [p.title, p.done, p.total, p.projectName]), [["Week 1: the billing core", 1, 4, "Shop Backend"]]);
+  assert.deepEqual(list.body.data.paths[0].nextStep, { id: path.steps[0].id, title: path.steps[0].title, kind: "component", index: 0 }, "Bob's own next step");
+  assert.equal((await call("alice", "GET", "/onboarding/me")).body.data.paths[0].nextStep.index, 1);
   assert.ok(!JSON.stringify(list.body).includes("alice"));
 });
 

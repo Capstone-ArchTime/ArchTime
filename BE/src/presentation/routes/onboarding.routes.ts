@@ -74,7 +74,7 @@ export function createOnboardingRouter(
    *                         explanation: { type: string }
    *     responses:
    *       201:
-   *         description: "{ path } kèm assessment của từng bước (current | outdated | missing)"
+   *         description: "{ path } kèm assessment của từng bước (current | outdated | missing); outdated chỉ khi chính component hoặc ADR của bước đã đổi"
    *       400:
    *         description: Dữ liệu không hợp lệ (theo từng trường), hoặc bước trỏ tới thứ workspace không có
    */
@@ -281,7 +281,7 @@ export function createLearningRouter(controller: OnboardingController, jwtTokenS
    *     security: [{ BearerAuth: [] }]
    *     responses:
    *       200:
-   *         description: "{ paths: [{ pathId, projectId, projectName, title, description, assignedAt, lastActivityAt, done, total, percent }] }"
+   *         description: "{ paths: [{ pathId, projectId, projectName, title, description, assignedAt, lastActivityAt, done, total, percent, nextStep: { id, title, kind, index } | null }] }; nextStep là bước đầu tiên chưa xong, null khi đã học xong"
    */
   router.get("/me", createAuthenticateMiddleware(jwtTokenService), controller.myPaths);
   return router;

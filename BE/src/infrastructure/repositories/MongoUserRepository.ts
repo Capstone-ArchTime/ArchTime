@@ -4,6 +4,7 @@ import type {
   UserFilter,
 } from "../../domain/interfaces/IUserRepository.js";
 import type { PaginatedResult } from "../../shared/utils/apiResponse.js";
+import { GITHUB_ONLY_PASSWORD_PREFIX } from "../../application/use-cases/SignInMethods.js";
 import { UserModel } from "../database/models/UserModel.js";
 
 export class MongoUserRepository implements IUserRepository {
@@ -190,5 +191,17 @@ export class MongoUserRepository implements IUserRepository {
       $inc: { tokenVersion: 1 },
       $unset: { resetTokenHash: 1, resetExpiresAt: 1 },
     });
+  }
+  async findCredentials(userId: string): Promise<{ passwordHash: string | null; githubId: string | null } | null> {
+    const doc = await UserModel.findById(userId).select("passwordHash githubId").lean();
+    if (!doc) return null;
+    const { passwordHash, githubId } = doc as Record<string, unknown>;
+    return { passwordHash: typeof passwordHash === "string" ? passwordHash : null, githubId: typeof githubId === "string" && githubId ? githubId : null };
+  }
+  async setPasswordIfNone(userId: string, passwordHash: string): Promise<boolean> {
+    const result = await UserModel.updateOne({ _id: userId,
+      $or: [{ passwordHash: null }, { passwordHash: "" }, { passwordHash: { $regex: `^${GITHUB_ONLY_PASSWORD_PREFIX}` } }],
+    }, { $set: { passwordHash }, $unset: { resetTokenHash: 1, resetExpiresAt: 1 } });
+    return result.modifiedCount === 1;
   }
 }

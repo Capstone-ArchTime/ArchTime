@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { SnapshotModel } from "../database/models/SnapshotModel.js";
 import { WorkspaceModel } from "../database/models/WorkspaceModel.js";
 import { assessStepRevision } from "../../domain/onboarding/stepRevision.js";
-import type { StepRevision, StepRevisionAssessment } from "../../domain/onboarding/stepRevision.js";
+import type { RevisionFacts, StepRevision, StepRevisionAssessment } from "../../domain/onboarding/stepRevision.js";
 import { BadRequestError, NotFoundError } from "../../shared/errors/AppError.js";
 
 const MAX_CHECK = 200;
@@ -56,7 +56,16 @@ export class StepRevisionService {
     if (!Array.isArray(revisions)) throw new BadRequestError("revisions must be an array.", "VALIDATION_ERROR");
     if (revisions.length > MAX_CHECK) throw new BadRequestError(`At most ${MAX_CHECK} revisions per request.`, "VALIDATION_ERROR");
     const parsed = revisions.map(parseRevision);
+    const facts = await this.facts(projectId, parsed);
+    return parsed.map((revision, i) => assessStepRevision(revision, facts[i]));
+  }
 
+  /**
+   * What the repository looks like now for each stored revision, in order, with three queries whatever the count. For
+   * callers that add what the material is about (onboarding steps) before calling assessStepRevision. A revision pinned
+   * to no commit (nothing was mined yet) has nothing to look for.
+   */
+  public static async facts(projectId: string, parsed: StepRevision[]): Promise<RevisionFacts[]> {
     const ids = parsed.map(r => r.snapshotId).filter((id): id is string => !!id && mongoose.isValidObjectId(id));
     const hashes = parsed.map(r => r.commit).filter((h): h is string => !!h);
     const [byId, byHash, currentWorkspaceRevision] = await Promise.all([
@@ -74,12 +83,12 @@ export class StepRevisionService {
     return parsed.map(revision => {
       const snapshot = (revision.snapshotId ? idIndex.get(revision.snapshotId) : undefined)
         ?? (revision.commit ? hashIndex.get(revision.commit) ?? hashIndex.get(revision.commit.slice(0, 7)) : undefined);
-      return assessStepRevision(revision, {
+      return {
         snapshotExists: !!snapshot,
         commitGone: !!snapshot?.missingSince,
         goneSince: snapshot?.missingSince ?? null,
         currentWorkspaceRevision,
-      });
+      };
     });
   }
 }

@@ -6,9 +6,12 @@ import { apiRequest } from '@/api/client';
 export type StepKind = 'component' | 'commit' | 'adr' | 'question';
 export type PathStatus = 'draft' | 'published';
 
-/** Whether what a step was written against still holds: the map changed (outdated) or the commit left the history (missing). */
+/**
+ * Whether what a step was written against still holds: its own component or decision changed (outdated), or the commit,
+ * component or decision is gone (missing).
+ */
 export type StepAssessment = { status: 'current' | 'outdated' | 'missing'; issues: { code: string; message: string }[] };
-export type StepRevision = { commit: string | null; snapshotId: string | null; workspaceRevision: number | null; pinnedAt: string };
+export type StepRevision = { commit: string | null; snapshotId: string | null; workspaceRevision: number | null; pinnedAt: string; fingerprint?: string | null };
 
 /** The answer key (correctIndex, explanation) is only present for mentors, or for a learner who has answered it right. */
 export type Question = { prompt: string; options: string[]; correctIndex?: number; explanation?: string };
@@ -24,7 +27,12 @@ export type Progress = { done: number; total: number; percent: number };
 
 // ── Learners ──
 
-export type MyPath = Progress & { pathId: string; projectId: string; projectName: string | null; title: string; description: string; assignedAt: string; lastActivityAt: string };
+/** The first step not done yet; null once the path is finished. */
+export type NextStep = { id: string; title: string; kind: StepKind; index: number };
+export type MyPath = Progress & {
+  pathId: string; projectId: string; projectName: string | null; title: string; description: string; assignedAt: string; lastActivityAt: string;
+  nextStep: NextStep | null;
+};
 export type LearnerPath = { id: string; projectId: string; title: string; description: string; steps: LearnerStep[] };
 export type AnswerResult = { correct: boolean; attempts: number; completed: boolean; correctIndex?: number; explanation?: string; progress: Progress };
 
@@ -127,11 +135,30 @@ export async function getAssignableMembers(projectId: string, signal?: AbortSign
   return d.members.filter(m => m.status === 'active' && !!m.userId);
 }
 
-/** What a step can point at, read from the workspace the path belongs to. */
-export type WorkspaceRefs = { components: { id: string; name: string; kind: string; description: string }[]; decisions: { id: string; number: number; title: string; status: string; context: string; decision: string; consequences: string }[] };
+/** What an ADR rests on: a commit (full hash), a snapshot, an evidence record or an approval request (ids). */
+export type DecisionSource = { kind: 'commit' | 'snapshot' | 'evidence' | 'approval'; ref: string; title: string; date?: string; note?: string };
+export type WorkspaceDecision = {
+  id: string; number: number; title: string; status: string; context: string; decision: string; alternatives: string; consequences: string;
+  componentIds: string[]; sources: DecisionSource[];
+};
+/** What a step can point at, read from the workspace the path belongs to (anyone who can read the workspace may). */
+export type WorkspaceRefs = {
+  components: { id: string; name: string; kind: string; description: string }[];
+  dependencies: { id: string; source: string; target: string; label: string }[];
+  decisions: WorkspaceDecision[];
+};
+type RawWorkspace = { diagram?: { components?: WorkspaceRefs['components']; dependencies?: WorkspaceRefs['dependencies'] }; decisions?: Partial<WorkspaceDecision>[] };
 export async function getWorkspaceRefs(projectId: string, signal?: AbortSignal): Promise<WorkspaceRefs> {
-  const d = data(await apiRequest<Envelope<{ workspace?: { diagram?: { components?: WorkspaceRefs['components'] }; decisions?: WorkspaceRefs['decisions'] } }>>(`/projects/${encodeURIComponent(projectId)}/workspace`, { signal }), 'workspace');
-  return { components: d.workspace?.diagram?.components ?? [], decisions: d.workspace?.decisions ?? [] };
+  const d = data(await apiRequest<Envelope<{ workspace?: RawWorkspace }>>(`/projects/${encodeURIComponent(projectId)}/workspace`, { signal }), 'workspace');
+  return {
+    components: d.workspace?.diagram?.components ?? [],
+    dependencies: d.workspace?.diagram?.dependencies ?? [],
+    // Older decisions may lack the newer fields; the pages read them as empty.
+    decisions: (d.workspace?.decisions ?? []).map(raw => ({
+      id: raw.id ?? '', number: raw.number ?? 0, title: raw.title ?? '', status: raw.status ?? '', context: raw.context ?? '', decision: raw.decision ?? '',
+      alternatives: raw.alternatives ?? '', consequences: raw.consequences ?? '', componentIds: raw.componentIds ?? [], sources: raw.sources ?? [],
+    })),
+  };
 }
 
 /** The mined commits of a workspace, newest first, without their dependency graphs. */

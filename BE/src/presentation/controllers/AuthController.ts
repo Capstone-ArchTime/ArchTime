@@ -9,6 +9,7 @@ import type { PasswordResetUseCase } from "../../application/use-cases/PasswordR
 import type { ChangePasswordUseCase } from "../../application/use-cases/ChangePasswordUseCase.js";
 import type { UpdateProfileUseCase } from "../../application/use-cases/UpdateProfileUseCase.js";
 import type { LogoutAllDevicesUseCase } from "../../application/use-cases/LogoutAllDevicesUseCase.js";
+import type { SetPasswordUseCase } from "../../application/use-cases/SetPasswordUseCase.js";
 import { AuditAction } from "../../domain/entities/AuditLog.js";
 import { AuditService } from "../../infrastructure/services/AuditService.js";
 import { BadRequestError } from "../../shared/errors/AppError.js";
@@ -27,13 +28,26 @@ export class AuthController {
     private readonly changePasswordUC: ChangePasswordUseCase,
     private readonly updateProfileUC?: UpdateProfileUseCase,
     private readonly logoutAllUC?: LogoutAllDevicesUseCase,
+    private readonly setPasswordUC?: SetPasswordUseCase,
   ) {}
+
+  setPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!this.setPasswordUC) throw new Error("Setting a password is not configured.");
+      const { newPassword, confirmNewPassword } = req.body ?? {};
+      const result = await this.setPasswordUC.execute({ userId: req.user!.userId, newPassword, confirmNewPassword });
+      sendSuccess(res, result, { message: result.message });
+    } catch (err) { next(err); }
+  };
 
   updateProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!this.updateProfileUC) throw new Error("Profile updates are not configured.");
       const { name, username } = req.body ?? {};
-      const user = await this.updateProfileUC.execute({ userId: req.user!.userId, name, username });
+      const userId = req.user!.userId;
+      await this.updateProfileUC.execute({ userId, name, username });
+      // Answer with the same allow-listed shape as GET /auth/me, so the token version and other internals never go out.
+      const user = await this.getMeUC.execute({ userId });
       sendSuccess(res, { user }, { message: "Profile updated." });
     } catch (err) { next(err); }
   };

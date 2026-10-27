@@ -61,6 +61,23 @@ export function memoryStores() {
   return { paths, assignments, pathStore, assignmentStore };
 }
 
+/** A workspace with two components (orders calls billing), one decision about billing, and one rule. */
+export function fakeWorkspace() {
+  const refs = {
+    components: [
+      { id: "billing", name: "Billing", kind: "Service", description: "Owns invoices." },
+      { id: "orders", name: "Orders", kind: "Service", description: "Takes orders." },
+    ],
+    dependencies: [{ id: "d1", source: "orders", target: "billing", label: "creates invoices" }],
+    decisions: [{
+      id: "adr-1", number: 1, title: "Use a queue", status: "Accepted", context: "Spikes.", decision: "Queue invoices.", alternatives: "Direct calls.",
+      consequences: "Eventual consistency.", componentIds: ["billing"], updatedAt: new Date("2026-10-01T00:00:00Z"),
+    }],
+    confirmedAt: new Date("2026-10-01T00:00:00Z"),
+  };
+  return { revision: 3, componentIds: new Set(refs.components.map(c => c.id)), adrIds: new Set(refs.decisions.map(d => d.id)), refs };
+}
+
 /** The rest of the system as the use cases see it: a workspace with two components and one decision, and two members. */
 export function fakeDeps(overrides = {}) {
   return {
@@ -68,8 +85,8 @@ export function fakeDeps(overrides = {}) {
       revision: { commit: commit ? commit.padEnd(40, "0") : "f".repeat(40), snapshotId: "snap-1", workspaceRevision: 3, pinnedAt: new Date("2026-10-20T00:00:00Z") },
       ...(commit ? { title: "Split billing out of orders" } : {}),
     }),
-    assess: async (_projectId, revisions) => revisions.map(() => ({ status: "current", issues: [] })),
-    workspace: async () => ({ revision: 3, componentIds: new Set(["billing", "orders"]), adrIds: new Set(["adr-1"]) }),
+    assess: async (_projectId, steps) => steps.map(() => ({ status: "current", issues: [] })),
+    workspace: async () => fakeWorkspace(),
     isMember: async (_projectId, userId) => ["alice", "bob"].includes(userId),
     people: async ids => new Map(ids.map(id => [id, { name: `${id[0].toUpperCase()}${id.slice(1)} Example`, email: `${id}@test.invalid` }])),
     projectNames: async ids => new Map(ids.map(id => [id, "Shop Backend"])),

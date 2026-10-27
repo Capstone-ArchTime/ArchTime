@@ -1,6 +1,6 @@
 import { BadRequestError, NotFoundError } from "../../../shared/errors/AppError.js";
 import type { IOnboardingAssignment, IOnboardingPath } from "../../../domain/entities/OnboardingPath.js";
-import { isCorrectAnswer, stepForLearner, summarizeProgress } from "../../../domain/onboarding/path.js";
+import { isCorrectAnswer, nextStep, stepForLearner, summarizeProgress } from "../../../domain/onboarding/path.js";
 import type { AssignmentStore, OnboardingDeps, PathStore } from "./OnboardingPorts.js";
 
 const MAX_MY_PATHS = 100;
@@ -25,7 +25,7 @@ export class OnboardingLearningUseCases {
     return { path, assignment };
   }
 
-  /** Every path given to the person, across projects they still belong to. */
+  /** Every path given to the person, across projects they still belong to, with the step to pick up at (null when finished). */
   async myPaths(userId: string) {
     const assignments = await this.assignments.listByUser(userId, MAX_MY_PATHS);
     const paths = await this.paths.findMany([...new Set(assignments.map(a => a.pathId))]);
@@ -42,6 +42,7 @@ export class OnboardingLearningUseCases {
         pathId: path.id, projectId: assignment.projectId, projectName: names.get(assignment.projectId) ?? null,
         title: path.title, description: path.description, assignedAt: assignment.assignedAt, lastActivityAt: assignment.updatedAt,
         ...summarizeProgress(path, assignment.progress),
+        nextStep: nextStep(path, assignment.progress),
       }];
     });
   }
@@ -49,7 +50,7 @@ export class OnboardingLearningUseCases {
   /** The path as its learner reads it: the learner's own progress, no answer keys, and a flag on steps that may be out of date. */
   async view(projectId: string, pathId: string, userId: string) {
     const { path, assignment } = await this.mine(projectId, pathId, userId);
-    const assessments = await this.deps.assess(projectId, path.steps.map(step => step.revision));
+    const assessments = await this.deps.assess(projectId, path.steps);
     return {
       path: {
         id: path.id, projectId: path.projectId, title: path.title, description: path.description,

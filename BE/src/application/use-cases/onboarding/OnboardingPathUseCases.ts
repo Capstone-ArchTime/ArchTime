@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { AppError, BadRequestError, ConflictError, NotFoundError, ValidationError } from "../../../shared/errors/AppError.js";
 import type { IOnboardingPath, IOnboardingStep } from "../../../domain/entities/OnboardingPath.js";
 import { stepProgressList, summarizeProgress } from "../../../domain/onboarding/path.js";
+import { referenceFingerprint } from "../../../domain/onboarding/stepReference.js";
 import type { AssignmentStore, OnboardingDeps, PathStore } from "./OnboardingPorts.js";
 import { parsePathInput, parseUserIds, type StepInput } from "./pathInput.js";
 
@@ -37,7 +38,7 @@ export class OnboardingPathUseCases {
 
   /** A path as the mentors see it, with the answer keys and whether each step still holds. */
   private async detail(path: IOnboardingPath) {
-    const assessments = await this.deps.assess(path.projectId, path.steps.map(step => step.revision));
+    const assessments = await this.deps.assess(path.projectId, path.steps);
     return { ...path, steps: path.steps.map((step, i) => ({ ...step, assessment: assessments[i] })) };
   }
 
@@ -84,7 +85,9 @@ export class OnboardingPathUseCases {
       if (!unchanged || !revision) {
         try {
           const pinned = await this.deps.pin(projectId, commit);
-          revision = pinned.revision;
+          // The step remembers what its own component or decision looked like, so only a change to that outdates it.
+          const fingerprint = referenceFingerprint(input, workspace.refs);
+          revision = fingerprint ? { ...pinned.revision, fingerprint } : pinned.revision;
           commitTitle = input.kind === "commit" ? pinned.title : undefined;
         } catch (error) {
           if (!(error instanceof AppError)) throw error;
@@ -160,7 +163,7 @@ export class OnboardingPathUseCases {
   async list(projectId: string) {
     const paths = await this.paths.list(projectId, MAX_PATHS_PER_PROJECT);
     const assignments = await this.assignments.listByPaths(projectId, paths.map(path => path.id));
-    const assessments = await this.deps.assess(projectId, paths.flatMap(path => path.steps.map(step => step.revision)));
+    const assessments = await this.deps.assess(projectId, paths.flatMap(path => path.steps));
     let offset = 0;
     return paths.map(path => {
       const own = assessments.slice(offset, offset + path.steps.length);

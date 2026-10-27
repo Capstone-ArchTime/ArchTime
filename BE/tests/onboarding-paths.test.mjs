@@ -5,7 +5,7 @@ import { PROJECT, fakeDeps, goodPath, memoryStores } from "./onboarding-fakes.mj
 import { MAX_PATHS_PER_PROJECT, OnboardingPathUseCases } from "../src/application/use-cases/onboarding/OnboardingPathUseCases.ts";
 import { OnboardingLearningUseCases } from "../src/application/use-cases/onboarding/OnboardingLearningUseCases.ts";
 import { PATH_LIMITS, parsePathInput, parseUserIds } from "../src/application/use-cases/onboarding/pathInput.ts";
-import { isCorrectAnswer, stepForLearner, stepProgressList, summarizeProgress } from "../src/domain/onboarding/path.ts";
+import { isCorrectAnswer, nextStep, stepForLearner, stepProgressList, summarizeProgress } from "../src/domain/onboarding/path.ts";
 import { NotFoundError, ValidationError } from "../src/shared/errors/AppError.ts";
 
 function setup(depsOverrides = {}) {
@@ -293,7 +293,7 @@ test("deleting a path deletes what was given to people", async () => {
 
 test("the mentor's view says which steps no longer hold", async () => {
   const flagged = { status: "missing", issues: [{ code: "COMMIT_GONE", message: "gone" }] };
-  const { mentors } = setup({ assess: async (_p, revisions) => revisions.map((_, i) => (i === 1 ? flagged : { status: "current", issues: [] })) });
+  const { mentors } = setup({ assess: async (_p, steps) => steps.map((_, i) => (i === 1 ? flagged : { status: "current", issues: [] })) });
   const created = await mentors.create(PROJECT, "m", goodPath());
   const shown = await mentors.get(PROJECT, created.id);
   assert.deepEqual(shown.steps.map(s => s.assessment.status), ["current", "missing", "current", "current"]);
@@ -309,7 +309,7 @@ test("the list counts people, finished learners and steps needing attention for 
       revision: { commit: commit ? commit.padEnd(40, "0") : "f".repeat(40), snapshotId: "s", workspaceRevision: commit === "abcdef1" ? 99 : 3, pinnedAt: new Date() },
       ...(commit ? { title: "T" } : {}),
     }),
-    assess: async (_p, revisions) => revisions.map(revision => (revision.workspaceRevision === 99 ? { status: "outdated", issues: [] } : { status: "current", issues: [] })),
+    assess: async (_p, steps) => steps.map(step => (step.revision.workspaceRevision === 99 ? { status: "outdated", issues: [] } : { status: "current", issues: [] })),
   });
   const first = await mentors.create(PROJECT, "m", { title: "First", status: "published", steps: [{ kind: "adr", title: "A", adrId: "adr-1" }] });
   const second = await mentors.create(PROJECT, "m", {
@@ -384,6 +384,28 @@ test("a learner's list holds their own published paths, with their own progress"
   assert.deepEqual([alices[0].done, alices[0].total, alices[0].percent, alices[0].projectName], [1, 4, 25, "Shop Backend"]);
   assert.equal((await learners.myPaths("bob")).length, 2);
   assert.deepEqual(await learners.myPaths("carol"), []);
+});
+
+test("each path in a learner's list says which step to pick up at, and none once every step is done", async () => {
+  const { learners, created, ids } = await given();
+  const next = async who => (await learners.myPaths(who))[0].nextStep;
+  assert.deepEqual(await next("alice"), { id: ids[0], title: "Meet the billing component", kind: "component", index: 0 });
+  // Out of order: the first step not done is still the one to pick up at.
+  await learners.complete(PROJECT, created.id, ids[1], "alice");
+  assert.equal((await next("alice")).index, 0);
+  await learners.complete(PROJECT, created.id, ids[0], "alice");
+  await learners.complete(PROJECT, created.id, ids[2], "alice");
+  assert.deepEqual(await next("alice"), { id: ids[3], title: "Check yourself", kind: "question", index: 3 });
+  assert.ok(!JSON.stringify(await learners.myPaths("alice")).includes("Which component owns invoices"), "the question itself is not in the list");
+  await learners.answer(PROJECT, created.id, ids[3], "alice", 1);
+  assert.equal(await next("alice"), null);
+  assert.equal((await next("bob")).index, 0, "Bob's next step is his own");
+});
+
+test("the next step of a path without steps is none", () => {
+  assert.equal(nextStep({ steps: [] }, {}), null);
+  assert.equal(nextStep({ steps }, undefined).id, "s1");
+  assert.deepEqual(nextStep({ steps }, { s1: { completedAt: new Date() }, s2: { attempts: 4 } }), { id: "s2", title: "Q", kind: "question", index: 1 });
 });
 
 test("a draft, or a project the person has left, drops off their list", async () => {

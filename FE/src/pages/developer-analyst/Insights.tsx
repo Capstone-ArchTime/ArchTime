@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   Sparkles,
@@ -23,6 +23,8 @@ import {
   describeWhen, fromStored, lastModel,
   type ChatMessage, type ChatModelNote, type ConversationSummary,
 } from '@/features/chat-history';
+import { openingWorkspace, readMentorParams } from '@/features/onboarding-context';
+import { getWorkspace } from '@/features/workspace-summary';
 
 interface ChatResponse {
   data: {
@@ -61,7 +63,11 @@ const Insights: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: 'welcome', role: 'assistant', content: WELCOME, timestamp: new Date() }
   ]);
-  const [inputValue, setInputValue] = useState('');
+  const location = useLocation();
+  // A learning step can open this page with ?projectId=&q=: that workspace is chosen and the question filled in, not sent.
+  const [opened] = useState(() => readMentorParams(location.search));
+  const [inputValue, setInputValue] = useState(opened.question);
+  const [openNote, setOpenNote] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [modelNote, setModelNote] = useState<ChatModelNote | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -82,14 +88,30 @@ const Insights: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
+  // A question filled in from a learning step gets the cursor once the box can take it, so the learner can edit and send.
+  const focusQuestion = useRef(!!opened.question);
+
   useEffect(() => {
     const controller = new AbortController();
     (async () => {
       try {
-        const res = await apiRequest<{ data?: { projects?: ProjectOption[] } }>('/projects', { signal: controller.signal });
-        const list = res.data?.projects ?? [];
+        // The server's largest page, so a learning step's workspace is normally in it.
+        const res = await apiRequest<{ data?: { projects?: ProjectOption[] } }>('/projects?limit=100', { signal: controller.signal });
+        let list = res.data?.projects ?? [];
+        // A step's workspace beyond that page is fetched by itself; one the learner cannot open stays out.
+        if (opened.projectId && !list.some(p => p.id === opened.projectId)) {
+          const one = await getWorkspace(opened.projectId, controller.signal).catch(() => null);
+          if (one) list = [...list, { id: one.id, name: one.name }];
+        }
+        if (controller.signal.aborted) return;
         setProjects(list);
-        if (list.length > 0) setSelectedProjectId(list[0].id);
+        const start = openingWorkspace(list, opened);
+        setSelectedProjectId(start.projectId);
+        setOpenNote(start.note);
+        if (start.question !== opened.question) {
+          setInputValue(start.question);
+          focusQuestion.current = false;
+        }
       } catch {
         if (!controller.signal.aborted) setProjects([]);
       } finally {
@@ -97,9 +119,15 @@ const Insights: React.FC = () => {
       }
     })();
     return () => { controller.abort(); };
-  }, []);
+  }, [opened]);
 
   useEffect(() => () => { activeRequest.current?.abort(); }, []);
+
+  useEffect(() => {
+    if (!selectedProjectId || !focusQuestion.current) return;
+    focusQuestion.current = false;
+    inputRef.current?.focus();
+  }, [selectedProjectId]);
 
   const loadHistory = useCallback((projectId: string) => {
     historyRequest.current?.abort();
@@ -131,6 +159,7 @@ const Insights: React.FC = () => {
 
   const handleProjectChange = (projectId: string) => {
     setSelectedProjectId(projectId);
+    setOpenNote('');
     setConversations([]);
     setHistoryStatus('loading');
     resetConversation('Switched workspace. Ask me anything about its architecture.');
@@ -292,6 +321,7 @@ const Insights: React.FC = () => {
               </button>
             </div>
           </div>
+          {openNote && <p role="status" className="mt-3 text-xs text-amber-300">{openNote}</p>}
         </div>
 
         {/* CHAT CONTAINER */}

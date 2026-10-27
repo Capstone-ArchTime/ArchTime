@@ -4,7 +4,9 @@
  */
 export const roles = ['developer-analyst', 'system-administrator'] as const;
 export type Role = typeof roles[number];
-export type AuthUser = { id: string; name: string; email: string; role: Role; username?: string | null };
+/** How the account can sign in, as GET /auth/me reports it (older servers leave it out). */
+export type SignInMethods = { password: boolean; github: boolean };
+export type AuthUser = { id: string; name: string; email: string; role: Role; username?: string | null; createdAt?: string; signInMethods?: SignInMethods };
 
 export const roleHome: Record<Role, string> = {
   'developer-analyst': '/dashboard',

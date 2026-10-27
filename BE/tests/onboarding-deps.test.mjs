@@ -11,6 +11,7 @@ import { SnapshotModel } from "../src/infrastructure/database/models/SnapshotMod
 import { UserModel } from "../src/infrastructure/database/models/UserModel.ts";
 import { WorkspaceModel } from "../src/infrastructure/database/models/WorkspaceModel.ts";
 import { NotFoundError, BadRequestError } from "../src/shared/errors/AppError.ts";
+import { referenceFingerprint } from "../src/domain/onboarding/stepReference.ts";
 
 // What the learning paths ask of the rest of the system, against a throwaway database on a real MongoDB: the workspace's
 // components and decisions, pinning and checking revisions, and who belongs to a project. Skipped when none is reachable.
@@ -61,8 +62,14 @@ async function seed() {
   ]);
   await WorkspaceModel.collection.insertOne({
     projectId: id, revision: 3, rules: [],
-    diagram: { components: [{ id: "billing", name: "Billing", kind: "Service", description: "" }, { id: "orders", name: "Orders", kind: "Service", description: "" }], dependencies: [], revision: 3 },
-    decisions: [{ id: "adr-1", number: 1, title: "Use a queue", status: "Accepted", context: "", decision: "", alternatives: "", consequences: "", componentIds: [] }],
+    diagram: {
+      components: [{ id: "billing", name: "Billing", kind: "Service", description: "" }, { id: "orders", name: "Orders", kind: "Service", description: "" }],
+      dependencies: [{ id: "d1", source: "orders", target: "billing", label: "creates invoices" }], revision: 3, confirmedAt: new Date("2026-10-01T00:00:00Z"),
+    },
+    decisions: [{
+      id: "adr-1", number: 1, title: "Use a queue", status: "Accepted", context: "", decision: "Queue invoices.", alternatives: "", consequences: "", componentIds: ["billing"],
+      sources: [{ kind: "approval", ref: "req-1", title: "Approved" }], updatedAt: new Date("2026-10-01T00:00:00Z"),
+    }],
   });
   const snap = (hash, day, extra = {}) => ({ projectId: id, hash, fullHash: full(hash), title: `Commit ${hash}\n\nlong body`, date: new Date(Date.UTC(2026, 8, day)), missingSince: null, ...extra });
   const inserted = await SnapshotModel.collection.insertMany([
@@ -111,38 +118,83 @@ test("a workspace that has not been mined still lets a step be tied to the map a
   assert.equal(bare.revision.workspaceRevision, null);
 });
 
+/** The fingerprints of billing and adr-1 as seed() stores them. */
+async function seededFingerprints(id) {
+  const { refs } = await deps.workspace(id);
+  return { billing: referenceFingerprint({ kind: "component", componentId: "billing" }, refs), adr: referenceFingerprint({ kind: "adr", adrId: "adr-1" }, refs) };
+}
+
+test("the workspace facts carry what steps are about: components, dependencies, decisions and when the diagram was confirmed", async t => {
+  if (!ready(t)) return;
+  const { id } = await seed();
+  const { refs } = await deps.workspace(id);
+  assert.deepEqual(refs.components.map(c => c.name), ["Billing", "Orders"]);
+  assert.deepEqual(refs.dependencies.map(d => [d.source, d.target, d.label]), [["orders", "billing", "creates invoices"]]);
+  assert.equal(refs.decisions[0].decision, "Queue invoices.");
+  assert.deepEqual(refs.decisions[0].componentIds, ["billing"]);
+  assert.equal(refs.confirmedAt.toISOString(), "2026-10-01T00:00:00.000Z");
+  assert.equal(refs.decisions[0].sources, undefined, "provenance is not loaded");
+  assert.deepEqual((await deps.workspace(oid().toString())).refs, { components: [], dependencies: [], decisions: [], confirmedAt: null });
+});
+
 test("each step is judged on its own, in the order given: current, outdated or missing", async t => {
   if (!ready(t)) return;
   const { id, snapshotIds } = await seed();
+  const fingerprints = await seededFingerprints(id);
   const at = new Date("2026-10-20T00:00:00Z");
-  const revisions = [
-    { commit: full("a1b2c3d"), snapshotId: snapshotIds[0], workspaceRevision: 3, pinnedAt: at },   // still fine
-    { commit: full("c3d4e5f"), snapshotId: snapshotIds[2], workspaceRevision: 3, pinnedAt: at },   // the commit left the history
-    { commit: full("a1b2c3d"), snapshotId: snapshotIds[0], workspaceRevision: 2, pinnedAt: at },   // the map changed since
-    { commit: null, snapshotId: null, workspaceRevision: 2, pinnedAt: at },                       // pinned before anything was mined, map changed
-    { commit: null, snapshotId: null, workspaceRevision: 3, pinnedAt: at },                       // same, map unchanged
-    { commit: full("e5f6a7b"), snapshotId: null, workspaceRevision: 3, pinnedAt: at },             // a commit this workspace never had
+  const on = (snapshot, hash, extra = {}) => ({ commit: full(hash), snapshotId: snapshot, workspaceRevision: 3, pinnedAt: at, ...extra });
+  const steps = [
+    { kind: "commit", revision: on(snapshotIds[0], "a1b2c3d") },                                                      // still fine
+    { kind: "commit", revision: on(snapshotIds[2], "c3d4e5f") },                                                      // the commit left the history
+    { kind: "commit", revision: on(snapshotIds[0], "a1b2c3d", { workspaceRevision: 2 }) },                            // the map changed: not about it
+    { kind: "component", componentId: "billing", revision: on(snapshotIds[0], "a1b2c3d", { fingerprint: fingerprints.billing }) },
+    { kind: "component", componentId: "billing", revision: on(snapshotIds[0], "a1b2c3d", { fingerprint: "0".repeat(32) }) }, // billing changed since
+    { kind: "adr", adrId: "adr-1", revision: { commit: null, snapshotId: null, workspaceRevision: 2, pinnedAt: at, fingerprint: fingerprints.adr } }, // nothing mined
+    { kind: "component", componentId: "gone", revision: on(snapshotIds[0], "a1b2c3d") },                              // no longer in the diagram
+    { kind: "question", revision: { commit: full("e5f6a7b"), snapshotId: null, workspaceRevision: 3, pinnedAt: at } }, // a commit this workspace never had
   ];
-  const results = await deps.assess(id, revisions);
-  assert.deepEqual(results.map(r => r.status), ["current", "missing", "outdated", "outdated", "current", "missing"]);
+  const results = await deps.assess(id, steps);
+  assert.deepEqual(results.map(r => r.status), ["current", "missing", "current", "current", "outdated", "current", "missing", "missing"]);
   assert.deepEqual(results[1].issues.map(i => i.code), ["COMMIT_GONE"]);
-  assert.deepEqual(results[2].issues.map(i => i.code), ["MAP_CHANGED"]);
-  assert.deepEqual(results[5].issues.map(i => i.code), ["SNAPSHOT_GONE"]);
+  assert.deepEqual(results[4].issues.map(i => i.code), ["MAP_CHANGED"]);
+  assert.deepEqual(results[6].issues.map(i => i.code), ["REF_GONE"]);
+  assert.deepEqual(results[7].issues.map(i => i.code), ["SNAPSHOT_GONE"]);
   assert.deepEqual(await deps.assess(id, []), []);
 });
 
-test("more steps than one check can take are still judged, in order", async t => {
+test("saving the workspace without touching a step's component or decision does not flag it", async t => {
+  if (!ready(t)) return;
+  const { id, snapshotIds } = await seed();
+  const fingerprints = await seededFingerprints(id);
+  const at = new Date("2026-10-20T00:00:00Z");
+  const steps = [
+    { kind: "component", componentId: "billing", revision: { commit: full("a1b2c3d"), snapshotId: snapshotIds[0], workspaceRevision: 3, pinnedAt: at, fingerprint: fingerprints.billing } },
+    { kind: "adr", adrId: "adr-1", revision: { commit: full("a1b2c3d"), snapshotId: snapshotIds[0], workspaceRevision: 3, pinnedAt: at, fingerprint: fingerprints.adr } },
+  ];
+  const save = update => WorkspaceModel.collection.updateOne({ projectId: id }, { ...update, $inc: { revision: 1, "diagram.revision": 1 } });
+  await save({ $push: { rules: { id: "r1", name: "No cycles", source: "orders", target: "billing", constraint: "forbidden", severity: "error", rationale: "", enabled: true } } });
+  await save({ $set: { "diagram.components.1.description": "Takes and tracks orders.", "diagram.confirmedAt": new Date("2026-11-01T00:00:00Z") } });
+  await save({ $push: { decisions: { id: "adr-2", number: 2, title: "Use Postgres", status: "Proposed", context: "", decision: "", alternatives: "", consequences: "", componentIds: [] } } });
+  assert.deepEqual((await deps.assess(id, steps)).map(r => r.status), ["current", "current"]);
+
+  await save({ $set: { "diagram.dependencies.0.label": "bills" } });
+  await save({ $set: { "decisions.0.alternatives": "Direct calls, or a cron job." } });
+  assert.deepEqual((await deps.assess(id, steps)).map(r => r.status), ["outdated", "outdated"]);
+});
+
+test("many steps are judged at once, in order", async t => {
   if (!ready(t)) return;
   const { id, snapshotIds } = await seed();
   const at = new Date("2026-10-20T00:00:00Z");
-  const fine = { commit: full("a1b2c3d"), snapshotId: snapshotIds[0], workspaceRevision: 3, pinnedAt: at };
-  const gone = { commit: full("c3d4e5f"), snapshotId: snapshotIds[2], workspaceRevision: 3, pinnedAt: at };
-  const revisions = Array.from({ length: 450 }, (_, i) => (i === 300 ? gone : i === 449 ? { commit: null, snapshotId: null, workspaceRevision: 1, pinnedAt: at } : fine));
-  const results = await deps.assess(id, revisions);
+  const fine = { kind: "commit", revision: { commit: full("a1b2c3d"), snapshotId: snapshotIds[0], workspaceRevision: 3, pinnedAt: at } };
+  const gone = { kind: "commit", revision: { commit: full("c3d4e5f"), snapshotId: snapshotIds[2], workspaceRevision: 3, pinnedAt: at } };
+  const legacy = { kind: "adr", adrId: "adr-1", revision: { commit: null, snapshotId: null, workspaceRevision: 1, pinnedAt: new Date("2026-09-01T00:00:00Z") } };
+  const steps = Array.from({ length: 450 }, (_, i) => (i === 300 ? gone : i === 449 ? legacy : fine));
+  const results = await deps.assess(id, steps);
   assert.equal(results.length, 450);
   assert.deepEqual(results.map((r, i) => i).filter(i => results[i].status !== "current"), [300, 449]);
   assert.equal(results[300].status, "missing");
-  assert.equal(results[449].status, "outdated");
+  assert.equal(results[449].status, "outdated", "a step pinned before fingerprints, and before the decision was last edited");
 });
 
 test("the owner and active members belong to the project; invited people, strangers and bad ids do not", async t => {

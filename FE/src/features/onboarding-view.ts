@@ -18,10 +18,17 @@ export const MAX_STEPS = 50;
 /** A note for a step that may no longer hold; null when it does. */
 export function assessmentNote(assessment: StepAssessment | undefined): { level: 'warning' | 'error'; text: string } | null {
   if (!assessment || assessment.status === 'current') return null;
-  if (assessment.status === 'outdated') return { level: 'warning', text: 'The architecture map changed after this step was written, so it may describe an older map.' };
+  if (assessment.status === 'outdated') {
+    // The server says what changed: the step's own component or design decision, never just "something in the workspace".
+    const changed = assessment.issues.filter(issue => issue.code === 'MAP_CHANGED').map(issue => issue.message);
+    return { level: 'warning', text: changed.length ? `${changed.join(' ')} The step may describe it as it was.` : 'What this step is about changed after it was written, so it may describe an older version.' };
+  }
   const gone = assessment.issues.filter(issue => issue.code !== 'MAP_CHANGED').map(issue => issue.message);
   return { level: 'error', text: gone.length ? gone.join(' ') : 'What this step was written about is no longer in the repository.' };
 }
+
+/** The step's component or design decision was removed from the workspace: re-pinning cannot help, only choosing another. */
+export const refGone = (assessment: StepAssessment | undefined): boolean => !!assessment?.issues.some(issue => issue.code === 'REF_GONE');
 
 export const progressText = (progress: Progress): string => `${progress.done} of ${progress.total} step${progress.total === 1 ? '' : 's'}`;
 
@@ -43,7 +50,7 @@ export function pathStatusTag(status: PathStatus): { color: string; label: strin
 /** How many steps of a path a mentor should look at, in words; empty when none. */
 export function attentionText(path: Pick<PathSummary, 'outdatedSteps' | 'missingSteps'>): string {
   const parts: string[] = [];
-  if (path.missingSteps) parts.push(`${path.missingSteps} step${path.missingSteps === 1 ? '' : 's'} point at a commit that is gone`);
+  if (path.missingSteps) parts.push(`${path.missingSteps} step${path.missingSteps === 1 ? ' points' : 's point'} at something that is gone`);
   if (path.outdatedSteps) parts.push(`${path.outdatedSteps} may be out of date`);
   return parts.join(', ');
 }
