@@ -28,7 +28,7 @@ export default function ResetPassword() {
     if (busy) return;
     setError(''); setNotice('');
     // Checked here and written on the page, instead of the browser's own pop-ups.
-    if (!/^[^s@]+@[^s@]+.[^s@]+$/.test(email.trim())) { setError('Enter a valid email address.'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError('Enter a valid email address.'); return; }
     if (sent && !token.trim()) { setError('Paste the reset code from your email.'); return; }
     const rule = sent ? checkNewPassword(password) : null;
     if (rule) { setError(rule); return; }
