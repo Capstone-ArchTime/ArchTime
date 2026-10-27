@@ -76,8 +76,8 @@ test('the checklist under a new password ticks off the same rules the server che
   const unmet = p => passwordRequirements(p).filter(r => !r.met).map(r => r.label);
   assert.equal(unmet('Abcdef1!').length, 0);
   assert.equal(checkNewPassword('Abcdef1!'), null, 'all ticked means the server accepts it');
-  assert.deepEqual(unmet(''), ['At least 8 characters', 'An uppercase letter (A-Z)', 'A lowercase letter (a-z)', 'A number (0-9)', 'A special character, such as ! @ # $ % _ -', 'No spaces'], 'an empty field is not "no spaces" yet');
-  assert.deepEqual(unmet('abcdefgh'), ['An uppercase letter (A-Z)', 'A number (0-9)', 'A special character, such as ! @ # $ % _ -']);
+  assert.deepEqual(unmet(''), ['At least 8 characters', 'An uppercase letter (A-Z)', 'A lowercase letter (a-z)', 'A number (0-9)', 'A special character (! @ # $ …)', 'No spaces'], 'an empty field is not "no spaces" yet');
+  assert.deepEqual(unmet('abcdefgh'), ['An uppercase letter (A-Z)', 'A number (0-9)', 'A special character (! @ # $ …)']);
   assert.deepEqual(unmet('Abcdef1! x'), ['No spaces']);
   assert.deepEqual(unmet('Aa1!' + 'é'.repeat(40)), ['At most 72 bytes']);
   for (const p of ['Abc1!', 'abcdef1!', 'ABCDEF1!', 'Abcdefg!', 'Abcdefg1', 'Abcdef1! x']) {

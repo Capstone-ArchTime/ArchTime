@@ -14,6 +14,7 @@ import type { ReportView } from '@/features/report-view';
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
 const panel = 'bg-[#11161b] border border-[#242527] p-6';
 const label = 'text-[11px] text-slate-300 uppercase tracking-widest block mb-2';
+const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? '' : 's'}`;
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : 'Unknown date');
 
 /** Saves a file the page received (a link would not carry the session's token). */
@@ -136,7 +137,7 @@ function ReportsView({ projects, managed }: { projects: ProjectSummary[]; manage
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-[#f4f4f6]">{report.title}</p>
                       <p className="text-xs text-slate-400">
-                        {when(report.createdAt)} · {report.figures.components} components · {report.figures.decisions} decisions · {report.figures.minedCommits} mined commits
+                        {when(report.createdAt)} · {count(report.figures.components, 'component')} · {count(report.figures.decisions, 'decision')} · {count(report.figures.minedCommits, 'mined commit')}
                       </p>
                     </div>
                     {report.status !== 'ready' && <Tag color={report.status === 'failed' ? 'red' : 'gold'}>{report.status === 'failed' ? 'Failed' : 'Being made'}</Tag>}

@@ -50,7 +50,7 @@ export function passwordRequirements(password: string): PasswordRequirement[] {
     { label: 'An uppercase letter (A-Z)', met: /[A-Z]/.test(password) },
     { label: 'A lowercase letter (a-z)', met: /[a-z]/.test(password) },
     { label: 'A number (0-9)', met: /[0-9]/.test(password) },
-    { label: 'A special character, such as ! @ # $ % _ -', met: SPECIAL.test(password) },
+    { label: 'A special character (! @ # $ …)', met: SPECIAL.test(password) },
     { label: 'No spaces', met: password.length > 0 && !/\s/.test(password) },
     { label: 'At most 72 bytes', met: new TextEncoder().encode(password).length <= PASSWORD_MAX_BYTES },
   ];
