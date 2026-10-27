@@ -9,6 +9,9 @@ import { useAuth } from '@/auth/auth-context';
 import { loginDestination } from '@/auth/permissions';
 import { authRequest } from '@/auth/requests';
 import { API_BASE_URL, clearSignInNotice, peekSignInNotice } from '@/auth/session';
+import PasswordRequirements from '@/components/PasswordRequirements';
+import { checkNewPassword } from '@/features/profile-validation';
+import { deadlineFrom, rememberOtpDeadline } from '@/features/otp-countdown';
 
 
 const fontFamily = {
@@ -39,6 +42,8 @@ const AuthPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  // What the server refused, shown in the form (not as a pop-up at the top of the window).
+  const [formError, setFormError] = useState('');
 
   const activeRequest = useRef<AbortController | null>(null);
   useEffect(() => {
@@ -46,18 +51,8 @@ const AuthPage: React.FC = () => {
     return () => activeRequest.current?.abort();
   }, [isRegister]);
 
-  const calculatePasswordStrength = (pass: string) => {
-    let score = 0;
-    if (pass.length > 8) score += 1;
-    if (pass.match(/[A-Z]/)) score += 1;
-    if (pass.match(/[0-9]/)) score += 1;
-    if (pass.match(/[^A-Za-z0-9]/)) score += 1;
-    return score; // 0 to 4
-  };
-
-  const strength = calculatePasswordStrength(password);
-  const strengthColors = ['bg-[#5f636b]', 'bg-red-500', 'bg-[#ffb03a]', 'bg-[#3b82f6]', 'bg-[#00f0ff]'];
-  const strengthLabels = ['Very weak', 'Weak', 'Fair', 'Strong', 'Very strong'];
+  // Problems of one form do not carry over to the other.
+  const clearErrors = () => { setFieldErrors({}); setFormError(''); };
 
   const validate = (): FieldErrors => {
     const errors: FieldErrors = {};
@@ -74,10 +69,10 @@ const AuthPage: React.FC = () => {
 
     if (!password) {
       errors.password = 'Password is required.';
-    } else if (isRegister && password.length < 8) {
-      errors.password = 'Password must be at least 8 characters.';
-    } else if (isRegister && strength < 3) {
-      errors.password = 'Password is too weak. Add uppercase, a number, or a symbol.';
+    } else if (isRegister) {
+      // The server's own rules, so an account is never refused after the form said it was fine.
+      const rule = checkNewPassword(password);
+      if (rule) errors.password = rule;
     }
 
     if (isRegister) {
@@ -96,11 +91,12 @@ const AuthPage: React.FC = () => {
 
     const errors = validate();
     setFieldErrors(errors);
+    setFormError('');
 
     if (Object.keys(errors).length > 0) {
+      // Each problem is written under its field; focus the first one.
       const field = Object.keys(errors)[0];
       document.getElementById(field === 'confirmPassword' ? 'auth-confirm-password' : `auth-${field}`)?.focus();
-      message.error(Object.values(errors)[0]);
       return;
     }
 
@@ -121,6 +117,7 @@ const AuthPage: React.FC = () => {
         message.success(result.message ?? 'Account created. Check your email for the verification OTP.');
         setPassword('');
         setConfirmPassword('');
+        rememberOtpDeadline(email.trim(), deadlineFrom(result.expiresAt));
         navigate('/verify-email', { state: { email: email.trim(), from: location.state?.from } });
       } else {
         if (!result.accessToken || !result.refreshToken) {
@@ -134,7 +131,10 @@ const AuthPage: React.FC = () => {
       }
     } catch (error) {
       if (controller.signal.aborted) return;
-      message.error(error instanceof Error ? error.message : 'Unable to complete the request.');
+      const text = error instanceof Error ? error.message : 'Unable to complete the request.';
+      if (isRegister && /^password/i.test(text)) setFieldErrors({ password: text });
+      else if (isRegister && /email/i.test(text)) setFieldErrors({ email: text });
+      else setFormError(text);
     } finally {
       if (!controller.signal.aborted) setIsLoading(false);
     }
@@ -259,14 +259,14 @@ const AuthPage: React.FC = () => {
                       <input
                         id="auth-password"
                           name="password"
-                          autoComplete={isRegister ? 'new-password' : 'current-password'}
+                          autoComplete={isRegister ? 'off' : 'current-password'}
                         type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         disabled={isLoading}
                         placeholder="••••••••"
                         aria-invalid={!!fieldErrors.password}
-                        aria-describedby={fieldErrors.password ? 'auth-password-error' : undefined}
+                        aria-describedby={[fieldErrors.password && 'auth-password-error', isRegister && 'auth-password-rules'].filter(Boolean).join(' ') || undefined}
                         data-ms-reveal="false"
                         className={`w-full h-11 bg-[#11161b] border pl-10 pr-10 text-sm text-white placeholder:text-slate-600 focus:outline-none transition-colors tracking-wide disabled:opacity-50 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-textfield-decoration-container]:hidden [&::-webkit-credentials-auto-fill-button]:hidden [&::-webkit-contacts-auto-fill-button]:hidden ${
                           fieldErrors.password ? 'border-red-500/60 focus:border-red-500' : 'border-[#242527] focus:border-[#3b82f6]'
@@ -287,20 +287,7 @@ const AuthPage: React.FC = () => {
                       <p id="auth-password-error" role="alert" className="text-xs text-red-400">{fieldErrors.password}</p>
                     )}
 
-                    {/* Password Strength Indicator */}
-                    {isRegister && password.length > 0 && (
-                      <div className="mt-2">
-                        <div className="flex gap-1">
-                          {[1, 2, 3, 4].map((level) => (
-                            <div
-                              key={level}
-                              className={`h-1 flex-1 transition-colors duration-300 ${strength >= level ? strengthColors[strength] : 'bg-[#242527]'}`}
-                            ></div>
-                          ))}
-                        </div>
-                        <p className="mt-1 text-[11px] text-slate-500">{strengthLabels[strength]}</p>
-                      </div>
-                    )}
+                    {isRegister && <PasswordRequirements id="auth-password-rules" password={password} />}
                   </div>
 
                   {isRegister && (
@@ -310,7 +297,7 @@ const AuthPage: React.FC = () => {
                         <input
                           id="auth-confirm-password"
                           name="confirmPassword"
-                          autoComplete="new-password"
+                          autoComplete="off"
                           type={showPassword ? "text" : "password"}
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
@@ -340,6 +327,10 @@ const AuthPage: React.FC = () => {
                       <label htmlFor="remember" className="text-sm text-slate-400 cursor-pointer select-none">Remember me</label>
                       <Link to="/forgot-password" className="ml-auto text-sm text-sky-400 hover:underline">Forgot password?</Link>
                     </div>
+                  )}
+
+                  {formError && (
+                    <p role="alert" className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">{formError}</p>
                   )}
 
                   <button
@@ -383,14 +374,14 @@ const AuthPage: React.FC = () => {
                   {isRegister ? (
                     <>
                       Already have an account?{' '}
-                      <Link to="/login" className="text-[#3b82f6] hover:text-[#00f0ff] transition-colors font-medium">
+                      <Link to="/login" onClick={clearErrors} className="text-[#3b82f6] hover:text-[#00f0ff] transition-colors font-medium">
                         Sign in &rarr;
                       </Link>
                     </>
                   ) : (
                     <>
                       Don't have an account?{' '}
-                      <Link to="/register" className="text-[#3b82f6] hover:text-[#00f0ff] transition-colors font-medium">
+                      <Link to="/register" onClick={clearErrors} className="text-[#3b82f6] hover:text-[#00f0ff] transition-colors font-medium">
                         Create account &rarr;
                       </Link>
                     </>

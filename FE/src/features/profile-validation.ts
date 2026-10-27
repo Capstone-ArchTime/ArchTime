@@ -41,7 +41,22 @@ export function checkNewPassword(password: string): string | null {
   return null;
 }
 
-export type PasswordForm = { oldPassword: string; newPassword: string; confirmNewPassword: string };
+export type PasswordRequirement = { label: string; met: boolean };
+
+/** The same rules as checkNewPassword, as a checklist to show under a new-password field while it is typed. */
+export function passwordRequirements(password: string): PasswordRequirement[] {
+  return [
+    { label: 'At least 8 characters', met: password.length >= 8 },
+    { label: 'An uppercase letter (A-Z)', met: /[A-Z]/.test(password) },
+    { label: 'A lowercase letter (a-z)', met: /[a-z]/.test(password) },
+    { label: 'A number (0-9)', met: /[0-9]/.test(password) },
+    { label: 'A special character, such as ! @ # $ % _ -', met: SPECIAL.test(password) },
+    { label: 'No spaces', met: password.length > 0 && !/\s/.test(password) },
+    { label: 'At most 72 bytes', met: new TextEncoder().encode(password).length <= PASSWORD_MAX_BYTES },
+  ];
+}
+
+export type PasswordForm ={ oldPassword: string; newPassword: string; confirmNewPassword: string };
 export type PasswordProblems = Partial<Record<keyof PasswordForm, string>>;
 
 export function checkPasswordForm(form: PasswordForm): PasswordProblems {
