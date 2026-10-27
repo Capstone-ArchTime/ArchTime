@@ -18,7 +18,6 @@ const Dashboard = lazy(() => import("@/pages/developer-analyst/Dashboard"));
 const Projects = lazy(() => import("@/pages/developer-analyst/Projects"));
 const Organizations = lazy(() => import("@/pages/organizations/Organizations"));
 const OrganizationDetail = lazy(() => import("@/pages/organizations/OrganizationDetail"));
-const ArchitectureHistory = lazy(() => import("@/pages/developer-analyst/ArchitectureHistory"));
 const ArchitectureMap = lazy(() => import("@/pages/developer-analyst/ArchitectureMap"));
 const Compare = lazy(() => import("@/pages/developer-analyst/Compare"));
 const Evidence = lazy(() => import("@/pages/developer-analyst/Evidence"));
@@ -46,6 +45,12 @@ const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
 const AcceptInvitation = lazy(() => import('@/pages/AcceptInvitation'));
 const GitHubCallback = lazy(() => import('@/pages/GitHubCallback'));
 
+/** Redirects to another page, keeping the query (such as ?projectId=) and the hash. */
+function KeepQuery({ to }: { to: string }) {
+  const { search, hash } = useLocation();
+  return <Navigate to={`${to}${search}${hash}`} replace />;
+}
+
 function RootLayout() {
   const location = useLocation();
   useEffect(() => {
@@ -70,7 +75,8 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path="/projects" element={<Projects />} />
       <Route path="/organizations" element={<Organizations />} />
       <Route path="/organizations/:orgId" element={<OrganizationDetail />} />
-      <Route path="/history" element={<ArchitectureHistory />} />
+      {/* Architecture History was folded into Compare; old links (with their ?projectId=) still land there. */}
+      <Route path="/history" element={<KeepQuery to="/compare" />} />
       <Route path="/architecture" element={<ArchitectureMap />} />
       <Route path="/compare" element={<Compare />} />
       <Route path="/evidence" element={<Evidence />} />

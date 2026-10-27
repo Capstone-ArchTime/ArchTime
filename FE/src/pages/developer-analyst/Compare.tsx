@@ -531,9 +531,6 @@ const Compare: React.FC = () => {
 
         {/* BOTTOM CTA */}
         <div className="shrink-0 flex items-center justify-end gap-4 py-8">
-           <Link to="/history" className="h-10 px-5 bg-transparent border border-[#242527] hover:border-[#94a3b8] text-[#f4f4f6] font-bold text-xs transition-colors flex items-center gap-2">
-              VIEW FULL HISTORY
-           </Link>
            <Link to="/reports" className="h-10 px-5 bg-[#161d24] border border-[#242527] hover:border-[#3b82f6]/50 text-[#3b82f6] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.05)]">
               <Download size={16} />
               GENERATE REPORT

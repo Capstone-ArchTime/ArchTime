@@ -1,5 +1,5 @@
 import type { ElementType } from 'react';
-import { LayoutDashboard, FolderKanban, History, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, Users2, SlidersHorizontal, ScrollText, Activity, Boxes, Cpu, Gauge, Coins, GraduationCap, UserRound, ChartNetwork, Briefcase, Building2 } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, Users2, SlidersHorizontal, ScrollText, Activity, Boxes, Cpu, Gauge, Coins, GraduationCap, UserRound, ChartNetwork, Briefcase, Building2 } from 'lucide-react';
 import type { Role } from '@/auth/permissions';
 
 export type NavItem = { path: string; label: string; icon: ElementType };
@@ -8,7 +8,6 @@ export type NavGroup = { label?: string; icon?: ElementType; items: readonly Nav
 
 /** Ways of looking at one workspace's history; folded into one "Analyze" group so the sidebar stays short. */
 export const analyzeNavItems: readonly NavItem[] = [
-  { path: '/history', label: 'Architecture History', icon: History },
   { path: '/architecture', label: 'Architecture Map', icon: Boxes },
   { path: '/compare', label: 'Compare', icon: GitCompare },
   { path: '/evidence', label: 'Changes & Evidence', icon: FileSearch },

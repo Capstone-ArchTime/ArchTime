@@ -32,13 +32,14 @@ test('all navigation destinations are authorized for their displayed role', () =
 test('the sidebar of a developer-analyst has six entries, seven with the Maintain group', () => {
   assert.deepEqual(topLevel(navGroupsFor('developer-analyst', { maintains: false })), ['Dashboard', 'Workspaces', 'Organizations', 'Analyze', 'Learning', 'Reports']);
   assert.deepEqual(topLevel(navGroupsFor('developer-analyst', { maintains: true })), ['Dashboard', 'Workspaces', 'Organizations', 'Analyze', 'Learning', 'Reports', 'Maintain']);
-  assert.deepEqual(analyzeNavItems.map(item => item.path), ['/history', '/architecture', '/compare', '/evidence', '/insights']);
+  assert.deepEqual(analyzeNavItems.map(item => item.path), ['/architecture', '/compare', '/evidence', '/insights']);
   assert.equal(topLevel(navGroupsFor('system-administrator', { maintains: true })).length, 7, 'administrators keep their own seven pages');
 });
 
-test('every page still has a way in: the sidebar, the account menu, or (old maintainer reports) a redirect', () => {
+test('every page still has a way in: the sidebar, the account menu, or (old maintainer reports, old history) a redirect', () => {
   const reachable = new Set([...navGroupsFor('developer-analyst', { maintains: true }).flatMap(group => group.items), ...accountMenuItems['developer-analyst']].map(item => item.path));
-  for (const path of ['/dashboard', '/projects', '/history', '/architecture', '/compare', '/evidence', '/insights', '/learning', '/reports', '/ai-usage', '/profile', '/my-work']) assert.ok(reachable.has(path), path);
+  assert.ok(!reachable.has('/history'), 'Architecture History was folded into Compare; /history redirects there');
+  for (const path of ['/dashboard', '/projects', '/architecture', '/compare', '/evidence', '/insights', '/learning', '/reports', '/ai-usage', '/profile', '/my-work']) assert.ok(reachable.has(path), path);
   assert.deepEqual(maintainerRoutes.filter(path => !reachable.has(path)), ['/project-maintainer/reports'], 'only the old reports page, which now redirects to /reports');
   assert.deepEqual(accountMenuItems['developer-analyst'].map(item => item.path), ['/my-work', '/profile', '/ai-usage']);
 });
@@ -67,10 +68,10 @@ for (const role of roles) test(`${role} layout renders a main landmark, skip lin
 test('Analyze is folded until it holds the current page', () => {
   const onDashboard = render('developer-analyst', '/dashboard');
   assert.match(onDashboard, /role="group" aria-label="Analyze"[^>]*><button type="button" aria-expanded="false"/);
-  assert.ok(!links(onDashboard).includes('/history'));
-  const onHistory = render('developer-analyst', '/history');
-  assert.match(onHistory, /role="group" aria-label="Analyze"[^>]*><button type="button" aria-expanded="true"/);
-  assert.match(onHistory, /<a(?=[^>]*href="\/history")(?=[^>]*aria-current="page")/);
+  assert.ok(!links(onDashboard).includes('/compare'));
+  const onCompare = render('developer-analyst', '/compare');
+  assert.match(onCompare, /role="group" aria-label="Analyze"[^>]*><button type="button" aria-expanded="true"/);
+  assert.match(onCompare, /<a(?=[^>]*href="\/compare")(?=[^>]*aria-current="page")/);
 });
 
 test('pages in the account menu still get their own title', () => {

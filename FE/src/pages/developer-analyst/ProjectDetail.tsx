@@ -65,7 +65,6 @@ const ProjectDetail: React.FC = () => {
   const mined = data?.mining?.mined;
   const tabs = [
     { label: 'Architecture', to: `/workspace/${encodeURIComponent(projectId)}` },
-    { label: 'History', to: `/history?${q}` },
     { label: 'Compare', to: `/compare?${q}` },
     { label: 'Evidence', to: `/evidence?${q}` },
     { label: 'Reports', to: '/reports' },
@@ -125,9 +124,9 @@ const ProjectDetail: React.FC = () => {
                       <h3 id="next-step-title" className="text-sm font-bold text-[#f4f4f6] tracking-wide uppercase mb-1">Next step: {step.label}</h3>
                       <p className="text-xs text-[#94a3b8] leading-relaxed">{step.hint}</p>
                     </div>
-                    <Link to={step.to} className="shrink-0 h-9 px-4 bg-[#3b82f6] hover:bg-[#60a5fa] text-[#080b0e] text-xs font-bold flex items-center gap-2">
+                    {step.action !== 'wait' && <Link to={step.to} className="shrink-0 h-9 px-4 bg-[#3b82f6] hover:bg-[#60a5fa] text-[#080b0e] text-xs font-bold flex items-center gap-2">
                       {step.action === 'open' ? 'Open architecture' : 'Go to workspaces'} <ArrowRight size={14} aria-hidden="true" />
-                    </Link>
+                    </Link>}
                   </section>
                 )}
 
@@ -141,7 +140,7 @@ const ProjectDetail: React.FC = () => {
                       <p className="text-sm font-bold text-[#f4f4f6]">{data.latest.title}</p>
                       <p className="text-xs text-[#94a3b8]">{data.latest.author || 'Unknown author'} · {new Date(data.latest.date).toLocaleDateString()}</p>
                       <p className="text-xs text-[#94a3b8]">{data.latest.modules} modules and {data.latest.dependencies} dependencies recorded at this commit.</p>
-                      <Link to={`/history?${q}`} className="inline-flex items-center gap-1 text-xs font-bold text-[#3b82f6] hover:underline">View timeline <ArrowRight size={12} aria-hidden="true" /></Link>
+                      <Link to={`/compare?${q}`} className="inline-flex items-center gap-1 text-xs font-bold text-[#3b82f6] hover:underline">Compare with an earlier commit <ArrowRight size={12} aria-hidden="true" /></Link>
                     </div>
                   ) : (
                     <p className="p-5 text-sm text-[#94a3b8]">No commits have been mined yet. Once mining stores a commit, its modules and dependencies show here.</p>
