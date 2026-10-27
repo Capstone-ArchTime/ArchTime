@@ -9,6 +9,8 @@ const RevisionSchema = new Schema(
     snapshotId: { type: String, default: null },
     workspaceRevision: { type: Number, default: null },
     pinnedAt: { type: Date, required: true },
+    // What the step's own component or decision looked like when it was pinned; missing on older steps.
+    fingerprint: { type: String },
   },
   { _id: false },
 );

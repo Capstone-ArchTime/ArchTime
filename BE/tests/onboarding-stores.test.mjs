@@ -41,7 +41,7 @@ const revision = { commit: "a".repeat(40), snapshotId: "snap-1", workspaceRevisi
 const newPath = (projectId, extra = {}) => ({
   projectId, title: "Week 1", description: "d", status: "published", revision: 1, createdBy: "m", updatedBy: "m",
   steps: [
-    { id: "step-1", kind: "adr", title: "A", body: "", adrId: "adr-1", revision },
+    { id: "step-1", kind: "adr", title: "A", body: "", adrId: "adr-1", revision: { ...revision, fingerprint: "f".repeat(32) } },
     { id: "step-2", kind: "question", title: "Q", body: "", question: { prompt: "?", options: ["x", "y"], correctIndex: 1, explanation: "because" }, revision },
   ],
   ...extra,
@@ -59,6 +59,10 @@ test("a path is stored with its steps, pins and question, and read back for its 
   assert.equal(found.steps[0].revision.commit, "a".repeat(40));
   assert.ok(found.steps[0].revision.pinnedAt instanceof Date);
   assert.equal(found.steps[0].commitTitle, undefined);
+  assert.equal(found.steps[0].revision.fingerprint, "f".repeat(32), "the fingerprint of the step's decision is kept");
+  assert.equal(found.steps[1].revision.fingerprint, undefined, "a question has none");
+  const replaced = await paths.replace(projectId, saved.id, 1, { title: "T", description: "", status: "published", steps: [{ ...found.steps[0], revision: { ...revision, fingerprint: "e".repeat(32) } }], updatedBy: "m" });
+  assert.equal(replaced.steps[0].revision.fingerprint, "e".repeat(32), "and replaced on a re-pin");
   assert.equal(await paths.find(project(), saved.id), null, "another workspace does not find it");
   assert.equal(await paths.find(projectId, "not-an-object-id"), null);
   assert.equal(await paths.count(projectId), 1);

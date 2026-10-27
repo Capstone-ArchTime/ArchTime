@@ -5,6 +5,9 @@ import { FolderKanban, Activity, GitCommit, Layers, FolderGit2, ArrowRight, Load
 import { useAuth } from '@/auth/auth-context';
 import { byRecent, getRecentJobs, getWorkspaces, nextStep, STATUS_LABELS, workspaceStats, type Workspace, type WorkspaceStats } from '@/features/workspace-summary';
 import type { MiningJob } from '@/features/mining-jobs';
+import { getMyPaths } from '@/features/onboarding-api';
+import { pathToContinue } from '@/features/onboarding-context';
+import ContinueLearning from './learning/ContinueLearning';
 
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
 
@@ -44,6 +47,14 @@ const Dashboard: React.FC = () => {
     return () => controller.abort();
   }, [load]);
 
+  // The learning path to pick up, if any. A failure only leaves the card out: the dashboard is not about learning.
+  const [learning, setLearning] = useState<ReturnType<typeof pathToContinue>>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    getMyPaths(controller.signal).then(paths => setLearning(pathToContinue(paths))).catch(() => { /* no card */ });
+    return () => controller.abort();
+  }, []);
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const displayName = user?.name?.split(' ')[0] || 'there';
@@ -75,6 +86,8 @@ const Dashboard: React.FC = () => {
             <button type="button" onClick={() => { setError(null); load(); }} className="h-8 px-3 border border-[#ef4444]/40 text-xs font-semibold">Try again</button>
           </div>
         )}
+
+        {learning && <ContinueLearning path={learning.path} others={learning.others} />}
 
         {isEmpty ? (
           <section aria-labelledby="get-started-title" className="bg-[#11161b] border border-[#242527] p-8">

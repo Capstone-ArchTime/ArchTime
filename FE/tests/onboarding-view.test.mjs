@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   MAX_STEPS, STEP_KINDS, addOption, answerFeedback, assessmentNote, attentionText, checkDraft, draftFromPath, firstOpenStep, kindLabel,
-  learnerState, moveStep, newDraft, newStep, pathStatusTag, payloadFromDraft, problemsByStep, progressText, removeOption, stepProblemList, struggled,
+  learnerState, moveStep, newDraft, newStep, pathStatusTag, payloadFromDraft, problemsByStep, progressText, refGone, removeOption, stepProblemList, struggled,
 } from '../src/features/onboarding-view.ts';
 
 const revision = (commit = 'a'.repeat(40)) => ({ commit, snapshotId: 's1', workspaceRevision: 3, pinnedAt: '2026-10-20T00:00:00.000Z' });
@@ -26,13 +26,23 @@ test('the four kinds of step have a label each', () => {
 test('a step that still holds needs no note; one that may not says why', () => {
   assert.equal(assessmentNote(undefined), null);
   assert.equal(assessmentNote({ status: 'current', issues: [] }), null);
-  const outdated = assessmentNote({ status: 'outdated', issues: [{ code: 'MAP_CHANGED', message: 'x' }] });
+  const outdated = assessmentNote({ status: 'outdated', issues: [{ code: 'MAP_CHANGED', message: 'This component changed since the step was written.' }] });
   assert.equal(outdated.level, 'warning');
-  assert.match(outdated.text, /map changed/);
+  assert.equal(outdated.text, 'This component changed since the step was written. The step may describe it as it was.', 'what changed is the step\'s own subject');
+  assert.match(assessmentNote({ status: 'outdated', issues: [] }).text, /changed after it was written/);
+  const gone = assessmentNote({ status: 'missing', issues: [{ code: 'REF_GONE', message: 'The component this step is about is no longer in the component diagram.' }] });
+  assert.equal(gone.text, 'The component this step is about is no longer in the component diagram.');
   const missing = assessmentNote({ status: 'missing', issues: [{ code: 'COMMIT_GONE', message: 'Commit a1b2c3d is no longer in the repository history.' }, { code: 'MAP_CHANGED', message: 'map' }] });
   assert.equal(missing.level, 'error');
   assert.equal(missing.text, 'Commit a1b2c3d is no longer in the repository history.', 'the map change is not repeated here');
   assert.match(assessmentNote({ status: 'missing', issues: [] }).text, /no longer in the repository/);
+});
+
+test('a step whose component or decision was removed is told apart from other missing steps', () => {
+  assert.equal(refGone(undefined), false);
+  assert.equal(refGone({ status: 'current', issues: [] }), false);
+  assert.equal(refGone({ status: 'missing', issues: [{ code: 'COMMIT_GONE', message: 'gone' }] }), false);
+  assert.equal(refGone({ status: 'missing', issues: [{ code: 'REF_GONE', message: 'gone' }] }), true);
 });
 
 test('progress and answers are put into words', () => {
@@ -53,8 +63,8 @@ test('the first step still to do is found, and a finished path has none', () => 
 test('a mentor is told how many steps need attention, and only when some do', () => {
   assert.equal(attentionText({ outdatedSteps: 0, missingSteps: 0 }), '');
   assert.equal(attentionText({ outdatedSteps: 2, missingSteps: 0 }), '2 may be out of date');
-  assert.equal(attentionText({ outdatedSteps: 0, missingSteps: 1 }), '1 step point at a commit that is gone');
-  assert.equal(attentionText({ outdatedSteps: 1, missingSteps: 3 }), '3 steps point at a commit that is gone, 1 may be out of date');
+  assert.equal(attentionText({ outdatedSteps: 0, missingSteps: 1 }), '1 step points at something that is gone');
+  assert.equal(attentionText({ outdatedSteps: 1, missingSteps: 3 }), '3 steps point at something that is gone, 1 may be out of date');
   assert.deepEqual(pathStatusTag('published'), { color: 'green', label: 'Published' });
   assert.equal(pathStatusTag('draft').label, 'Draft');
 });

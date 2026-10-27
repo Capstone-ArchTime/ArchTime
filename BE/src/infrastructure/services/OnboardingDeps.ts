@@ -1,23 +1,38 @@
 import mongoose from "mongoose";
-import { assessStepRevision, type StepRevision, type StepRevisionAssessment } from "../../domain/onboarding/stepRevision.js";
+import { assessStepRevision } from "../../domain/onboarding/stepRevision.js";
+import { referenceFacts, type ReferenceWorkspace } from "../../domain/onboarding/stepReference.js";
 import { MemberStatus } from "../../domain/entities/ProjectMember.js";
 import type { IProjectMemberRepository } from "../../domain/interfaces/IProjectMemberRepository.js";
 import type { IOrganizationRepository } from "../../domain/interfaces/IOrganizationRepository.js";
-import type { OnboardingDeps } from "../../application/use-cases/onboarding/OnboardingPorts.js";
+import type { OnboardingDeps, WorkspaceFacts } from "../../application/use-cases/onboarding/OnboardingPorts.js";
 import { NotFoundError } from "../../shared/errors/AppError.js";
 import { ProjectModel } from "../database/models/ProjectModel.js";
 import { UserModel } from "../database/models/UserModel.js";
 import { WorkspaceModel } from "../database/models/WorkspaceModel.js";
 import { StepRevisionService } from "./StepRevisionService.js";
 
-/** StepRevisionService.check takes at most this many revisions at a time. */
-const CHECK_CHUNK = 200;
-
 const validIds = (ids: string[]) => [...new Set(ids)].filter(id => mongoose.isValidObjectId(id));
 
-async function workspaceRevisionOf(projectId: string): Promise<number | null> {
-  const ws = await WorkspaceModel.findOne({ projectId }).select("revision").lean();
-  return ws?.revision ?? null;
+/** Everything of the workspace a step can be about; rules and decision provenance are not needed. */
+const WORKSPACE_FIELDS = [
+  "revision", "diagram.components", "diagram.dependencies", "diagram.confirmedAt",
+  ...["id", "title", "status", "context", "decision", "alternatives", "consequences", "componentIds", "updatedAt"].map(f => `decisions.${f}`),
+].join(" ");
+
+async function loadWorkspace(projectId: string): Promise<WorkspaceFacts> {
+  const ws = await WorkspaceModel.findOne({ projectId }).select(WORKSPACE_FIELDS).lean();
+  const refs: ReferenceWorkspace = {
+    components: ws?.diagram?.components ?? [],
+    dependencies: ws?.diagram?.dependencies ?? [],
+    decisions: ws?.decisions ?? [],
+    confirmedAt: ws?.diagram?.confirmedAt ?? null,
+  };
+  return {
+    revision: ws?.revision ?? null,
+    componentIds: new Set(refs.components.map(c => c.id)),
+    adrIds: new Set(refs.decisions.map(d => d.id)),
+    refs,
+  };
 }
 
 /** The learning-path use cases' view of the rest of the system, backed by the real services and collections. */
@@ -33,40 +48,23 @@ export function createOnboardingDeps(
       } catch (error) {
         // A workspace nobody has mined yet has no snapshot to pin: the step is still tied to the map as it is now.
         if (!commit && error instanceof NotFoundError) {
-          return { revision: { commit: null, snapshotId: null, workspaceRevision: await workspaceRevisionOf(projectId), pinnedAt: new Date() } };
+          return { revision: { commit: null, snapshotId: null, workspaceRevision: (await loadWorkspace(projectId)).revision, pinnedAt: new Date() } };
         }
         throw error;
       }
     },
 
-    async assess(projectId, revisions) {
-      const results: StepRevisionAssessment[] = new Array(revisions.length);
-      const indexed = revisions.map((revision, index) => ({ revision, index }));
-      const pinnedToSnapshot = indexed.filter(({ revision }) => revision.commit || revision.snapshotId);
-      for (let start = 0; start < pinnedToSnapshot.length; start += CHECK_CHUNK) {
-        const chunk = pinnedToSnapshot.slice(start, start + CHECK_CHUNK);
-        const assessed = await StepRevisionService.check(projectId, chunk.map(({ revision }) => revision));
-        chunk.forEach(({ index }, i) => { results[index] = assessed[i]; });
-      }
-      // A step pinned before anything was mined has no commit to look for; only the map can have changed under it.
-      const unpinned = indexed.filter(({ revision }) => !revision.commit && !revision.snapshotId);
-      if (unpinned.length) {
-        const current = await workspaceRevisionOf(projectId);
-        for (const { revision, index } of unpinned) {
-          results[index] = assessStepRevision(revision as StepRevision, { snapshotExists: true, commitGone: false, currentWorkspaceRevision: current });
-        }
-      }
-      return results;
+    async assess(projectId, steps) {
+      if (!steps.length) return [];
+      // The commit of each step is looked up in the snapshots; what it is about, in the workspace as it is now.
+      const [facts, workspace] = await Promise.all([
+        StepRevisionService.facts(projectId, steps.map(step => step.revision)),
+        loadWorkspace(projectId),
+      ]);
+      return steps.map((step, i) => assessStepRevision(step.revision, { ...facts[i], reference: referenceFacts(step, workspace.refs) }));
     },
 
-    async workspace(projectId) {
-      const ws = await WorkspaceModel.findOne({ projectId }).select("revision diagram.components.id decisions.id").lean();
-      return {
-        revision: ws?.revision ?? null,
-        componentIds: new Set((ws?.diagram?.components ?? []).map(c => c.id)),
-        adrIds: new Set((ws?.decisions ?? []).map(d => d.id)),
-      };
-    },
+    workspace: loadWorkspace,
 
     async isMember(projectId, userId) {
       if (!mongoose.isValidObjectId(projectId)) return false;

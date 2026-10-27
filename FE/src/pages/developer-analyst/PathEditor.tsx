@@ -9,7 +9,7 @@ import { createPath, getCommitChoices, getPath, getWorkspaceRefs, savePath } fro
 import type { CommitChoice, MentorPath, StepAssessment, WorkspaceRefs } from '@/features/onboarding-api';
 import {
   MAX_STEPS, STEP_KINDS, addOption, assessmentNote, checkDraft, draftFromPath, kindLabel, moveStep, newDraft, newStep, payloadFromDraft,
-  problemsByStep, removeOption,
+  problemsByStep, refGone, removeOption,
 } from '@/features/onboarding-view';
 import type { DraftStep, FieldProblems, PathDraft } from '@/features/onboarding-view';
 
@@ -63,8 +63,12 @@ function StepEditor({ index, count, step, problems, assessment, refs, commits, o
     </div>
 
     {note && <Alert type={note.level} showIcon title={note.text}
-      description={step.kind === 'commit' && note.level === 'error' ? 'Choose another commit below to bring this step up to date.' : (
-        <Checkbox checked={step.repin} onChange={e => onChange({ repin: e.target.checked })}>Update this step to the current map when I save</Checkbox>)} />}
+      description={refGone(assessment)
+        ? `Choose another ${step.kind === 'component' ? 'component' : 'design decision'} below, or remove this step.`
+        : step.kind === 'commit' && note.level === 'error' ? 'Choose another commit below to bring this step up to date.' : (
+          <Checkbox checked={step.repin} onChange={e => onChange({ repin: e.target.checked })}>
+            {step.kind === 'component' || step.kind === 'adr' ? 'I have checked this step against the current version: mark it up to date when I save' : 'Update this step to the current map when I save'}
+          </Checkbox>)} />}
 
     <div>
       <Input aria-label={`Title of step ${n}`} placeholder="Title, for example: How billing is split from orders" maxLength={120} value={step.title} status={problems.title ? 'error' : undefined} onChange={e => onChange({ title: e.target.value })} />

@@ -20,13 +20,22 @@ Căn cứ: tài liệu tổng quan hệ thống 20/10/2026 (§3 khái niệm "On
 
 ## 2. Ghim vào revision
 
-Mỗi bước được ghim vào revision lúc soạn (commit đã mine, snapshot, revision của canonical map) bằng `StepRevisionService.pin`. Khi hiển thị, `check` cho từng bước một trong ba tình trạng:
+Mỗi bước được ghim vào revision lúc soạn (commit đã mine, snapshot, revision của canonical map) bằng `StepRevisionService.pin`. Bước component và bước adr còn lưu thêm **dấu vân tay** (`revision.fingerprint`) của chính thứ bước đó nói tới, lấy lúc ghim (khi tạo, khi sửa mà đổi thứ bước trỏ tới, và khi mentor ghim lại trong trình soạn):
+
+- bước component: tên, loại, mô tả của component, cùng các phụ thuộc đi vào và đi ra của nó trong canonical diagram (component ở đầu bên kia, tên của component đó, nhãn). Thứ tự lưu trong diagram và id của phụ thuộc không tính;
+- bước adr: tiêu đề, trạng thái, context, decision, alternatives, consequences và `componentIds` (không tính thứ tự) của quyết định.
+
+Dấu vân tay là SHA-256 (32 ký tự hex đầu) của các trường trên (`domain/onboarding/stepReference.ts`). Khi hiển thị, `assessStepRevision` cho từng bước một trong ba tình trạng:
 
 - `current`: còn đúng;
-- `outdated`: commit vẫn còn nhưng canonical map đã đổi revision;
-- `missing`: commit biến mất khỏi lịch sử (force-push, xóa nhánh) hoặc snapshot đã bị xóa.
+- `outdated` (mã `MAP_CHANGED`): **chính** component hoặc quyết định của bước đã đổi so với lúc ghim. Lưu một rule, một ADR khác, một component khác, hay xác nhận lại diagram không làm bước nào bị cờ: trước đây mọi lần lưu workspace đều tăng revision nên mọi bước đều bị cờ, làm việc ghim mất nghĩa;
+- `missing`: commit biến mất khỏi lịch sử (force-push, xóa nhánh, mã `COMMIT_GONE`), snapshot đã bị xóa (`SNAPSHOT_GONE`), hoặc component / quyết định của bước không còn trong workspace (`REF_GONE`; trước đây chỉ trang của người học ghi "no longer in the diagram", server không đếm vào `missingSteps`).
 
-Danh sách lộ trình của mentor cho biết mỗi lộ trình có bao nhiêu bước `outdated` và `missing`; người học cũng thấy cờ này ở từng bước. Bước đã có và không đổi thì giữ nguyên revision đã ghim và id khi mentor lưu lại; mentor đổi thứ bước trỏ tới, hoặc gửi `repin: true`, thì bước được ghim lại vào revision hiện tại. Giữ id nghĩa là tiến độ của người học không mất khi mentor sửa lộ trình.
+Bước question và bước commit không bao giờ `MAP_CHANGED`: câu hỏi không nói về thứ gì trong workspace, còn bước commit đã được `COMMIT_GONE` / `SNAPSHOT_GONE` lo. Revision của canonical map (`workspaceRevision`) vẫn được lưu để tham khảo nhưng không còn dùng để gắn cờ bước onboarding; không thể dùng `diagram.revision` thay thế vì server luôn đặt nó bằng revision của workspace (`MongoWorkspaceRepository.saveAt`). Kiểm tra chung `POST /api/projects/:id/revisions/check` (không biết vật liệu nói về gì) giữ nguyên cách cũ: canonical map đổi revision là `outdated`.
+
+**Bước lưu trước khi có dấu vân tay** (không có `fingerprint`) được xét theo thời điểm: bước adr là `outdated` khi `updatedAt` của quyết định sau `pinnedAt` của bước; bước component là `outdated` khi `diagram.confirmedAt` sau `pinnedAt`; không có mốc thời gian nào (diagram đang là nháp, quyết định không có `updatedAt`) thì coi là `current`. Cách này có thể báo thừa (xác nhận lại diagram làm mọi bước component cũ bị cờ) nhưng không bỏ sót một lần sửa có ghi thời điểm; mentor ghim lại bước một lần là bước có dấu vân tay và từ đó chỉ bị cờ khi chính nó đổi. Lưu lộ trình mà không ghim lại thì bước cũ vẫn giữ nguyên, không tự được gắn dấu vân tay, để không che mất một thay đổi đã xảy ra sau lúc ghim.
+
+Danh sách lộ trình của mentor cho biết mỗi lộ trình có bao nhiêu bước `outdated` và `missing`; người học cũng thấy cờ này ở từng bước, kèm lời giải thích cái gì đã đổi. Bước đã có và không đổi thì giữ nguyên revision đã ghim và id khi mentor lưu lại; mentor đổi thứ bước trỏ tới, hoặc gửi `repin: true`, thì bước được ghim lại vào revision hiện tại. Giữ id nghĩa là tiến độ của người học không mất khi mentor sửa lộ trình.
 
 Workspace chưa mine lần nào thì chưa có snapshot để ghim: bước component, adr và question vẫn lưu được, gắn với revision của canonical map hiện tại. Bước commit thì bắt buộc commit đã mine.
 
@@ -61,7 +70,7 @@ Tất cả đều cần đăng nhập. `:id` là id project.
 | GET | `/api/projects/:id/onboarding-paths/:pathId/assignments` | write | Tiến độ từng người, từng bước |
 | POST | `/api/projects/:id/onboarding-paths/:pathId/assignments` | write | Giao cho `userIds` (lộ trình đã công bố, người nhận phải là thành viên project) |
 | DELETE | `/api/projects/:id/onboarding-paths/:pathId/assignments/:userId` | write | Thu hồi (mất tiến độ của người đó) |
-| GET | `/api/onboarding/me` | đăng nhập | Các lộ trình được giao cho tôi, ở các project tôi còn là thành viên, kèm tiến độ |
+| GET | `/api/onboarding/me` | đăng nhập | Các lộ trình được giao cho tôi, ở các project tôi còn là thành viên, kèm tiến độ và `nextStep: { id, title, kind, index }` (bước đầu tiên chưa xong theo thứ tự của lộ trình; `null` khi đã xong hết) |
 | GET | `/api/projects/:id/onboarding-paths/:pathId/mine` | read + được giao | Lộ trình như người học thấy, kèm tiến độ của riêng tôi |
 | POST | `/api/projects/:id/onboarding-paths/:pathId/steps/:stepId/complete` | read + được giao | Đánh dấu một bước đã học xong (không dùng cho câu hỏi) |
 | POST | `/api/projects/:id/onboarding-paths/:pathId/steps/:stepId/answer` | read + được giao | Trả lời câu hỏi (`{ choice }`); đúng thì bước xong |
@@ -70,7 +79,7 @@ Lỗi dữ liệu trả 400 `VALIDATION_ERROR` kèm `fields` theo từng trườ
 
 ## 5. Dữ liệu
 
-- `onboardingpaths`: `projectId, title, description, status, steps[{ id, kind, title, body, componentId?, adrId?, commitTitle?, question?, revision }], revision, createdBy, updatedBy, createdAt, updatedAt`. Index `{ projectId: 1, updatedAt: -1 }`.
+- `onboardingpaths`: `projectId, title, description, status, steps[{ id, kind, title, body, componentId?, adrId?, commitTitle?, question?, revision: { commit, snapshotId, workspaceRevision, pinnedAt, fingerprint? } }], revision, createdBy, updatedBy, createdAt, updatedAt`. Index `{ projectId: 1, updatedAt: -1 }`. `fingerprint` chỉ có ở bước component / adr ghim từ khi có tính năng này (§2).
 - `onboardingassignments`: `projectId, pathId, userId, assignedBy, assignedAt, progress, updatedAt`; `progress` là một đối tượng theo id bước: `{ attempts?, lastChoice?, completedAt? }`. Index duy nhất `{ pathId: 1, userId: 1 }` và `{ userId: 1, updatedAt: -1 }`.
 - Mỗi thao tác ghi tiến độ là một lệnh ghi nguyên tử trên đúng một khóa của bước (`$inc` số lần thử, `$set` thời điểm xong khi chưa có), nên bấm hai lần hoặc hai yêu cầu cùng lúc không làm hỏng dữ liệu; lần hoàn thành đầu tiên được giữ.
 - Lưu lộ trình dùng kiểm tra revision và ghi trong một lệnh (`findOneAndUpdate` có điều kiện revision), như workspace: hai mentor cùng sửa thì chỉ người lưu trước thắng, người sau nhận 409 và không mất gì.
@@ -91,12 +100,15 @@ Mục "Learning" trong thanh điều hướng của mọi tài khoản đăng nh
 
 | Đường dẫn | Dành cho | Nội dung |
 |---|---|---|
-| `/learning` (tab "My learning") | người học | Các lộ trình được giao cho tôi, tiến độ của riêng tôi, nút Start / Continue / Review |
-| `/learning/:projectId/:pathId` | người học | Từng bước: đọc ghi chú của mentor, xem component / commit / quyết định thiết kế (kèm liên kết sang bản đồ kiến trúc và trang evidence), đánh dấu "xong", trả lời câu hỏi; bước có thể đã cũ được gắn cờ |
-| `/learning?tab=manage` (tab "Manage paths") | mentor | Chọn workspace mình có quyền ghi (`GET /api/projects?scope=managed`), bảng lộ trình với số người, số người xong, số bước cần cập nhật; mở hộp thoại "People" để giao lộ trình và xem tiến độ từng người, từng bước (ô vuông xanh: xong, đỏ: thử từ 3 lần vẫn chưa xong) |
+| `/learning` (tab "My learning") | người học | Thẻ "Continue learning" ở trên cùng (lộ trình chưa xong được động tới gần nhất: tên, workspace, tiến độ, "Next: bước tiếp theo", nút mở thẳng bước đó), rồi các lộ trình được giao cho tôi, tiến độ của riêng tôi, bước tiếp theo, nút Start / Continue / Review |
+| `/dashboard` | người học | Cùng thẻ "Continue learning" (kèm số lộ trình còn dở khác); không có gì khi chưa được giao lộ trình nào hoặc đã học xong hết |
+| `/learning/:projectId/:pathId` (`?step=<id>` mở và cuộn tới một bước) | người học | Từng bước: đọc ghi chú của mentor; bước component có mô tả, các component nó phụ thuộc và phụ thuộc vào nó (tên, nhãn), các ADR Accepted có nhắc tới nó; bước adr có context, decision, alternatives, consequences, trạng thái, các component liên quan và nguồn (commit dẫn sang trang evidence, còn snapshot / evidence / approval chỉ là chữ vì hàng đợi phê duyệt chỉ dành cho maintainer); tên component / ADR có bước riêng trong lộ trình thì bấm để mở bước đó. Mỗi bước có nút "Ask the AI mentor about this" mở `/insights?projectId=&q=`: trang AI Insights chọn sẵn workspace và điền sẵn câu hỏi về component / ADR / commit đó **mà không gửi** (bước câu hỏi thì xin gợi ý, không xin đáp án). Đánh dấu "xong", trả lời câu hỏi; bước có thể đã cũ được gắn cờ kèm lý do. Tất cả dữ liệu lấy từ `GET /api/projects/:id/workspace` (quyền `read`) |
+| `/learning?tab=manage` (tab "Manage paths") | mentor | Chỉ hiện với người là maintainer của ít nhất một workspace (`useMaintainsWorkspaces`; lúc chưa biết thì chỉ hiện khi đường dẫn có `?tab=manage`). Chọn workspace mình có quyền ghi (`GET /api/projects?scope=managed`), bảng lộ trình với số người, số người xong, số bước cần cập nhật; mở hộp thoại "People" để giao lộ trình và xem tiến độ từng người, từng bước (ô vuông xanh: xong, đỏ: thử từ 3 lần vẫn chưa xong) |
 | `/learning/manage/:projectId/new` và `/learning/manage/:projectId/:pathId` | mentor | Trình soạn: tiêu đề, mô tả, nháp hoặc công bố, các bước (chọn component, commit, quyết định thiết kế từ chính workspace; câu hỏi có nhiều đáp án và đáp án đúng), đổi thứ tự, xóa, ghim lại vào revision hiện tại; lưu có kiểm tra revision và hỏi trước khi bỏ bản nháp để tải bản mới khi bị xung đột |
 
-Trang mentor không có nút nào dẫn tới người không có quyền ghi: tab "Manage paths" của họ chỉ báo chưa phải maintainer của workspace nào, và mở thẳng đường dẫn trình soạn thì nhận 403 từ server.
+Trang mentor không có nút nào dẫn tới người không có quyền ghi: người không là maintainer của workspace nào không thấy tab "Manage paths", và mở thẳng đường dẫn trình soạn thì nhận 403 từ server. Ẩn tab chỉ là giao diện; server vẫn kiểm tra mọi yêu cầu.
+
+Trong trình soạn, bước bị cờ `outdated` có ô "I have checked this step against the current version: mark it up to date when I save" (gửi `repin: true`); bước `REF_GONE` thì không ghim lại được, mentor chọn component / quyết định khác hoặc xóa bước.
 
 ## 8. Chưa làm
 

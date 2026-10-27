@@ -17,7 +17,15 @@ export function summarizeProgress(path: Pick<IOnboardingPath, "steps">, progress
   return { done, total, percent: total ? Math.round((done / total) * 100) : 0 };
 }
 
-export const isCorrectAnswer = (question: IOnboardingQuestion, choice: number): boolean => choice === question.correctIndex;
+/** Where the learner picks up: the first step of the path not done yet, or null when every step is done (or there are none). */
+export function nextStep(path: Pick<IOnboardingPath, "steps">, progress: Record<string, IStepProgress> | undefined) {
+  const index = path.steps.findIndex(step => !progress?.[step.id]?.completedAt);
+  if (index < 0) return null;
+  const step = path.steps[index];
+  return { id: step.id, title: step.title, kind: step.kind, index };
+}
+
+export const isCorrectAnswer =(question: IOnboardingQuestion, choice: number): boolean => choice === question.correctIndex;
 
 /** The progress of every step of the path, in order, for the person it belongs to (and the mentors who assigned it). */
 export function stepProgressList(path: Pick<IOnboardingPath, "steps">, progress: Record<string, IStepProgress> | undefined) {
