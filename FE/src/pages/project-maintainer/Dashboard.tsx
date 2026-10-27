@@ -87,7 +87,7 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#161d24] border border-[#242527] mb-4">
             <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] shadow-[0_0_5px_#3b82f6]"></div>
-            <span className="text-[10px] text-[#3b82f6] tracking-wider font-semibold uppercase" style={{ fontFamily: fontFamily.mono }}>
+            <span className="text-[10px] text-[#93c5fd] tracking-wider font-semibold uppercase" style={{ fontFamily: fontFamily.mono }}>
               Project Maintainer Workspace
             </span>
           </div>
@@ -128,8 +128,8 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
               className="group border border-[#242527] bg-[#11161b] p-5 hover:border-[#3b82f6] focus-visible:outline focus-visible:outline-[#3b82f6] transition-colors"
             >
               <div className="flex justify-between gap-3">
-                <h3 className="font-semibold text-sm group-hover:text-[#3b82f6]">{item.title}</h3>
-                <ArrowRight size={16} className="text-[#3b82f6] shrink-0" />
+                <h3 className="font-semibold text-sm group-hover:text-[#93c5fd]">{item.title}</h3>
+                <ArrowRight size={16} className="text-[#93c5fd] shrink-0" />
               </div>
               <p className="text-xs text-[#94a3b8] leading-relaxed mt-3">{item.description}</p>
             </Link>
@@ -142,7 +142,7 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
           <>
             <section>
               <div className="mb-6 flex items-center gap-2">
-                <ShieldCheck size={18} className="text-[#3b82f6]" />
+                <ShieldCheck size={18} className="text-[#93c5fd]" />
                 <h3 className="text-xl font-bold text-[#f4f4f6] tracking-tight">{dashboard.project.name}</h3>
               </div>
 
@@ -185,7 +185,7 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
                 <h3 className="text-xl font-bold text-[#f4f4f6] tracking-tight">Pending Approvals</h3>
                 <p className="text-sm text-[#94a3b8] mt-1">Recent architectural change requests.</p>
               </div>
-              <Link to="/project-maintainer/approvals" className="text-sm text-[#3b82f6]">View all →</Link>
+              <Link to="/project-maintainer/approvals" className="text-sm text-[#93c5fd]">View all →</Link>
             </div>
 
             {approvals.length === 0 ? (
@@ -235,7 +235,7 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
                 <h3 className="text-xl font-bold text-[#f4f4f6] tracking-tight">Team</h3>
                 <p className="text-sm text-[#94a3b8] mt-1">Members on this workspace.</p>
               </div>
-              <Link to="/project-maintainer/team" className="text-sm text-[#3b82f6]">Manage →</Link>
+              <Link to="/project-maintainer/team" className="text-sm text-[#93c5fd]">Manage →</Link>
             </div>
 
             {team.length === 0 ? (
@@ -261,7 +261,7 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
                 ))}
                 <Link
                   to="/project-maintainer/team"
-                  className="border border-dashed border-[#242527] hover:border-[#3b82f6]/50 p-4 flex flex-col items-center justify-center gap-2 text-[#94a3b8] hover:text-[#3b82f6] transition-colors"
+                  className="border border-dashed border-[#242527] hover:border-[#3b82f6]/50 p-4 flex flex-col items-center justify-center gap-2 text-[#94a3b8] hover:text-[#93c5fd] transition-colors"
                 >
                   <UserPlus size={18} />
                   <span className="text-[10px] uppercase tracking-widest" style={{ fontFamily: fontFamily.mono }}>Invite</span>

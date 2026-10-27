@@ -62,7 +62,7 @@ export default function Organizations() {
             {organizations.map(o => (
               <Link key={o.id} to={`/organizations/${encodeURIComponent(o.id)}`} className={`${featurePanel} block hover:border-[#3b82f6]/60 transition-colors`} aria-label={o.name}>
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="flex items-center gap-2 font-semibold break-words"><Building2 size={16} className="text-[#3b82f6] shrink-0" />{o.name}</h3>
+                  <h3 className="flex items-center gap-2 font-semibold break-words"><Building2 size={16} className="text-[#93c5fd] shrink-0" />{o.name}</h3>
                   <Tag color={o.myRole === 'owner' ? 'blue' : undefined}>{o.myRole === 'owner' ? 'Owner' : 'Member'}</Tag>
                 </div>
                 {o.description && <p className="mt-2 text-sm text-[#94a3b8] line-clamp-2">{o.description}</p>}

@@ -50,10 +50,10 @@ const ProjectDetail: React.FC = () => {
     return (
       <DashboardLayout title="Workspace details">
         <div className="max-w-xl mx-auto mt-16 bg-[#11161b] border border-[#242527] p-8 text-center">
-          <FolderGit2 size={28} className="text-[#3b82f6] mx-auto mb-4" aria-hidden="true" />
+          <FolderGit2 size={28} className="text-[#93c5fd] mx-auto mb-4" aria-hidden="true" />
           <h2 className="text-lg font-bold text-[#f4f4f6] mb-2">Choose a workspace</h2>
           <p className="text-sm text-[#94a3b8] mb-6">Open a workspace from the list to see its repository, mining progress and recent structural changes.</p>
-          <Link to="/projects" className="inline-flex h-10 px-5 bg-[#3b82f6] hover:bg-[#60a5fa] text-[#080b0e] font-bold text-xs items-center">Go to workspaces</Link>
+          <Link to="/projects" className="inline-flex h-10 px-5 bg-[#1d4ed8] hover:bg-[#1e40af] text-white font-bold text-xs items-center">Go to workspaces</Link>
         </div>
       </DashboardLayout>
     );
@@ -80,7 +80,7 @@ const ProjectDetail: React.FC = () => {
           </div>
         )}
         {!w ? (
-          !error && <div className="flex items-center justify-center p-16"><Loader2 size={24} className="animate-spin text-[#3b82f6]" aria-label="Loading workspace" /></div>
+          !error && <div className="flex items-center justify-center p-16"><Loader2 size={24} className="animate-spin text-[#93c5fd]" aria-label="Loading workspace" /></div>
         ) : (
           <>
             <div className="shrink-0 space-y-6 pt-2">
@@ -88,14 +88,14 @@ const ProjectDetail: React.FC = () => {
                 <div className="flex items-center gap-2 mb-2 text-sm font-mono text-[#94a3b8]" style={mono}>
                   <Link to="/projects" className="hover:text-[#f4f4f6] transition-colors">Workspaces</Link>
                   <span aria-hidden="true">/</span>
-                  <span className="text-[#3b82f6]">{w.name}</span>
+                  <span className="text-[#93c5fd]">{w.name}</span>
                 </div>
                 <h2 className="text-4xl font-bold tracking-tight text-[#f4f4f6] mb-2 break-words">{w.name}</h2>
                 <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
                   {w.description || 'No description was given when this workspace was created.'}
                 </p>
                 {w.repoUrl && (
-                  <a href={w.repoUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-xs font-mono text-[#3b82f6] hover:underline break-all" style={mono}>
+                  <a href={w.repoUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-xs font-mono text-[#93c5fd] hover:underline break-all" style={mono}>
                     {w.repoUrl} <ExternalLink size={12} aria-hidden="true" />
                   </a>
                 )}
@@ -110,7 +110,7 @@ const ProjectDetail: React.FC = () => {
             </div>
 
             <nav aria-label="Workspace views" className="mt-8 border-b border-[#242527] flex gap-8 overflow-x-auto custom-scrollbar">
-              <span aria-current="page" className="pb-3 border-b-2 border-[#3b82f6] text-[#3b82f6] font-bold text-xs tracking-wider uppercase whitespace-nowrap">Overview</span>
+              <span aria-current="page" className="pb-3 border-b-2 border-[#3b82f6] text-[#93c5fd] font-bold text-xs tracking-wider uppercase whitespace-nowrap">Overview</span>
               {tabs.map(t => (
                 <Link key={t.label} to={t.to} className="pb-3 border-b-2 border-transparent hover:border-[#5f636b] text-[#94a3b8] hover:text-[#f4f4f6] font-bold text-xs tracking-wider uppercase whitespace-nowrap transition-colors">{t.label}</Link>
               ))}
@@ -124,7 +124,7 @@ const ProjectDetail: React.FC = () => {
                       <h3 id="next-step-title" className="text-sm font-bold text-[#f4f4f6] tracking-wide uppercase mb-1">Next step: {step.label}</h3>
                       <p className="text-xs text-[#94a3b8] leading-relaxed">{step.hint}</p>
                     </div>
-                    {step.action !== 'wait' && <Link to={step.to} className="shrink-0 h-9 px-4 bg-[#3b82f6] hover:bg-[#60a5fa] text-[#080b0e] text-xs font-bold flex items-center gap-2">
+                    {step.action !== 'wait' && <Link to={step.to} className="shrink-0 h-9 px-4 bg-[#1d4ed8] hover:bg-[#1e40af] text-white text-xs font-bold flex items-center gap-2">
                       {step.action === 'open' ? 'Open architecture' : 'Go to workspaces'} <ArrowRight size={14} aria-hidden="true" />
                     </Link>}
                   </section>
@@ -136,11 +136,11 @@ const ProjectDetail: React.FC = () => {
                   </div>
                   {data.latest ? (
                     <div className="p-5 space-y-3">
-                      <div className="flex items-center gap-2 text-sm font-mono text-[#3b82f6]" style={mono}><GitCommit size={14} aria-hidden="true" /> {data.latest.hash}</div>
+                      <div className="flex items-center gap-2 text-sm font-mono text-[#93c5fd]" style={mono}><GitCommit size={14} aria-hidden="true" /> {data.latest.hash}</div>
                       <p className="text-sm font-bold text-[#f4f4f6]">{data.latest.title}</p>
                       <p className="text-xs text-[#94a3b8]">{data.latest.author || 'Unknown author'} · {new Date(data.latest.date).toLocaleDateString()}</p>
                       <p className="text-xs text-[#94a3b8]">{data.latest.modules} modules and {data.latest.dependencies} dependencies recorded at this commit.</p>
-                      <Link to={`/compare?${q}`} className="inline-flex items-center gap-1 text-xs font-bold text-[#3b82f6] hover:underline">Compare with an earlier commit <ArrowRight size={12} aria-hidden="true" /></Link>
+                      <Link to={`/compare?${q}`} className="inline-flex items-center gap-1 text-xs font-bold text-[#93c5fd] hover:underline">Compare with an earlier commit <ArrowRight size={12} aria-hidden="true" /></Link>
                     </div>
                   ) : (
                     <p className="p-5 text-sm text-[#94a3b8]">No commits have been mined yet. Once mining stores a commit, its modules and dependencies show here.</p>
@@ -162,7 +162,7 @@ const ProjectDetail: React.FC = () => {
                               <span className="text-[#ffb03a]">{c.hash}</span>
                               <span>{new Date(c.date).toLocaleDateString()}</span>
                             </div>
-                            <div className="text-sm font-bold text-[#f4f4f6] group-hover:text-[#3b82f6] transition-colors line-clamp-2">{c.title}</div>
+                            <div className="text-sm font-bold text-[#f4f4f6] group-hover:text-[#93c5fd] transition-colors line-clamp-2">{c.title}</div>
                             <div className="text-[10px] font-mono text-[#94a3b8] mt-1" style={mono}>+{c.depAdded} / −{c.depRemoved} dependencies</div>
                           </Link>
                         </li>

@@ -63,7 +63,7 @@ export default function ManagePaths() {
   }
 
   const columns: ColumnsType<PathSummary> = [
-    { title: 'Path', render: (_, p) => <span><Link to={`/learning/manage/${encodeURIComponent(projectId)}/${encodeURIComponent(p.id)}`} className="font-medium text-[#3b82f6]">{p.title}</Link>{p.description && <span className="block text-[11px] text-[#94a3b8] line-clamp-1">{p.description}</span>}</span> },
+    { title: 'Path', render: (_, p) => <span><Link to={`/learning/manage/${encodeURIComponent(projectId)}/${encodeURIComponent(p.id)}`} className="font-medium text-[#93c5fd]">{p.title}</Link>{p.description && <span className="block text-[11px] text-[#94a3b8] line-clamp-1">{p.description}</span>}</span> },
     { title: 'Status', render: (_, p) => { const tag = pathStatusTag(p.status); return <Tag color={tag.color}>{tag.label}</Tag>; } },
     { title: 'Steps', dataIndex: 'stepCount', align: 'right' },
     { title: 'People', dataIndex: 'assigned', align: 'right' },

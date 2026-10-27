@@ -63,7 +63,7 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
     title: 'Sign out of ArchTime?', content: 'Save any edits before signing out. Unsaved changes will be lost.',
     okText: 'Sign out', cancelText: 'Stay signed in', onOk: signOut,
   });
-  const linkClass = (active: boolean) => `flex items-center gap-3 rounded-md border px-3 py-3 text-sm transition-colors ${active ? 'border-[#3b82f6]/30 bg-[#3b82f6]/10 text-[#60a5fa]' : 'border-transparent text-[#94a3b8] hover:bg-[#161d24] hover:text-white'}`;
+  const linkClass = (active: boolean) => `flex items-center gap-3 rounded-md border px-3 py-3 text-sm transition-colors ${active ? 'border-[#3b82f6]/30 bg-[#3b82f6]/10 text-[#93c5fd]' : 'border-transparent text-[#94a3b8] hover:bg-[#161d24] hover:text-white'}`;
   const renderLink = (item: NavGroup['items'][number]) => {
     const active = currentItem?.path === item.path;
     const Icon = item.icon;
@@ -80,7 +80,7 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
       const GroupIcon = group.icon;
       return <div key={label} role="group" aria-label={label} className="space-y-1">
         <button type="button" aria-expanded={open} onClick={() => toggleGroup(label, !open)}
-          className={`flex w-full items-center gap-3 rounded-md border border-transparent px-3 py-3 text-sm transition-colors hover:bg-[#161d24] hover:text-white ${holdsCurrent && !open ? 'text-[#60a5fa]' : 'text-[#94a3b8]'}`}>
+          className={`flex w-full items-center gap-3 rounded-md border border-transparent px-3 py-3 text-sm transition-colors hover:bg-[#161d24] hover:text-white ${holdsCurrent && !open ? 'text-[#93c5fd]' : 'text-[#94a3b8]'}`}>
           {GroupIcon && <GroupIcon size={17} aria-hidden="true" />}<span>{label}</span>
           <ChevronDown size={15} aria-hidden="true" className={`ml-auto transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
@@ -93,7 +93,7 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
     <a href="#main-content" className="skip-link">Skip to main content</a>
     <aside className="hidden lg:flex w-64 flex-col shrink-0 border-r border-[#242527] bg-[#0c1015]">
       <Link to={homePath} className="px-6 pt-7 pb-6 block" aria-label="ArchTime workspace home">
-        <span className="text-xl font-semibold tracking-tight">Arch<span className="text-[#3b82f6]">Time</span></span>
+        <span className="text-xl font-semibold tracking-tight">Arch<span className="text-[#93c5fd]">Time</span></span>
         <span className="block text-[10px] uppercase tracking-[0.18em] text-[#94a3b8] mt-2">Architecture Observatory</span>
       </Link>
       <div className="px-3 py-4 flex-1 overflow-y-auto"><p className="px-3 mb-3 text-[10px] uppercase tracking-widest text-[#94a3b8]">{navHeadingByRole[user.role]}</p>{navigation}</div>
@@ -117,7 +117,7 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
             { type: 'divider' as const },
             { key: 'sign-out', label: 'Sign out', onClick: logout },
           ] }}>
-            <button type="button" aria-label="Account menu" className="h-10 w-10 flex items-center justify-center rounded-full bg-[#161d24] border border-[#242527] text-[#60a5fa]"><User size={18} /></button>
+            <button type="button" aria-label="Account menu" className="h-10 w-10 flex items-center justify-center rounded-full bg-[#161d24] border border-[#242527] text-[#93c5fd]"><User size={18} /></button>
           </Dropdown>
         </div>
       </header>

@@ -159,7 +159,7 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
               onClick={() => setActiveFilter(opt.key)}
               className={`h-8 px-3 text-[10px] font-bold uppercase tracking-widest border transition-colors ${
                 activeFilter === opt.key
-                  ? 'bg-[#3b82f6]/10 border-[#3b82f6]/40 text-[#3b82f6]'
+                  ? 'bg-[#3b82f6]/10 border-[#3b82f6]/40 text-[#93c5fd]'
                   : 'bg-[#161d24] border-[#242527] text-[#94a3b8] hover:text-[#f4f4f6]'
               }`}
               style={{ fontFamily: fontFamily.mono }}

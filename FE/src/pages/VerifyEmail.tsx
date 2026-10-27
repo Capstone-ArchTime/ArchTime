@@ -64,7 +64,7 @@ export default function VerifyEmail() {
 
   return <main className="min-h-dvh bg-[#080b0e] flex items-center justify-center p-5">
     <div className="w-full max-w-md"><Logo className="mb-10" /><div className="border border-[#242527] bg-[#11161b] p-6 sm:p-8 rounded-lg">
-      <MailCheck size={30} className="text-[#3b82f6] mb-5" aria-hidden="true" /><h1 className="text-2xl font-semibold mb-3">Verify your email</h1>
+      <MailCheck size={30} className="text-[#93c5fd] mb-5" aria-hidden="true" /><h1 className="text-2xl font-semibold mb-3">Verify your email</h1>
       <p className="text-sm text-[#94a3b8] leading-relaxed mb-6">Enter the six-digit code sent to your email to activate your account.</p>
       {error && <Alert type="error" showIcon title={error} className="mb-5" role="alert" />}
       <Form form={form} layout="vertical" requiredMark={false} initialValues={{ email: initialEmail }} onFinish={() => void submit(false)}>

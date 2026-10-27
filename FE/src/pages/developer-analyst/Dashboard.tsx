@@ -62,7 +62,7 @@ const Dashboard: React.FC = () => {
               </p>
             </div>
             <Link to="/projects" className="shrink-0 h-10 px-5 bg-[#161d24] hover:bg-[#242527] border border-[#242527] text-[#f4f4f6] font-medium text-xs transition-colors flex items-center gap-2">
-              <FolderGit2 size={16} className="text-[#3b82f6]" aria-hidden="true" />
+              <FolderGit2 size={16} className="text-[#93c5fd]" aria-hidden="true" />
               {isEmpty ? 'Create a workspace' : 'Open workspaces'}
             </Link>
           </div>
@@ -83,7 +83,7 @@ const Dashboard: React.FC = () => {
             <ol className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
               {GET_STARTED.map(({ icon: Icon, title, text }, i) => (
                 <li key={title} className="bg-[#161d24] border border-[#242527] p-5">
-                  <div className="flex items-center gap-2 mb-3 text-[#3b82f6]">
+                  <div className="flex items-center gap-2 mb-3 text-[#93c5fd]">
                     <span className="text-[10px] font-mono font-bold" style={mono}>{String(i + 1).padStart(2, '0')}</span>
                     <Icon size={16} aria-hidden="true" />
                   </div>
@@ -93,11 +93,11 @@ const Dashboard: React.FC = () => {
               ))}
             </ol>
             <div className="flex flex-wrap gap-3">
-              <Link to="/projects" className="h-10 px-5 bg-[#3b82f6] hover:bg-[#60a5fa] text-[#080b0e] font-bold text-xs flex items-center gap-2">
+              <Link to="/projects" className="h-10 px-5 bg-[#1d4ed8] hover:bg-[#1e40af] text-white font-bold text-xs flex items-center gap-2">
                 <Plus size={16} aria-hidden="true" /> Create your first workspace
               </Link>
               <Link to="/workspace/sample/shophub" className="h-10 px-5 bg-[#161d24] hover:bg-[#242527] border border-[#242527] text-[#f4f4f6] text-xs font-medium flex items-center gap-2">
-                <Eye size={16} className="text-[#3b82f6]" aria-hidden="true" /> Explore a sample workspace
+                <Eye size={16} className="text-[#93c5fd]" aria-hidden="true" /> Explore a sample workspace
               </Link>
             </div>
           </section>
@@ -117,10 +117,10 @@ const Dashboard: React.FC = () => {
                     <h3 id="next-steps-title" className="text-xl font-bold text-[#f4f4f6] tracking-tight">Your workspaces</h3>
                     <p className="text-sm text-[#94a3b8] mt-1">Each one shows what to do next.</p>
                   </div>
-                  <Link to="/projects" className="text-xs text-[#3b82f6] hover:underline">View all</Link>
+                  <Link to="/projects" className="text-xs text-[#93c5fd] hover:underline">View all</Link>
                 </div>
                 {data === null ? (
-                  !error && <div className="flex items-center justify-center p-8"><Loader2 size={24} className="animate-spin text-[#3b82f6]" aria-label="Loading" /></div>
+                  !error && <div className="flex items-center justify-center p-8"><Loader2 size={24} className="animate-spin text-[#93c5fd]" aria-label="Loading" /></div>
                 ) : (
                   <ul className="space-y-3">
                     {data.workspaces.slice(0, 5).map(w => {
@@ -128,14 +128,14 @@ const Dashboard: React.FC = () => {
                       return (
                         <li key={w.id} className="bg-[#11161b] border border-[#242527] p-4 flex flex-col sm:flex-row sm:items-center gap-4">
                           <div className="flex-1 min-w-0">
-                            <Link to={`/project?projectId=${encodeURIComponent(w.id)}`} className="text-[#f4f4f6] text-sm font-bold hover:text-[#3b82f6] truncate block">{w.name}</Link>
+                            <Link to={`/project?projectId=${encodeURIComponent(w.id)}`} className="text-[#f4f4f6] text-sm font-bold hover:text-[#93c5fd] truncate block">{w.name}</Link>
                             <div className="flex flex-wrap items-center gap-3 text-[10px] font-mono text-[#94a3b8] mt-1" style={mono}>
                               <span>{STATUS_LABELS[w.status]}</span>
                               {w.totalCommits !== null && <><span aria-hidden="true">•</span><span>{w.totalCommits} commits</span></>}
                             </div>
                             <p className="text-xs text-[#94a3b8] mt-2">{step.hint}</p>
                           </div>
-                          <Link to={step.to} className="shrink-0 h-9 px-4 bg-[#161d24] hover:bg-[#242527] border border-[#242527] text-[#3b82f6] text-xs font-semibold flex items-center gap-2">
+                          <Link to={step.to} className="shrink-0 h-9 px-4 bg-[#161d24] hover:bg-[#242527] border border-[#242527] text-[#93c5fd] text-xs font-semibold flex items-center gap-2">
                             {step.label} <ArrowRight size={14} aria-hidden="true" />
                           </Link>
                         </li>
@@ -151,7 +151,7 @@ const Dashboard: React.FC = () => {
                   <p className="text-sm text-[#94a3b8] mt-1">Scans and mining runs you started.</p>
                 </div>
                 {data && data.jobs.length === 0 ? (
-                  <p className="bg-[#11161b] border border-[#242527] p-6 text-sm text-[#94a3b8]">No jobs yet. Open <Link to="/projects" className="text-[#3b82f6] hover:underline">Workspaces</Link> and choose Manage mining.</p>
+                  <p className="bg-[#11161b] border border-[#242527] p-6 text-sm text-[#94a3b8]">No jobs yet. Open <Link to="/projects" className="text-[#93c5fd] hover:underline">Workspaces</Link> and choose Manage mining.</p>
                 ) : (
                   <ul className="space-y-3">
                     {data?.jobs.map(job => (

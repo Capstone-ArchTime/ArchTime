@@ -38,7 +38,7 @@ function WorkspacesTab({ organization }: { organization: Organization }) {
       <ul className={`${featurePanel} divide-y divide-[#242527]`} aria-label="Workspaces">
         {list.map(w => (
           <li key={w.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-            <Link to={`/workspace/${encodeURIComponent(w.id)}`} className="font-medium hover:text-[#3b82f6] break-words">{w.name}</Link>
+            <Link to={`/workspace/${encodeURIComponent(w.id)}`} className="font-medium hover:text-[#93c5fd] break-words">{w.name}</Link>
             <Tag>{ROLE_LABELS[w.userRole] ?? w.userRole}</Tag>
           </li>
         ))}
@@ -88,7 +88,7 @@ export default function OrganizationDetail() {
     }
   }
 
-  const back = <Link to="/organizations" className="inline-flex items-center gap-1 text-sm text-[#94a3b8] hover:text-[#3b82f6]"><ArrowLeft size={14} />All organizations</Link>;
+  const back = <Link to="/organizations" className="inline-flex items-center gap-1 text-sm text-[#94a3b8] hover:text-[#93c5fd]"><ArrowLeft size={14} />All organizations</Link>;
 
   if (error || !organization || !user) {
     return (
@@ -113,7 +113,7 @@ export default function OrganizationDetail() {
       }
     >
       <div className="flex flex-wrap items-center gap-2 text-sm text-[#94a3b8]">
-        <Building2 size={16} className="text-[#3b82f6]" />
+        <Building2 size={16} className="text-[#93c5fd]" />
         <Tag color={owner ? 'blue' : undefined}>{owner ? 'You are an owner' : 'You are a member'}</Tag>
         <span>{organization.memberCount} {organization.memberCount === 1 ? 'member' : 'members'}</span>
       </div>

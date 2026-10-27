@@ -77,7 +77,7 @@ export default function MiningJobsMonitor() {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-semibold mb-1">Default AI Model for Mining</h3>
-          <p className="text-xs text-[#94a3b8]">Used when a user does not pick a model for AI architecture refinement. Manage models under <Link to="/system-administrator/ai-models" className="text-[#3b82f6]">AI Models</Link>.</p>
+          <p className="text-xs text-[#94a3b8]">Used when a user does not pick a model for AI architecture refinement. Manage models under <Link to="/system-administrator/ai-models" className="text-[#93c5fd]">AI Models</Link>.</p>
           {aiError && <p role="alert" className="text-xs text-red-400 mt-1">{aiError}</p>}
           {!aiError && !aiModels.length && <p className="text-xs text-[#94a3b8] mt-1">No AI model is configured.</p>}
         </div>

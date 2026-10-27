@@ -207,7 +207,7 @@ export default function PathEditor() {
     modal.confirm({ title: 'Load the latest version?', content: 'Your unsaved changes will be discarded. Copy anything you want to keep before continuing.', okText: 'Discard and load latest', okButtonProps: { danger: true }, onOk: reload });
   }
 
-  const back = <Link to={`/learning?tab=manage&workspace=${encodeURIComponent(projectId)}`} className="inline-flex items-center gap-1 text-sm text-[#3b82f6]"><ArrowLeft size={14} aria-hidden="true" />Manage paths</Link>;
+  const back = <Link to={`/learning?tab=manage&workspace=${encodeURIComponent(projectId)}`} className="inline-flex items-center gap-1 text-sm text-[#93c5fd]"><ArrowLeft size={14} aria-hidden="true" />Manage paths</Link>;
   const title = isNew ? 'New learning path' : 'Edit learning path';
   const description = 'Steps explain components, commits and design decisions of this workspace, and check understanding with questions.';
 

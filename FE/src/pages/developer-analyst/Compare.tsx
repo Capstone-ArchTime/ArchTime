@@ -211,7 +211,7 @@ const Compare: React.FC = () => {
         <div className="shrink-0">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#161d24] border border-[#242527] mb-4">
             <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] shadow-[0_0_5px_#3b82f6]"></div>
-            <span className="text-[10px] font-mono text-[#3b82f6] tracking-wider font-semibold uppercase"
+            <span className="text-[10px] font-mono text-[#93c5fd] tracking-wider font-semibold uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Architecture Diff</span>
           </div>
           <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Compare Architecture</h2>
@@ -243,12 +243,12 @@ const Compare: React.FC = () => {
           <section className="bg-[#11161b] border border-dashed border-[#242527] p-10 text-center" aria-labelledby="no-compare-title">
             <h3 id="no-compare-title" className="text-lg font-bold text-[#f4f4f6] mb-2">Nothing to compare yet</h3>
             <p className="text-sm text-[#94a3b8] max-w-md mx-auto mb-6">Comparing needs a workspace with at least two mined commits. Create a workspace or mine more of its history.</p>
-            <Link to="/projects" className="inline-flex h-10 px-5 bg-[#3b82f6] hover:bg-[#60a5fa] text-[#080b0e] font-bold text-xs items-center">Go to workspaces</Link>
+            <Link to="/projects" className="inline-flex h-10 px-5 bg-[#1d4ed8] hover:bg-[#1e40af] text-white font-bold text-xs items-center">Go to workspaces</Link>
           </section>
         ) : <>
         {snapshotsLoaded && snapshots.length < 2 && (
           <p role="status" className="bg-[#11161b] border border-[#242527] p-4 text-sm text-[#94a3b8]">
-            This workspace has {snapshots.length === 0 ? 'no mined commits' : 'only one mined commit'}. Mine more of its history from <Link to="/projects" className="text-[#3b82f6] hover:underline">Workspaces</Link> to compare two revisions.
+            This workspace has {snapshots.length === 0 ? 'no mined commits' : 'only one mined commit'}. Mine more of its history from <Link to="/projects" className="text-[#93c5fd] hover:underline">Workspaces</Link> to compare two revisions.
           </p>
         )}
         {/* REVISION SELECTORS */}
@@ -289,7 +289,7 @@ const Compare: React.FC = () => {
             <button 
               onClick={handleCompare}
               disabled={loading || snapshots.length < 2}
-              className="px-4 py-1.5 bg-[#3b82f6] hover:bg-[#3b82f6]/90 text-[#080b0e] font-bold text-[10px] tracking-wider transition-colors shadow-[0_0_10px_rgba(56,189,248,0.15)] uppercase disabled:opacity-50"
+              className="px-4 py-1.5 bg-[#1d4ed8] hover:bg-[#1e40af] text-white font-bold text-[10px] tracking-wider transition-colors shadow-[0_0_10px_rgba(56,189,248,0.15)] uppercase disabled:opacity-50"
             >
               {loading ? 'Comparing...' : 'Compare'}
             </button>
@@ -298,9 +298,9 @@ const Compare: React.FC = () => {
           {/* TARGET REVISION */}
           <div className="flex-1 bg-[#11161b] border border-[#242527] p-5 relative overflow-hidden group border-r-2 border-r-[#3b82f6]/50">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <GitCommit size={64} className="text-[#3b82f6]" />
+              <GitCommit size={64} className="text-[#93c5fd]" />
             </div>
-            <h3 className="text-[10px] font-mono font-semibold text-[#3b82f6] tracking-widest uppercase mb-4"
+            <h3 className="text-[10px] font-mono font-semibold text-[#93c5fd] tracking-widest uppercase mb-4"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Target Revision</h3>
             <div className="flex items-center gap-4 relative z-10">
               <select 
@@ -447,7 +447,7 @@ const Compare: React.FC = () => {
         {compareData && (
           <div className="shrink-0 space-y-4">
             <h3 className="text-sm font-bold text-[#f4f4f6] tracking-wide uppercase mb-4 flex items-center gap-2">
-              <FileDiff size={16} className="text-[#3b82f6]" />
+              <FileDiff size={16} className="text-[#93c5fd]" />
               Detailed Change Log
             </h3>
 
@@ -494,12 +494,12 @@ const Compare: React.FC = () => {
                   <div key={`ea-${i}`} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[#161d24]/50 transition-colors">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2 py-0.5 bg-[#3b82f6]/10 border border-[#3b82f6]/20 text-[#3b82f6] text-[9px] font-mono font-bold uppercase tracking-widest"
+                        <span className="px-2 py-0.5 bg-[#3b82f6]/10 border border-[#3b82f6]/20 text-[#93c5fd] text-[9px] font-mono font-bold uppercase tracking-widest"
                 style={{ fontFamily: '"JetBrains Mono", monospace' }}>Dependency Added</span>
                         <span className="px-2 py-0.5 bg-[#161d24] border border-[#242527] text-[#94a3b8] text-[9px] font-mono"
                 style={{ fontFamily: '"JetBrains Mono", monospace' }}>{edge.type || 'imports'}</span>
                       </div>
-                      <div className="text-sm font-bold text-[#f4f4f6] mb-1 flex items-center gap-2">{src} <ArrowRight size={14} className="text-[#3b82f6]" /> {tgt}</div>
+                      <div className="text-sm font-bold text-[#f4f4f6] mb-1 flex items-center gap-2">{src} <ArrowRight size={14} className="text-[#93c5fd]" /> {tgt}</div>
                       <p className="text-xs text-[#94a3b8]">New dependency relationship established. This may indicate coupling or integration between components.</p>
                     </div>
                   </div>
@@ -531,7 +531,7 @@ const Compare: React.FC = () => {
 
         {/* BOTTOM CTA */}
         <div className="shrink-0 flex items-center justify-end gap-4 py-8">
-           <Link to="/reports" className="h-10 px-5 bg-[#161d24] border border-[#242527] hover:border-[#3b82f6]/50 text-[#3b82f6] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.05)]">
+           <Link to="/reports" className="h-10 px-5 bg-[#161d24] border border-[#242527] hover:border-[#3b82f6]/50 text-[#93c5fd] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.05)]">
               <Download size={16} />
               GENERATE REPORT
            </Link>

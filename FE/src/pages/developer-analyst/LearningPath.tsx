@@ -84,7 +84,7 @@ export default function LearningPath() {
     }
   }
 
-  const back = <Link to="/learning" className="inline-flex items-center gap-1 text-sm text-[#3b82f6]"><ArrowLeft size={14} aria-hidden="true" />My learning</Link>;
+  const back = <Link to="/learning" className="inline-flex items-center gap-1 text-sm text-[#93c5fd]"><ArrowLeft size={14} aria-hidden="true" />My learning</Link>;
 
   if (error) {
     return <FeaturePage title="Learning path" description="" demo={false} actions={back}>
@@ -103,13 +103,13 @@ export default function LearningPath() {
       return <div className={reference}>
         <p className="font-medium">{component ? component.name : refs ? 'This component is no longer in the diagram.' : 'A component of the architecture'}</p>
         {component && <p className="text-xs text-[#94a3b8]">{component.kind}{component.description ? ` · ${component.description}` : ''}</p>}
-        <Link to={`/architecture#project=${encodeURIComponent(projectId)}`} className="text-xs text-[#3b82f6]">Open the architecture map</Link>
+        <Link to={`/architecture#project=${encodeURIComponent(projectId)}`} className="text-xs text-[#93c5fd]">Open the architecture map</Link>
       </div>;
     }
     if (step.kind === 'commit') {
       return <div className={reference}>
-        <p className="font-medium"><span className="font-mono text-[#3b82f6]">{hash}</span>{step.commitTitle ? ` · ${step.commitTitle}` : ''}</p>
-        {hash && <Link to={evidenceHref(projectId, hash)} className="text-xs text-[#3b82f6]">See what this commit changed</Link>}
+        <p className="font-medium"><span className="font-mono text-[#93c5fd]">{hash}</span>{step.commitTitle ? ` · ${step.commitTitle}` : ''}</p>
+        {hash && <Link to={evidenceHref(projectId, hash)} className="text-xs text-[#93c5fd]">See what this commit changed</Link>}
       </div>;
     }
     if (step.kind === 'adr') {

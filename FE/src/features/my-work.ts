@@ -63,8 +63,8 @@ export const WORKSPACE_ROLE_LABELS: Record<WorkspaceRole, string> = {
 
 export const STATUS_VIEW: Record<WorkspaceStatus, { label: string; color: string }> = {
   PENDING: { label: 'Not scanned', color: 'default' },
-  CLONING: { label: 'Cloning', color: 'processing' },
-  ANALYZING: { label: 'Mining', color: 'processing' },
+  CLONING: { label: 'Cloning', color: 'blue' },
+  ANALYZING: { label: 'Mining', color: 'blue' },
   PARTIAL: { label: 'Partly mined', color: 'gold' },
   COMPLETED: { label: 'Mined', color: 'green' },
   FAILED: { label: 'Failed', color: 'red' },

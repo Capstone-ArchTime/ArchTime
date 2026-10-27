@@ -164,7 +164,7 @@ const Projects: React.FC = () => {
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#161d24] border border-[#242527] mb-4">
             <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] shadow-[0_0_5px_#3b82f6]"></div>
-            <span className="text-[10px] font-mono text-[#3b82f6] tracking-wider font-semibold uppercase"
+            <span className="text-[10px] font-mono text-[#93c5fd] tracking-wider font-semibold uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository Workspace</span>
           </div>
           
@@ -177,7 +177,7 @@ const Projects: React.FC = () => {
             </div>
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="shrink-0 h-10 px-5 bg-[#3b82f6] hover:bg-[#3b82f6]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)]"
+              className="shrink-0 h-10 px-5 bg-[#1d4ed8] hover:bg-[#1e40af] text-white font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)]"
             >
               <Plus size={16} />
               NEW WORKSPACE
@@ -194,14 +194,14 @@ const Projects: React.FC = () => {
         )}
 
         {projectsList === null ? (
-          !loadError && <div className="flex items-center justify-center p-12"><Loader2 size={24} className="animate-spin text-[#3b82f6]" aria-label="Loading workspaces" /></div>
+          !loadError && <div className="flex items-center justify-center p-12"><Loader2 size={24} className="animate-spin text-[#93c5fd]" aria-label="Loading workspaces" /></div>
         ) : projectsList.length === 0 ? (
           <section aria-labelledby="first-workspace-title" className="bg-[#11161b] border border-dashed border-[#242527] p-10 text-center">
-            <FolderGit2 size={28} className="text-[#3b82f6] mx-auto mb-4" aria-hidden="true" />
+            <FolderGit2 size={28} className="text-[#93c5fd] mx-auto mb-4" aria-hidden="true" />
             <h3 id="first-workspace-title" className="text-lg font-bold text-[#f4f4f6] mb-2">Create your first workspace</h3>
             <p className="text-sm text-[#94a3b8] max-w-md mx-auto mb-6">A workspace connects one Git repository. After creating it you scan its history, mine commits and group files into components.</p>
             <div className="flex flex-wrap justify-center gap-3">
-              <button type="button" onClick={() => setIsModalOpen(true)} className="h-10 px-5 bg-[#3b82f6] hover:bg-[#60a5fa] text-[#080b0e] font-bold text-xs flex items-center gap-2">
+              <button type="button" onClick={() => setIsModalOpen(true)} className="h-10 px-5 bg-[#1d4ed8] hover:bg-[#1e40af] text-white font-bold text-xs flex items-center gap-2">
                 <Plus size={16} aria-hidden="true" /> New workspace
               </button>
               <Link to="/workspace/sample/shophub" className="h-10 px-5 bg-[#161d24] hover:bg-[#242527] border border-[#242527] text-[#f4f4f6] text-xs font-medium flex items-center">
@@ -215,7 +215,7 @@ const Projects: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
                 { icon: FolderKanban, label: 'Workspaces', value: projectsList.length, color: 'text-[#94a3b8]' },
-                { icon: GitCommit, label: 'Commits found', value: projectsList.reduce((sum, p) => sum + (p.totalCommits ?? 0), 0), color: 'text-[#3b82f6]' },
+                { icon: GitCommit, label: 'Commits found', value: projectsList.reduce((sum, p) => sum + (p.totalCommits ?? 0), 0), color: 'text-[#93c5fd]' },
                 { icon: Activity, label: 'Mined workspaces', value: projectsList.filter(hasMinedHistory).length, color: 'text-[#ffb03a]' },
               ].map(({ icon: Icon, label, value, color }) => (
                 <div key={label} className="flex items-center gap-4 bg-[#161d24] border border-[#242527] p-5">
@@ -240,7 +240,7 @@ const Projects: React.FC = () => {
                   <div key={project.id} className="bg-[#11161b] border border-[#242527] hover:border-[#3b82f6]/50 overflow-hidden transition-colors flex flex-col group">
                     <div className="p-6 flex-1 flex flex-col">
                       <div className="flex items-start justify-between mb-2 gap-2">
-                        <h3 className="text-[#f4f4f6] font-bold text-lg tracking-tight group-hover:text-[#3b82f6] transition-colors break-words">{project.name}</h3>
+                        <h3 className="text-[#f4f4f6] font-bold text-lg tracking-tight group-hover:text-[#93c5fd] transition-colors break-words">{project.name}</h3>
                         {project.role === 'owner' && (
                           <button
                             onClick={() => handleDeleteProject(project.id)}
@@ -276,14 +276,14 @@ const Projects: React.FC = () => {
                       {project.canMaintain ? <button
                         type="button"
                         onClick={() => setMiningProject({ id: project.id, name: project.name })}
-                        className="w-full h-11 mb-3 bg-[#3b82f6]/10 hover:bg-[#3b82f6]/20 border border-[#3b82f6]/40 text-[#3b82f6] text-xs font-bold flex items-center justify-center gap-2"
+                        className="w-full h-11 mb-3 bg-[#3b82f6]/10 hover:bg-[#3b82f6]/20 border border-[#3b82f6]/40 text-[#93c5fd] text-xs font-bold flex items-center justify-center gap-2"
                       >
                         MANAGE MINING
                       </button> : <p className="mb-3 text-xs text-slate-400">You can read this workspace. Only its maintainers can mine it or define its architecture with AI.</p>}
                       <div className="mt-auto flex gap-2">
                         <Link
                           to={`/workspace/${encodeURIComponent(project.id)}`}
-                          className="flex-1 h-11 bg-[#3b82f6] hover:bg-[#60a5fa] text-[#080b0e] font-semibold text-sm flex items-center justify-center gap-2"
+                          className="flex-1 h-11 bg-[#1d4ed8] hover:bg-[#1e40af] text-white font-semibold text-sm flex items-center justify-center gap-2"
                         >
                           Open architecture <ArrowRight size={14} aria-hidden="true" />
                         </Link>
@@ -406,13 +406,13 @@ const Projects: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <label className="flex items-center justify-center gap-2 h-10 bg-[#161d24] border border-[#242527] cursor-pointer hover:border-[#94a3b8] transition-colors has-[:checked]:border-[#3b82f6] has-[:checked]:bg-[#3b82f6]/5 group">
                       <input type="radio" name="provider" className="sr-only" defaultChecked />
-                      <Icon icon="mdi:github" width="18" height="18" className="text-[#f4f4f6] group-has-[:checked]:text-[#3b82f6]" />
-                      <span className="text-xs font-bold text-[#f4f4f6] group-has-[:checked]:text-[#3b82f6]">GitHub</span>
+                      <Icon icon="mdi:github" width="18" height="18" className="text-[#f4f4f6] group-has-[:checked]:text-[#93c5fd]" />
+                      <span className="text-xs font-bold text-[#f4f4f6] group-has-[:checked]:text-[#93c5fd]">GitHub</span>
                     </label>
                     <label className="flex items-center justify-center gap-2 h-10 bg-[#161d24] border border-[#242527] cursor-pointer hover:border-[#94a3b8] transition-colors has-[:checked]:border-[#3b82f6] has-[:checked]:bg-[#3b82f6]/5 group">
                       <input type="radio" name="provider" className="sr-only" />
-                      <Icon icon="mdi:gitlab" width="18" height="18" className="text-[#FC6D26] group-has-[:checked]:text-[#3b82f6]" />
-                      <span className="text-xs font-bold text-[#f4f4f6] group-has-[:checked]:text-[#3b82f6]">GitLab</span>
+                      <Icon icon="mdi:gitlab" width="18" height="18" className="text-[#FC6D26] group-has-[:checked]:text-[#93c5fd]" />
+                      <span className="text-xs font-bold text-[#f4f4f6] group-has-[:checked]:text-[#93c5fd]">GitLab</span>
                     </label>
                   </div>
                 </div>
@@ -437,13 +437,13 @@ const Projects: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <label className="flex items-center justify-center gap-2 h-10 bg-[#161d24] border border-[#242527] cursor-pointer hover:border-[#94a3b8] transition-colors has-[:checked]:border-[#3b82f6] has-[:checked]:bg-[#3b82f6]/5 group">
                       <input type="radio" name="visibility" value="public" className="sr-only" checked={visibility === 'public'} onChange={() => setVisibility('public')} />
-                      <Icon icon="mdi:earth" width="18" height="18" className="text-[#f4f4f6] group-has-[:checked]:text-[#3b82f6]" />
-                      <span className="text-xs font-bold text-[#f4f4f6] group-has-[:checked]:text-[#3b82f6]">Public</span>
+                      <Icon icon="mdi:earth" width="18" height="18" className="text-[#f4f4f6] group-has-[:checked]:text-[#93c5fd]" />
+                      <span className="text-xs font-bold text-[#f4f4f6] group-has-[:checked]:text-[#93c5fd]">Public</span>
                     </label>
                     <label className="flex items-center justify-center gap-2 h-10 bg-[#161d24] border border-[#242527] cursor-pointer hover:border-[#94a3b8] transition-colors has-[:checked]:border-[#3b82f6] has-[:checked]:bg-[#3b82f6]/5 group">
                       <input type="radio" name="visibility" value="private" className="sr-only" checked={visibility === 'private'} onChange={() => setVisibility('private')} />
-                      <Icon icon="mdi:lock" width="18" height="18" className="text-[#f4f4f6] group-has-[:checked]:text-[#3b82f6]" />
-                      <span className="text-xs font-bold text-[#f4f4f6] group-has-[:checked]:text-[#3b82f6]">Private</span>
+                      <Icon icon="mdi:lock" width="18" height="18" className="text-[#f4f4f6] group-has-[:checked]:text-[#93c5fd]" />
+                      <span className="text-xs font-bold text-[#f4f4f6] group-has-[:checked]:text-[#93c5fd]">Private</span>
                     </label>
                   </div>
                 </div>
@@ -478,7 +478,7 @@ const Projects: React.FC = () => {
                     ) : (
                       <p className="text-xs text-[#94a3b8]">
                         This organization has no credentials yet, so use a personal token below, or{' '}
-                        <Link to={`/organizations/${encodeURIComponent(organizationId)}`} onClick={closeModal} className="text-[#3b82f6] hover:underline">add one to the organization</Link>.
+                        <Link to={`/organizations/${encodeURIComponent(organizationId)}`} onClick={closeModal} className="text-[#93c5fd] hover:underline">add one to the organization</Link>.
                       </p>
                     )}
                   </div>
@@ -506,7 +506,7 @@ const Projects: React.FC = () => {
                 <button
                   onClick={handleConnect}
                   disabled={isSubmitting}
-                  className="w-full h-10 bg-[#3b82f6] hover:bg-[#3b82f6]/90 text-[#080b0e] font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)] disabled:opacity-70"
+                  className="w-full h-10 bg-[#1d4ed8] hover:bg-[#1e40af] text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)] disabled:opacity-70"
                 >
                   {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <FolderGit2 size={16} />}
                   CONNECT REPOSITORY

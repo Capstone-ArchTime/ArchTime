@@ -14,8 +14,8 @@ function Card({ to, title, subtitle, icon, sample }: { to: string; title: string
   return <Link to={to} className="group flex flex-col overflow-hidden rounded-lg border border-[#242527] bg-[#11161b] transition-colors hover:border-[#3b82f6]/60 focus-visible:outline-2 focus-visible:outline-[#3b82f6]">
     <div className="relative flex h-36 items-center justify-center border-b border-[#242527] bg-[#080b0e]"
       style={{ backgroundImage: 'radial-gradient(circle, #1c2530 1px, transparent 1px)', backgroundSize: '16px 16px' }}>
-      <div className="text-[#3b82f6] opacity-70 transition-opacity group-hover:opacity-100">{icon}</div>
-      {sample && <span className="absolute left-2 top-2 rounded border border-[#3b82f6]/30 bg-[#3b82f6]/10 px-1.5 py-0.5 text-[10px] text-[#60a5fa]">Sample</span>}
+      <div className="text-[#93c5fd] opacity-70 transition-opacity group-hover:opacity-100">{icon}</div>
+      {sample && <span className="absolute left-2 top-2 rounded border border-[#3b82f6]/30 bg-[#3b82f6]/10 px-1.5 py-0.5 text-[10px] text-[#93c5fd]">Sample</span>}
     </div>
     <div className="px-3 py-2.5">
       <p className="truncate text-sm font-medium group-hover:text-white">{title}</p>
@@ -54,7 +54,7 @@ export default function ArchitectureMap() {
             <h2 className="mb-1 text-3xl font-bold tracking-tight">Architecture Map</h2>
             <p className="max-w-2xl text-sm text-[#94a3b8]">Open a repository to explore its architecture in a full-screen workspace: layers on the left, the diagram in the middle, details on the right.</p>
           </div>
-          <Input allowClear prefix={<Search size={14} className="text-[#64748b]" />} placeholder="Search workspaces" aria-label="Search workspaces" className="!w-64" value={query} onChange={e => setQuery(e.target.value)} />
+          <Input allowClear prefix={<Search size={14} className="text-[#94a3b8]" />} placeholder="Search workspaces" aria-label="Search workspaces" className="!w-64" value={query} onChange={e => setQuery(e.target.value)} />
         </header>
         {error && <Alert type="error" showIcon title={error} />}
 

@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { App as AntApp, ConfigProvider, Result, theme } from 'antd';
+import type { ThemeConfig } from 'antd';
 import { StyleProvider } from '@ant-design/cssinjs';
 import { MotionConfig } from 'motion/react';
 import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, Outlet, Link, Navigate, useLocation } from 'react-router-dom';
@@ -112,8 +113,31 @@ const router = createBrowserRouter(createRoutesFromElements(
   </Route>
 ));
 
+/**
+ * Readable blues on the dark theme. #3b82f6 stays the brand for fills, borders and focus; text and links on dark grey use
+ * #93c5fd (at least 7:1 on every surface), and solid blue buttons get white text on #1d4ed8 (6.7:1) instead of dark text
+ * on #3b82f6. darkAlgorithm mixes the seed colours with grey and ignores seed overrides, so Button, Tabs, Pagination and
+ * Dropdown get component tokens, and the link colour (which antd otherwise takes from colorInfo) is set.
+ */
+const APP_THEME: ThemeConfig = {
+  algorithm: theme.darkAlgorithm,
+  token: {
+    colorPrimary: '#3b82f6', colorBgBase: '#080b0e', fontFamily: '"Space Grotesk", sans-serif', borderRadius: 6,
+    colorLink: '#93c5fd', colorLinkHover: '#bfdbfe', colorLinkActive: '#93c5fd', blue7: '#93c5fd', colorTextLightSolid: '#ffffff',
+  },
+  components: {
+    Button: {
+      colorPrimary: '#1d4ed8', colorPrimaryHover: '#1e40af', colorPrimaryActive: '#1e3a8a', primaryColor: '#ffffff',
+      defaultHoverColor: '#93c5fd', defaultHoverBorderColor: '#60a5fa', defaultActiveColor: '#93c5fd', defaultActiveBorderColor: '#3b82f6',
+    },
+    Tabs: { itemSelectedColor: '#93c5fd', itemActiveColor: '#93c5fd', itemHoverColor: '#bfdbfe', inkBarColor: '#60a5fa' },
+    Pagination: { itemActiveColor: '#93c5fd', itemActiveColorHover: '#bfdbfe' },
+    Dropdown: { colorPrimary: '#93c5fd' },
+  },
+};
+
 export default function App() {
-  return <PageErrorBoundary><StyleProvider layer><ConfigProvider theme={{ algorithm: theme.darkAlgorithm, token: { colorPrimary: '#3b82f6', colorBgBase: '#080b0e', fontFamily: '"Space Grotesk", sans-serif', borderRadius: 6 } }}>
+  return <PageErrorBoundary><StyleProvider layer><ConfigProvider theme={APP_THEME}>
     <AntApp><MotionConfig reducedMotion="user"><RouterProvider router={router} /></MotionConfig></AntApp>
   </ConfigProvider></StyleProvider></PageErrorBoundary>;
 }
