@@ -253,7 +253,11 @@ export function createAuthRouter(
    *   get:
    *     tags: [Auth]
    *     summary: Lấy thông tin người dùng hiện tại
-   *     description: Trả về profile của user đang đăng nhập. Yêu cầu Bearer token hợp lệ.
+   *     description: |
+   *       Trả về profile của user đang đăng nhập. Yêu cầu Bearer token hợp lệ.
+   *       Chỉ gồm các trường liệt kê dưới đây; không bao giờ trả về passwordHash, githubId hay tokenVersion.
+   *       `signInMethods.password` = tài khoản có mật khẩu dùng được (tài khoản tạo bằng GitHub thì chưa có);
+   *       `signInMethods.github` = đã liên kết GitHub.
    *     security:
    *       - BearerAuth: []
    *     responses:
@@ -266,7 +270,17 @@ export function createAuthRouter(
    *             example:
    *               success: true
    *               data:
-   *                 user: { id: "64f1...", name: "Jane Doe", email: "dev@archtime.io", role: "developer-analyst" }
+   *                 user:
+   *                   id: "64f1..."
+   *                   name: "Jane Doe"
+   *                   email: "dev@archtime.io"
+   *                   username: "jane.doe"
+   *                   role: "developer-analyst"
+   *                   status: "active"
+   *                   isVerified: true
+   *                   createdAt: "2026-01-15T08:00:00.000Z"
+   *                   updatedAt: "2026-03-02T10:30:00.000Z"
+   *                   signInMethods: { password: true, github: false }
    *       401:
    *         $ref: '#/components/responses/Unauthorized'
    */
@@ -298,7 +312,7 @@ export function createAuthRouter(
    *                 example: "jane.doe"
    *     responses:
    *       200:
-   *         description: Profile đã cập nhật
+   *         description: Profile đã cập nhật; `user` có cùng dạng với GET /auth/me (kèm signInMethods)
    *         content:
    *           application/json:
    *             schema:
@@ -429,5 +443,53 @@ export function createAuthRouter(
   router.post("/forgot-password", authController.forgotPassword);
   router.post("/reset-password", authController.resetPassword);
   router.post("/change-password", authenticate, authController.changePassword);
+
+  /**
+   * @swagger
+   * /api/auth/set-password:
+   *   post:
+   *     tags: [Auth]
+   *     summary: Đặt mật khẩu lần đầu cho tài khoản chưa có mật khẩu (tạo bằng GitHub)
+   *     description: |
+   *       Chỉ dùng được khi tài khoản chưa có mật khẩu (`signInMethods.password` = false trong GET /api/auth/me).
+   *       Tài khoản đã có mật khẩu sẽ bị từ chối với 409; khi đó hãy dùng /api/auth/change-password.
+   *       Không đăng xuất các phiên hiện tại, vì trước đó không có mật khẩu nào để người khác dùng.
+   *     security:
+   *       - BearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [newPassword, confirmNewPassword]
+   *             properties:
+   *               newPassword: { type: string, minLength: 8, maxLength: 72 }
+   *               confirmNewPassword: { type: string }
+   *     responses:
+   *       200:
+   *         description: Đã đặt mật khẩu; từ giờ có thể đăng nhập bằng email và mật khẩu này
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/SuccessResponse'
+   *             example:
+   *               success: true
+   *               data: { message: "Password set.", signInMethods: { password: true, github: true } }
+   *       400:
+   *         $ref: '#/components/responses/ValidationError'
+   *       401:
+   *         $ref: '#/components/responses/Unauthorized'
+   *       409:
+   *         description: Tài khoản đã có mật khẩu
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *             example:
+   *               success: false
+   *               error: { code: "CONFLICT", message: "This account already has a password; change it instead." }
+   */
+  router.post("/set-password", authenticate, authController.setPassword);
   return router;
 }

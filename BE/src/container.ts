@@ -13,6 +13,7 @@ import { PasswordResetUseCase } from "./application/use-cases/PasswordResetUseCa
 import { ChangePasswordUseCase } from "./application/use-cases/ChangePasswordUseCase.js";
 import { UpdateProfileUseCase } from "./application/use-cases/UpdateProfileUseCase.js";
 import { LogoutAllDevicesUseCase } from "./application/use-cases/LogoutAllDevicesUseCase.js";
+import { SetPasswordUseCase } from "./application/use-cases/SetPasswordUseCase.js";
 import { RegisterUseCase } from "./application/use-cases/RegisterUseCase.js";
 import { VerifyEmailUseCase } from "./application/use-cases/VerifyEmailUseCase.js";
 import { ResendOtpUseCase } from "./application/use-cases/ResendOtpUseCase.js";
@@ -192,6 +193,7 @@ export const authController = new AuthController(
   new ChangePasswordUseCase(userRepository, bcryptHasher),
   new UpdateProfileUseCase(userRepository),
   new LogoutAllDevicesUseCase(userRepository),
+  new SetPasswordUseCase(userRepository, bcryptHasher),
 );
 
 export const projectController = new ProjectController(

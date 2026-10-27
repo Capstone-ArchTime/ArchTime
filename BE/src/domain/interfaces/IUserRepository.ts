@@ -35,4 +35,11 @@ export interface IUserRepository {
   clearPasswordReset(userId: string, tokenHash: string): Promise<void>;
   setVerified(userId: string): Promise<void>;
   updatePassword(userId: string, passwordHash: string): Promise<void>;
+  /** The stored hash and GitHub id, for working out how the account signs in; null when there is no such account. */
+  findCredentials(userId: string): Promise<{ passwordHash: string | null; githubId: string | null } | null>;
+  /**
+   * Stores a first password, only while the account has none (no hash, or the GitHub-only placeholder). Checked in the
+   * same write so two requests cannot both set one. Keeps the sessions; false when nothing was written.
+   */
+  setPasswordIfNone(userId: string, passwordHash: string): Promise<boolean>;
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { authRequest } from '@/auth/requests';
 import { useAuth } from '@/auth/auth-context';
 import { Logo } from '@/components/Logo';
@@ -8,7 +8,9 @@ import PasswordRequirements from '@/components/PasswordRequirements';
 import { checkNewPassword } from '@/features/profile-validation';
 
 export default function ResetPassword() {
-  const [email, setEmail] = useState('');
+  const [params] = useSearchParams();
+  // ?email= comes from the profile page, so a person without a password does not have to type their address.
+  const [email, setEmail] = useState(() => (params.get('email') ?? '').trim().slice(0, 254));
   const [token, setToken] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');

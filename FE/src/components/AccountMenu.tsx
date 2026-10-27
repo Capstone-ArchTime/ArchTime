@@ -1,8 +1,8 @@
 import { Dropdown } from 'antd';
-import { UserRound } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/auth/auth-context';
 import { roleHome } from '@/auth/permissions';
+import { initials } from '@/features/profile-view';
 export default function AccountMenu({ onNavigate }: { onNavigate: () => void }) {
   const { user, signOut } = useAuth();
   if (!user) return null;
@@ -22,9 +22,9 @@ export default function AccountMenu({ onNavigate }: { onNavigate: () => void }) 
                   type="button"
                   aria-label={`Open account menu for ${user.name}`}
                   title={user.name}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-[#3b82f6]/40 bg-[#11161b] text-[#93c5fd] transition-colors hover:border-[#00f0ff] hover:text-[#00f0ff] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#3b82f6]"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1d4ed8] text-sm font-semibold text-white transition-colors hover:bg-[#1e40af] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#3b82f6]"
                 >
-                  <UserRound size={20} aria-hidden="true" />
+                  <span aria-hidden="true">{initials(user.name)}</span>
                 </button>
               </Dropdown>);
 }
