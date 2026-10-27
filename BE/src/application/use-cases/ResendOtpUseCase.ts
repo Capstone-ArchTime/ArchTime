@@ -19,7 +19,7 @@ export class ResendOtpUseCase {
     private readonly emailService: IEmailService,
   ) {}
 
-  async execute(input: { email: string }): Promise<{ message: string }> {
+  async execute(input: { email: string }): Promise<{ message: string; expiresAt: string }> {
     const user = await this.userRepo.findByEmail(input.email);
     if (!user) {
       throw new NotFoundError("No account found with this email.");
@@ -39,6 +39,7 @@ export class ResendOtpUseCase {
 
     return {
       message: `A new OTP has been sent to ${input.email}. It expires in ${OTP_TTL_MINUTES} minutes.`,
+      expiresAt: expiresAt.toISOString(),
     };
   }
 }
