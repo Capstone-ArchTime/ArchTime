@@ -9,6 +9,9 @@ import { useAuth } from '@/auth/auth-context';
 import { loginDestination } from '@/auth/permissions';
 import { authRequest } from '@/auth/requests';
 import { API_BASE_URL, clearSignInNotice, peekSignInNotice } from '@/auth/session';
+import PasswordRequirements from '@/components/PasswordRequirements';
+import { checkNewPassword } from '@/features/profile-validation';
+import { deadlineFrom, rememberOtpDeadline } from '@/features/otp-countdown';
 
 
 const fontFamily = {
@@ -39,6 +42,8 @@ const AuthPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  // What the server refused, shown in the form (not as a pop-up at the top of the window).
+  const [formError, setFormError] = useState('');
 
   const activeRequest = useRef<AbortController | null>(null);
   useEffect(() => {
@@ -46,18 +51,8 @@ const AuthPage: React.FC = () => {
     return () => activeRequest.current?.abort();
   }, [isRegister]);
 
-  const calculatePasswordStrength = (pass: string) => {
-    let score = 0;
-    if (pass.length > 8) score += 1;
-    if (pass.match(/[A-Z]/)) score += 1;
-    if (pass.match(/[0-9]/)) score += 1;
-    if (pass.match(/[^A-Za-z0-9]/)) score += 1;
-    return score; // 0 to 4
-  };
-
-  const strength = calculatePasswordStrength(password);
-  const strengthColors = ['bg-[#5f636b]', 'bg-red-500', 'bg-[#ffb03a]', 'bg-[#3b82f6]', 'bg-[#00f0ff]'];
-  const strengthLabels = ['Very weak', 'Weak', 'Fair', 'Strong', 'Very strong'];
+  // Problems of one form do not carry over to the other.
+  const clearErrors = () => { setFieldErrors({}); setFormError(''); };
 
   const validate = (): FieldErrors => {
     const errors: FieldErrors = {};
@@ -74,10 +69,10 @@ const AuthPage: React.FC = () => {
 
     if (!password) {
       errors.password = 'Password is required.';
-    } else if (isRegister && password.length < 8) {
-      errors.password = 'Password must be at least 8 characters.';
-    } else if (isRegister && strength < 3) {
-      errors.password = 'Password is too weak. Add uppercase, a number, or a symbol.';
+    } else if (isRegister) {
+      // The server's own rules, so an account is never refused after the form said it was fine.
+      const rule = checkNewPassword(password);
+      if (rule) errors.password = rule;
     }
 
     if (isRegister) {
@@ -96,11 +91,12 @@ const AuthPage: React.FC = () => {
 
     const errors = validate();
     setFieldErrors(errors);
+    setFormError('');
 
     if (Object.keys(errors).length > 0) {
+      // Each problem is written under its field; focus the first one.
       const field = Object.keys(errors)[0];
       document.getElementById(field === 'confirmPassword' ? 'auth-confirm-password' : `auth-${field}`)?.focus();
-      message.error(Object.values(errors)[0]);
       return;
     }
 
@@ -121,6 +117,7 @@ const AuthPage: React.FC = () => {
         message.success(result.message ?? 'Account created. Check your email for the verification OTP.');
         setPassword('');
         setConfirmPassword('');
+        rememberOtpDeadline(email.trim(), deadlineFrom(result.expiresAt));
         navigate('/verify-email', { state: { email: email.trim(), from: location.state?.from } });
       } else {
         if (!result.accessToken || !result.refreshToken) {
@@ -134,7 +131,10 @@ const AuthPage: React.FC = () => {
       }
     } catch (error) {
       if (controller.signal.aborted) return;
-      message.error(error instanceof Error ? error.message : 'Unable to complete the request.');
+      const text = error instanceof Error ? error.message : 'Unable to complete the request.';
+      if (isRegister && /^password/i.test(text)) setFieldErrors({ password: text });
+      else if (isRegister && /email/i.test(text)) setFieldErrors({ email: text });
+      else setFormError(text);
     } finally {
       if (!controller.signal.aborted) setIsLoading(false);
     }
@@ -217,7 +217,7 @@ const AuthPage: React.FC = () => {
                             fieldErrors.name ? 'border-red-500/60 focus:border-red-500' : 'border-[#242527] focus:border-[#3b82f6]'
                           }`}
                         />
-                        <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#3b82f6] transition-colors" />
+                        <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#93c5fd] transition-colors" />
                       </div>
                       {fieldErrors.name && (
                         <p id="auth-name-error" role="alert" className="text-xs text-red-400">{fieldErrors.name}</p>
@@ -244,7 +244,7 @@ const AuthPage: React.FC = () => {
                           fieldErrors.email ? 'border-red-500/60 focus:border-red-500' : 'border-[#242527] focus:border-[#3b82f6]'
                         }`}
                       />
-                      <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#3b82f6] transition-colors" />
+                      <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#93c5fd] transition-colors" />
                     </div>
                     {fieldErrors.email && (
                       <p id="auth-email-error" role="alert" className="text-xs text-red-400">{fieldErrors.email}</p>
@@ -259,25 +259,25 @@ const AuthPage: React.FC = () => {
                       <input
                         id="auth-password"
                           name="password"
-                          autoComplete={isRegister ? 'new-password' : 'current-password'}
+                          autoComplete={isRegister ? 'off' : 'current-password'}
                         type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         disabled={isLoading}
                         placeholder="••••••••"
                         aria-invalid={!!fieldErrors.password}
-                        aria-describedby={fieldErrors.password ? 'auth-password-error' : undefined}
+                        aria-describedby={[fieldErrors.password && 'auth-password-error', isRegister && 'auth-password-rules'].filter(Boolean).join(' ') || undefined}
                         data-ms-reveal="false"
                         className={`w-full h-11 bg-[#11161b] border pl-10 pr-10 text-sm text-white placeholder:text-slate-600 focus:outline-none transition-colors tracking-wide disabled:opacity-50 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-textfield-decoration-container]:hidden [&::-webkit-credentials-auto-fill-button]:hidden [&::-webkit-contacts-auto-fill-button]:hidden ${
                           fieldErrors.password ? 'border-red-500/60 focus:border-red-500' : 'border-[#242527] focus:border-[#3b82f6]'
                         }`}
                       />
-                      <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#3b82f6] transition-colors" />
+                      <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#93c5fd] transition-colors" />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         aria-label={showPassword ? "Hide password" : "Show password"}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors focus:outline-none focus-visible:text-[#3b82f6]"
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors focus:outline-none focus-visible:text-[#93c5fd]"
                       >
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
@@ -287,20 +287,7 @@ const AuthPage: React.FC = () => {
                       <p id="auth-password-error" role="alert" className="text-xs text-red-400">{fieldErrors.password}</p>
                     )}
 
-                    {/* Password Strength Indicator */}
-                    {isRegister && password.length > 0 && (
-                      <div className="mt-2">
-                        <div className="flex gap-1">
-                          {[1, 2, 3, 4].map((level) => (
-                            <div
-                              key={level}
-                              className={`h-1 flex-1 transition-colors duration-300 ${strength >= level ? strengthColors[strength] : 'bg-[#242527]'}`}
-                            ></div>
-                          ))}
-                        </div>
-                        <p className="mt-1 text-[11px] text-slate-500">{strengthLabels[strength]}</p>
-                      </div>
-                    )}
+                    {isRegister && <PasswordRequirements id="auth-password-rules" password={password} />}
                   </div>
 
                   {isRegister && (
@@ -310,7 +297,7 @@ const AuthPage: React.FC = () => {
                         <input
                           id="auth-confirm-password"
                           name="confirmPassword"
-                          autoComplete="new-password"
+                          autoComplete="off"
                           type={showPassword ? "text" : "password"}
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
@@ -322,7 +309,7 @@ const AuthPage: React.FC = () => {
                             fieldErrors.confirmPassword ? 'border-red-500/60 focus:border-red-500' : 'border-[#242527] focus:border-[#3b82f6]'
                           }`}
                         />
-                        <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#3b82f6] transition-colors" />
+                        <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#93c5fd] transition-colors" />
                       </div>
                       {fieldErrors.confirmPassword && (
                         <p id="auth-confirm-password-error" role="alert" className="text-xs text-red-400">{fieldErrors.confirmPassword}</p>
@@ -335,17 +322,21 @@ const AuthPage: React.FC = () => {
                       <input
                         type="checkbox"
                         id="remember" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)}
-                        className="w-3.5 h-3.5 border-[#242527] bg-[#11161b] text-[#3b82f6] focus:ring-[#3b82f6] focus:ring-offset-0 focus:ring-offset-[#080b0e] cursor-pointer"
+                        className="w-3.5 h-3.5 border-[#242527] bg-[#11161b] text-[#93c5fd] focus:ring-[#3b82f6] focus:ring-offset-0 focus:ring-offset-[#080b0e] cursor-pointer"
                       />
                       <label htmlFor="remember" className="text-sm text-slate-400 cursor-pointer select-none">Remember me</label>
-                      <Link to="/forgot-password" className="ml-auto text-sm text-sky-400 hover:underline">Forgot password?</Link>
+                      <Link to="/forgot-password" className="ml-auto text-sm text-[#93c5fd] hover:underline">Forgot password?</Link>
                     </div>
+                  )}
+
+                  {formError && (
+                    <p role="alert" className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">{formError}</p>
                   )}
 
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full h-11 bg-[#3b82f6] hover:bg-[#00f0ff] text-[#080b0e] font-bold uppercase tracking-widest text-xs mt-6 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed focus:outline-none"
+                    className="w-full h-11 bg-[#1d4ed8] hover:bg-[#1e40af] text-white font-bold uppercase tracking-widest text-xs mt-6 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed focus:outline-none"
                     style={{ fontFamily: fontFamily.mono }}
                   >
                     {isLoading ? (
@@ -355,7 +346,7 @@ const AuthPage: React.FC = () => {
                     )}
                   </button>
                 </form>
-                {!isRegister && <Link to="/verify-email" state={{ email: email.trim(), from: location.state?.from }} className="block mt-4 text-center text-xs text-[#3b82f6]">Have a verification code? Activate your account</Link>}
+                {!isRegister && <Link to="/verify-email" state={{ email: email.trim(), from: location.state?.from }} className="block mt-4 text-center text-xs text-[#93c5fd]">Have a verification code? Activate your account</Link>}
 
                 <div className="flex items-center gap-4 my-6 opacity-70">
                   <div className="h-[1px] flex-1 bg-[#242527]"></div>
@@ -383,14 +374,14 @@ const AuthPage: React.FC = () => {
                   {isRegister ? (
                     <>
                       Already have an account?{' '}
-                      <Link to="/login" className="text-[#3b82f6] hover:text-[#00f0ff] transition-colors font-medium">
+                      <Link to="/login" onClick={clearErrors} className="text-[#93c5fd] hover:text-[#00f0ff] transition-colors font-medium">
                         Sign in &rarr;
                       </Link>
                     </>
                   ) : (
                     <>
                       Don't have an account?{' '}
-                      <Link to="/register" className="text-[#3b82f6] hover:text-[#00f0ff] transition-colors font-medium">
+                      <Link to="/register" onClick={clearErrors} className="text-[#93c5fd] hover:text-[#00f0ff] transition-colors font-medium">
                         Create account &rarr;
                       </Link>
                     </>
@@ -403,7 +394,7 @@ const AuthPage: React.FC = () => {
           {/* Footer (SOC-2) */}
           <div className="flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 shrink-0 mt-auto pt-6" style={{ fontFamily: fontFamily.mono }}>
             <div className="flex items-center gap-2 mb-4 sm:mb-0">
-              <Lock size={12} className="text-[#3b82f6]" />
+              <Lock size={12} className="text-[#93c5fd]" />
               <span>SOC-2 & Git AST Grounded</span>
             </div>
             <div className="flex gap-4" aria-label="Coming soon">
@@ -430,7 +421,7 @@ const AuthPage: React.FC = () => {
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#11161b]/80 border border-[#242527] backdrop-blur-sm mb-8">
               <div className="w-1.5 h-1.5 rounded-full bg-[#00f0ff]"></div>
-              <span className="text-[10px] text-[#3b82f6] tracking-wider font-semibold" style={{ fontFamily: fontFamily.mono }}>ARCHTIME OBSERVATORY</span>
+              <span className="text-[10px] text-[#93c5fd] tracking-wider font-semibold" style={{ fontFamily: fontFamily.mono }}>ARCHTIME OBSERVATORY</span>
             </div>
 
             <h2 className="text-4xl lg:text-5xl font-bold tracking-tight text-white mb-4 leading-[1.1]">
@@ -454,14 +445,14 @@ const AuthPage: React.FC = () => {
               {/* Top Header of Diagram */}
               <div className="flex justify-between items-center z-20 mb-8" style={{ fontFamily: fontFamily.mono }}>
                 <div className="flex items-center gap-2">
-                  <div className="text-[#3b82f6] flex items-center">
+                  <div className="text-[#93c5fd] flex items-center">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                   </div>
                   <span className="text-sm text-slate-500 font-medium tracking-widest">REVISION RANGE:</span>
                   <span className="text-sm text-white font-bold">rev-8e41..HEAD</span>
                 </div>
                 <div className="flex items-center gap-4">
-                  <div className="px-3 py-1.5 bg-[#3b82f6]/10 border border-[#3b82f6]/20 text-[#3b82f6] text-xs font-bold">
+                  <div className="px-3 py-1.5 bg-[#3b82f6]/10 border border-[#3b82f6]/20 text-[#93c5fd] text-xs font-bold">
                     Java AST Analyzed
                   </div>
                   <span className="text-sm text-slate-500">4 Architectural Eras</span>
@@ -561,7 +552,7 @@ const AuthPage: React.FC = () => {
                   <g transform="translate(550, 20)">
                     <rect x="0" y="0" width="130" height="24" fill="#3b82f6" fillOpacity="0.05" stroke="#3b82f6" strokeOpacity="0.3" />
                     <circle cx="12" cy="12" r="3.5" fill="#3b82f6" />
-                    <text x="22" y="16" fill="#3b82f6" fontSize="10" fontFamily="monospace">AST Dependency Graph</text>
+                    <text x="22" y="16" fill="#93c5fd" fontSize="10" fontFamily="monospace">AST Dependency Graph</text>
                   </g>
                   <g transform="translate(810, 20)">
                     <rect x="0" y="0" width="120" height="24" fill="#11161b" stroke="#242527" />
@@ -641,7 +632,7 @@ const AuthPage: React.FC = () => {
                 <div className="px-4 py-2 bg-[#11161b] border border-[#242527] text-sm text-slate-400">
                   Delta: +18 modular edges
                 </div>
-                <div className="px-4 py-2 bg-[#3b82f6]/20 border border-[#3b82f6]/30 text-sm text-[#3b82f6] font-bold">
+                <div className="px-4 py-2 bg-[#3b82f6]/20 border border-[#3b82f6]/30 text-sm text-[#93c5fd] font-bold">
                   architecture change detected
                 </div>
               </div>
@@ -651,7 +642,7 @@ const AuthPage: React.FC = () => {
           {/* Feature Indicators */}
           <div className="grid grid-cols-3 gap-6 shrink-0 border-t border-[#242527] pt-6">
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-[#3b82f6] font-semibold" style={{ fontFamily: fontFamily.mono }}>01</span>
+              <span className="text-xs text-[#93c5fd] font-semibold" style={{ fontFamily: fontFamily.mono }}>01</span>
               <h4 className="text-white text-sm font-medium">Repository Mining</h4>
               <p className="text-slate-400 text-xs leading-relaxed font-light">Deep commit mining and structural analysis.</p>
             </div>

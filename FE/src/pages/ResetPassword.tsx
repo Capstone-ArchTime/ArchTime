@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { authRequest } from '@/auth/requests';
 import { useAuth } from '@/auth/auth-context';
 import { Logo } from '@/components/Logo';
+import PasswordRequirements from '@/components/PasswordRequirements';
+import { checkNewPassword } from '@/features/profile-validation';
 
 export default function ResetPassword() {
   const [email, setEmail] = useState('');
@@ -25,6 +27,11 @@ export default function ResetPassword() {
     event.preventDefault();
     if (busy) return;
     setError(''); setNotice('');
+    // Checked here and written on the page, instead of the browser's own pop-ups.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError('Enter a valid email address.'); return; }
+    if (sent && !token.trim()) { setError('Paste the reset code from your email.'); return; }
+    const rule = sent ? checkNewPassword(password) : null;
+    if (rule) { setError(rule); return; }
     if (sent && password !== confirmPassword) { setError('Passwords do not match.'); return; }
     setBusy(true);
     const controller = new AbortController(); active.current = controller;
@@ -44,20 +51,21 @@ export default function ResetPassword() {
     <section className="w-full max-w-md space-y-6">
       <Logo />
       <h1 className="text-2xl font-bold">{done ? 'Password updated' : 'Reset your password'}</h1>
-      {notice && <p role="status" className="text-sky-300">{notice}</p>}
+      {notice && <p role="status" className="text-[#93c5fd]">{notice}</p>}
       {error && <p role="alert" className="text-red-400">{error}</p>}
-      {!done && <form onSubmit={submit} className="space-y-4">
-        <label className="block">Email address<input className={inputClass} type="email" autoComplete="email" required maxLength={254} value={email} disabled={sent || busy} onChange={e => setEmail(e.target.value)} /></label>
+      {!done && <form onSubmit={submit} noValidate className="space-y-4">
+        <label className="block">Email address<input className={inputClass} type="email" autoComplete="email" maxLength={254} value={email} disabled={sent || busy} onChange={e => setEmail(e.target.value)} /></label>
         {sent && <>
           <p className="text-sm text-slate-400">Paste the reset code from your email. It expires after 10 minutes.</p>
-          <label className="block">Reset code<input className={inputClass} autoComplete="one-time-code" required value={token} disabled={busy} onChange={e => setToken(e.target.value)} /></label>
-          <label className="block">New password<input className={inputClass} type="password" autoComplete="new-password" required minLength={8} maxLength={72} value={password} disabled={busy} onChange={e => setPassword(e.target.value)} /></label>
-          <label className="block">Confirm new password<input className={inputClass} type="password" autoComplete="new-password" required minLength={8} maxLength={72} value={confirmPassword} disabled={busy} onChange={e => setConfirmPassword(e.target.value)} /></label>
+          <label className="block">Reset code<input className={inputClass} autoComplete="one-time-code" value={token} disabled={busy} onChange={e => setToken(e.target.value)} /></label>
+          <div><label className="block">New password<input className={inputClass} type="password" autoComplete="off" aria-describedby="reset-password-rules" value={password} disabled={busy} onChange={e => setPassword(e.target.value)} /></label>
+          <PasswordRequirements id="reset-password-rules" password={password} /></div>
+          <label className="block">Confirm new password<input className={inputClass} type="password" autoComplete="off" value={confirmPassword} disabled={busy} onChange={e => setConfirmPassword(e.target.value)} /></label>
         </>}
-        <button disabled={busy} className="w-full rounded bg-sky-400 p-3 font-bold text-slate-950 disabled:opacity-50">{busy ? 'Please wait...' : sent ? 'Update password' : 'Send reset code'}</button>
-        {sent && <button type="button" disabled={busy} className="text-sm text-sky-300" onClick={() => { setSent(false); setToken(''); setError(''); setNotice(''); }}>Use another email or request a new code</button>}
+        <button disabled={busy} className="w-full rounded bg-[#1d4ed8] hover:bg-[#1e40af] p-3 font-bold text-white disabled:opacity-50">{busy ? 'Please wait...' : sent ? 'Update password' : 'Send reset code'}</button>
+        {sent && <button type="button" disabled={busy} className="text-sm text-[#93c5fd]" onClick={() => { setSent(false); setToken(''); setError(''); setNotice(''); }}>Use another email or request a new code</button>}
       </form>}
-      <Link className="block text-sky-300 hover:underline" to="/login">Back to sign in</Link>
+      <Link className="block text-[#93c5fd] hover:underline" to="/login">Back to sign in</Link>
     </section>
   </main>;
 }

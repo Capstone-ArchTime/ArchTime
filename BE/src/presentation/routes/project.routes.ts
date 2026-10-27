@@ -1666,6 +1666,34 @@ export function createProjectRouter(
      *         description: File markdown của báo cáo
      */
     router.get("/:id/reports/:reportId/download", checkRole("read"), pmController.downloadReport);
+
+    /**
+     * @swagger
+     * /api/projects/{id}/reports/{reportId}/pdf:
+     *   get:
+     *     tags: [Projects - Reports]
+     *     summary: Tải báo cáo kiến trúc định dạng PDF (PM-07)
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *       - in: path
+     *         name: reportId
+     *         required: true
+     *         schema: { type: string }
+     *     responses:
+     *       200:
+     *         description: File PDF của báo cáo
+     *         content:
+     *           application/pdf:
+     *             schema: { type: string, format: binary }
+     *       404:
+     *         description: Không có báo cáo này trong project
+     */
+    router.get("/:id/reports/:reportId/pdf", checkRole("read"), pmController.downloadReportPdf);
   }
 
   return router;

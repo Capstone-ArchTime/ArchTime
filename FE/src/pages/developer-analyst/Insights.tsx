@@ -248,8 +248,8 @@ const Insights: React.FC = () => {
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#3b82f6]/10 border border-[#3b82f6]/30 mb-4">
-                <Sparkles size={12} className="text-[#3b82f6]" />
-                <span className="text-[10px] font-mono text-[#3b82f6] tracking-wider font-semibold uppercase" style={mono}>Evidence-Grounded AI</span>
+                <Sparkles size={12} className="text-[#93c5fd]" />
+                <span className="text-[10px] font-mono text-[#93c5fd] tracking-wider font-semibold uppercase" style={mono}>Evidence-Grounded AI</span>
               </div>
               <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">AI Architectural Insights</h2>
               <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
@@ -277,7 +277,7 @@ const Insights: React.FC = () => {
                 aria-expanded={historyOpen}
                 aria-controls="chat-history"
                 disabled={!canChat}
-                className={`flex items-center gap-2 h-9 px-3 text-xs border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${historyOpen ? 'text-[#3b82f6] border-[#3b82f6]/50 bg-[#3b82f6]/10' : 'text-[#94a3b8] hover:text-[#f4f4f6] border-[#242527] hover:border-[#3b82f6]/30'}`}
+                className={`flex items-center gap-2 h-9 px-3 text-xs border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${historyOpen ? 'text-[#93c5fd] border-[#3b82f6]/50 bg-[#3b82f6]/10' : 'text-[#94a3b8] hover:text-[#f4f4f6] border-[#242527] hover:border-[#3b82f6]/30'}`}
               >
                 <History size={14} />
                 History{conversations.length > 0 ? ` (${conversations.length})` : ''}
@@ -328,7 +328,7 @@ const Insights: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => { setHistoryStatus('loading'); loadHistory(selectedProjectId); }}
-                      className="px-3 py-1.5 border border-[#242527] hover:border-[#3b82f6]/50 text-[#3b82f6]"
+                      className="px-3 py-1.5 border border-[#242527] hover:border-[#3b82f6]/50 text-[#93c5fd]"
                     >
                       Try again
                     </button>
@@ -359,7 +359,7 @@ const Insights: React.FC = () => {
                             type="button"
                             onClick={() => void removeConversation(conversation)}
                             aria-label={`Delete saved chat: ${conversation.title}`}
-                            className="shrink-0 w-10 flex items-center justify-center text-[#5f636b] hover:text-red-400 hover:bg-[#242527]/40 focus:outline-none focus-visible:text-red-400 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-red-400"
+                            className="shrink-0 w-10 flex items-center justify-center text-[#94a3b8] hover:text-red-400 hover:bg-[#242527]/40 focus:outline-none focus-visible:text-red-400 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-red-400"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -381,7 +381,7 @@ const Insights: React.FC = () => {
           {/* Chat Header */}
           <div className="shrink-0 p-4 border-b border-[#242527] bg-[#11161b] flex items-center gap-3">
             <div className="w-8 h-8 bg-[#3b82f6]/20 flex items-center justify-center rounded-full">
-              <Bot size={16} className="text-[#3b82f6]" />
+              <Bot size={16} className="text-[#93c5fd]" />
             </div>
             <div>
               <span className="text-sm font-semibold text-[#f4f4f6]">ArchTime AI</span>
@@ -414,7 +414,7 @@ const Insights: React.FC = () => {
                     <div className={`shrink-0 w-8 h-8 flex items-center justify-center rounded-full ${message.isError ? 'bg-red-500/20' : 'bg-[#3b82f6]/20'}`}>
                       {message.isError
                         ? <AlertTriangle size={14} className="text-red-400" />
-                        : <Sparkles size={14} className="text-[#3b82f6]" />}
+                        : <Sparkles size={14} className="text-[#93c5fd]" />}
                     </div>
                   )}
 
@@ -436,7 +436,7 @@ const Insights: React.FC = () => {
                         </p>
                       )}
                     </div>
-                    <p className="text-[10px] text-[#5f636b] mt-1 font-mono" style={mono}>
+                    <p className="text-[10px] text-[#94a3b8] mt-1 font-mono" style={mono}>
                       {message.timestamp.toLocaleTimeString()}
                     </p>
                     {message.unsaved && (
@@ -456,11 +456,11 @@ const Insights: React.FC = () => {
             {isTyping && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-4">
                 <div className="shrink-0 w-8 h-8 bg-[#3b82f6]/20 flex items-center justify-center rounded-full">
-                  <Sparkles size={14} className="text-[#3b82f6]" />
+                  <Sparkles size={14} className="text-[#93c5fd]" />
                 </div>
                 <div className="p-4 bg-[#11161b] border border-[#242527]">
                   <div className="flex items-center gap-2">
-                    <Loader2 size={14} className="text-[#3b82f6] animate-spin" />
+                    <Loader2 size={14} className="text-[#93c5fd] animate-spin" />
                     <span className="text-xs text-[#94a3b8] font-mono" style={mono}>Analyzing repository evidence...</span>
                   </div>
                 </div>
@@ -483,7 +483,7 @@ const Insights: React.FC = () => {
                     key={question}
                     onClick={() => void handleSend(question)}
                     disabled={isTyping || opening}
-                    className="px-3 py-2 bg-[#11161b] border border-[#242527] hover:border-[#3b82f6]/50 text-xs text-[#94a3b8] hover:text-[#3b82f6] transition-colors disabled:opacity-50"
+                    className="px-3 py-2 bg-[#11161b] border border-[#242527] hover:border-[#3b82f6]/50 text-xs text-[#94a3b8] hover:text-[#93c5fd] transition-colors disabled:opacity-50"
                   >
                     {question}
                   </button>
@@ -513,13 +513,13 @@ const Insights: React.FC = () => {
               <button
                 onClick={() => void handleSend(inputValue)}
                 disabled={!inputValue.trim() || isTyping || opening || !canChat}
-                className="h-12 px-6 bg-[#3b82f6] hover:bg-[#3b82f6]/80 disabled:bg-[#242527] disabled:cursor-not-allowed text-[#080b0e] disabled:text-[#5f636b] font-semibold text-sm transition-colors flex items-center gap-2"
+                className="h-12 px-6 bg-[#1d4ed8] hover:bg-[#1e40af] disabled:bg-[#242527] disabled:cursor-not-allowed text-white disabled:text-[#5f636b] font-semibold text-sm transition-colors flex items-center gap-2"
               >
                 <Send size={16} />
                 Send
               </button>
             </div>
-            <p className="text-[10px] text-[#5f636b] mt-2 font-mono" style={mono}>
+            <p className="text-[10px] text-[#94a3b8] mt-2 font-mono" style={mono}>
               <Box size={10} className="inline mr-1" />
               Answers use this workspace&apos;s stored snapshots and change evidence.
               {modelNote

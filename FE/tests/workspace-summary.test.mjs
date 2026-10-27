@@ -74,3 +74,16 @@ test('mined commits keep their real counts and only structural ones count as cha
   assert.deepEqual(structuralChanges(rows).map(r => r.id), ['s3', 's2']);
   assert.throws(() => parseSnapshotPage({ data: { snapshots: [{ id: 'x', hash: 'y', date: 'not a date' }] } }), /invalid mined commit/);
 });
+
+test('members who only read a workspace are not sent to scan or mine it', () => {
+  assert.equal(parseWorkspace(project({ isMaintainer: true })).canMaintain, true);
+  assert.equal(parseWorkspace(project()).canMaintain, false, 'not said by the server means read only');
+  for (const w of [{ status: 'PENDING', totalCommits: null }, { status: 'PENDING', totalCommits: 37 }, { status: 'FAILED', totalCommits: 37 }]) {
+    const step = nextStep({ id: 'p1', ...w, canMaintain: false });
+    assert.equal(step.action, 'wait', w.status);
+    assert.match(step.hint, /maintainers/);
+  }
+  const open = nextStep({ id: 'p1', status: 'COMPLETED', totalCommits: 37, canMaintain: false });
+  assert.equal(open.action, 'open'); assert.doesNotMatch(open.label, /Group/);
+  assert.equal(nextStep({ id: 'p1', status: 'PENDING', totalCommits: 37, canMaintain: true }).action, 'mine');
+});

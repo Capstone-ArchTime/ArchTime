@@ -1,6 +1,6 @@
 import { API_BASE_URL } from './session.ts';
 
-export type AuthResponse = { accessToken?: string; refreshToken?: string; message?: string };
+export type AuthResponse = { accessToken?: string; refreshToken?: string; message?: string; /** register and resend-otp: when the emailed code expires (ISO time) */ expiresAt?: string };
 
 export async function authRequest(endpoint: 'login' | 'register' | 'verify-email' | 'resend-otp' | 'forgot-password' | 'reset-password', body: Record<string, string>, signal?: AbortSignal): Promise<AuthResponse> {
   const timeout = AbortSignal.timeout(15_000);

@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { UnauthorizedError } from "../../shared/errors/AppError.js";
 import { sendSuccess } from "../../shared/utils/apiResponse.js";
+import { renderReportPdf, reportFileName } from "../../infrastructure/services/ReportPdf.js";
 import type { GetProjectDashboardUseCase } from "../../application/use-cases/pm/GetProjectDashboardUseCase.js";
 import type { GetProjectDiagramUseCase } from "../../application/use-cases/pm/GetProjectDiagramUseCase.js";
 import type {
@@ -544,6 +545,20 @@ export class ProjectMaintainerController {
       res.setHeader("Content-Type", "text/markdown");
       res.setHeader("Content-Disposition", `attachment; filename="report-${report.id}.md"`);
       res.send(markdown);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public downloadReportPdf = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id: projectId, reportId } = req.params;
+      const report = await this.uc.getReportDetailUseCase.execute(projectId, reportId);
+      const pdf = await renderReportPdf(report);
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${reportFileName(report)}"`);
+      res.setHeader("Content-Length", String(pdf.length));
+      res.send(pdf);
     } catch (err) {
       next(err);
     }

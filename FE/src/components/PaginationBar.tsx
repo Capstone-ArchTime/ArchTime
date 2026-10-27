@@ -57,7 +57,7 @@ export default function PaginationBar({ current, pageSize, total, onChange }: Pr
               onClick={() => onChange(page, pageSize)}
               className={`h-8 w-8 flex items-center justify-center text-xs font-mono font-bold rounded-sm border transition-all duration-200 ${
                 page === current 
-                  ? 'bg-[#3b82f6]/10 border-[#3b82f6] text-[#3b82f6] shadow-[0_0_10px_rgba(56,189,248,0.2)]' 
+                  ? 'bg-[#3b82f6]/10 border-[#3b82f6] text-[#93c5fd] shadow-[0_0_10px_rgba(56,189,248,0.2)]' 
                   : 'bg-[#11161b] border-[#242527] text-[#94a3b8] hover:bg-[#242527] hover:text-[#f4f4f6]'
               }`}
               style={{ fontFamily: '"JetBrains Mono", monospace' }}

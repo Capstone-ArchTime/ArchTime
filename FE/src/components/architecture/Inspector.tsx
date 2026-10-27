@@ -28,14 +28,14 @@ export default function Inspector({ view, scene, theme, selectedNode, selectedEd
       <div><h3 className={heading}>Routes</h3><p className="text-xs text-[#94a3b8]">Directed dependency paths, shortest first. The shortest is drawn in amber.</p></div>
       <ol className="space-y-2">{highlight.routes.map((r, i) => <li key={r.edges.join()} className="border border-[#242527] p-2 text-xs">
         <span className="text-[#94a3b8]">{i === 0 ? 'Shortest' : `Alternative ${i}`} · {r.edges.length} hop{r.edges.length === 1 ? '' : 's'}</span>
-        <div className="mt-1 leading-relaxed">{r.nodes.map((n, j) => <span key={n + j}>{j > 0 && <span className="text-[#64748b]"> → </span>}<button type="button" className="underline decoration-dotted" onClick={() => onSelectNode(n)}>{nameOf(n)}</button></span>)}</div>
+        <div className="mt-1 leading-relaxed">{r.nodes.map((n, j) => <span key={n + j}>{j > 0 && <span className="text-[#94a3b8]"> → </span>}<button type="button" className="underline decoration-dotted" onClick={() => onSelectNode(n)}>{nameOf(n)}</button></span>)}</div>
       </li>)}</ol>
     </aside>;
   }
   if (edge) {
     return <aside aria-label="Dependency details" className="space-y-4">
       <div><h3 className={heading}>Dependency</h3>
-        <p className="text-sm font-semibold">{nameOf(edge.source)} <span className="text-[#64748b]">→</span> {nameOf(edge.target)}</p>
+        <p className="text-sm font-semibold">{nameOf(edge.source)} <span className="text-[#94a3b8]">→</span> {nameOf(edge.target)}</p>
         <p className="text-xs text-[#94a3b8] mt-1">{edge.weight} {view.unit === 'file' ? 'file' : 'class'}-level {edge.weight === 1 ? 'dependency' : 'dependencies'} back this arrow.</p></div>
       <div className="flex flex-wrap gap-1">{Object.entries(edge.kinds).map(([k, n]) => <Tag key={k}>{k} × {n}</Tag>)}</div>
       <div><h3 className={heading}>Evidence</h3>
@@ -57,7 +57,7 @@ export default function Inspector({ view, scene, theme, selectedNode, selectedEd
         <p className="text-xs text-[#94a3b8] mt-1">{PROVENANCE_HELP[component.label]}</p>
         <p className="text-sm mt-3 leading-relaxed">{component.description}</p>
       </div>
-      <button type="button" onClick={() => onOpen(component.id)} className="w-full h-9 border border-[#3b82f6]/50 text-[#3b82f6] text-xs font-bold hover:bg-[#3b82f6]/10">SHOW {members.length} {unitWord(view, members.length).toUpperCase()}</button>
+      <button type="button" onClick={() => onOpen(component.id)} className="w-full h-9 border border-[#3b82f6]/50 text-[#93c5fd] text-xs font-bold hover:bg-[#3b82f6]/10">SHOW {members.length} {unitWord(view, members.length).toUpperCase()}</button>
       <List title={`Depends on (${outgoing.length})`} items={outgoing.map(e => ({ id: e.target, label: nameOf(e.target), edge: e.id, weight: e.weight }))} onNode={onSelectNode} onEdge={onSelectEdge} />
       <List title={`Used by (${incoming.length})`} items={incoming.map(e => ({ id: e.source, label: nameOf(e.source), edge: e.id, weight: e.weight }))} onNode={onSelectNode} onEdge={onSelectEdge} />
     </aside>;
@@ -94,7 +94,7 @@ export default function Inspector({ view, scene, theme, selectedNode, selectedEd
 }
 
 function List({ title, items, onNode, onEdge }: { title: string; items: { id: string; label: string; edge: string; weight: number }[]; onNode: (id: string) => void; onEdge: (id: string) => void }) {
-  if (!items.length) return <div><h3 className={heading}>{title}</h3><p className="text-xs text-[#64748b]">None</p></div>;
+  if (!items.length) return <div><h3 className={heading}>{title}</h3><p className="text-xs text-[#94a3b8]">None</p></div>;
   return <div><h3 className={heading}>{title}</h3><ul className="space-y-1">{items.map(i => <li key={i.edge} className="flex items-center justify-between gap-2 text-xs">
     <button type="button" className="text-left hover:underline" onClick={() => onNode(i.id)}>{i.label}</button>
     <button type="button" aria-label={`Show ${i.weight} dependencies to ${i.label}`} className="font-mono text-[#94a3b8] border border-[#2a3441] px-1.5 hover:border-[#3b82f6]" onClick={() => onEdge(i.edge)}>{i.weight}</button></li>)}</ul></div>;

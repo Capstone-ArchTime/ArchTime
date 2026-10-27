@@ -94,7 +94,7 @@ export default function CredentialsTab({ organization }: { organization: Organiz
           {credentials.map(c => (
             <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
               <div className="min-w-0">
-                <p className="flex items-center gap-2 font-medium break-words"><KeyRound size={14} className="text-[#3b82f6] shrink-0" />{c.name} <Tag>{providerLabel(c.provider)}</Tag></p>
+                <p className="flex items-center gap-2 font-medium break-words"><KeyRound size={14} className="text-[#93c5fd] shrink-0" />{c.name} <Tag>{providerLabel(c.provider)}</Tag></p>
                 <p className="text-xs text-[#94a3b8]">
                   <span className="font-mono">••••{c.last4}</span>
                   {` · used by ${c.usedBy} ${c.usedBy === 1 ? 'workspace' : 'workspaces'}`}

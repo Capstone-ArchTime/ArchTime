@@ -49,6 +49,6 @@ export default function GitHubCallback() {
   return <main className="min-h-screen bg-[#080b0e] text-white flex flex-col items-center justify-center gap-6 p-8">
     <h1 className="text-2xl font-semibold">GitHub sign-in</h1>
     <p role={error ? 'alert' : 'status'} className="max-w-lg text-center text-slate-300">{error || 'Completing your sign-in…'}</p>
-    {error && <Link to="/login" className="text-sky-400 underline">Back to sign in</Link>}
+    {error && <Link to="/login" className="text-[#93c5fd] underline">Back to sign in</Link>}
   </main>;
 }

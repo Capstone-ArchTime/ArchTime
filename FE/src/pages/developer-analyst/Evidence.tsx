@@ -141,7 +141,7 @@ const Evidence: React.FC = () => {
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#161d24] border border-[#242527] mb-4">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] shadow-[0_0_5px_#3b82f6]"></div>
-                <span className="text-[10px] font-mono text-[#3b82f6] tracking-wider font-semibold uppercase"
+                <span className="text-[10px] font-mono text-[#93c5fd] tracking-wider font-semibold uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Evidence Observatory</span>
               </div>
               <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Changes & Evidence</h2>
@@ -183,7 +183,7 @@ const Evidence: React.FC = () => {
                {search && (
                  <button 
                    onClick={() => setSearch('')}
-                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5f636b] hover:text-[#f4f4f6] transition-colors"
+                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#f4f4f6] transition-colors"
                    aria-label="Clear search"
                  >
                    <X size={14} />
@@ -206,7 +206,7 @@ const Evidence: React.FC = () => {
              <div className="absolute inset-0 bg-[#080b0e]/80 flex items-center justify-center z-10 backdrop-blur-sm">
                <div className="flex flex-col items-center gap-4">
                   <div className="w-8 h-8 rounded-full border-2 border-[#3b82f6] border-t-transparent animate-spin"></div>
-                  <span className="text-xs font-mono text-[#3b82f6]">Loading Evidence...</span>
+                  <span className="text-xs font-mono text-[#93c5fd]">Loading Evidence...</span>
                </div>
              </div>
           )}
@@ -234,7 +234,7 @@ const Evidence: React.FC = () => {
               <tbody className="divide-y divide-[#242527]">
                 {!loading && !filtered.length && <tr><td colSpan={7} className="p-8 text-center text-sm text-[#94a3b8]" role="status">
                   {loadError ?? (projectsList?.length === 0
-                    ? <>No workspace has mined commits yet. Evidence is recorded while commits are mined: <RouterLink to="/projects" className="text-[#3b82f6] hover:underline">go to Workspaces</RouterLink> and choose Manage mining.</>
+                    ? <>No workspace has mined commits yet. Evidence is recorded while commits are mined: <RouterLink to="/projects" className="text-[#93c5fd] hover:underline">go to Workspaces</RouterLink> and choose Manage mining.</>
                     : evidenceData.length === 0 ? 'No architectural changes were recorded for the mined commits of this workspace.' : 'No changes match these filters.')}
                 </td></tr>}
                 {pagination.items.map((item: any) => (
@@ -252,7 +252,7 @@ const Evidence: React.FC = () => {
                     </td>
                     <td className="p-4 text-xs font-mono text-[#94a3b8]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>{item.repository}</td>
-                    <td className="p-4 text-xs font-mono text-[#3b82f6] font-bold flex items-center gap-1.5"
+                    <td className="p-4 text-xs font-mono text-[#93c5fd] font-bold flex items-center gap-1.5"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                        <GitCommit size={14} /> {item.commit}
                     </td>
@@ -266,7 +266,7 @@ const Evidence: React.FC = () => {
                            setSelectedChange(item);
                          }}
                          aria-label={`View evidence for ${item.changeTitle}`}
-                         className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-[#94a3b8] group-hover:text-[#3b82f6] transition-colors uppercase focus:outline-none focus-visible:text-[#3b82f6]"
+                         className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-[#94a3b8] group-hover:text-[#93c5fd] transition-colors uppercase focus:outline-none focus-visible:text-[#93c5fd]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                           View <ArrowRight size={14} />
                        </button>
@@ -325,7 +325,7 @@ const Evidence: React.FC = () => {
                   
                   {/* AI Disclaimer */}
                   <div className="bg-[#3b82f6]/5 border border-[#3b82f6]/20 p-4 mt-4">
-                     <p className="text-xs text-[#3b82f6] leading-relaxed">
+                     <p className="text-xs text-[#93c5fd] leading-relaxed">
                        <strong className="font-bold tracking-wide uppercase font-mono text-[10px]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Evidence Suggests:</strong><br />
                        Based on repository evidence, {selectedChange.summary}
@@ -383,10 +383,10 @@ const Evidence: React.FC = () => {
                           </div>
 
                           <div className="flex flex-col items-center gap-2 z-10 bg-[#080b0e] px-2">
-                            <div className="w-8 h-8 rounded-full bg-[#3b82f6]/20 border border-[#3b82f6]/50 flex items-center justify-center text-[#3b82f6]">
+                            <div className="w-8 h-8 rounded-full bg-[#3b82f6]/20 border border-[#3b82f6]/50 flex items-center justify-center text-[#93c5fd]">
                                <Box size={14} />
                             </div>
-                            <span className="text-[9px] font-mono text-[#3b82f6] font-bold"
+                            <span className="text-[9px] font-mono text-[#93c5fd] font-bold"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Snapshot</span>
                           </div>
                        </div>
@@ -398,7 +398,7 @@ const Evidence: React.FC = () => {
                      <div className="bg-[#161d24] border border-[#242527] p-4">
                         <div className="text-[10px] font-mono text-[#94a3b8] mb-2 uppercase"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Commit Info</div>
-                        <div className="text-sm font-mono font-bold text-[#3b82f6]"
+                        <div className="text-sm font-mono font-bold text-[#93c5fd]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>{selectedChange.commit}</div>
                         <div className="text-[10px] mt-1 text-[#f4f4f6] truncate" title={selectedChange.diffBefore?.match(/Author:\s*(.*)/)?.[1] || 'Unknown Author'}>
                           {selectedChange.diffBefore?.match(/Author:\s*(.*)/)?.[1] || 'Unknown Author'}
@@ -433,7 +433,7 @@ const Evidence: React.FC = () => {
                                 </div>
                                 <button
                                   onClick={() => viewFileDiff(file, selectedChange.diffBefore)}
-                                  className="shrink-0 ml-4 px-3 py-1 bg-[#242527] text-[10px] font-mono text-[#94a3b8] group-hover:text-[#3b82f6] transition-colors rounded-sm"
+                                  className="shrink-0 ml-4 px-3 py-1 bg-[#242527] text-[10px] font-mono text-[#94a3b8] group-hover:text-[#93c5fd] transition-colors rounded-sm"
                                   style={{ fontFamily: '"JetBrains Mono", monospace' }}
                                 >
                                   VIEW DIFF
@@ -499,7 +499,7 @@ const Evidence: React.FC = () => {
           centered
           title={
             <div className="flex items-center gap-2 text-[#f4f4f6] font-mono text-sm" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-              <Code2 size={16} className="text-[#3b82f6]" />
+              <Code2 size={16} className="text-[#93c5fd]" />
               Diff: {fileDiffModal.filename}
             </div>
           }
@@ -529,7 +529,7 @@ const Evidence: React.FC = () => {
                     textColor = 'text-[#ef4444]'; // red
                     bgColor = 'bg-[#ef4444]/10';
                   } else if (line.startsWith('@@')) {
-                    textColor = 'text-[#3b82f6]'; // blue for chunks
+                    textColor = 'text-[#93c5fd]'; // blue for chunks
                   } else if (line.startsWith('+++') || line.startsWith('---')) {
                     textColor = 'text-[#94a3b8] font-bold'; // gray for headers
                   }

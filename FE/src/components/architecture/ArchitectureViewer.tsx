@@ -189,7 +189,7 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
               ['Click / Enter', 'Focus a component (click again to clear)'], ['Double-click / Shift+Enter', 'Show what is inside a component'],
               ['/', 'Find a component'], ['Esc', 'Clear focus, route or selection; then leave the inner view'],
               ['T', 'Toggle light / dark theme'], ['W', 'Show dependency counts on all arrows'], ['?', 'This help'],
-            ].map(([k, v]) => <div key={k} className="contents"><dt className="font-mono text-xs text-[#3b82f6]">{k}</dt><dd>{v}</dd></div>)}
+            ].map(([k, v]) => <div key={k} className="contents"><dt className="font-mono text-xs text-[#93c5fd]">{k}</dt><dd>{v}</dd></div>)}
           </dl>
         </Modal>
       </>} />

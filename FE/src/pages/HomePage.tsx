@@ -221,16 +221,16 @@ export default function HomePage() {
             className="hidden items-center gap-8 text-xs uppercase tracking-widest text-white md:flex"
             style={{ fontFamily: fontFamily.mono }}
           >
-            <a href="#architecture" className="text-white visited:text-white transition-colors hover:text-[#60a5fa]">
+            <a href="#architecture" className="text-white visited:text-white transition-colors hover:text-[#93c5fd]">
               Architecture
             </a>
-            <a href="#console" className="text-white visited:text-white transition-colors hover:text-[#60a5fa]">
+            <a href="#console" className="text-white visited:text-white transition-colors hover:text-[#93c5fd]">
               Console
             </a>
-            <a href="#modules" className="text-white visited:text-white transition-colors hover:text-[#60a5fa]">
+            <a href="#modules" className="text-white visited:text-white transition-colors hover:text-[#93c5fd]">
               Modules
             </a>
-            <a href="#hardware" className="text-white visited:text-white transition-colors hover:text-[#60a5fa]">
+            <a href="#hardware" className="text-white visited:text-white transition-colors hover:text-[#93c5fd]">
               Evidence
             </a>
           </div>
@@ -291,28 +291,28 @@ export default function HomePage() {
                 <a
                   href="#architecture"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="border-b border-[#242527]/60 py-3 text-white visited:text-white transition-colors hover:text-[#60a5fa]"
+                  className="border-b border-[#242527]/60 py-3 text-white visited:text-white transition-colors hover:text-[#93c5fd]"
                 >
                   Architecture
                 </a>
                 <a
                   href="#console"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="border-b border-[#242527]/60 py-3 text-white visited:text-white transition-colors hover:text-[#60a5fa]"
+                  className="border-b border-[#242527]/60 py-3 text-white visited:text-white transition-colors hover:text-[#93c5fd]"
                 >
                   Console
                 </a>
                 <a
                   href="#modules"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="border-b border-[#242527]/60 py-3 text-white visited:text-white transition-colors hover:text-[#60a5fa]"
+                  className="border-b border-[#242527]/60 py-3 text-white visited:text-white transition-colors hover:text-[#93c5fd]"
                 >
                   Modules
                 </a>
                 <a
                   href="#hardware"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="border-b border-[#242527]/60 py-3 text-white visited:text-white transition-colors hover:text-[#60a5fa]"
+                  className="border-b border-[#242527]/60 py-3 text-white visited:text-white transition-colors hover:text-[#93c5fd]"
                 >
                   Evidence
                 </a>
@@ -392,7 +392,7 @@ export default function HomePage() {
             <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
               <motion.a
                 href="#console"
-                className="rounded-none bg-[#3b82f6] px-8 py-4 text-center text-xs font-bold uppercase tracking-widest text-[#080b0e] transition-colors hover:bg-[#00f0ff]"
+                className="rounded-none bg-[#1d4ed8] px-8 py-4 text-center text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#1e40af]"
                 style={{ fontFamily: fontFamily.mono }}
                 whileHover={{
                   boxShadow:
@@ -481,7 +481,7 @@ export default function HomePage() {
           <div className="mx-auto max-w-7xl px-6">
             <div className="mx-auto mb-16 max-w-2xl text-center">
               <span
-                className="mb-3 block text-xs uppercase tracking-widest text-[#3b82f6]"
+                className="mb-3 block text-xs uppercase tracking-widest text-[#93c5fd]"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Evolution Analysis
@@ -511,7 +511,7 @@ export default function HomePage() {
                 style={{ fontFamily: fontFamily.mono }}
               >
                 <div className="flex items-start gap-2">
-                  <span className="text-[#3b82f6]">archtime@repo:~$</span>
+                  <span className="text-[#93c5fd]">archtime@repo:~$</span>
                   <span className="text-slate-300">analyze --repo=./target-service --since=v1.0.0</span>
                 </div>
                 <div className="space-y-1 text-slate-500">
@@ -520,14 +520,14 @@ export default function HomePage() {
                   <div>[ OK ] Comparing architecture snapshots (graph edit distance)...</div>
                 </div>
                 <div className="flex items-start gap-2">
-                  <span className="text-[#3b82f6]">archtime@repo:~$</span>
+                  <span className="text-[#93c5fd]">archtime@repo:~$</span>
                   <span className="text-slate-300">cat architectural_diff.json</span>
                 </div>
                 <div className="border border-[#242527]/60 bg-[#161d24]/50 p-4 leading-relaxed text-[#ffb03a]">
                   &quot;Module `billing-service` was split from `core-monolith` at commit 4af21c9. Evidence: 3 commits, 2 authors, dependency direction reversed.&quot;
                 </div>
                 <div className="flex items-center gap-2 pt-2">
-                  <span className="text-[#3b82f6]">archtime@repo:~$</span>
+                  <span className="text-[#93c5fd]">archtime@repo:~$</span>
                   <TypewriterLine />
                 </div>
               </div>
@@ -555,14 +555,14 @@ export default function HomePage() {
             <div className="group flex h-80 flex-col justify-between border border-[#242527] bg-[#161d24] p-8 transition-colors hover:border-[#3b82f6]/40">
               <div>
                 <div className="mb-6 flex items-start justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center border border-[#3b82f6]/20 bg-[#3b82f6]/10 text-xl text-[#3b82f6]">
+                  <div className="flex h-12 w-12 items-center justify-center border border-[#3b82f6]/20 bg-[#3b82f6]/10 text-xl text-[#93c5fd]">
                     <Icon icon="ph:cube-light" />
                   </div>
                   <span className="text-xs text-slate-500" style={{ fontFamily: fontFamily.mono }}>
                     01 / CHANGE
                   </span>
                 </div>
-                <h3 className="mb-2 text-xl font-bold text-white transition-colors group-hover:text-[#3b82f6]">
+                <h3 className="mb-2 text-xl font-bold text-white transition-colors group-hover:text-[#93c5fd]">
                   Module Split / Merge
                 </h3>
                 <p className="text-sm leading-relaxed text-slate-400 font-light">
@@ -662,7 +662,7 @@ export default function HomePage() {
 
             <div className="space-y-6 order-1 lg:col-span-6 lg:order-2">
               <span
-                className="block text-xs uppercase tracking-widest text-[#3b82f6]"
+                className="block text-xs uppercase tracking-widest text-[#93c5fd]"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Evidence-Based Reasoning
@@ -689,7 +689,7 @@ export default function HomePage() {
         <RevealSection id="subscribe" className="relative mx-auto max-w-4xl overflow-hidden px-6 py-32 text-center">
           <div className="pointer-events-none absolute inset-0 rounded-full bg-[#ffb03a]/5 blur-3xl" />
           <div className="relative z-10 space-y-8">
-            <Icon icon="ph:fingerprint-light" className="animate-pulse motion-reduce:animate-none text-4xl text-[#3b82f6]" />
+            <Icon icon="ph:fingerprint-light" className="animate-pulse motion-reduce:animate-none text-4xl text-[#93c5fd]" />
             <h2 className="text-3xl font-bold tracking-tight text-white sm:text-5xl">
               Follow the ArchTime Build Log
             </h2>
@@ -715,7 +715,7 @@ export default function HomePage() {
               />
               <button
                 type="submit"
-                className="w-full whitespace-nowrap bg-[#3b82f6] px-8 py-4 text-xs font-bold uppercase tracking-widest text-[#080b0e] transition-colors hover:bg-[#00f0ff] sm:w-auto"
+                className="w-full whitespace-nowrap bg-[#1d4ed8] px-8 py-4 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#1e40af] sm:w-auto"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Subscribe
@@ -742,10 +742,10 @@ export default function HomePage() {
                   Pipeline
                 </h4>
                 <ul className="space-y-4 text-xs" style={{ fontFamily: fontFamily.mono }}>
-                  <li><a href="#architecture" className="text-white visited:text-white transition-colors hover:text-[#60a5fa]">Repository Mining</a></li>
-                  <li><a href="#console" className="text-white visited:text-white transition-colors hover:text-[#60a5fa]">Evolution Analysis</a></li>
-                  <li><a href="#hardware" className="text-white visited:text-white transition-colors hover:text-[#60a5fa]">Evidence-Based Reasoning</a></li>
-                  <li><a href="#modules" className="text-white visited:text-white transition-colors hover:text-[#60a5fa]">Architectural Diff</a></li>
+                  <li><a href="#architecture" className="text-white visited:text-white transition-colors hover:text-[#93c5fd]">Repository Mining</a></li>
+                  <li><a href="#console" className="text-white visited:text-white transition-colors hover:text-[#93c5fd]">Evolution Analysis</a></li>
+                  <li><a href="#hardware" className="text-white visited:text-white transition-colors hover:text-[#93c5fd]">Evidence-Based Reasoning</a></li>
+                  <li><a href="#modules" className="text-white visited:text-white transition-colors hover:text-[#93c5fd]">Architectural Diff</a></li>
                 </ul>
               </div>
               <div>

@@ -26,19 +26,50 @@ async function renewToken() {
   return renewal;
 }
 
-export async function apiRequest<T>(path: string, options: RequestInit = {}, timeoutMs = 15_000): Promise<T> {
-  const timeout = AbortSignal.timeout(timeoutMs);
-  const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
+/** Sends the request with the session's token, renewing it once when the server says it expired. */
+async function sendAuthorized(path: string, options: RequestInit, signal: AbortSignal): Promise<Response> {
   const send = (token: string) => fetch(`${API_BASE_URL}${path}`, {
     ...options, signal, headers: { ...Object.fromEntries(new Headers(options.headers)), Authorization: `Bearer ${token}` },
   });
+  let response = await send(readTokens().accessToken);
+  if (response.status === 401 && readTokens().refreshToken) {
+    const token = await renewToken();
+    signal.throwIfAborted();
+    response = await send(token);
+  }
+  return response;
+}
+
+/**
+ * A file from the API (a PDF, say), with the name the server gave it. A link cannot be used for this: the browser would
+ * not send the session's token.
+ */
+export async function apiDownload(path: string, options: RequestInit = {}, timeoutMs = 60_000): Promise<{ blob: Blob; filename: string | null }> {
+  const timeout = AbortSignal.timeout(timeoutMs);
+  const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
   try {
-    let response = await send(readTokens().accessToken);
-    if (response.status === 401 && readTokens().refreshToken) {
-      const token = await renewToken();
-      signal.throwIfAborted();
-      response = await send(token);
+    const response = await sendAuthorized(path, options, signal);
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      const message = typeof body?.error?.message === 'string' ? body.error.message : response.status === 403 ? 'You do not have permission to download this file.' : `Download failed (${response.status}). Please retry.`;
+      throw new ApiError(message, response.status, typeof body?.error?.code === 'string' ? body.error.code : undefined);
     }
+    const disposition = response.headers.get('Content-Disposition') ?? '';
+    const filename = /filename="([^"]+)"/.exec(disposition)?.[1] ?? null;
+    return { blob: await response.blob(), filename };
+  } catch (error) {
+    if (options.signal?.aborted) throw error;
+    if (timeout.aborted) throw new Error('The download timed out. Please retry.');
+    if (error instanceof TypeError) throw new Error('Cannot reach the server. Check your connection and retry.');
+    throw error;
+  }
+}
+
+export async function apiRequest<T>(path: string, options: RequestInit = {}, timeoutMs = 15_000): Promise<T> {
+  const timeout = AbortSignal.timeout(timeoutMs);
+  const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
+  try {
+    const response = await sendAuthorized(path, options, signal);
     const body = response.status === 204 ? undefined : await response.json().catch(() => null);
     if (!response.ok) {
       const code = typeof body?.error === 'object' && body?.error !== null ? body.error.code : undefined;

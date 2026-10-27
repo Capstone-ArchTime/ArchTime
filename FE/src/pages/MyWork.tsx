@@ -68,7 +68,7 @@ function WorkspaceRow({ workspace, link }: { workspace: MyWorkspace; link: strin
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 py-3">
       <div className="min-w-0">
-        <p className="font-medium break-words">{link ? <Link to={link} className="hover:text-[#3b82f6]">{workspace.name}</Link> : workspace.name}</p>
+        <p className="font-medium break-words">{link ? <Link to={link} className="hover:text-[#93c5fd]">{workspace.name}</Link> : workspace.name}</p>
         <p className="text-xs text-[#94a3b8]">
           {workspace.totalCommits !== null ? `${workspace.totalCommits} commits` : 'History not scanned yet'}
           {last && ` · last commit ${last}`}
@@ -112,7 +112,7 @@ export default function MyWork() {
           detail={learning ? `${learning.finished} of ${learning.assigned} paths finished` : null} />
       </div>
 
-      <Section icon={<Building2 size={18} className="text-[#3b82f6]" />} title="Organizations">
+      <Section icon={<Building2 size={18} className="text-[#93c5fd]" />} title="Organizations">
         {organizations.error ? <Failed load={organizations} /> : !organizations.data ? <Skeleton active paragraph={{ rows: 2 }} /> : !orgs.length ? (
           <div className={featurePanel}><Empty description="You do not belong to an organization. Your workspaces are in your personal space." /></div>
         ) : (
@@ -134,7 +134,7 @@ export default function MyWork() {
         )}
       </Section>
 
-      <Section icon={<FolderKanban size={18} className="text-[#3b82f6]" />} title="Workspaces"
+      <Section icon={<FolderKanban size={18} className="text-[#93c5fd]" />} title="Workspaces"
         hint={workspaces.data && workspaces.data.total > list.length ? `Showing the first ${MAX_WORKSPACES} of ${workspaces.data.total}` : undefined}>
         {workspaces.error ? <Failed load={workspaces} /> : !workspaces.data ? <Skeleton active paragraph={{ rows: 4 }} /> : !list.length ? (
           <div className={featurePanel}><Empty description="No workspaces yet. Add a repository, or ask a maintainer to invite you to theirs." /></div>
@@ -155,7 +155,7 @@ export default function MyWork() {
         )}
       </Section>
 
-      <Section icon={<GraduationCap size={18} className="text-[#3b82f6]" />} title="Learning progress"
+      <Section icon={<GraduationCap size={18} className="text-[#93c5fd]" />} title="Learning progress"
         hint={learning && learning.assigned > 0 ? `${learning.inProgress} in progress · ${learning.notStarted} not started` : undefined}>
         {paths.error ? <Failed load={paths} /> : !paths.data ? <Skeleton active paragraph={{ rows: 3 }} /> : !paths.data.length ? (
           <div className={featurePanel}><Empty description="No learning paths given to you yet." /></div>
@@ -167,7 +167,7 @@ export default function MyWork() {
               return (
                 <li key={`${p.projectId}:${p.pathId}`} className="grid gap-2 py-3 md:grid-cols-[1fr_minmax(160px,240px)] md:items-center">
                   <div className="min-w-0">
-                    <p className="font-medium break-words">{link ? <Link to={link} className="hover:text-[#3b82f6]">{p.title}</Link> : p.title}</p>
+                    <p className="font-medium break-words">{link ? <Link to={link} className="hover:text-[#93c5fd]">{p.title}</Link> : p.title}</p>
                     <p className="text-xs text-[#94a3b8]">{p.projectName ?? 'Workspace'} · last activity {date(p.lastActivityAt)}</p>
                   </div>
                   <div>

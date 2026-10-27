@@ -3,13 +3,14 @@ import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Alert, App, Button, Input } from 'antd';
 import FeaturePage, { featurePanel } from '@/components/FeaturePage';
+import PasswordRequirements from '@/components/PasswordRequirements';
 import { ApiError } from '@/api/client';
 import { useAuth } from '@/auth/auth-context';
 import { setSignInNotice } from '@/auth/session';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { changePassword, signOutEverywhere, updateProfile } from '@/features/profile-api';
 import {
-  PASSWORD_HINT, SPECIAL_CHARACTERS, USERNAME_HINT, accountTypeLabel, buildProfilePatch, checkName, checkPasswordForm, checkUsername,
+  USERNAME_HINT, accountTypeLabel, buildProfilePatch, checkName, checkPasswordForm, checkUsername,
 } from '@/features/profile-validation';
 import type { PasswordForm, PasswordProblems } from '@/features/profile-validation';
 
@@ -140,16 +141,16 @@ export default function Profile() {
 
     <form onSubmit={e => void submitPassword(e)} className={`${featurePanel} space-y-4`} aria-labelledby="password-heading" noValidate>
       <h3 id="password-heading" className="text-lg font-semibold">Change password</h3>
-      <p className="text-sm text-[#94a3b8]">{PASSWORD_HINT} Special characters: <span className="font-mono">{SPECIAL_CHARACTERS}</span></p>
-      <p className="text-sm text-[#94a3b8]">Changing it signs you out of every device, this one included. If you signed up with GitHub and never set a password, this form cannot change it.</p>
+            <p className="text-sm text-[#94a3b8]">Changing it signs you out of every device, this one included. If you signed up with GitHub and never set a password, this form cannot change it.</p>
       {passwordProblems.general && <Alert type="error" showIcon title={passwordProblems.general} />}
       {(['oldPassword', 'newPassword', 'confirmNewPassword'] as const).map(field => {
-        const copy = { oldPassword: ['Current password', 'current-password'], newPassword: ['New password', 'new-password'], confirmNewPassword: ['Repeat the new password', 'new-password'] }[field];
+        const copy = { oldPassword: ['Current password', 'current-password'], newPassword: ['New password', 'off'], confirmNewPassword: ['Repeat the new password', 'off'] }[field];
         return <div key={field}>
           <label htmlFor={`pw-${field}`} className={label}>{copy[0]}</label>
           <Input.Password id={`pw-${field}`} value={passwords[field]} autoComplete={copy[1]} status={passwordProblems[field] ? 'error' : undefined} aria-describedby={passwordProblems[field] ? `pw-${field}-problem` : undefined}
             onChange={e => setPasswords(p => ({ ...p, [field]: e.target.value }))} />
           {problem(`pw-${field}-problem`, passwordProblems[field])}
+          {field === 'newPassword' && <PasswordRequirements id="pw-newPassword-rules" password={passwords.newPassword} />}
         </div>;
       })}
       <Button type="primary" htmlType="submit" loading={changing}>Change password</Button>

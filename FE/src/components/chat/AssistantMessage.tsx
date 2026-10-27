@@ -20,7 +20,7 @@ const CHIP_IDLE = 'bg-[#242527]/50 border-[#242527]';
 const CHIP_OPEN = 'bg-[#3b82f6]/15 border-[#3b82f6]/70';
 const FOCUSABLE = 'cursor-pointer transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]';
 const CHIP_HOVER = 'hover:border-[#3b82f6]/60 hover:bg-[#3b82f6]/10';
-const COMMIT_LINK = 'font-mono text-[11px] text-[#3b82f6] underline decoration-dotted underline-offset-2 hover:bg-[#3b82f6]/10';
+const COMMIT_LINK = 'font-mono text-[11px] text-[#93c5fd] underline decoration-dotted underline-offset-2 hover:bg-[#3b82f6]/10';
 
 const when = (iso: string) => {
   const date = new Date(iso);
@@ -68,7 +68,7 @@ function CommitCard({ item, commit, projectId }: { item: CitedItem | undefined; 
         </ul>
       )}
       {!snapshotOnly && (
-        <Link to={evidenceHref(projectId, item.commit)} className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-[#3b82f6] hover:underline uppercase" style={mono}>
+        <Link to={evidenceHref(projectId, item.commit)} className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-[#93c5fd] hover:underline uppercase" style={mono}>
           Open in Changes &amp; Evidence <ExternalLink size={10} />
         </Link>
       )}
@@ -121,7 +121,7 @@ function DetailPanel({ id, innerRef, detail, evidence, items, projectId, onPick,
           title="Files changed in the cited commits" rows={rows} skipped={skipped} onPick={onPick}
           detail={item => `${item.files} files`}
           extra={item => item.sourceFiles.length > 0 && (
-            <p className="mt-1 text-[10px] font-mono text-[#5f636b] truncate" style={mono} title={item.sourceFiles.join('\n')}>
+            <p className="mt-1 text-[10px] font-mono text-[#94a3b8] truncate" style={mono} title={item.sourceFiles.join('\n')}>
               {item.sourceFiles.slice(0, 3).join(', ')}{item.files > 3 ? ` +${item.files - 3} more` : ''}
             </p>
           )}
@@ -167,7 +167,7 @@ export default function AssistantMessage({ content, evidence, projectId }: Props
       return <span key={index} className={`inline-block px-1.5 mr-1 border text-[10px] font-semibold tracking-wider align-middle ${LABEL_STYLES[segment.value]}`} style={mono}>{segment.value}</span>;
     }
     if (segment.kind === 'code') {
-      return <code key={index} className="px-1 bg-[#242527]/60 text-[#3b82f6] text-[12px]" style={mono}>{segment.value}</code>;
+      return <code key={index} className="px-1 bg-[#242527]/60 text-[#93c5fd] text-[12px]" style={mono}>{segment.value}</code>;
     }
     if (segment.kind === 'commit') {
       const label = `Show evidence for commit ${segment.commit}`;
@@ -175,12 +175,12 @@ export default function AssistantMessage({ content, evidence, projectId }: Props
         <button
           key={index} type="button" onClick={() => toggle({ kind: 'commit', commit: segment.commit })}
           aria-expanded={isOpen('commit', segment.commit)} aria-controls={panelId} aria-label={label}
-          className={`px-1 bg-[#3b82f6]/10 text-[#3b82f6] text-[12px] underline decoration-dotted underline-offset-2 hover:bg-[#3b82f6]/25 ${FOCUSABLE}`} style={mono}
+          className={`px-1 bg-[#3b82f6]/10 text-[#93c5fd] text-[12px] underline decoration-dotted underline-offset-2 hover:bg-[#3b82f6]/25 ${FOCUSABLE}`} style={mono}
         >
           {segment.value}
         </button>
       ) : (
-        <Link key={index} to={evidenceHref(projectId, segment.commit)} aria-label={label} className="px-1 bg-[#3b82f6]/10 text-[#3b82f6] text-[12px] underline decoration-dotted underline-offset-2 hover:bg-[#3b82f6]/25" style={mono}>
+        <Link key={index} to={evidenceHref(projectId, segment.commit)} aria-label={label} className="px-1 bg-[#3b82f6]/10 text-[#93c5fd] text-[12px] underline decoration-dotted underline-offset-2 hover:bg-[#3b82f6]/25" style={mono}>
           {segment.value}
         </Link>
       );
@@ -228,18 +228,18 @@ export default function AssistantMessage({ content, evidence, projectId }: Props
           <div className="flex items-center gap-2 mb-3">
             <CheckCircle2 size={12} className="text-[#22c55e]" />
             <span className="text-[10px] font-mono font-semibold text-[#22c55e] uppercase tracking-wider" style={mono}>Evidence cited</span>
-            {interactive && <span className="text-[10px] text-[#5f636b]">Select a commit, file count or dependency count for details</span>}
+            {interactive && <span className="text-[10px] text-[#94a3b8]">Select a commit, file count or dependency count for details</span>}
           </div>
           <div className="flex flex-wrap gap-2">
             {evidence.commits.map(commit => interactive ? (
               <ChipButton
                 key={commit} expanded={isOpen('commit', commit)} controls={panelId} label={`Show evidence for commit ${commit}`}
-                tone="text-[#3b82f6]" onClick={() => toggle({ kind: 'commit', commit })}
+                tone="text-[#93c5fd]" onClick={() => toggle({ kind: 'commit', commit })}
               >
                 <GitCommit size={10} /> {commit}
               </ChipButton>
             ) : (
-              <Link key={commit} to={evidenceHref(projectId, commit)} aria-label={`Show evidence for commit ${commit}`} className={`${CHIP} ${CHIP_IDLE} ${CHIP_HOVER} ${FOCUSABLE} text-[#3b82f6]`} style={mono}>
+              <Link key={commit} to={evidenceHref(projectId, commit)} aria-label={`Show evidence for commit ${commit}`} className={`${CHIP} ${CHIP_IDLE} ${CHIP_HOVER} ${FOCUSABLE} text-[#93c5fd]`} style={mono}>
                 <GitCommit size={10} /> {commit}
               </Link>
             ))}

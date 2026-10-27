@@ -8,7 +8,7 @@ import { serializeHash } from '@/features/architecture/url-state';
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
 
 const COLORS: Record<ChangeKind, string> = {
-  split: '#ffb03a', merged: '#ffb03a', restructured: '#ffb03a', added: '#22c55e', removed: '#ef4444', renamed: '#3b82f6', kept: '#94a3b8',
+  split: '#ffb03a', merged: '#ffb03a', restructured: '#ffb03a', added: '#22c55e', removed: '#ef4444', renamed: '#93c5fd', kept: '#94a3b8',
 };
 
 const FILES_SHOWN = 20;
@@ -23,13 +23,13 @@ function Badge({ kind }: { kind: ChangeKind }) {
 }
 
 function Names({ list }: { list: MatchedComponent[] }) {
-  if (!list.length) return <span className="text-[#5f636b]">—</span>;
+  if (!list.length) return <span className="text-[#94a3b8]">—</span>;
   return (
     <span className="inline-flex flex-wrap gap-x-2 gap-y-1">
       {list.map((c, i) => (
         <span key={c.id} className="text-[#f4f4f6]">
           {c.name} <span className="text-[10px] text-[#94a3b8] font-mono" style={mono}>({c.files} files)</span>
-          {i < list.length - 1 && <span className="text-[#5f636b]">,</span>}
+          {i < list.length - 1 && <span className="text-[#94a3b8]">,</span>}
         </span>
       ))}
     </span>
@@ -45,7 +45,7 @@ function Files({ files }: { files: string[] }) {
         {shown.map(f => <li key={f}>{f}</li>)}
       </ul>
       {files.length > FILES_SHOWN && (
-        <button type="button" onClick={() => setAll(v => !v)} className="mt-1 text-[11px] text-[#3b82f6] hover:underline">
+        <button type="button" onClick={() => setAll(v => !v)} className="mt-1 text-[11px] text-[#93c5fd] hover:underline">
           {all ? 'Show fewer' : `Show all ${files.length} files`}
         </button>
       )}
@@ -60,13 +60,13 @@ function Row({ row }: { row: ChangeRow }) {
       <div className="flex items-center gap-2 mb-2"><Badge kind={row.kind} /></div>
       <div className="text-sm font-bold flex flex-wrap items-center gap-2 mb-1">
         <Names list={row.before} />
-        <ArrowRight size={14} className="text-[#3b82f6] shrink-0" aria-label="became" />
+        <ArrowRight size={14} className="text-[#93c5fd] shrink-0" aria-label="became" />
         <Names list={row.after} />
       </div>
       <p className="text-xs text-[#94a3b8]">{row.explanation}</p>
       {row.links.length > 0 && (
         <details className="mt-3 group">
-          <summary className="cursor-pointer text-xs text-[#3b82f6] select-none">Evidence: {shared} shared {shared === 1 ? 'file' : 'files'}</summary>
+          <summary className="cursor-pointer text-xs text-[#93c5fd] select-none">Evidence: {shared} shared {shared === 1 ? 'file' : 'files'}</summary>
           <div className="mt-2 space-y-3 border-l border-[#242527] pl-3">
             {row.links.map(l => (
               <div key={`${l.before}>${l.after}`}>
@@ -97,7 +97,7 @@ export default function ComponentMatchPanel({ projectId, baseId, targetId, resul
   const header = (
     <div className="mb-4">
       <h3 className="text-sm font-bold text-[#f4f4f6] tracking-wide uppercase flex items-center gap-2">
-        <GitMerge size={16} className="text-[#3b82f6]" />
+        <GitMerge size={16} className="text-[#93c5fd]" />
         Component Matching
       </h3>
       <p className="text-xs text-[#94a3b8] mt-1 max-w-3xl">
@@ -117,8 +117,8 @@ export default function ComponentMatchPanel({ projectId, baseId, targetId, resul
         <div className="bg-[#11161b] border border-[#ffb03a]/30 p-5 text-xs text-[#f4f4f6] space-y-3" role="status">
           <div className="flex items-start gap-2"><AlertTriangle size={14} className="text-[#ffb03a] shrink-0 mt-0.5" /><span>{error}</span></div>
           <div className="flex flex-wrap gap-4">
-            <Link className="text-[#3b82f6] hover:underline" to={workspaceLink(projectId, baseId)}>Open base revision in workspace</Link>
-            <Link className="text-[#3b82f6] hover:underline" to={workspaceLink(projectId, targetId)}>Open target revision in workspace</Link>
+            <Link className="text-[#93c5fd] hover:underline" to={workspaceLink(projectId, baseId)}>Open base revision in workspace</Link>
+            <Link className="text-[#93c5fd] hover:underline" to={workspaceLink(projectId, targetId)}>Open target revision in workspace</Link>
           </div>
         </div>
       </section>
@@ -166,7 +166,7 @@ export default function ComponentMatchPanel({ projectId, baseId, targetId, resul
       <div className="bg-[#11161b] border border-[#242527] overflow-hidden divide-y divide-[#242527]">
         {visible.map(r => <Row key={r.key} row={r} />)}
         {kept > 0 && (
-          <button type="button" onClick={() => setShowKept(v => !v)} className="w-full p-3 text-xs text-[#3b82f6] hover:bg-[#161d24]/50 text-left">
+          <button type="button" onClick={() => setShowKept(v => !v)} className="w-full p-3 text-xs text-[#93c5fd] hover:bg-[#161d24]/50 text-left">
             {showKept ? 'Hide unchanged components' : `Show ${kept} unchanged ${kept === 1 ? 'component' : 'components'}`}
           </button>
         )}
@@ -174,7 +174,7 @@ export default function ComponentMatchPanel({ projectId, baseId, targetId, resul
 
       {result.matching.moves.length > 0 && (
         <details className="mt-3">
-          <summary className="cursor-pointer text-xs text-[#3b82f6] select-none">
+          <summary className="cursor-pointer text-xs text-[#93c5fd] select-none">
             {result.matching.moves.length} files treated as moved (same unique file name in a new folder)
           </summary>
           <ul className="mt-2 space-y-0.5 text-[11px] font-mono text-[#94a3b8] break-all" style={mono}>

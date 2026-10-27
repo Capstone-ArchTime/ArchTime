@@ -23,7 +23,7 @@ export class RegisterUseCase {
     name: string;
     email: string;
     password: string;
-  }): Promise<{ message: string; email: string }> {
+  }): Promise<{ message: string; email: string; expiresAt: string }> {
     const exists = await this.userRepo.existsByEmail(input.email);
     if (exists) {
       throw new ConflictError("Email is already registered");
@@ -50,6 +50,8 @@ export class RegisterUseCase {
     return {
       message: `Verification OTP sent to ${user.email}. It expires in ${OTP_TTL_MINUTES} minutes.`,
       email: user.email,
+      // So the verification page can count down to it.
+      expiresAt: expiresAt.toISOString(),
     };
   }
 }

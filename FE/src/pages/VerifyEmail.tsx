@@ -6,6 +6,7 @@ import { Logo } from '@/components/Logo';
 import { useAuth } from '@/auth/auth-context';
 import { authRequest } from '@/auth/requests';
 import { loginDestination } from '@/auth/permissions';
+import { deadlineFrom, formatCountdown, recallOtpDeadline, rememberOtpDeadline } from '@/features/otp-countdown';
 
 export default function VerifyEmail() {
   const location = useLocation();
@@ -17,6 +18,17 @@ export default function VerifyEmail() {
   const [error, setError] = useState('');
   const [cooldown, setCooldown] = useState(0);
   const request = useRef<AbortController | null>(null);
+  const initialEmail = typeof location.state?.email === 'string' ? location.state.email : '';
+  // When the code in the email stops working; unknown when the page was opened without one being sent from here.
+  const [deadline, setDeadline] = useState<number | null>(() => (initialEmail ? recallOtpDeadline(initialEmail) : null));
+  const [now, setNow] = useState(() => Date.now());
+  const msLeft = deadline === null ? null : deadline - now;
+  const expired = msLeft !== null && msLeft <= 0;
+  useEffect(() => {
+    if (deadline === null || expired) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [deadline, expired]);
   useEffect(() => { document.title = 'Verify email · ArchTime'; return () => request.current?.abort(); }, []);
   useEffect(() => {
     if (!cooldown) return;
@@ -34,7 +46,12 @@ export default function VerifyEmail() {
     try {
       const email = values.email.trim();
       const result = await authRequest(resend ? 'resend-otp' : 'verify-email', resend ? { email } : { email, otp: values.otp.trim() }, controller.signal);
-      if (resend) { setCooldown(60); void message.success('A new verification code has been sent.'); }
+      if (resend) {
+        const next = deadlineFrom(result.expiresAt);
+        rememberOtpDeadline(email, next); setDeadline(next); setNow(Date.now());
+        form.setFieldValue('otp', '');
+        setCooldown(60); void message.success('A new verification code has been sent.');
+      }
       else {
         if (typeof result.accessToken !== 'string' || typeof result.refreshToken !== 'string') throw new Error('Verification response is missing authentication tokens. Try signing in.');
         const user = await signIn({ accessToken: result.accessToken, refreshToken: result.refreshToken });
@@ -47,13 +64,18 @@ export default function VerifyEmail() {
 
   return <main className="min-h-dvh bg-[#080b0e] flex items-center justify-center p-5">
     <div className="w-full max-w-md"><Logo className="mb-10" /><div className="border border-[#242527] bg-[#11161b] p-6 sm:p-8 rounded-lg">
-      <MailCheck size={30} className="text-[#3b82f6] mb-5" aria-hidden="true" /><h1 className="text-2xl font-semibold mb-3">Verify your email</h1>
+      <MailCheck size={30} className="text-[#93c5fd] mb-5" aria-hidden="true" /><h1 className="text-2xl font-semibold mb-3">Verify your email</h1>
       <p className="text-sm text-[#94a3b8] leading-relaxed mb-6">Enter the six-digit code sent to your email to activate your account.</p>
       {error && <Alert type="error" showIcon title={error} className="mb-5" role="alert" />}
-      <Form form={form} layout="vertical" requiredMark={false} initialValues={{ email: typeof location.state?.email === 'string' ? location.state.email : '' }} onFinish={() => void submit(false)}>
+      <Form form={form} layout="vertical" requiredMark={false} initialValues={{ email: initialEmail }} onFinish={() => void submit(false)}>
         <Form.Item name="email" label="Email address" rules={[{ required: true, type: 'email', transform: value => value?.trim(), message: 'Enter a valid email address.' }]}><Input type="email" autoComplete="email" name="email" spellCheck={false} disabled={!!busy} /></Form.Item>
         <Form.Item name="otp" label="Verification code" rules={[{ required: true, pattern: /^\d{6}$/, message: 'Enter the six-digit code from your email.' }]}><Input inputMode="numeric" autoComplete="one-time-code" name="otp" maxLength={6} placeholder="123456" disabled={!!busy} className="tracking-[0.3em]" /></Form.Item>
-        <Button type="primary" htmlType="submit" block size="large" loading={busy === 'verify'} disabled={!!busy}>Verify email</Button>
+        {msLeft !== null && (expired
+          ? <Alert type="warning" showIcon className="mb-4" role="alert" title="This code has expired." description="Send a new code below, then enter the new one." />
+          : <p role="timer" aria-label={`The code expires in ${formatCountdown(msLeft)}`} className={`-mt-2 mb-4 text-sm ${msLeft < 60_000 ? 'text-amber-300' : 'text-slate-300'}`}>
+              Code expires in <span className="font-mono font-semibold">{formatCountdown(msLeft)}</span>
+            </p>)}
+        <Button type="primary" htmlType="submit" block size="large" loading={busy === 'verify'} disabled={!!busy || expired}>Verify email</Button>
       </Form>
       <Button type="link" block className="mt-3" loading={busy === 'resend'} disabled={!!busy || cooldown > 0} onClick={() => void submit(true)}>{cooldown ? `Resend in ${cooldown}s` : 'Resend verification code'}</Button>
       <Link to="/login" className="block text-center text-sm text-[#94a3b8] hover:text-white mt-5">Back to sign in</Link>

@@ -91,7 +91,7 @@ export default function MembersTab({ organization, userId, onCountChange, onLeft
     <div className="space-y-4">
       {owner && (
         <div className={featurePanel}>
-          <h3 className="mb-3 flex items-center gap-2 font-semibold"><UserPlus size={16} className="text-[#3b82f6]" />Add a member</h3>
+          <h3 className="mb-3 flex items-center gap-2 font-semibold"><UserPlus size={16} className="text-[#93c5fd]" />Add a member</h3>
           <Form form={form} layout="inline" onFinish={add} initialValues={{ role: 'member' }} className="flex flex-wrap gap-y-2">
             <Form.Item name="email" className="min-w-64 flex-1" rules={[{ validator: (_, v) => { const p = checkEmail(v ?? ''); return p ? Promise.reject(new Error(p)) : Promise.resolve(); } }]}>
               <Input type="email" placeholder="Email of their ArchTime account" aria-label="Email of the person to add" />
