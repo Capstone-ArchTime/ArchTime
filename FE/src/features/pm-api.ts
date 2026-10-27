@@ -1,4 +1,6 @@
-import { apiRequest } from '@/api/client';
+import { apiDownload, apiRequest } from '@/api/client';
+import { fallbackReportFileName, parseReport, parseReportList } from './report-view';
+import type { ReportView } from './report-view';
 
 // Team Members
 export interface ProjectMember {
@@ -278,52 +280,23 @@ export async function getProjectDashboard(
   return { data: toProjectDashboard(body?.data?.dashboard) };
 }
 
-// Reports
-export interface ProjectReport {
-  id: string;
-  projectId: string;
-  project: string;
-  baseSnapshotId: string;
-  targetSnapshotId: string;
-  from: string;
-  to: string;
-  status: 'pending' | 'completed' | 'failed';
-  createdAt: string;
-  createdBy: string;
-  downloadUrl?: string;
+// Reports (BE: ProjectReportUseCases.ts). Reading the stored report is in report-view.ts.
+const reportsOf = (projectId: string) => `/projects/${encodeURIComponent(projectId)}/reports`;
+
+export async function getProjectReports(projectId: string, signal?: AbortSignal): Promise<ReportView[]> {
+  return parseReportList(await apiRequest(reportsOf(projectId), { signal }));
 }
 
-export interface ProjectReportsResponse {
-  data: {
-    reports: ProjectReport[];
-    total: number;
-  };
-}
-
-export async function getProjectReports(
-  projectId: string,
-  signal?: AbortSignal
-): Promise<ProjectReportsResponse> {
-  return apiRequest<ProjectReportsResponse>(`/projects/${projectId}/reports`, { signal });
-}
-
-export async function generateReport(
-  projectId: string,
-  data: { baseSnapshotId: string; targetSnapshotId: string },
-  signal?: AbortSignal
-): Promise<{ data: { report: ProjectReport } }> {
-  return apiRequest(`/projects/${projectId}/reports/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-    signal,
+/** Makes a report of the workspace as it is now; only its maintainers may (the server checks). */
+export async function generateReport(projectId: string, data: { title?: string }, signal?: AbortSignal): Promise<ReportView | null> {
+  const body = await apiRequest<{ data?: { report?: unknown } }>(`${reportsOf(projectId)}/generate`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data), signal,
   });
+  return parseReport(body?.data?.report);
 }
 
-export async function getReportDetail(
-  projectId: string,
-  reportId: string,
-  signal?: AbortSignal
-): Promise<{ data: { report: ProjectReport } }> {
-  return apiRequest(`/projects/${projectId}/reports/${reportId}`, { signal });
+/** The report as a PDF file, with the name the server gave it. */
+export async function downloadReportPdf(projectId: string, report: ReportView, signal?: AbortSignal): Promise<{ blob: Blob; filename: string }> {
+  const { blob, filename } = await apiDownload(`${reportsOf(projectId)}/${encodeURIComponent(report.id)}/pdf`, { signal });
+  return { blob, filename: filename ?? fallbackReportFileName(report) };
 }

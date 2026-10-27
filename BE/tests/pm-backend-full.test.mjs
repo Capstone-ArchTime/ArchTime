@@ -511,10 +511,18 @@ test("ProjectReports: generates report summarizing architecture, rules and ADR",
   ]);
 
   const origSnapCount = SnapshotModel.countDocuments;
+  const origSnapFindOne = SnapshotModel.findOne;
   const origReportCreate = ProjectReportModel.create;
 
   try {
     SnapshotModel.countDocuments = async () => 5;
+    // The oldest (date ascending) and newest mined commit.
+    const commits = { 1: { hash: "a1b2c3d", title: "Initial commit\n\nbody", date: new Date("2026-01-01") }, [-1]: { hash: "f6e5d4c", title: "Latest", date: new Date("2026-10-01") } };
+    SnapshotModel.findOne = () => {
+      let order = 1;
+      const query = { sort: s => { order = s.date; return query; }, select: () => query, lean: async () => commits[order] };
+      return query;
+    };
 
     let savedReport = null;
     ProjectReportModel.create = async (doc) => {
@@ -539,8 +547,22 @@ test("ProjectReports: generates report summarizing architecture, rules and ADR",
     assert.equal(report.data.rules.total, 1);
     assert.equal(report.data.decisions.accepted, 1);
     assert.equal(report.data.snapshots.total, 5);
+    assert.equal(report.title, "ArchTime Core architecture report");
+    // The lists are stored with names, so the report and its PDF stay as they were when the map changes later.
+    assert.deepEqual(report.data.architecture.dependencies, [{ source: "Web UI", target: "API Gateway", label: "" }]);
+    assert.deepEqual(report.data.rules.items.map(r => r.name), ["Rule 1"]);
+    assert.deepEqual(report.data.decisions.items.map(d => d.title), ["ADR 1"]);
+    assert.equal(report.data.snapshots.first.hash, "a1b2c3d");
+    assert.equal(report.data.snapshots.first.title, "Initial commit", "only the first line of the message");
+    assert.equal(report.data.snapshots.latest.hash, "f6e5d4c");
+
+    const named = await generateUC.execute({ projectId: "p1", userId: "u-maintainer", title: "  Handoff  " });
+    assert.equal(named.title, "Handoff");
+    const odd = await generateUC.execute({ projectId: "p1", userId: "u-maintainer", title: { $ne: 1 } });
+    assert.equal(odd.title, "ArchTime Core architecture report", "a title that is not text is ignored, not a crash");
   } finally {
     SnapshotModel.countDocuments = origSnapCount;
+    SnapshotModel.findOne = origSnapFindOne;
     ProjectReportModel.create = origReportCreate;
   }
 });

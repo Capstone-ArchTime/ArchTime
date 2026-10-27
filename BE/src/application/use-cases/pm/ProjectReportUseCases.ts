@@ -41,13 +41,20 @@ export class GenerateProjectReportUseCase {
     const type = input.type ?? ReportType.ARCHITECTURE_SUMMARY;
     const ws = await this.workspaceRepository.findByProjectId(input.projectId);
     const snapshotCount = await SnapshotModel.countDocuments({ projectId: input.projectId });
+    // The oldest and newest mined commits: the stretch of history the report covers.
+    const [first, latest] = await Promise.all([1, -1].map(order =>
+      SnapshotModel.findOne({ projectId: input.projectId }).sort({ date: order as 1 | -1 }).select("hash title date").lean()));
+    const commit = (s: { hash?: string; title?: string; date?: Date } | null) =>
+      s ? { hash: s.hash ?? "", title: (s.title ?? "").split("\n")[0].slice(0, 200), date: s.date ?? null } : null;
 
     const components = ws?.diagram?.components ?? [];
     const dependencies = ws?.diagram?.dependencies ?? [];
     const rules = ws?.rules ?? [];
     const decisions = ws?.decisions ?? [];
 
-    const satisfiedRules = rules.filter((r) => r.enabled).length; // Baseline summary
+    // Lists are stored as they are now, so the report (and its PDF) stays the same when the map changes later.
+    const nameOf = new Map(components.map((c) => [c.id, c.name]));
+    const named = (id: string) => nameOf.get(id) ?? id;
     const acceptedDecisions = decisions.filter((d) => d.status === "Accepted").length;
 
     const reportData = {
@@ -62,28 +69,33 @@ export class GenerateProjectReportUseCase {
         revision: ws?.revision ?? 1,
         componentCount: components.length,
         dependencyCount: dependencies.length,
-        components: components.map((c) => ({ id: c.id, name: c.name, kind: c.kind })),
+        components: components.map((c) => ({ id: c.id, name: c.name, kind: c.kind, description: c.description ?? "" })),
+        dependencies: dependencies.map((d) => ({ source: named(d.source), target: named(d.target), label: d.label ?? "" })),
       },
       rules: {
         total: rules.length,
         active: rules.filter((r) => r.enabled).length,
         forbiddenCount: rules.filter((r) => r.constraint === "forbidden").length,
         requiredCount: rules.filter((r) => r.constraint === "required").length,
+        items: rules.map((r) => ({ name: r.name, source: named(r.source), target: named(r.target), constraint: r.constraint, severity: r.severity, enabled: r.enabled })),
       },
       decisions: {
         total: decisions.length,
         accepted: acceptedDecisions,
         proposed: decisions.filter((d) => d.status === "Proposed").length,
+        items: [...decisions].sort((a, b) => a.number - b.number).map((d) => ({ number: d.number, title: d.title, status: d.status })),
       },
       snapshots: {
         total: snapshotCount,
+        first: commit(first),
+        latest: commit(latest),
       },
       generatedAt: new Date(),
     };
 
     const title =
-      input.title?.trim() ||
-      `${project.name} - ${type.replace("_", " ").toUpperCase()} Report`;
+      (typeof input.title === "string" ? input.title.trim().slice(0, 200) : "") ||
+      `${project.name} architecture report`;
 
     const summary = `Architecture report for ${project.name}: contains ${components.length} components, ${dependencies.length} dependencies, ${rules.length} architecture rules, and ${decisions.length} design decisions across ${snapshotCount} mined snapshots.`;
 

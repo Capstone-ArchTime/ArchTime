@@ -1,30 +1,28 @@
 import { useEffect, useState } from 'react';
-import { App, Button, Empty, Select, Spin } from 'antd';
+import type { ReactNode } from 'react';
+import { Alert, App, Button, Empty, Input, Modal, Select, Spin, Tag } from 'antd';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { FileText, Download, Calendar, FolderKanban } from 'lucide-react';
+import { Download, Eye, FileText } from 'lucide-react';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationBar from '@/components/PaginationBar';
 import type { ProjectSummary } from '@/features/project-data';
 import { ManagedWorkspaces } from './managed';
 import { describeAccessError, pickWorkspace } from './managed-access';
-import { getProjectReports, generateReport } from '@/features/pm-api';
-import type { ProjectReport } from '@/features/pm-api';
+import { downloadReportPdf, generateReport, getProjectReports } from '@/features/pm-api';
+import type { ReportView } from '@/features/report-view';
 
-const fontFamily = {
-  mono: '"JetBrains Mono", monospace',
-};
+const mono = { fontFamily: '"JetBrains Mono", monospace' };
+const panel = 'bg-[#11161b] border border-[#242527] p-6';
+const label = 'text-[11px] text-slate-300 uppercase tracking-widest block mb-2';
+const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : 'Unknown date');
 
-function formatTimeAgo(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return '1 day ago';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  if (diffDays < 14) return '1 week ago';
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-  return date.toLocaleDateString();
+/** Saves a file the page received (a link would not carry the session's token). */
+function save(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
 /** Reports of every workspace the account can see; only its maintainers can create new ones (the server checks too). */
@@ -35,66 +33,56 @@ export default function Reports() {
 function ReportsView({ projects, managed }: { projects: ProjectSummary[]; managed: ReadonlySet<string> }) {
   const { message } = App.useApp();
   const [selectedProject, setSelectedProject] = useState(() => pickWorkspace(projects));
-  const [reports, setReports] = useState<ProjectReport[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
-
-  const [fromRevision, setFromRevision] = useState('v1.0.0');
-  const [toRevision, setToRevision] = useState('HEAD');
+  // What the last load returned, and for which workspace and refresh: anything else is still loading.
+  const [loaded, setLoaded] = useState<{ key: string; reports: ReportView[]; error: string | null } | null>(null);
+  const key = `${selectedProject}:${revision}`;
+  const loading = !!selectedProject && loaded?.key !== key;
+  const reports = loaded?.reports ?? [];
+  const error = loaded?.key === key ? loaded.error : null;
+  const [title, setTitle] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [viewing, setViewing] = useState<ReportView | null>(null);
+  const [downloading, setDownloading] = useState<string | null>(null);
 
   const pagination = usePagination(reports);
 
   useEffect(() => {
-    if (!selectedProject) {
-      setLoading(false);
-      return;
-    }
+    if (!selectedProject) return;
     const controller = new AbortController();
-    setLoading(true);
-
+    const at = `${selectedProject}:${revision}`;
     getProjectReports(selectedProject, controller.signal)
-      .then(res => {
-        setReports(res.data.reports);
-        setError(null);
-      })
-      .catch(e => {
-        if (!controller.signal.aborted) setError(describeAccessError(e, 'This workspace could not be loaded.'));
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-
+      .then(list => setLoaded({ key: at, reports: list, error: null }))
+      .catch(e => { if (!controller.signal.aborted) setLoaded(last => ({ key: at, reports: last?.reports ?? [], error: describeAccessError(e, 'The reports of this workspace could not be loaded.') })); });
     return () => controller.abort();
   }, [selectedProject, revision]);
 
-  function refresh() {
-    setRevision(v => v + 1);
-  }
-
   async function handleGenerate() {
-    if (!selectedProject) return;
+    if (!selectedProject || generating) return;
     setGenerating(true);
     try {
-      await generateReport(selectedProject, {
-        baseSnapshotId: fromRevision,
-        targetSnapshotId: toRevision,
-      });
-      message.success('Report generation started.');
-      refresh();
+      const report = await generateReport(selectedProject, title.trim() ? { title: title.trim() } : {});
+      setTitle('');
+      message.success('Report created.');
+      setRevision(v => v + 1);
+      if (report) setViewing(report);
     } catch (e) {
-      message.error(describeAccessError(e, 'Failed to generate report.'));
+      message.error(describeAccessError(e, 'The report could not be created.'));
     } finally {
       setGenerating(false);
     }
   }
 
-  function handleDownload(report: ProjectReport) {
-    if (report.downloadUrl) {
-      window.open(report.downloadUrl, '_blank');
-    } else {
-      message.info('Report is still being generated.');
+  async function handleDownload(report: ReportView) {
+    if (!selectedProject || downloading) return;
+    setDownloading(report.id);
+    try {
+      const { blob, filename } = await downloadReportPdf(selectedProject, report);
+      save(blob, filename);
+    } catch (e) {
+      message.error(describeAccessError(e, 'The PDF could not be downloaded.'));
+    } finally {
+      setDownloading(null);
     }
   }
 
@@ -106,157 +94,59 @@ function ReportsView({ projects, managed }: { projects: ProjectSummary[]; manage
       <div className="max-w-[1100px] mx-auto space-y-10">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Reports</h2>
-          <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
-            Export architecture evolution reports for maintenance handoff and developer onboarding.
+          <p className="text-slate-300 text-sm max-w-xl leading-relaxed">
+            Architecture reports of a workspace for maintenance handoff and onboarding: its components, dependencies, rules,
+            design decisions and the stretch of history mined. Open one here or download it as a PDF.
           </p>
           <div className="h-[1px] w-full bg-gradient-to-r from-[#242527] to-transparent mt-8"></div>
         </div>
 
         <div className="flex flex-wrap gap-3 items-center">
-          <Select
-            aria-label="Select workspace"
-            value={selectedProject}
-            onChange={setSelectedProject}
-            className="min-w-60"
-            options={projects.map(p => ({ value: p.id, label: p.name }))}
-            placeholder="Select a workspace"
-          />
-          <Button loading={loading} onClick={refresh}>Refresh</Button>
+          <Select aria-label="Select workspace" value={selectedProject} onChange={setSelectedProject} className="min-w-60"
+            options={projects.map(p => ({ value: p.id, label: p.name }))} placeholder="Select a workspace" />
+          <Button loading={loading} onClick={() => setRevision(v => v + 1)}>Refresh</Button>
         </div>
 
-        {error && <p className="text-red-400">{error}</p>}
+        {error && <Alert type="error" showIcon title={error} />}
 
-        {canGenerate ? <section>
-          <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-4" style={{ fontFamily: fontFamily.mono }}>New Export</h3>
-
-          <div className="bg-[#161d24] border border-[#242527] p-6 space-y-5">
+        {canGenerate ? <section aria-labelledby="new-report">
+          <h3 id="new-report" className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-4" style={mono}>New report</h3>
+          <div className={`${panel} space-y-4`}>
+            <p className="text-sm text-slate-300">A report records {currentProject?.name ?? 'the workspace'} as it is now. Later changes to the map do not change it.</p>
             <div>
-              <label className="text-[10px] text-[#94a3b8] uppercase tracking-widest block mb-2" style={{ fontFamily: fontFamily.mono }}>Workspace</label>
-              <div className="relative">
-                <FolderKanban size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
-                <div className="w-full h-10 bg-[#11161b] border border-[#242527] pl-9 pr-9 text-sm text-[#f4f4f6] flex items-center">
-                  {currentProject?.name ?? 'Select a workspace'}
-                </div>
-              </div>
+              <label htmlFor="report-title" className={label} style={mono}>Title (optional)</label>
+              <Input id="report-title" value={title} maxLength={200} onChange={e => setTitle(e.target.value)} placeholder={`${currentProject?.name ?? 'Workspace'} architecture report`} />
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="from-revision" className="text-[10px] text-[#94a3b8] uppercase tracking-widest block mb-2" style={{ fontFamily: fontFamily.mono }}>From Revision</label>
-                <div className="relative">
-                  <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
-                  <input
-                    id="from-revision"
-                    type="text"
-                    value={fromRevision}
-                    onChange={e => setFromRevision(e.target.value)}
-                    className="w-full h-10 bg-[#11161b] border border-[#242527] pl-9 pr-4 text-sm text-[#f4f4f6] focus:outline-none focus:border-[#3b82f6]/50 transition-colors"
-                    style={{ fontFamily: fontFamily.mono }}
-                  />
-                </div>
-              </div>
-              <div>
-                <label htmlFor="to-revision" className="text-[10px] text-[#94a3b8] uppercase tracking-widest block mb-2" style={{ fontFamily: fontFamily.mono }}>To Revision</label>
-                <div className="relative">
-                  <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
-                  <input
-                    id="to-revision"
-                    type="text"
-                    value={toRevision}
-                    onChange={e => setToRevision(e.target.value)}
-                    className="w-full h-10 bg-[#11161b] border border-[#242527] pl-9 pr-4 text-sm text-[#f4f4f6] focus:outline-none focus:border-[#3b82f6]/50 transition-colors"
-                    style={{ fontFamily: fontFamily.mono }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                onClick={handleGenerate}
-                disabled={generating || !selectedProject}
-                className="h-10 px-5 bg-[#3b82f6] hover:bg-[#3b82f6]/90 disabled:opacity-50 text-[#080b0e] font-bold text-xs transition-colors flex items-center gap-2"
-                style={{ fontFamily: fontFamily.mono }}
-              >
-                <Download size={14} />
-                {generating ? 'GENERATING...' : 'GENERATE PDF'}
-              </button>
-            </div>
+            <Button type="primary" icon={<FileText size={14} />} loading={generating} disabled={!selectedProject} onClick={() => void handleGenerate()}>Create report</Button>
           </div>
-        </section> : <p className="text-sm text-[#94a3b8]">Only maintainers of {currentProject?.name ?? 'this workspace'} can create new reports. Reports they made are listed below.</p>}
+        </section> : <p className="text-sm text-slate-300">Only maintainers of {currentProject?.name ?? 'this workspace'} can create reports. You can open and download the ones they made below.</p>}
 
-        <section>
-          <h3 className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-4" style={{ fontFamily: fontFamily.mono }}>Previously Exported</h3>
-
+        <section aria-labelledby="report-list">
+          <h3 id="report-list" className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-4" style={mono}>Reports of this workspace</h3>
           {loading && reports.length === 0 ? (
-            <div className="p-12 text-center">
-              <Spin />
-              <p className="mt-3 text-[#94a3b8]">Loading reports...</p>
-            </div>
+            <div className="p-12 text-center"><Spin /><p className="mt-3 text-slate-300">Loading reports…</p></div>
           ) : reports.length === 0 ? (
-            <Empty description="No reports generated yet" />
+            <Empty description="No reports yet" />
           ) : (
             <>
-              <div className="bg-[#11161b] border border-[#242527] overflow-hidden">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-[#161d24] border-b border-[#242527] text-[10px] text-[#94a3b8] uppercase tracking-wider" style={{ fontFamily: fontFamily.mono }}>
-                    <tr>
-                      <th className="px-5 py-3 font-medium">Report</th>
-                      <th className="px-5 py-3 font-medium">Workspace</th>
-                      <th className="px-5 py-3 font-medium">Range</th>
-                      <th className="px-5 py-3 font-medium">Status</th>
-                      <th className="px-5 py-3 font-medium">Created</th>
-                      <th className="px-5 py-3 font-medium"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#242527]">
-                    {pagination.items.map((report) => (
-                      <tr key={report.id} className="hover:bg-[#161d24]/50 transition-colors group">
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-2">
-                            <FileText size={14} className="text-[#3b82f6] shrink-0" />
-                            <span className="text-[#f4f4f6] font-medium text-xs" style={{ fontFamily: fontFamily.mono }}>
-                              {report.project}_evolution.pdf
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-5 py-4 text-[#94a3b8] text-xs">{report.project}</td>
-                        <td className="px-5 py-4 text-[#94a3b8] text-xs" style={{ fontFamily: fontFamily.mono }}>
-                          {report.from} → {report.to}
-                        </td>
-                        <td className="px-5 py-4">
-                          <span
-                            className={`text-xs px-2 py-1 ${
-                              report.status === 'completed'
-                                ? 'bg-green-500/20 text-green-400'
-                                : report.status === 'failed'
-                                ? 'bg-red-500/20 text-red-400'
-                                : 'bg-yellow-500/20 text-yellow-400'
-                            }`}
-                            style={{ fontFamily: fontFamily.mono }}
-                          >
-                            {report.status.toUpperCase()}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 text-[#94a3b8] text-xs" style={{ fontFamily: fontFamily.mono }}>
-                          {formatTimeAgo(report.createdAt)}
-                        </td>
-                        <td className="px-5 py-4 text-right">
-                          {report.status === 'completed' && (
-                            <button
-                              onClick={() => handleDownload(report)}
-                              className="text-[#3b82f6] hover:text-[#00f0ff] text-xs font-semibold opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity"
-                              style={{ fontFamily: fontFamily.mono }}
-                            >
-                              Download &rarr;
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <ul className="divide-y divide-[#242527] border border-[#242527] bg-[#11161b]">
+                {pagination.items.map(report => (
+                  <li key={report.id} className="flex flex-wrap items-center gap-4 px-5 py-4">
+                    <FileText size={16} className="shrink-0 text-slate-400" aria-hidden="true" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-[#f4f4f6]">{report.title}</p>
+                      <p className="text-xs text-slate-400">
+                        {when(report.createdAt)} · {report.figures.components} components · {report.figures.decisions} decisions · {report.figures.minedCommits} mined commits
+                      </p>
+                    </div>
+                    {report.status !== 'ready' && <Tag color={report.status === 'failed' ? 'red' : 'gold'}>{report.status === 'failed' ? 'Failed' : 'Being made'}</Tag>}
+                    <div className="flex gap-2">
+                      <Button icon={<Eye size={14} />} onClick={() => setViewing(report)} aria-label={`Open ${report.title}`}>Open</Button>
+                      <Button icon={<Download size={14} />} loading={downloading === report.id} disabled={report.status !== 'ready'} onClick={() => void handleDownload(report)} aria-label={`Download ${report.title} as PDF`}>PDF</Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
               <PaginationBar {...pagination} />
             </>
           )}
@@ -264,6 +154,64 @@ function ReportsView({ projects, managed }: { projects: ProjectSummary[]; manage
 
         <div className="h-10"></div>
       </div>
+
+      <Modal open={!!viewing} onCancel={() => setViewing(null)} width={820} title={viewing?.title} destroyOnHidden
+        footer={viewing ? [
+          <Button key="close" onClick={() => setViewing(null)}>Close</Button>,
+          <Button key="pdf" type="primary" icon={<Download size={14} />} loading={downloading === viewing.id} onClick={() => void handleDownload(viewing)}>Download PDF</Button>,
+        ] : null}>
+        {viewing && <ReportBody report={viewing} />}
+      </Modal>
     </DashboardLayout>
   );
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return <section className="space-y-2">
+    <h4 className="border-b border-[#242527] pb-1 text-sm font-semibold text-[#f4f4f6]">{title}</h4>
+    {children}
+  </section>;
+}
+
+const notStored = <p className="text-sm text-slate-400">Not stored in this report: it was made before this list was kept. Create a new report to see it.</p>;
+
+/** What the report stored, laid out like its PDF. */
+function ReportBody({ report: r }: { report: ReportView }) {
+  const f = r.figures;
+  const figures: [string, string][] = [
+    ['Components', String(f.components)], ['Dependencies', String(f.dependencies)],
+    ['Architecture rules', `${f.rules} (${f.activeRules} active)`], ['Design decisions', `${f.decisions} (${f.acceptedDecisions} accepted)`],
+    ['Mined commits', String(f.minedCommits)], ['Map revision', f.mapRevision === null ? '-' : String(f.mapRevision)],
+  ];
+  return <div className="max-h-[65vh] space-y-5 overflow-y-auto pr-1 text-sm text-slate-200">
+    <p className="text-xs text-slate-400">Made {when(r.createdAt)}{r.project.repoUrl ? ` · ${r.project.repoUrl}` : ''}</p>
+    {r.summary && <p>{r.summary}</p>}
+    <Section title="Key figures">
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
+        {figures.map(([k, v]) => <div key={k}><dt className="text-xs text-slate-400">{k}</dt><dd className="font-semibold text-[#f4f4f6]">{v}</dd></div>)}
+      </dl>
+    </Section>
+    {(r.history.first || r.history.latest) && <Section title="History covered">
+      {[['Oldest mined commit', r.history.first], ['Newest mined commit', r.history.latest]].map(([k, c]) => c && typeof c === 'object' &&
+        <p key={k as string}><span className="text-slate-400">{k as string}: </span><code className="text-slate-100">{c.hash}</code> · {c.date?.slice(0, 10)} · {c.title}</p>)}
+    </Section>}
+    <Section title="Components">
+      {r.components.length ? <ul className="space-y-1.5">{r.components.map((c, i) => <li key={`${c.name}-${i}`}>
+        <span className="font-medium text-[#f4f4f6]">{c.name}</span>{c.kind && <span className="text-slate-400"> · {c.kind}</span>}
+        {c.description && <p className="text-xs text-slate-400">{c.description}</p>}
+      </li>)}</ul> : <p className="text-slate-400">No components on the map.</p>}
+    </Section>
+    <Section title="Dependencies">
+      {r.dependencies === null ? notStored : r.dependencies.length ? <ul className="space-y-1">{r.dependencies.map((d, i) => <li key={i}>{d.source} → {d.target}{d.label && <span className="text-slate-400"> ({d.label})</span>}</li>)}</ul> : <p className="text-slate-400">No dependencies on the map.</p>}
+    </Section>
+    <Section title="Architecture rules">
+      {r.rules === null ? notStored : r.rules.length ? <ul className="space-y-1.5">{r.rules.map((x, i) => <li key={i}>
+        <span className="font-medium text-[#f4f4f6]">{x.name}</span>{!x.enabled && <Tag className="ml-2">Off</Tag>}
+        <p className="text-xs text-slate-400">{x.source} {x.constraint === 'required' ? 'must depend on' : 'must not depend on'} {x.target} · {x.severity}</p>
+      </li>)}</ul> : <p className="text-slate-400">No architecture rules.</p>}
+    </Section>
+    <Section title="Design decisions">
+      {r.decisions === null ? notStored : r.decisions.length ? <ul className="space-y-1">{r.decisions.map(d => <li key={d.number}>ADR-{d.number}: {d.title} <span className="text-slate-400">· {d.status}</span></li>)}</ul> : <p className="text-slate-400">No design decisions.</p>}
+    </Section>
+  </div>;
 }
