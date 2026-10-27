@@ -48,8 +48,10 @@ function Measure({ label, value, hint }: { label: string; value: number | undefi
  * How meaningful the drawing is: names supported by the paths, no dependency loops, layers respected, sizes balanced,
  * and, when known, agreement with the team's reference architecture and stability against the previous snapshot.
  */
-export default function QualityPanel({ projectId, quality, view, onSaved }: {
+export default function QualityPanel({ projectId, quality, view, onSaved, canEdit = true }: {
   projectId: string; quality: ViewQuality; view: { components: { name: string; memberIds: string[] }[] }; onSaved: () => void;
+  /** Saving the reference architecture is maintainer work (the server refuses it to members who only read). */
+  canEdit?: boolean;
 }) {
   const { message } = App.useApp();
   const [editing, setEditing] = useState<string | null>(null);
@@ -79,7 +81,7 @@ export default function QualityPanel({ projectId, quality, view, onSaved }: {
       <Measure label="Balance" value={q.balance} hint="How evenly files are spread over components; low when one component holds most files." />
       <Measure label="Matches reference" value={q.agreement?.score} hint={q.agreement ? `Adjusted Rand index against your reference architecture over ${q.agreement.common} files. 100% = same grouping.` : 'Set a reference architecture to score this.'} />
       <Measure label="Stable vs previous" value={q.stability?.score} hint={q.stability ? `Adjusted Rand index against the previous snapshot's components over ${q.stability.common} files.` : 'No earlier snapshot has components yet.'} />
-      <Button size="small" className="ml-auto self-center" icon={<Target size={13} />} onClick={() => void open()}>Reference architecture</Button>
+      {canEdit && <Button size="small" className="ml-auto self-center" icon={<Target size={13} />} onClick={() => void open()}>Reference architecture</Button>}
     </div>
     {(q.grounding.ungrounded.length > 0 || q.acyclicity.cycles.length > 0 || q.layering.violations.length > 0) && <ul className="mt-2 list-disc pl-5 text-xs text-[#94a3b8] space-y-0.5">
       {q.grounding.ungrounded.length > 0 && <li>Names the paths do not support: {q.grounding.ungrounded.map(n => `"${n}"`).join(', ')}</li>}

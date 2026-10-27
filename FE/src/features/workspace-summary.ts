@@ -10,6 +10,8 @@ export type Workspace = {
   id: string; name: string; description: string; repoUrl: string; status: WorkspaceStatus; role: string;
   /** Commits found by the last scan; null until the history has been read. */
   totalCommits: number | null; firstCommitDate: string | null; lastCommitDate: string | null; updatedAt: string | null;
+  /** May scan, mine and define the architecture (the server's isMaintainer: owner, maintainer, organization owner). */
+  canMaintain: boolean;
 };
 
 const STATUSES: WorkspaceStatus[] = ['PENDING', 'CLONING', 'ANALYZING', 'PARTIAL', 'COMPLETED', 'FAILED'];
@@ -27,6 +29,7 @@ export function parseWorkspace(raw: unknown): Workspace | null {
     status: STATUSES.includes(status) ? status : 'UNKNOWN', role: text(p.userRole) || 'viewer',
     totalCommits: typeof commits === 'number' && Number.isFinite(commits) && commits >= 0 ? commits : null,
     firstCommitDate: date(history?.firstCommitDate), lastCommitDate: date(history?.lastCommitDate), updatedAt: date(p.updatedAt),
+    canMaintain: p.isMaintainer === true,
   };
 }
 
@@ -50,9 +53,17 @@ export const STATUS_LABELS: Record<WorkspaceStatus, string> = {
 };
 
 export type NextStep = { label: string; hint: string; to: string; action: 'scan' | 'mine' | 'open' | 'wait' };
-/** The one thing to do next with a workspace, following create → scan → mine → group files into components. */
-export function nextStep(w: Pick<Workspace, 'id' | 'status' | 'totalCommits'>): NextStep {
+/**
+ * The one thing to do next with a workspace, following create → scan → mine → group files into components. Members who
+ * only read a workspace cannot scan or mine it (the server refuses), so they are told to wait for a maintainer instead.
+ */
+export function nextStep(w: Pick<Workspace, 'id' | 'status' | 'totalCommits'> & { canMaintain?: boolean }): NextStep {
   const id = encodeURIComponent(w.id);
+  if (w.canMaintain === false) {
+    if (hasMinedHistory(w)) return { action: 'open', label: 'Open the architecture', hint: 'Mined commits are ready. Open the architecture to explore its components.', to: `/workspace/${id}` };
+    if (w.status === 'ANALYZING' || w.status === 'CLONING') return { action: 'wait', label: 'Mining in progress', hint: 'A maintainer is mining this workspace. Its history appears once the first batch is stored.', to: '/projects' };
+    return { action: 'wait', label: 'Waiting for a maintainer', hint: 'Only maintainers of this workspace can scan and mine its history. Its architecture appears here once they have.', to: '/projects' };
+  }
   if (hasMinedHistory(w)) return { action: 'open', label: 'Group files into components', hint: 'Mined commits are ready. Open the architecture to name its components.', to: `/workspace/${id}` };
   if (w.status === 'ANALYZING' || w.status === 'CLONING') return { action: 'wait', label: 'Mining in progress', hint: 'Commits are being analyzed. This page shows them once the first batch is stored.', to: '/projects' };
   if (w.status === 'FAILED') return { action: 'mine', label: 'Try mining again', hint: 'The last mining run stored no commits. Open Manage mining to see the error and retry.', to: '/projects' };

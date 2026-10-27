@@ -272,13 +272,14 @@ const Projects: React.FC = () => {
                         </div>
                       </dl>
 
-                      <button
+                      {/* Scanning and mining are maintainer work; the server refuses them to members who only read. */}
+                      {project.canMaintain ? <button
                         type="button"
                         onClick={() => setMiningProject({ id: project.id, name: project.name })}
                         className="w-full h-11 mb-3 bg-[#3b82f6]/10 hover:bg-[#3b82f6]/20 border border-[#3b82f6]/40 text-[#3b82f6] text-xs font-bold flex items-center justify-center gap-2"
                       >
                         MANAGE MINING
-                      </button>
+                      </button> : <p className="mb-3 text-xs text-slate-400">You can read this workspace. Only its maintainers can mine it or define its architecture with AI.</p>}
                       <div className="mt-auto flex gap-2">
                         <Link
                           to={`/workspace/${encodeURIComponent(project.id)}`}
