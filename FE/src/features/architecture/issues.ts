@@ -134,7 +134,7 @@ export function issuesFor(input: IssueInput): Issue[] {
       add({
         id: 'deviation', type: 'deviation', severity: agreement.score < THRESHOLDS.agreementHigh ? 'high' : 'medium',
         title: 'Differs from the intended architecture',
-        explanation: `The grouping matches your team's reference architecture only ${pct(agreement.score)} (compared over ${agreement.common} files). Files sit in different components than the design intends.`,
+        explanation: `Compared with the reference architecture your team saved, the grouping matches only ${pct(agreement.score)} (over ${agreement.common} files). Files sit in different components than that reference describes.`,
         suggestion: maintainer(
           'Review which files moved (open a component to see its files). If the design changed on purpose, update the reference architecture; if the code drifted, move the files back.',
           'The code may have drifted from the design. A maintainer of this workspace can review which files moved and either fix the code or update the reference architecture.'),

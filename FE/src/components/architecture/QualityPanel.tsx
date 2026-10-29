@@ -4,37 +4,10 @@ import { App, Button, Input, Modal, Tooltip } from 'antd';
 import { Target } from 'lucide-react';
 import { getReference, saveReference } from '@/features/architecture/api';
 import type { ReferenceComponent, ViewQuality } from '@/features/architecture/api';
+import { formatReference, isTodaysGrouping, parseReference, suggest } from '@/features/architecture/reference';
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const tone = (x: number) => (x >= 0.8 ? 'text-[#4ade80]' : x >= 0.5 ? 'text-[#facc15]' : 'text-[#f87171]');
-
-/** "Name: prefix, prefix" per line, the format of the reference editor. */
-function formatReference(components: ReferenceComponent[]) {
-  return components.map(c => `${c.name}: ${c.prefixes.join(', ')}`).join('\n');
-}
-function parseReference(text: string): { components: ReferenceComponent[]; errors: string[] } {
-  const components: ReferenceComponent[] = [];
-  const errors: string[] = [];
-  text.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#')).forEach((line, i) => {
-    const at = line.indexOf(':');
-    const name = at > 0 ? line.slice(0, at).trim() : '';
-    const prefixes = at > 0 ? line.slice(at + 1).split(',').map(p => p.trim()).filter(Boolean) : [];
-    if (!name || !prefixes.length) errors.push(`Line ${i + 1}: write "Name: path/prefix, other/prefix".`);
-    else components.push({ name, prefixes });
-  });
-  return { components, errors };
-}
-
-/** A starting point: each current component with the folder its files share. */
-function suggest(view: { components: { name: string; memberIds: string[] }[] }) {
-  const common = (paths: string[]) => {
-    const parts = paths.map(p => p.split('/').slice(0, -1));
-    const out: string[] = [];
-    for (let i = 0; parts.length && parts.every(p => p[i] !== undefined && p[i] === parts[0][i]); i++) out.push(parts[0][i]);
-    return out.length ? `${out.join('/')}/` : '';
-  };
-  return view.components.filter(c => c.memberIds.length).map(c => ({ name: c.name, prefixes: [common(c.memberIds) || c.memberIds[0]] }));
-}
 
 function Measure({ label, value, hint }: { label: string; value: number | undefined; hint: string }) {
   return <Tooltip title={hint}>
@@ -56,7 +29,7 @@ export default function QualityPanel({ projectId, quality, view, onSaved, canEdi
   /** Lets an issue card ("Review reference") open the editor that this panel owns. */
   openEditorRef?: MutableRefObject<(() => void) | null>;
 }) {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const [editing, setEditing] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const parsed = editing === null ? null : parseReference(editing);
@@ -67,12 +40,25 @@ export default function QualityPanel({ projectId, quality, view, onSaved, canEdi
       setEditing(formatReference(current.length ? current : suggest(view)));
     } catch (cause) { message.error(cause instanceof Error ? cause.message : 'Could not load the reference.'); }
   }
-  async function save() {
-    if (!parsed || parsed.errors.length) return;
+  async function persist(components: ReferenceComponent[]) {
     setSaving(true);
-    try { await saveReference(projectId, parsed.components); setEditing(null); message.success(parsed.components.length ? 'Reference saved. Views are now scored against it.' : 'Reference removed.'); onSaved(); }
+    try { await saveReference(projectId, components); setEditing(null); message.success(components.length ? 'Reference saved. Views are now scored against it.' : 'Reference removed.'); onSaved(); }
     catch (cause) { message.error(cause instanceof Error ? cause.message : 'Could not save the reference.'); }
     finally { setSaving(false); }
+  }
+  function save() {
+    if (!parsed || parsed.errors.length) return;
+    // The editor starts from the current drawing; saved unedited it would only describe today's grouping and score 100% by construction.
+    if (isTodaysGrouping(parsed.components, view)) {
+      modal.confirm({
+        title: "Save today's grouping as the reference?",
+        content: "This is today's grouping, so every future grouping will be compared to it, not to your intended design. Edit it to describe the architecture you intend, or save anyway.",
+        okText: 'Save anyway', cancelText: 'Keep editing',
+        onOk: () => persist(parsed.components),
+      });
+      return;
+    }
+    void persist(parsed.components);
   }
 
   useEffect(() => {
@@ -93,8 +79,8 @@ export default function QualityPanel({ projectId, quality, view, onSaved, canEdi
       <Measure label="Stable vs previous" value={q.stability?.score} hint={q.stability ? `Adjusted Rand index against the previous snapshot's components over ${q.stability.common} files.` : 'No earlier snapshot has components yet.'} />
     </div>
     {canEdit && <Button size="small" className="mt-3" block icon={<Target size={13} />} onClick={() => void open()}>Reference architecture</Button>}
-    <Modal open={editing !== null} title="Reference architecture" okText="Save" confirmLoading={saving} okButtonProps={{ disabled: !!parsed?.errors.length }} onOk={() => void save()} onCancel={() => setEditing(null)} width={680} destroyOnHidden>
-      <p className="text-sm text-[#94a3b8] mb-2">How your team sees the system: one component per line, <code>Name: path/prefix, other/prefix</code>. Files go to the component with the longest matching prefix; files no prefix matches are not scored. Leave it empty to remove the reference. The suggestion below comes from the current drawing; edit it to match reality.</p>
+    <Modal open={editing !== null} title="Reference architecture" okText="Save" confirmLoading={saving} okButtonProps={{ disabled: !!parsed?.errors.length }} onOk={save} onCancel={() => setEditing(null)} width={680} destroyOnHidden>
+      <p className="text-sm text-[#94a3b8] mb-2">How your team sees the system: one component per line, <code>Name: path/prefix, other/prefix</code>. Files go to the component with the longest matching prefix; files no prefix matches are not scored. Leave it empty to remove the reference. The suggestion below is today's grouping; edit it to describe the architecture you intend.</p>
       <Input.TextArea value={editing ?? ''} onChange={e => setEditing(e.target.value)} autoSize={{ minRows: 8, maxRows: 18 }} className="font-mono text-xs" aria-label="Reference architecture" />
       {parsed?.errors.length ? <ul className="mt-2 text-xs text-red-400">{parsed.errors.slice(0, 5).map(e => <li key={e}>{e}</li>)}</ul> : null}
     </Modal>

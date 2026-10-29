@@ -11,10 +11,8 @@ import {
   Layers,
   GitCommit,
   X,
-  Link,
   Code2,
   FileCode,
-  Network,
   FolderKanban,
   ChevronDown,
   FileText
@@ -25,6 +23,132 @@ import { usePagination } from '@/hooks/usePagination';
 import PaginationBar from '@/components/PaginationBar';
 import { API_BASE_URL } from '@/auth/session';
 import { Modal } from 'antd';
+import { getArchitecture } from '@/features/architecture/api';
+import { ROLE_LABEL } from '@/features/architecture/scene';
+import { serializeHash } from '@/features/architecture/url-state';
+import type { ComponentRole } from '@/features/architecture/types';
+import { IMPACT_NOTE, andMore, changeLabel, deltaText, getEvidenceImpact, impactSummary, linkedCommitMissing, linkedEvidence } from '@/features/evidence-bridge';
+import type { ComponentChange, EvidenceImpact, PairSample } from '@/features/evidence-bridge';
+
+const monoStyle = { fontFamily: '"JetBrains Mono", monospace' };
+const blockTitle = 'text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-widest flex items-center gap-2';
+
+type ComponentNames = Map<string, { name: string; role: ComponentRole }>;
+type ImpactState =
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'done'; impact: EvidenceImpact; names: ComponentNames };
+
+/**
+ * What one commit changed in components (the evidence impact endpoint), asked when its drawer opens. The names and roles of
+ * the components come from the stored grouping of the same snapshot; they are optional, and the ids stand in without them.
+ */
+function useEvidenceImpact(projectId: string, evidenceId: string | undefined) {
+  const [attempt, setAttempt] = useState(0);
+  const [loaded, setLoaded] = useState<{ key: string; state: ImpactState } | null>(null);
+  const key = projectId && evidenceId ? `${projectId}:${evidenceId}:${attempt}` : '';
+  useEffect(() => {
+    if (!key || !evidenceId) return;
+    const controller = new AbortController();
+    getEvidenceImpact(projectId, evidenceId, controller.signal).then(impact => {
+      if (controller.signal.aborted) return;
+      setLoaded({ key, state: { status: 'done', impact, names: new Map() } });
+      if (!impact.grouped) return;
+      getArchitecture(projectId, impact.snapshot.id, controller.signal).then(payload => {
+        if (controller.signal.aborted || !payload.view) return;
+        const names: ComponentNames = new Map(payload.view.components.map(c => [c.id, { name: c.name, role: c.role }]));
+        setLoaded({ key, state: { status: 'done', impact, names } });
+      }).catch(() => { /* names are optional */ });
+    }).catch(cause => {
+      if (!controller.signal.aborted) setLoaded({ key, state: { status: 'error', message: cause instanceof Error ? cause.message : 'Could not compare this commit.' } });
+    });
+    return () => controller.abort();
+  }, [key, projectId, evidenceId]);
+  const state: ImpactState = loaded?.key === key ? loaded.state : { status: 'loading' };
+  return { state, retry: () => setAttempt(n => n + 1) };
+}
+
+const nameOf = (names: ComponentNames, id: string) => names.get(id)?.name ?? id;
+
+/** One changed dependency list (added or removed): the file pairs as the server listed them, then "and N more". */
+function PairList({ sample, sign }: { sample: PairSample; sign: '+' | '-' }) {
+  if (!sample.total) return null;
+  const more = andMore(sample.total, sample.pairs.length);
+  const color = sign === '+' ? 'text-[#4ade80]' : 'text-[#f87171]';
+  return <ul className="space-y-0.5">
+    {sample.pairs.map(p => <li key={`${p.source}\u0000${p.target}`} className={`text-[11px] font-mono break-all ${color}`} style={monoStyle}>{sign} {p.source} → {p.target}</li>)}
+    {more && <li className="text-[11px] text-[#94a3b8]">{more}</li>}
+  </ul>;
+}
+
+function ImpactMessage({ state, retry, loading }: { state: ImpactState; retry: () => void; loading: string }) {
+  if (state.status === 'loading') return <p role="status" className="text-xs text-[#94a3b8]">{loading}</p>;
+  if (state.status === 'error') return <p className="text-xs text-slate-300">Could not compare this commit with the architecture ({state.message}). <button type="button" onClick={retry} className="text-[#93c5fd] underline hover:text-[#bfdbfe]">Try again</button></p>;
+  return null;
+}
+
+/** Which components this commit's change touched, and what is not in any component. Everything here is inference, and says so. */
+function AffectedComponents({ state, projectId, retry }: { state: ImpactState; projectId: string; retry: () => void }) {
+  const waiting = <ImpactMessage state={state} retry={retry} loading="Comparing this commit with the one before it…" />;
+  if (state.status !== 'done') return waiting;
+  const { impact, names } = state;
+  const map = `/workspace/${encodeURIComponent(projectId)}${serializeHash({ project: projectId, snapshot: impact.snapshot.id })}`;
+  return <div className="space-y-3">
+    <p className="text-sm text-[#f4f4f6]">{impactSummary(impact)}</p>
+    {impact.hasBaseline && <p className="text-[11px] leading-snug text-[#94a3b8]">Counted as resolved file-to-file imports, so these numbers can differ from the raw import counts in "Evidence Suggests" above.</p>}
+    {!impact.grouped && <div className="border border-[#242527] bg-[#080b0e] p-4 text-xs leading-relaxed text-slate-300">
+      <p className="font-bold text-[#f4f4f6]">This commit has not been grouped into components yet.</p>
+      <p className="mt-1">Group its files in the Architecture Map to see which components it changed.</p>
+      <RouterLink to={map} className="mt-2 inline-block text-[#93c5fd] hover:text-[#bfdbfe] hover:underline">Open the Architecture Map for this commit</RouterLink>
+    </div>}
+    {impact.grouped && !impact.hasBaseline && <p className="text-xs text-[#94a3b8]">This is the first mined commit, so there is no earlier snapshot to compare with.</p>}
+    {impact.grouped && impact.hasBaseline && <>
+      {impact.components.length === 0
+        ? <p className="text-xs text-[#94a3b8]">No component was touched: none of the files or dependencies that changed belong to a component.</p>
+        : <ul className="flex flex-wrap gap-2" aria-label="Affected components">{impact.components.map(c => {
+          const role = names.get(c.id)?.role;
+          return <li key={c.id} className="border border-[#242527] bg-[#080b0e] px-2.5 py-1.5 text-xs">
+            <span className="font-bold text-[#f4f4f6]">{nameOf(names, c.id)}</span>
+            {role && <span className="ml-2 border border-[#3b82f6]/40 px-1.5 font-mono text-[10px] uppercase text-[#93c5fd]" style={monoStyle}>{ROLE_LABEL[role]}</span>}
+            <span className="ml-2 text-[#94a3b8]">{deltaText({ added: c.pairsAdded, removed: c.pairsRemoved }) || 'no dependency change'}</span>
+          </li>;
+        })}</ul>}
+      {impact.unmappedFiles.total > 0 && <details className="text-xs text-slate-300">
+        <summary className="cursor-pointer select-none hover:text-white">{impact.unmappedFiles.total} {impact.unmappedFiles.total === 1 ? 'file' : 'files'} in this change belong to no component</summary>
+        <ul className="mt-1.5 space-y-0.5 text-[#94a3b8]">
+          {impact.unmappedFiles.files.map(f => <li key={f} className="break-all font-mono text-[11px]" style={monoStyle}>{f}</li>)}
+          {andMore(impact.unmappedFiles.total, impact.unmappedFiles.files.length) && <li>{andMore(impact.unmappedFiles.total, impact.unmappedFiles.files.length)}</li>}
+        </ul>
+        <p className="mt-1.5 text-[#94a3b8]">Files this commit deleted have no component in its grouping, so they are listed here too.</p>
+      </details>}
+      {impact.mapping.stale && <p className="text-xs text-[#fcd34d]">The grouping stored for this commit is out of date, so the components shown may not match its current files.</p>}
+    </>}
+    <p className="text-[11px] leading-snug text-[#94a3b8]">{IMPACT_NOTE}</p>
+  </div>;
+}
+
+/** The dependencies between components that this commit added or removed, with the file pairs behind each. */
+function ChangedDependencies({ state }: { state: ImpactState }) {
+  const note = (text: string) => <p className="text-xs text-[#94a3b8]">{text}</p>;
+  if (state.status === 'loading') return note('Loading…');
+  if (state.status === 'error') return note('Not available: the comparison above did not load.');
+  const { impact, names } = state;
+  if (!impact.grouped) return note('Shown once this commit is grouped into components.');
+  if (!impact.hasBaseline) return note('The first mined commit has no earlier snapshot, so no change can be shown.');
+  const kindWord = (e: ComponentChange) => (e.kind === 'cross' ? 'between components' : e.kind === 'internal' ? 'inside one component' : 'to or from files in no component');
+  return <div className="space-y-3">
+    {impact.componentEdges.length === 0 && note('This commit added or removed no dependency that touches a component.')}
+    {impact.componentEdges.map(e => <div key={e.id} className="border border-[#242527] bg-[#161d24] p-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <span className="text-sm font-bold text-[#f4f4f6]">{changeLabel(e, id => nameOf(names, id))}</span>
+        <span className="text-[10px] font-mono uppercase text-[#94a3b8]" style={monoStyle}>{kindWord(e)} · +{e.added.total} / -{e.removed.total}</span>
+      </div>
+      <div className="mt-2 space-y-1.5"><PairList sample={e.added} sign="+" /><PairList sample={e.removed} sign="-" /></div>
+    </div>)}
+    {impact.unmappedPairs > 0 && note(`${impact.unmappedPairs} changed ${impact.unmappedPairs === 1 ? 'dependency is' : 'dependencies are'} between files that belong to no component.`)}
+    <p className="text-[11px] leading-snug text-[#94a3b8]">Resolved file-to-file imports only. A renamed file counts as one removal and one addition.</p>
+  </div>;
+}
 
 const Evidence: React.FC = () => {
 
@@ -35,14 +159,21 @@ const Evidence: React.FC = () => {
   const [evidenceData, setEvidenceData] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const [selectedChange, setSelectedChange] = useState<any | null>(null);
+  // A link with ?commit=<hash> (the Architecture Map's "Changed in commits") opens that commit's drawer as soon as its evidence is
+  // loaded. The link is followed from the address while rendering, so a second link while this page is open works too, and
+  // closing the drawer remembers which link was closed so it does not open again.
+  const commitParam = new URLSearchParams(location.search).get('commit');
+  const [picked, setPicked] = useState<any | null>(null);
+  const [closedLink, setClosedLink] = useState<string | null>(null);
+  const selectedChange = picked ?? linkedEvidence(evidenceData, commitParam, closedLink);
   const [fileDiffModal, setFileDiffModal] = useState<{ visible: boolean, filename: string, content: string }>({
     visible: false,
     filename: '',
     content: ''
   });
 
-  const closeDrawer = useCallback(() => setSelectedChange(null), []);
+  const impact = useEvidenceImpact(selectedProjectId, selectedChange?.id);
+  const closeDrawer = useCallback(() => { setPicked(null); setClosedLink(commitParam); }, [commitParam, setPicked, setClosedLink]);
   const drawerRef = useFocusTrap(selectedChange !== null, closeDrawer);
   
   const [search, setSearch] = useState('');
@@ -67,7 +198,7 @@ const Evidence: React.FC = () => {
       setLoading(true);
       try {
         const token = readTokens().accessToken;
-        const res = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}/evidences`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}/evidences?limit=100`, { headers: { Authorization: `Bearer ${token}` } });
         if (res.ok) {
           const data = await res.json();
           const eList = data.data?.evidences || [];
@@ -80,15 +211,6 @@ const Evidence: React.FC = () => {
             diffBefore: e.diffBefore || '// No diff recorded',
           }));
           setEvidenceData(formatted);
-
-          const searchParams = new URLSearchParams(location.search);
-          const commitQuery = searchParams.get('commit');
-          if (commitQuery) {
-            const foundEvidence = formatted.find((e: any) => e.commit === commitQuery);
-            if (foundEvidence) {
-              setSelectedChange(foundEvidence);
-            }
-          }
         } else {
            setEvidenceData([]);
         }
@@ -211,6 +333,8 @@ const Evidence: React.FC = () => {
              </div>
           )}
 
+          {!loading && linkedCommitMissing(evidenceData, commitParam) && <p role="status" className="border-b border-[#242527] bg-[#161d24] px-4 py-3 text-xs text-[#fcd34d]">The commit in this link is not among the {evidenceData.length} most recent changes loaded here, so its detail cannot be opened.</p>}
+
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
@@ -241,7 +365,7 @@ const Evidence: React.FC = () => {
                   <tr 
                     key={item.id} 
                     className="group hover:bg-[#242527]/30 transition-colors cursor-pointer"
-                    onClick={() => setSelectedChange(item)}
+                    onClick={() => setPicked(item)}
                   >
                     <td className="p-4 text-sm font-bold text-[#f4f4f6]">{item.changeTitle}</td>
                     <td className="p-4">
@@ -263,7 +387,7 @@ const Evidence: React.FC = () => {
                        <button
                          onClick={(e) => {
                            e.stopPropagation();
-                           setSelectedChange(item);
+                           setPicked(item);
                          }}
                          aria-label={`View evidence for ${item.changeTitle}`}
                          className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-[#94a3b8] group-hover:text-[#93c5fd] transition-colors uppercase focus:outline-none focus-visible:text-[#93c5fd]"
@@ -328,7 +452,7 @@ const Evidence: React.FC = () => {
                      <p className="text-xs text-[#93c5fd] leading-relaxed">
                        <strong className="font-bold tracking-wide uppercase font-mono text-[10px]"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Evidence Suggests:</strong><br />
-                       Based on repository evidence, {selectedChange.summary}
+                       Raw import counts found by mining this commit and the one before it. {selectedChange.summary}
                      </p>
                   </div>
                 </div>
@@ -336,61 +460,12 @@ const Evidence: React.FC = () => {
                 {/* Drawer Scrollable Content */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
                   
-                  {/* TRACEABILITY CHAIN */}
+                  {/* AFFECTED COMPONENTS: what this commit changed, projected on the components of its snapshot (inference) */}
                   <div className="space-y-3">
-                    <h4 className="text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-widest flex items-center gap-2"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                       <Link size={14} /> Traceability Chain
+                    <h4 className={blockTitle} style={monoStyle}>
+                       <Layers size={14} /> Affected Components
                     </h4>
-                    
-                    <div className="bg-[#080b0e] border border-[#242527] p-6 flex flex-col items-center justify-center gap-3 relative overflow-hidden">
-                       <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'radial-gradient(#3b82f6 1px, transparent 1px)', backgroundSize: '16px 16px' }}></div>
-                       
-                       <div className="flex items-center justify-between w-full max-w-2xl relative z-10">
-                          {/* Line connecting them */}
-                          <div className="absolute top-1/2 left-0 right-0 h-px bg-[#242527] -translate-y-1/2 z-0"></div>
-                          
-                          <div className="flex flex-col items-center gap-2 z-10 bg-[#080b0e] px-2">
-                            <div className="w-8 h-8 rounded-full bg-[#ffb03a]/20 border border-[#ffb03a]/50 flex items-center justify-center text-[#ffb03a]">
-                               <Layers size={14} />
-                            </div>
-                            <span className="text-[9px] font-mono text-[#94a3b8] font-bold"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Arch Change</span>
-                          </div>
-
-                          <div className="flex flex-col items-center gap-2 z-10 bg-[#080b0e] px-2">
-                            <div className="w-8 h-8 rounded-full bg-[#242527] border border-[#5f636b] flex items-center justify-center text-[#f4f4f6]">
-                               <GitCommit size={14} />
-                            </div>
-                            <span className="text-[9px] font-mono text-[#94a3b8] font-bold"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Commit</span>
-                          </div>
-
-                          <div className="flex flex-col items-center gap-2 z-10 bg-[#080b0e] px-2">
-                            <div className="w-8 h-8 rounded-full bg-[#242527] border border-[#5f636b] flex items-center justify-center text-[#f4f4f6]">
-                               <FileCode size={14} />
-                            </div>
-                            <span className="text-[9px] font-mono text-[#94a3b8] font-bold"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Files</span>
-                          </div>
-
-                          <div className="flex flex-col items-center gap-2 z-10 bg-[#080b0e] px-2">
-                            <div className="w-8 h-8 rounded-full bg-[#242527] border border-[#5f636b] flex items-center justify-center text-[#f4f4f6]">
-                               <Network size={14} />
-                            </div>
-                            <span className="text-[9px] font-mono text-[#94a3b8] font-bold"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>AST Deps</span>
-                          </div>
-
-                          <div className="flex flex-col items-center gap-2 z-10 bg-[#080b0e] px-2">
-                            <div className="w-8 h-8 rounded-full bg-[#3b82f6]/20 border border-[#3b82f6]/50 flex items-center justify-center text-[#93c5fd]">
-                               <Box size={14} />
-                            </div>
-                            <span className="text-[9px] font-mono text-[#93c5fd] font-bold"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Snapshot</span>
-                          </div>
-                       </div>
-                    </div>
+                    <AffectedComponents state={impact.state} projectId={selectedProjectId} retry={impact.retry} />
                   </div>
 
                   {/* EVIDENCE GRID */}
@@ -447,45 +522,12 @@ const Evidence: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* ARCHITECTURE SUMMARY */}
+                  {/* COMPONENT DEPENDENCIES CHANGED */}
                   <div className="space-y-3 pb-8">
-                     <h4 className="text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-widest flex items-center gap-2"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                       <Box size={14} /> Architecture Interpretation
+                     <h4 className={blockTitle} style={monoStyle}>
+                       <Box size={14} /> Component Dependencies Changed
                      </h4>
-                     <div className="bg-[#161d24] border border-[#242527] p-6 flex flex-col items-center">
-                        <div className="flex items-center justify-center w-full max-w-md relative">
-                           {/* Line connecting them */}
-                           <div className="absolute top-1/2 left-0 right-0 h-px bg-[#242527] -translate-y-1/2 z-0"></div>
-                           
-                           <div className="flex justify-between w-full z-10">
-                              <div className="flex flex-col items-center gap-2 bg-[#161d24] px-4">
-                                <div className="w-12 h-12 rounded-lg bg-[#080b0e] border border-[#242527] flex items-center justify-center text-[#94a3b8] shadow-inner">
-                                   <Layers size={20} />
-                                </div>
-                                <span className="text-[10px] font-mono text-[#94a3b8] font-bold"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>PREVIOUS STATE</span>
-                              </div>
-
-                              <div className="flex flex-col items-center justify-center bg-[#161d24] px-2">
-                                <div className="w-6 h-6 rounded-full bg-[#242527] border border-[#5f636b] flex items-center justify-center text-[#f4f4f6]">
-                                   <ArrowRight size={12} />
-                                </div>
-                              </div>
-
-                              <div className="flex flex-col items-center gap-2 bg-[#161d24] px-4">
-                                <div className="w-12 h-12 rounded-lg bg-[#ffb03a]/10 border border-[#ffb03a]/30 flex items-center justify-center text-[#ffb03a] shadow-[0_0_15px_rgba(255,176,58,0.1)]">
-                                   <Box size={20} />
-                                </div>
-                                <span className="text-[10px] font-mono text-[#ffb03a] font-bold"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>NEW STRUCTURE</span>
-                              </div>
-                           </div>
-                        </div>
-                        <p className="text-[10px] text-[#94a3b8] mt-4 uppercase tracking-widest">
-                           Detected structural change based on AST dependency drift mapping to Git diffs
-                        </p>
-                     </div>
+                     <ChangedDependencies state={impact.state} />
                   </div>
 
                 </div>

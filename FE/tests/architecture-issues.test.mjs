@@ -93,6 +93,7 @@ test('low agreement with the reference is an explicit "Differs from the intended
   assert.equal(high.length, 1);
   assert.equal(high[0].title, 'Differs from the intended architecture');
   assert.equal(high[0].severity, 'high');
+  assert.match(high[0].explanation, /Compared with the reference architecture your team saved/);
   assert.match(high[0].explanation, /only 30%/);
   assert.match(high[0].explanation, /40 files/);
   assert.match(high[0].suggestion, /Review which files moved/);

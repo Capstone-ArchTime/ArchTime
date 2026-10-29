@@ -28,6 +28,7 @@ import { THEMES } from '@/features/architecture/theme';
 import { COMPONENT_ROLES } from '@/features/architecture/types';
 import type { ArchitectureView, ComponentRole } from '@/features/architecture/types';
 import type { SnapshotSummary } from '@/features/architecture/api';
+import { useCommitImpacts } from '@/features/useCommitImpacts';
 
 const isTyping = (target: EventTarget | null) => target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 /** What "Show in diagram" highlights when an issue involves several components; valid only for the URL it was made at. */
@@ -39,7 +40,7 @@ interface Pin { at: string; id: string; title: string; nodes: Set<string>; edges
  * `base` carries that choice so it is kept in the URL together with the viewer state. Panel rules (which are open at
  * which width, full screen, what is remembered) live in features/architecture/panels.ts.
  */
-export default function ArchitectureViewer({ view, base, hash, commit, overview, snapshots, snapshotId, onSnapshot, focusMode, onFocusMode, issueContext, onIssueAction, exportInfo }: {
+export default function ArchitectureViewer({ view, base, hash, commit, overview, snapshots, snapshotId, onSnapshot, focusMode, onFocusMode, issueContext, onIssueAction, exportInfo, projectId, mappingVersion }: {
   view: ArchitectureView;
   base: ViewerState;
   hash: string;
@@ -57,6 +58,10 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
   onIssueAction?: (action: IssueAction) => void;
   /** Names exported files and images (workspace, snapshot, date); never taken from the view's own title, which is a commit title. */
   exportInfo?: ExportMeta;
+  /** The workspace the view belongs to; absent for samples, which have no commits to look through. */
+  projectId?: string;
+  /** Changes when the snapshot is grouped again, so the commits found for the old grouping are not reused. */
+  mappingVersion?: string;
 }) {
   const { message } = App.useApp();
   const [themeName, setThemeName] = useState<'dark' | 'light'>('dark');
@@ -124,6 +129,9 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
   const issues = useMemo(() => issuesFor({ ...issueContext, view, warnings, layoutIssues: mapLayoutIssues }), [issueContext, view, warnings, mapLayoutIssues]);
   const summary = useMemo(() => summarize(issues), [issues]);
   const verified = `${view.components.length} components · ${view.edges.length} dependencies`;
+  // "Changed in commits" is asked for once per snapshot, the first time a component is selected; see useCommitImpacts.
+  const componentSelected = scene.mode === 'components' && !!state.focus && !state.edge && !state.route && view.components.some(c => c.id === state.focus);
+  const commitImpacts = useCommitImpacts(projectId, snapshotId, componentSelected, mappingVersion);
 
   const go = useCallback((next: ViewerState, push = false) => commit({ ...base, ...(detailId ? { detail: detailId } : {}), ...next }, push), [commit, base, detailId]);
   const clearSelection = useCallback(() => { setPin(null); commit({ ...base, ...(detailId ? { detail: detailId } : {}), ...(state.lens ? { lens: state.lens } : {}) }); }, [commit, base, detailId, state.lens]);
@@ -285,7 +293,8 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
           <ArrowLeft size={12} aria-hidden /> Overview and issues{summary.count ? ` (${summary.count})` : ''}
         </button>}
         {!hasSelection && <IssuesPanel issues={issues} summary={summary} verified={verified} activeId={activePin?.id} inner={scene.mode !== 'components'} onShow={showIssue} onAction={onIssueAction} />}
-        <Inspector view={view} scene={scene} theme={theme} selectedNode={state.focus} selectedEdge={state.edge} highlight={highlight} onSelectNode={focusNode} onSelectEdge={selectEdge} onOpen={openDetail} />
+        <Inspector view={view} scene={scene} theme={theme} selectedNode={state.focus} selectedEdge={state.edge} highlight={highlight} onSelectNode={focusNode} onSelectEdge={selectEdge} onOpen={openDetail}
+          commits={projectId && snapshotId ? { projectId, state: commitImpacts, onRetry: commitImpacts.retry } : undefined} />
         {!hasSelection && overview}
       </div>
     </aside>}

@@ -54,7 +54,7 @@ export default function FloatingToolbar({ searchRef, ...p }: {
   const compact = v.width > 0 && v.width < ROOMY;
   // Phone-sized: zoom steps, fit and frame stay in the zoom menu (and pinch), not as buttons.
   const tiny = v.width > 0 && v.width < 520;
-  const exports = [{ key: 'svg', label: 'SVG image' }, { key: 'png', label: 'PNG image' }, { key: 'html', label: 'Standalone HTML' }, { key: 'json', label: 'Verified data (JSON)' }];
+  const exports = [{ key: 'svg', label: 'SVG image' }, { key: 'png', label: 'PNG image' }, { key: 'html', label: 'Standalone HTML' }, { key: 'json', label: 'Data (JSON)' }];
   return (
     <div data-overlay role="toolbar" aria-label="Diagram tools"
       className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex max-w-[calc(100%-1.5rem)] items-center gap-0.5 overflow-x-auto rounded-xl border border-[#2a3441] bg-[#11161b]/95 px-2 py-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur">

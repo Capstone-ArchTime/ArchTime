@@ -146,7 +146,7 @@ export default function ArchitectureWorkspace() {
           options={arch.snapshots.map(s => ({ value: s.id, label: `${s.hash} · ${s.title.split('\n')[0].slice(0, 40)}` }))}
           onChange={(id?: string) => commit({ project: projectId, ...(id ? { snapshot: id } : {}) }, true)} />}
 
-        {/* The "Verified: N components, M dependencies" fact lives in the Issues chip and the overview, not here. */}
+        {/* The "Consistent with the import graph: N components, M dependencies" check lives in the Issues chip and the overview, not here. */}
         {arch.refining && <div className="mx-auto hidden min-w-0 items-center gap-3 whitespace-nowrap text-xs text-[#94a3b8] xl:flex" role="status">
           <span className="flex items-center gap-2"><Sparkles size={13} className="text-[#93c5fd]" /> {arch.refining.stage}<Progress percent={arch.refining.progress} size="small" showInfo={false} className="!m-0 w-24" status="active" /></span>
         </div>}
@@ -168,6 +168,7 @@ export default function ArchitectureWorkspace() {
       <main className="relative min-h-0 flex-1">
         {view && <ArchitectureViewer view={view} base={base} hash={hash} commit={commit} overview={overview}
           focusMode={focusMode} onFocusMode={fullScreen.set} issueContext={issueContext} onIssueAction={onIssueAction} exportInfo={exportInfo}
+          projectId={projectId} mappingVersion={payload?.mapping?.createdAt}
           {...(projectId ? { snapshots: arch.snapshots, snapshotId: snapshotParam ?? payload?.snapshot?.id, onSnapshot: (id: string) => commit({ project: projectId, snapshot: id }, true) } : {})} />}
 
         {/* No drawing for this snapshot (yet): keep the snapshot list, like a design file's pages, so another can be opened. */}

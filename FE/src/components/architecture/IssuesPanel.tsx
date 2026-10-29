@@ -15,7 +15,7 @@ const breakdown = (s: IssueSummary) => (['high', 'medium', 'low'] as const).filt
 /** Always on the canvas, also in full screen: how many problems there are, coloured by the worst, and a way to the list. */
 export function IssuesChip({ summary, verified, onClick, className = '' }: { summary: IssueSummary; verified: string; onClick: () => void; className?: string }) {
   const tone = summary.worst ? TONE[summary.worst].chip : 'border-[#22c55e]/50 bg-[#14532d]/40 text-[#86efac]';
-  return <Tooltip placement="bottom" title={<span>{summary.count ? `${summary.label}: ${breakdown(summary)}. Click to read them.` : 'Nothing wrong was found. Click for the details.'}<br />✓ Verified: {verified}</span>}>
+  return <Tooltip placement="bottom" title={<span>{summary.count ? `${summary.label}: ${breakdown(summary)}. Click to read them.` : 'Nothing wrong was found. Click for the details.'}<br />✓ Consistent with the import graph: {verified}</span>}>
     <button type="button" data-overlay onClick={onClick} aria-label={`${summary.label}. Open the list`}
       className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur hover:brightness-125 ${tone} ${className}`}>
       {summary.count ? <TriangleAlert size={13} aria-hidden /> : <CircleCheck size={13} aria-hidden />}
@@ -64,7 +64,7 @@ export default function IssuesPanel({ issues, summary, verified, activeId, inner
       <span className={`text-xs font-medium ${summary.worst ? TONE[summary.worst].text : 'text-[#4ade80]'}`}>{summary.label}{summary.count ? ` · ${breakdown(summary)}` : ''}</span>
     </div>
     {!problems.length && <p className="flex items-start gap-2 rounded border border-[#14532d] bg-[#14532d]/20 p-2.5 text-xs leading-relaxed text-[#86efac]">
-      <CircleCheck size={14} className="mt-px shrink-0" aria-hidden /><span>Nothing wrong was found. Verified: {verified}.</span></p>}
+      <CircleCheck size={14} className="mt-px shrink-0" aria-hidden /><span>Nothing wrong was found. Consistent with the import graph: {verified}.</span></p>}
     {problems.length > 0 && <ul className="space-y-2" aria-label="Problems">{problems.map(i => <Card key={i.id} issue={i} active={i.id === activeId} onShow={onShow} onAction={onAction} />)}</ul>}
     {hints.length > 0 && <>
       <h4 className="pt-1 text-[10px] font-mono uppercase tracking-wider text-slate-300">Suggestions</h4>

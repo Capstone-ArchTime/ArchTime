@@ -40,7 +40,7 @@ test('"Show in diagram" appears only when the issue points at something, and the
 
 test('a clean view says so and keeps the verified fact; hints sit under their own heading', () => {
   const clean = render([]);
-  assert.match(clean, /Nothing wrong was found\. Verified: 3 components · 2 dependencies\./);
+  assert.match(clean, /Nothing wrong was found\. Consistent with the import graph: 3 components · 2 dependencies\./);
   assert.match(clean, /No issues/);
   const hint = issuesFor({ view: { components: view.components, edges: [] }, quality: { ...quality, acyclicity: { score: 1, cycles: [] }, layering: { score: 1, violations: [] }, agreement: undefined }, canEdit: true });
   const html = render(hint);
