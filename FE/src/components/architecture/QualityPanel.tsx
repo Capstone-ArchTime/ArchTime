@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { MutableRefObject } from 'react';
 import { App, Button, Input, Modal, Tooltip } from 'antd';
 import { Target } from 'lucide-react';
 import { getReference, saveReference } from '@/features/architecture/api';
@@ -37,8 +38,8 @@ function suggest(view: { components: { name: string; memberIds: string[] }[] }) 
 
 function Measure({ label, value, hint }: { label: string; value: number | undefined; hint: string }) {
   return <Tooltip title={hint}>
-    <div className="min-w-24">
-      <p className="text-[11px] uppercase tracking-wider text-[#94a3b8]">{label}</p>
+    <div className="min-w-0">
+      <p className="text-[11px] uppercase leading-tight tracking-wider text-[#94a3b8]">{label}</p>
       <p className={`font-mono text-lg ${value === undefined ? 'text-[#94a3b8]' : tone(value)}`}>{value === undefined ? '–' : pct(Math.max(0, value))}</p>
     </div>
   </Tooltip>;
@@ -48,10 +49,12 @@ function Measure({ label, value, hint }: { label: string; value: number | undefi
  * How meaningful the drawing is: names supported by the paths, no dependency loops, layers respected, sizes balanced,
  * and, when known, agreement with the team's reference architecture and stability against the previous snapshot.
  */
-export default function QualityPanel({ projectId, quality, view, onSaved, canEdit = true }: {
+export default function QualityPanel({ projectId, quality, view, onSaved, canEdit = true, openEditorRef }: {
   projectId: string; quality: ViewQuality; view: { components: { name: string; memberIds: string[] }[] }; onSaved: () => void;
   /** Saving the reference architecture is maintainer work (the server refuses it to members who only read). */
   canEdit?: boolean;
+  /** Lets an issue card ("Review reference") open the editor that this panel owns. */
+  openEditorRef?: MutableRefObject<(() => void) | null>;
 }) {
   const { message } = App.useApp();
   const [editing, setEditing] = useState<string | null>(null);
@@ -72,22 +75,24 @@ export default function QualityPanel({ projectId, quality, view, onSaved, canEdi
     finally { setSaving(false); }
   }
 
+  useEffect(() => {
+    if (!openEditorRef || !canEdit) return;
+    openEditorRef.current = () => void open();
+    return () => { openEditorRef.current = null; };
+  });
+
   const q = quality;
-  return <section className="rounded border border-[#242527] bg-[#11161b] px-4 py-3" aria-label="Architecture quality">
-    <div className="flex flex-wrap items-start gap-x-6 gap-y-3">
+  // What the measures found is told by the issue cards above; this panel only shows the scores.
+  return <section className="rounded border border-[#242527] bg-[#11161b] px-3 py-3" aria-label="Architecture quality">
+    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
       <Measure label="Grounded names" value={q.grounding.score} hint="Share of component names that the file paths inside support. Low values mean invented or vague names." />
       <Measure label="No cycles" value={q.acyclicity.score} hint="Share of components not caught in a dependency loop with other components." />
       <Measure label="Layering" value={q.layering.score} hint="Share of dependencies between layered roles that point down (controller → service → entity → repository)." />
       <Measure label="Balance" value={q.balance} hint="How evenly files are spread over components; low when one component holds most files." />
       <Measure label="Matches reference" value={q.agreement?.score} hint={q.agreement ? `Adjusted Rand index against your reference architecture over ${q.agreement.common} files. 100% = same grouping.` : 'Set a reference architecture to score this.'} />
       <Measure label="Stable vs previous" value={q.stability?.score} hint={q.stability ? `Adjusted Rand index against the previous snapshot's components over ${q.stability.common} files.` : 'No earlier snapshot has components yet.'} />
-      {canEdit && <Button size="small" className="ml-auto self-center" icon={<Target size={13} />} onClick={() => void open()}>Reference architecture</Button>}
     </div>
-    {(q.grounding.ungrounded.length > 0 || q.acyclicity.cycles.length > 0 || q.layering.violations.length > 0) && <ul className="mt-2 list-disc pl-5 text-xs text-[#94a3b8] space-y-0.5">
-      {q.grounding.ungrounded.length > 0 && <li>Names the paths do not support: {q.grounding.ungrounded.map(n => `"${n}"`).join(', ')}</li>}
-      {q.acyclicity.cycles.length > 0 && <li>{q.acyclicity.cycles.length} dependency loop{q.acyclicity.cycles.length > 1 ? 's' : ''} between components</li>}
-      {q.layering.violations.length > 0 && <li>{q.layering.violations.length} dependenc{q.layering.violations.length > 1 ? 'ies point' : 'y points'} up the layers</li>}
-    </ul>}
+    {canEdit && <Button size="small" className="mt-3" block icon={<Target size={13} />} onClick={() => void open()}>Reference architecture</Button>}
     <Modal open={editing !== null} title="Reference architecture" okText="Save" confirmLoading={saving} okButtonProps={{ disabled: !!parsed?.errors.length }} onOk={() => void save()} onCancel={() => setEditing(null)} width={680} destroyOnHidden>
       <p className="text-sm text-[#94a3b8] mb-2">How your team sees the system: one component per line, <code>Name: path/prefix, other/prefix</code>. Files go to the component with the longest matching prefix; files no prefix matches are not scored. Leave it empty to remove the reference. The suggestion below comes from the current drawing; edit it to match reality.</p>
       <Input.TextArea value={editing ?? ''} onChange={e => setEditing(e.target.value)} autoSize={{ minRows: 8, maxRows: 18 }} className="font-mono text-xs" aria-label="Reference architecture" />

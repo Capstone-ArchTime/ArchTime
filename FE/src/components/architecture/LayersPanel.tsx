@@ -41,7 +41,7 @@ export default function LayersPanel({ scene, theme, highlight, selected, onSelec
     {tab === 'layers' && scene && theme && highlight && <>
       <label className="mx-2 my-2 flex items-center gap-2 rounded border border-[#242527] bg-[#0b0f13] px-2">
         <Search size={13} className="text-[#94a3b8]" />
-        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search layers" aria-label="Search layers" className="h-7 w-full bg-transparent text-xs text-[#e2e8f0] outline-none placeholder:text-[#64748b]" />
+        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search layers" aria-label="Search layers" className="h-7 w-full bg-transparent text-xs text-[#e2e8f0] outline-none placeholder:text-[#94a3b8]" />
       </label>
       <div className="min-h-0 flex-1 overflow-auto pb-3" role="tree" aria-label="Layers">
         {[...groups].map(([key, items]) => <div key={key} role="group" aria-label={label(key)}>

@@ -4,7 +4,6 @@ import type { Scene } from '@/features/architecture/scene';
 import { ROLE_LABEL, unitWord } from '@/features/architecture/scene';
 import type { DiagramTheme } from '@/features/architecture/theme';
 import type { Highlight } from '@/features/architecture/highlight';
-import { cycles } from '@/features/architecture/queries';
 
 const PROVENANCE_HELP = {
   FACT: 'Confirmed by source code or Git history.',
@@ -75,21 +74,20 @@ export default function Inspector({ view, scene, theme, selectedNode, selectedEd
     </aside>;
   }
 
-  const loops = cycles(scene.edges);
   return <aside aria-label="Diagram summary" className="space-y-4">
     <div><h3 className={heading}>{scene.mode === 'components' ? 'Overview' : view.unit === 'file' ? 'Files' : 'Classes'}</h3>
       <p className="text-sm leading-relaxed">{scene.mode === 'components'
-        ? <>{scene.nodes.length} components and {scene.edges.length} dependencies. Every arrow is computed from {view.unit === 'file' ? 'file' : 'class'}-level dependencies; select one to see them.</>
+        ? <><span className="text-[#4ade80]">✓ Verified</span> · {scene.nodes.length} components, {scene.edges.length} dependencies. Every arrow is computed from {view.unit === 'file' ? 'file' : 'class'}-level dependencies; select one to see them.</>
         : <>{scene.nodes.filter(n => n.kind === 'class').length} {unitWord(view, 2)}. Dashed boxes are components outside this one.</>}</p></div>
-    {loops.length > 0 && <div className="text-xs text-[#fca5a5] border border-[#7f1d1d] p-2 space-y-1">
-      <p>{loops.length} circular {loops.length === 1 ? 'dependency' : 'dependencies'} (red arrows):</p>
-      <ul>{loops.map(g => <li key={g.join()}>{g.map(nameOf).join(' ↔ ')}</li>)}</ul></div>}
-    <div><h3 className={heading}>How to read it</h3><ul className="text-xs text-[#94a3b8] space-y-1 leading-relaxed">
-      <li>Click a box to focus it; double-click (or Shift + Enter) to show what is inside.</li>
-      <li>Rows are architectural tiers; arrows point from the dependent to what it uses.</li>
-      <li>Dashed arrows point upward, against the tier order.</li>
-      <li>FACT / INFERENCE / UNKNOWN tells how well the evidence supports a component's role.</li>
-    </ul></div>
+    <details className="group text-xs">
+      <summary className="cursor-pointer select-none font-mono text-[10px] uppercase tracking-wider text-slate-300 hover:text-white">How to read this</summary>
+      <ul className="mt-2 space-y-1 leading-relaxed text-slate-300">
+        <li>Click a box to focus it; double-click (or Shift + Enter) to show what is inside.</li>
+        <li>Rows are architectural tiers; arrows point from the dependent to what it uses.</li>
+        <li>Dashed arrows point upward, against the tier order; red arrows are circular dependencies.</li>
+        <li>FACT / INFERENCE / UNKNOWN tells how well the evidence supports a component's role.</li>
+      </ul>
+    </details>
   </aside>;
 }
 

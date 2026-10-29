@@ -3,12 +3,15 @@ import type { GraphLayout, RoutedEdge } from '@/features/architecture/layout';
 import type { Scene, SceneNode } from '@/features/architecture/scene';
 import type { Highlight } from '@/features/architecture/highlight';
 import type { DiagramTheme } from '@/features/architecture/theme';
+import { captionHeight } from '@/features/architecture/export-file';
 
 export interface DiagramSvgProps {
   scene: Scene;
   layout: GraphLayout;
   theme: DiagramTheme;
   title: string;
+  /** Drawn as a header band above the diagram (exports only): what the picture shows, and optionally the commit line. */
+  caption?: { title: string; subtitle?: string };
   highlight?: Highlight;
   selectedNode?: string;
   selectedEdge?: string;
@@ -27,7 +30,7 @@ export interface DiagramSvgProps {
 const truncate = (text: string, max: number) => (text.length > max ? `${text.slice(0, Math.max(1, max - 1))}…` : text);
 const edgeWidth = (weight: number) => 1.25 + Math.min(weight, 12) * 0.25;
 
-export default function DiagramSvg({ scene, layout, theme, title, highlight, selectedNode, selectedEdge, hoverEdge, showWeights, interactive = true, idPrefix = 'arch', svgRef, onNodeClick, onNodeOpen, onEdgeClick, onEdgeHover }: DiagramSvgProps) {
+export default function DiagramSvg({ scene, layout, theme, title, caption, highlight, selectedNode, selectedEdge, hoverEdge, showWeights, interactive = true, idPrefix = 'arch', svgRef, onNodeClick, onNodeOpen, onEdgeClick, onEdgeHover }: DiagramSvgProps) {
   const nodeById = new Map(scene.nodes.map(n => [n.id, n]));
   const sceneEdge = new Map(scene.edges.map(e => [e.id, e]));
   const dimNode = (id: string) => !!highlight?.nodes && !highlight.nodes.has(id);
@@ -45,12 +48,13 @@ export default function DiagramSvg({ scene, layout, theme, title, highlight, sel
   };
   const arrows: [string, string][] = [['default', theme.edge], ['dim', theme.edgeDim], ['focus', theme.focus], ['route', theme.route], ['cycle', theme.cycle]];
 
+  const band = captionHeight(caption);
   const onNodeKey = (event: KeyboardEvent, id: string) => {
     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); if (event.shiftKey) onNodeOpen?.(id); else onNodeClick?.(id); }
   };
 
   return (
-    <svg ref={svgRef} xmlns="http://www.w3.org/2000/svg" width={layout.width} height={layout.height} viewBox={`0 0 ${layout.width} ${layout.height}`} role="group" aria-label={title} fontFamily={theme.sans}>
+    <svg ref={svgRef} xmlns="http://www.w3.org/2000/svg" width={layout.width} height={layout.height + band} viewBox={`0 0 ${layout.width} ${layout.height + band}`} role="group" aria-label={title} fontFamily={theme.sans}>
       <title>{title}</title>
       <defs>
         {arrows.map(([name, color]) => (
@@ -59,8 +63,14 @@ export default function DiagramSvg({ scene, layout, theme, title, highlight, sel
           </marker>
         ))}
       </defs>
-      <rect width={layout.width} height={layout.height} fill={theme.background} />
+      <rect width={layout.width} height={layout.height + band} fill={theme.background} />
+      {caption && <g>
+        <text x={16} y={26} fontSize={15} fontWeight={700} fill={theme.text}>{truncate(caption.title, Math.floor((layout.width - 32) / 8.6))}</text>
+        {caption.subtitle && <text x={16} y={45} fontSize={11} fill={theme.muted}>{truncate(caption.subtitle, Math.floor((layout.width - 32) / 6.4))}</text>}
+        <line x1={0} x2={layout.width} y1={band - 0.5} y2={band - 0.5} stroke={theme.cardStroke} />
+      </g>}
 
+      <g transform={band ? `translate(0,${band})` : undefined}>
       <g>
         {layout.edges.map(e => {
           const st = edgeStyle(e);
@@ -99,6 +109,7 @@ export default function DiagramSvg({ scene, layout, theme, title, highlight, sel
             </g>
           );
         })}
+      </g>
       </g>
     </svg>
   );

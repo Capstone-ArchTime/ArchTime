@@ -1,6 +1,6 @@
 import type { ReactNode, Ref } from 'react';
 import { Dropdown, Popover, Select, Tooltip } from 'antd';
-import { Check, ChevronDown, Download, Ellipsis, Expand, Hash, Keyboard, Map as MapIcon, Maximize, Minimize, Minus, Moon, PanelRight, Plus, Route, Scan, Shapes, Sun } from 'lucide-react';
+import { Check, ChevronDown, Download, Ellipsis, Expand, Hash, Keyboard, Map as MapIcon, Maximize, Minimize, Minus, Moon, PanelLeft, PanelRight, Plus, Route, Scan, Shapes, Sun } from 'lucide-react';
 import type { Viewport } from './ArchitectureDiagram';
 import type { ExportFormat } from './export';
 import type { ComponentRole } from '@/features/architecture/types';
@@ -16,7 +16,7 @@ function Tool({ label, shortcut, active, disabled, onClick, children }: { label:
   </Tooltip>;
 }
 /** Below this artboard width the display and output tools fold into a "More" menu. */
-const ROOMY = 860;
+const ROOMY = 940;
 const mark = (on: boolean) => <span className="inline-flex w-4">{on && <Check size={13} />}</span>;
 
 const Divider = () => <span aria-hidden className="mx-0.5 h-5 w-px shrink-0 bg-[#2a3441]" />;
@@ -41,7 +41,10 @@ export default function FloatingToolbar({ searchRef, ...p }: {
   onLens: (roles: ComponentRole[]) => void;
   weights: boolean; onWeights: () => void;
   light: boolean; onTheme: () => void;
+  layers: boolean; onLayers: () => void;
   inspector: boolean; onInspector: () => void;
+  /** In-page full screen: only the artboard and this toolbar stay. */
+  focusMode: boolean; onFocusMode: () => void;
   exporting: boolean; onExport: (format: ExportFormat) => void;
   onHelp: () => void;
   hasSelection: boolean;
@@ -104,10 +107,11 @@ export default function FloatingToolbar({ searchRef, ...p }: {
             { key: 'weights', label: <span className="flex items-center">{mark(p.weights)}Dependency counts  <kbd className="ml-auto pl-4 text-[10px] opacity-60">W</kbd></span> },
             { key: 'theme', label: <span className="flex items-center">{mark(p.light)}Light theme <kbd className="ml-auto pl-4 text-[10px] opacity-60">T</kbd></span> },
             { key: 'minimap', label: <span className="flex items-center">{mark(v.minimap)}Minimap <kbd className="ml-auto pl-4 text-[10px] opacity-60">M</kbd></span> },
+            { key: 'layers', label: <span className="flex items-center">{mark(p.layers)}Layers panel</span> },
             { key: 'inspector', label: <span className="flex items-center">{mark(p.inspector)}Details panel</span> },
             { type: 'divider' },
             { key: 'export', label: 'Export', disabled: p.exporting, children: exports },
-            { key: 'fullscreen', label: v.fullscreen ? 'Exit full screen' : 'Full screen' },
+            { key: 'fullscreen', label: <span className="flex items-center">{p.focusMode ? 'Exit full screen' : 'Full screen'}<kbd className="ml-auto pl-4 text-[10px] opacity-60">Shift+F</kbd></span> },
             { key: 'help', label: 'Keyboard and mouse  ?' },
           ],
           onClick: ({ key, keyPath }) => {
@@ -115,8 +119,9 @@ export default function FloatingToolbar({ searchRef, ...p }: {
             else if (key === 'weights') p.onWeights();
             else if (key === 'theme') p.onTheme();
             else if (key === 'minimap') v.toggleMinimap();
+            else if (key === 'layers') p.onLayers();
             else if (key === 'inspector') p.onInspector();
-            else if (key === 'fullscreen') v.toggleFullscreen();
+            else if (key === 'fullscreen') p.onFocusMode();
             else if (key === 'help') p.onHelp();
           },
         }}>
@@ -128,13 +133,14 @@ export default function FloatingToolbar({ searchRef, ...p }: {
       <Tool label="Dependency counts on all arrows" shortcut="W" active={p.weights} onClick={p.onWeights}><Hash size={16} /></Tool>
       <Tool label={p.light ? 'Dark theme' : 'Light theme'} shortcut="T" onClick={p.onTheme}>{p.light ? <Moon size={16} /> : <Sun size={16} />}</Tool>
       <Tool label="Minimap" shortcut="M" active={v.minimap} onClick={v.toggleMinimap}><MapIcon size={16} /></Tool>
-      <Tool label="Details panel" active={p.inspector} onClick={p.onInspector}><PanelRight size={16} /></Tool>
+      <Tool label="Layers panel" shortcut="Ctrl+\" active={p.layers} onClick={p.onLayers}><PanelLeft size={16} /></Tool>
+      <Tool label="Details panel" shortcut="Ctrl+\" active={p.inspector} onClick={p.onInspector}><PanelRight size={16} /></Tool>
 
       <Divider />
       <Dropdown trigger={['click']} placement="top" menu={{ items: exports, onClick: ({ key }) => p.onExport(key as ExportFormat) }}>
         <span><Tool label="Export" disabled={p.exporting}><Download size={16} /></Tool></span>
       </Dropdown>
-      <Tool label={v.fullscreen ? 'Exit full screen' : 'Full screen'} onClick={v.toggleFullscreen}>{v.fullscreen ? <Minimize size={16} /> : <Maximize size={16} />}</Tool>
+      <Tool label={p.focusMode ? 'Exit full screen' : 'Full screen'} shortcut="Shift+F" active={p.focusMode} onClick={p.onFocusMode}>{p.focusMode ? <Minimize size={16} /> : <Maximize size={16} />}</Tool>
       <Tool label="Keyboard and mouse" shortcut="?" onClick={p.onHelp}><Keyboard size={16} /></Tool>
       </>}
     </div>
