@@ -83,6 +83,19 @@ export class ArchitectureUseCase {
     return ArchitectureService.match(projectId, baseId, targetId);
   }
 
+  /** What one commit's evidence changed, in components of its snapshot's grouping (never creates a grouping). */
+  public async evidenceImpact(projectId: string, userId: string, evidenceId: unknown) {
+    await loadProject(projectId);
+    if (typeof evidenceId !== "string" || !mongoose.isValidObjectId(evidenceId)) throw new BadRequestError("Invalid evidence ID");
+    return ArchitectureService.evidenceImpact(projectId, evidenceId);
+  }
+
+  /** The commits that changed the components of one snapshot. Query: { snapshotId?, limit? } (limit 1 to 50, default 20). */
+  public async commitImpacts(projectId: string, userId: string, query: { snapshotId?: unknown; limit?: unknown }) {
+    await loadProject(projectId);
+    return ArchitectureService.commitImpacts(projectId, snapshotIdOf(query.snapshotId), query.limit);
+  }
+
   /** Every component followed through the snapshots that have components. */
   public async lineage(projectId: string, userId: string) {
     await loadProject(projectId);
