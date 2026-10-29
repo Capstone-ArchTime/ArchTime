@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { AppError, ValidationError } from "../../shared/errors/AppError.js";
+import { AppError, TooManyRequestsError, ValidationError } from "../../shared/errors/AppError.js";
 import type { ErrorResponse } from "../../shared/utils/apiResponse.js";
 
 export function errorHandler(
@@ -24,6 +24,15 @@ export function errorHandler(
       },
     };
     res.status(400).json(body);
+    return;
+  }
+
+  if (err instanceof TooManyRequestsError) {
+    const body: ErrorResponse = {
+      success: false,
+      error: { code: err.code, message: err.message, retryAfterSeconds: err.retryAfterSeconds },
+    };
+    res.set("Retry-After", String(err.retryAfterSeconds)).status(429).json(body);
     return;
   }
 

@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { UserStatus, type IUser } from "../../domain/entities/User.js";
 import type { IUserRepository } from "../../domain/interfaces/IUserRepository.js";
 import type { ITokenPair } from "../../domain/interfaces/IAuthService.js";
@@ -9,6 +10,9 @@ import {
 } from "../../shared/errors/AppError.js";
 
 export class LoginUseCase {
+  // A hash made with the same cost as real ones, created on first use, so an unknown account costs as much as a wrong password.
+  private dummyHash?: Promise<string>;
+
   constructor(
     private readonly userRepo: IUserRepository,
     private readonly hasher: BcryptHasher,
@@ -21,6 +25,9 @@ export class LoginUseCase {
   }): Promise<{ user: Omit<IUser, "passwordHash">; tokens: ITokenPair }> {
     const user = await this.userRepo.findByEmailOrUsername(input.email);
     if (!user) {
+      // Still do the slow password check, so the response time does not tell whether the account exists.
+      this.dummyHash ??= this.hasher.hashPassword(randomBytes(16).toString("hex"));
+      await this.hasher.comparePassword(input.password, await this.dummyHash);
       throw new UnauthorizedError("Invalid credentials.", "INVALID_CREDENTIALS");
     }
 

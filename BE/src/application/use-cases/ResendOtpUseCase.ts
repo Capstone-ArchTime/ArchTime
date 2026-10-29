@@ -1,14 +1,8 @@
 import type { IUserRepository } from "../../domain/interfaces/IUserRepository.js";
 import type { IOtpRepository } from "../../domain/interfaces/IOtpRepository.js";
 import type { IEmailService } from "../../domain/interfaces/IEmailService.js";
-import {
-  BadRequestError,
-  NotFoundError,
-} from "../../shared/errors/AppError.js";
-
-function generateOtpCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
+import type { OtpCodeService } from "../../infrastructure/services/OtpCodeService.js";
+import { normalizeEmail } from "../../shared/utils/normalize.js";
 
 const OTP_TTL_MINUTES = 10;
 
@@ -17,28 +11,31 @@ export class ResendOtpUseCase {
     private readonly userRepo: IUserRepository,
     private readonly otpRepo: IOtpRepository,
     private readonly emailService: IEmailService,
+    private readonly otpCodes: OtpCodeService,
   ) {}
 
+  /**
+   * Answers the same way for every address, so this cannot be used to find out who has an account: a real, unverified
+   * account gets a new code; an unknown or already verified address gets the identical answer and no mail.
+   */
   async execute(input: { email: string }): Promise<{ message: string; expiresAt: string }> {
-    const user = await this.userRepo.findByEmail(input.email);
-    if (!user) {
-      throw new NotFoundError("No account found with this email.");
-    }
-
-    if (user.isVerified) {
-      throw new BadRequestError("This email is already verified.");
-    }
-
-    await this.otpRepo.deleteByEmail(input.email);
-
-    const code = generateOtpCode();
+    const email = normalizeEmail(input.email);
+    const user = await this.userRepo.findByEmail(email);
     const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
-    await this.otpRepo.create(input.email, code, expiresAt);
 
-    await this.emailService.sendOtp(input.email, code);
+    if (user && !user.isVerified) {
+      await this.otpRepo.deleteByEmail(email);
+      const code = this.otpCodes.generate();
+      await this.otpRepo.create(email, this.otpCodes.hash(email, code), expiresAt);
+      // Not awaited: waiting for the mail server would make a real account answer slower than an unknown address.
+      void (async () => {
+        try { await this.emailService.sendOtp(email, code); }
+        catch (err) { console.error("Verification email delivery failed:", err); }
+      })();
+    }
 
     return {
-      message: `A new OTP has been sent to ${input.email}. It expires in ${OTP_TTL_MINUTES} minutes.`,
+      message: `If this email has an account waiting to be verified, a new code has been sent to it. It expires in ${OTP_TTL_MINUTES} minutes.`,
       expiresAt: expiresAt.toISOString(),
     };
   }

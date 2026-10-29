@@ -1,14 +1,19 @@
 import { Router } from "express";
 import type { AuthController } from "../controllers/AuthController.js";
 import type { JwtTokenService } from "../../infrastructure/services/JwtTokenService.js";
+import type { IRateLimiter } from "../../domain/interfaces/IRateLimiter.js";
 import { createAuthenticateMiddleware } from "../middlewares/authenticate.js";
+import { createAuthRateLimits } from "../middlewares/authRateLimits.js";
 
 export function createAuthRouter(
   authController: AuthController,
   jwtService: JwtTokenService,
+  limiter: IRateLimiter,
 ): Router {
   const router = Router();
   const authenticate = createAuthenticateMiddleware(jwtService);
+  // Limits per route are listed in presentation/middlewares/authRateLimits.ts (and docs/auth-hardening.md).
+  const limit = createAuthRateLimits(limiter);
 
   /**
    * @swagger
@@ -23,7 +28,9 @@ export function createAuthRouter(
    *   post:
    *     tags: [Auth]
    *     summary: Đăng ký tài khoản mới
-   *     description: Tạo tài khoản và gửi mã OTP 6 chữ số về email. Tài khoản chưa kích hoạt cho đến khi xác minh OTP.
+   *     description: |
+   *       Tạo tài khoản và gửi mã OTP 6 chữ số về email. Tài khoản chưa kích hoạt cho đến khi xác minh OTP.
+   *       Giới hạn tần suất: 10 lần/giờ cho mỗi IP và 3 lần/giờ cho mỗi email (vượt quá thì 429 RATE_LIMITED).
    *     requestBody:
    *       required: true
    *       content:
@@ -68,8 +75,19 @@ export function createAuthRouter(
    *             example:
    *               success: false
    *               error: { code: "ALREADY_EXISTS", message: "Email already registered." }
+   *       429:
+   *         description: Vượt giới hạn tần suất (theo IP hoặc theo email). Header Retry-After và error.retryAfterSeconds cho biết sau bao nhiêu giây được thử lại
+   *         headers:
+   *           Retry-After: { description: Số giây phải chờ, schema: { type: integer } }
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *             example:
+   *               success: false
+   *               error: { code: "RATE_LIMITED", message: "Too many requests. Try again in 42 seconds.", retryAfterSeconds: 42 }
    */
-  router.post("/register", authController.register);
+  router.post("/register", limit.register, authController.register);
 
   /**
    * @swagger
@@ -77,7 +95,10 @@ export function createAuthRouter(
    *   post:
    *     tags: [Auth]
    *     summary: Xác minh email bằng OTP
-   *     description: Kiểm tra mã OTP 6 chữ số. Thành công sẽ kích hoạt tài khoản và trả về JWT tokens.
+   *     description: |
+   *       Kiểm tra mã OTP 6 chữ số. Thành công sẽ kích hoạt tài khoản và trả về JWT tokens.
+   *       Mỗi mã chỉ được đoán sai tối đa 5 lần; sau đó mã bị khóa (429 OTP_LOCKED, không có Retry-After) và phải gửi lại mã mới qua /api/auth/resend-otp.
+   *       Ngoài ra giới hạn 10 yêu cầu/15 phút cho mỗi email và 60 yêu cầu/15 phút cho mỗi IP (429 RATE_LIMITED).
    *     requestBody:
    *       required: true
    *       content:
@@ -109,8 +130,19 @@ export function createAuthRouter(
    *               message: "Email verified successfully."
    *       400:
    *         $ref: '#/components/responses/ValidationError'
+   *       429:
+   *         description: Quá nhiều yêu cầu (RATE_LIMITED, có Retry-After và retryAfterSeconds) hoặc mã đã bị khóa vì đoán sai 5 lần (OTP_LOCKED, cần gửi lại mã mới)
+   *         headers:
+   *           Retry-After: { description: Số giây phải chờ (chỉ với RATE_LIMITED), schema: { type: integer } }
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *             example:
+   *               success: false
+   *               error: { code: "OTP_LOCKED", message: "Too many wrong codes. Request a new code to continue." }
    */
-  router.post("/verify-email", authController.verifyEmail);
+  router.post("/verify-email", limit.verifyEmail, authController.verifyEmail);
 
   /**
    * @swagger
@@ -118,7 +150,11 @@ export function createAuthRouter(
    *   post:
    *     tags: [Auth]
    *     summary: Gửi lại OTP
-   *     description: Hủy OTP cũ và gửi mã 6 chữ số mới về email.
+   *     description: |
+   *       Hủy OTP cũ và gửi mã 6 chữ số mới về email.
+   *       Luôn trả lời giống nhau dù email không tồn tại hoặc đã xác minh (không gửi mail trong hai trường hợp đó), để không lộ email nào có tài khoản.
+   *       Giới hạn tần suất: 1 lần/60 giây và 5 lần/giờ cho mỗi email, 20 lần/giờ cho mỗi IP.
+   *       Khi bị chặn, retryAfterSeconds cho biết chính xác khi nào được gửi lại.
    *     requestBody:
    *       required: true
    *       content:
@@ -133,28 +169,30 @@ export function createAuthRouter(
    *                 example: dev@archtime.io
    *     responses:
    *       200:
-   *         description: OTP mới đã được gửi
+   *         description: Yêu cầu đã được ghi nhận. Cùng một dạng trả lời cho mọi email (có tài khoản chưa xác minh, chưa có tài khoản, hoặc đã xác minh)
    *         content:
    *           application/json:
    *             schema:
    *               $ref: '#/components/schemas/SuccessResponse'
    *             example:
    *               success: true
-   *               data: {}
+   *               data: { message: "If this email has an account waiting to be verified, a new code has been sent to it. It expires in 10 minutes.", expiresAt: "2026-10-30T10:10:00.000Z" }
    *               message: "OTP sent successfully."
    *       400:
-   *         description: Email đã xác minh
+   *         $ref: '#/components/responses/ValidationError'
+   *       429:
+   *         description: Vượt giới hạn tần suất. Header Retry-After và error.retryAfterSeconds cho biết sau bao nhiêu giây được gửi lại
+   *         headers:
+   *           Retry-After: { description: Số giây phải chờ, schema: { type: integer } }
    *         content:
    *           application/json:
    *             schema:
    *               $ref: '#/components/schemas/ErrorResponse'
    *             example:
    *               success: false
-   *               error: { code: "EMAIL_ALREADY_VERIFIED", message: "Email already verified." }
-   *       404:
-   *         $ref: '#/components/responses/NotFound'
+   *               error: { code: "RATE_LIMITED", message: "Too many requests. Try again in 42 seconds.", retryAfterSeconds: 42 }
    */
-  router.post("/resend-otp", authController.resendOtp);
+  router.post("/resend-otp", limit.resendOtp, authController.resendOtp);
 
   /**
    * @swagger
@@ -162,7 +200,10 @@ export function createAuthRouter(
    *   post:
    *     tags: [Auth]
    *     summary: Đăng nhập bằng email và mật khẩu
-   *     description: Xác thực người dùng và trả về access token + refresh token.
+   *     description: |
+   *       Xác thực người dùng và trả về access token + refresh token.
+   *       Chỉ đếm các lần đăng nhập sai (401): tối đa 10 lần/15 phút cho mỗi tài khoản (email hoặc username) và 100 lần/15 phút cho mỗi IP.
+   *       Đăng nhập thành công sẽ xóa bộ đếm của tài khoản.
    *     requestBody:
    *       required: true
    *       content:
@@ -212,8 +253,19 @@ export function createAuthRouter(
    *             example:
    *               success: false
    *               error: { code: "EMAIL_NOT_VERIFIED", message: "Please verify your email first." }
+   *       429:
+   *         description: Quá nhiều lần đăng nhập sai. Header Retry-After và error.retryAfterSeconds cho biết sau bao nhiêu giây được thử lại
+   *         headers:
+   *           Retry-After: { description: Số giây phải chờ, schema: { type: integer } }
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *             example:
+   *               success: false
+   *               error: { code: "RATE_LIMITED", message: "Too many requests. Try again in 600 seconds.", retryAfterSeconds: 600 }
    */
-  router.post("/login", authController.login);
+  router.post("/login", limit.login, authController.login);
 
   /**
    * @swagger
@@ -375,13 +427,24 @@ export function createAuthRouter(
    *               email: { type: string, format: email, example: dev@archtime.io }
    *     responses:
    *       200:
-   *         description: Yêu cầu đã được ghi nhận; tối đa 1 email mỗi phút cho mỗi tài khoản
+   *         description: Yêu cầu đã được ghi nhận (cùng một câu trả lời dù email có tài khoản hay không)
    *         content:
    *           application/json:
    *             schema:
    *               $ref: '#/components/schemas/SuccessResponse'
    *       400:
    *         $ref: '#/components/responses/ValidationError'
+   *       429:
+   *         description: Giới hạn 1 lần/60 giây và 5 lần/giờ cho mỗi email, 20 lần/giờ cho mỗi IP. Header Retry-After và error.retryAfterSeconds cho biết sau bao nhiêu giây được thử lại. Bộ đếm chỉ dựa vào chuỗi email gửi lên, không phụ thuộc email có tài khoản hay không
+   *         headers:
+   *           Retry-After: { description: Số giây phải chờ, schema: { type: integer } }
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *             example:
+   *               success: false
+   *               error: { code: "RATE_LIMITED", message: "Too many requests. Try again in 42 seconds.", retryAfterSeconds: 42 }
    * /api/auth/reset-password:
    *   post:
    *     tags: [Auth]
@@ -411,6 +474,17 @@ export function createAuthRouter(
    *           application/json:
    *             schema:
    *               $ref: '#/components/schemas/ErrorResponse'
+   *       429:
+   *         description: Giới hạn 10 yêu cầu/15 phút cho mỗi email. Header Retry-After và error.retryAfterSeconds cho biết sau bao nhiêu giây được thử lại
+   *         headers:
+   *           Retry-After: { description: Số giây phải chờ, schema: { type: integer } }
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *             example:
+   *               success: false
+   *               error: { code: "RATE_LIMITED", message: "Too many requests. Try again in 600 seconds.", retryAfterSeconds: 600 }
    * /api/auth/change-password:
    *   post:
    *     tags: [Auth]
@@ -440,8 +514,8 @@ export function createAuthRouter(
    *       401:
    *         $ref: '#/components/responses/Unauthorized'
    */
-  router.post("/forgot-password", authController.forgotPassword);
-  router.post("/reset-password", authController.resetPassword);
+  router.post("/forgot-password", limit.forgotPassword, authController.forgotPassword);
+  router.post("/reset-password", limit.resetPassword, authController.resetPassword);
   router.post("/change-password", authenticate, authController.changePassword);
 
   /**
