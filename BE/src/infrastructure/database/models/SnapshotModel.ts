@@ -14,6 +14,11 @@ export interface ISnapshot {
   archChanges: number;
   depAdded: number;
   depRemoved: number;
+  /**
+   * Full hash of the snapshot depAdded/depRemoved were measured against: the nearest mined commit on this commit's
+   * first-parent line, or "" when there is none. Absent on snapshots counted before this rule; they are recounted.
+   */
+  baseHash?: string;
   nodes: { id: string; name: string; type: string }[];
   edges: { source: string; target: string; type: string }[];
   /** Set when a scan found the commit no longer reachable from the remote's branches and tags (force-push, deleted branch). */
@@ -38,6 +43,7 @@ const SnapshotSchema = new Schema<ISnapshotDocument>(
     archChanges: { type: Number, default: 0 },
     depAdded: { type: Number, default: 0 },
     depRemoved: { type: Number, default: 0 },
+    baseHash: { type: String },
     missingSince: { type: Date, default: null },
     nodes: [
       {

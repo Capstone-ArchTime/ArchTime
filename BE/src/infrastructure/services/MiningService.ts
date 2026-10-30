@@ -21,6 +21,7 @@ import {
   type MinedIndex,
 } from '../../domain/mining/miningPlan.js';
 import { runArchitectureJob } from './ArchitectureJob.js';
+import { firstParentBase, type ParentIndex } from '../../domain/mining/baseline.js';
 import { MongoOrganizationCredentialRepository } from '../repositories/MongoOrganizationCredentialRepository.js';
 import { allowLocalRepos, validateRepoUrl } from '../../domain/mining/repoUrl.js';
 import { ConflictError, NotFoundError } from '../../shared/errors/AppError.js';
@@ -33,6 +34,8 @@ const CACHE_ROOT = path.join(process.cwd(), 'mining-cache');
 const PROGRESS_WRITE_INTERVAL_MS = 750;
 const batchSize = () => Math.max(1, Math.floor(Number(process.env.MINING_BATCH_SIZE)) || DEFAULT_BATCH_SIZE);
 const edgeKey = (e: GraphEdge) => `${e.source}\u0000${e.target}`;
+/** Graphs of recently mined commits kept in memory, so a parent mined a moment ago is not read back from the database. */
+const RECENT_GRAPHS = 64;
 
 class CancelledError extends Error {}
 
@@ -278,22 +281,33 @@ export class MiningService {
       await this.markVanishedCommits(String(project._id), git);
 
       if (job.kind === JobKind.SCAN) {
+        await set({ stage: 'Checking dependency counts', progress: 90 });
+        await this.rebaseline(project, git, commits);
         await set({ status: JobStatus.COMPLETED, stage: `Scanned ${commits.length} commits`, progress: 100, total: 0, finishedAt: new Date() });
         return;
       }
 
       const request: MineRequest = { mode: job.mode ?? 'remaining', since: job.rangeSince ?? undefined, until: job.rangeUntil ?? undefined, force: !!job.force };
-      const pending = selectPending(commits, await this.minedIndex(String(project._id)), request);
+      const index = await this.minedIndex(String(project._id));
+      const pending = selectPending(commits, index, request);
       const batches = chunk(pending, job.batchSize || batchSize());
       await set({ total: pending.length, batchCount: batches.length, stage: pending.length ? 'Starting analysis' : 'Nothing to mine', progress: 10 });
 
-      if (request.force && pending.length) await this.discardSnapshots(String(project._id), pending);
+      if (request.force && pending.length) {
+        await this.discardSnapshots(String(project._id), pending);
+        for (const c of pending) { index.full.delete(c.hash); index.short.delete(c.hash.substring(0, 7)); }
+      }
+      const parents: ParentIndex = new Map(commits.map(c => [c.hash, c.parents]));
+      const isMined = (hash: string) => index.full.has(hash) || index.short.has(hash.substring(0, 7));
+      // Graphs of this batch (not saved yet) and of the last few commits mined, by full hash.
+      const batchGraphs = new Map<string, Graph>();
+      const recent = new Map<string, Graph>();
+      const graphOf = async (hash: string) => batchGraphs.get(hash) ?? recent.get(hash) ?? (await this.loadGraph(String(project._id), hash));
 
       const processedHashes = new Set<string>();
       let processed = 0;
       let failed = 0;
       let lastWrite = 0;
-      let prev: Graph | null = null;
 
       for (let b = 0; b < batches.length; b++) {
         checkCancel();
@@ -312,8 +326,9 @@ export class MiningService {
             await git.raw(['checkout', '--force', '--quiet', commit.hash]);
             const { nodes, edges } = this.analyzeAST(this.repoDir(String(project._id)));
 
-            // Baseline is the previous snapshot in time: the one mined in this run, else the latest earlier one.
-            const before: Graph | null = prev ?? (await this.snapshotBefore(String(project._id), commit.date));
+            // Baseline: the nearest mined commit on this commit's first-parent line (see domain/mining/baseline.ts).
+            const baseHash = firstParentBase(commit.hash, parents, isMined) ?? '';
+            const before: Graph | null = baseHash ? await graphOf(baseHash) : null;
             const diff = this.diffGraphs(before, { nodes, edges });
             const archChanges = diff.depAdded + diff.depRemoved > 0 ? 1 : 0;
 
@@ -321,27 +336,15 @@ export class MiningService {
               projectId: project._id, hash: shortHash, fullHash: commit.hash, version: shortHash,
               title: commit.message || '(no message)', author: commit.author || 'unknown', date: commit.date,
               branches: commit.ref ? [commit.ref] : [], files: nodes.length, archChanges,
-              depAdded: diff.depAdded, depRemoved: diff.depRemoved, nodes, edges,
+              depAdded: diff.depAdded, depRemoved: diff.depRemoved, baseHash, nodes, edges,
             });
+            if (archChanges > 0 && before) evidenceDocs.push(await this.evidenceDoc(project, git, commit, before, nodes.length, diff));
 
-            if (archChanges > 0 && before) {
-              let patch = '';
-              let changedFiles: string[] = [];
-              try {
-                patch = await git.show([commit.hash, '--patch']);
-                changedFiles = (await git.show([commit.hash, '--name-only', '--format='])).split('\n').map(f => f.trim()).filter(Boolean);
-              } catch { /* evidence is best-effort */ }
-              let type = 'DEPENDENCY CHANGE';
-              if (nodes.length > before.nodes.length) type = 'MODULE EXTRACTION';
-              if (nodes.length < before.nodes.length) type = 'MODULE REMOVAL';
-              evidenceDocs.push({
-                projectId: project._id, changeTitle: commit.message.split('\n')[0] || 'Architectural Change', type,
-                repository: project.name || 'repository', commit: shortHash, files: changedFiles.length, date: commit.date,
-                summary: `Detected structural change: ${diff.depAdded} dependencies added, ${diff.depRemoved} dependencies removed.`,
-                depsAdded: diff.depAdded, depsRemoved: diff.depRemoved, sourceFiles: changedFiles, diffBefore: patch, diffAfter: '',
-              });
-            }
-            prev = { nodes, edges };
+            const graph = { nodes, edges };
+            batchGraphs.set(commit.hash, graph);
+            recent.set(commit.hash, graph);
+            if (recent.size > RECENT_GRAPHS) recent.delete(recent.keys().next().value!);
+            index.full.add(commit.hash);
             processedHashes.add(shortHash);
           } catch (error) {
             if (error instanceof CancelledError) throw error;
@@ -353,11 +356,13 @@ export class MiningService {
         // Persist the batch so a cancel or crash keeps everything analyzed so far.
         if (snapshotDocs.length) await SnapshotModel.insertMany(snapshotDocs, { ordered: false });
         if (evidenceDocs.length) await EvidenceModel.insertMany(evidenceDocs, { ordered: false });
+        batchGraphs.clear();
         lastWrite = Date.now();
         await set({ stage: `Batch ${b + 1}/${batches.length} saved`, batchIndex: b + 1, processed, failedCommits: failed, progress: analysisProgress(processed, pending.length) });
       }
 
-      if (processedHashes.size) await this.refreshSuccessors(String(project._id), processedHashes);
+      // Snapshots mined before (in a gap this run filled, or under the old rule) may now have a nearer base.
+      if (processedHashes.size) await this.rebaseline(project, git, commits);
       await set({ status: JobStatus.COMPLETED, stage: failed ? `Completed with ${failed} unreadable commits` : 'Completed', progress: 100, processed, failedCommits: failed, finishedAt: new Date() });
       await this.settleProjectStatus(String(project._id), false);
     } catch (error: any) {
@@ -456,9 +461,11 @@ export class MiningService {
     return index;
   }
 
-  private static async snapshotBefore(projectId: string, date: Date): Promise<Graph | null> {
-    const s = await SnapshotModel.findOne({ projectId, date: { $lt: date } }).sort({ date: -1 }).select('nodes edges').lean();
-    return s ? { nodes: s.nodes as GraphNode[], edges: s.edges as GraphEdge[] } : null;
+  /** The graph of a mined commit, by full hash; legacy snapshots stored only the 7-character hash. */
+  private static async loadGraph(projectId: string, hash: string): Promise<Graph | null> {
+    const s = (await SnapshotModel.findOne({ projectId, fullHash: hash }).select('nodes edges').lean())
+      ?? (await SnapshotModel.findOne({ projectId, hash: hash.substring(0, 7) }).select('nodes edges').lean());
+    return s ? { nodes: (s as any).nodes as GraphNode[], edges: (s as any).edges as GraphEdge[] } : null;
   }
 
   private static diffGraphs(before: Graph | null, after: Graph) {
@@ -471,23 +478,55 @@ export class MiningService {
     };
   }
 
+  /** The evidence record for a commit whose dependencies changed against `before`, with its patch and changed files. */
+  private static async evidenceDoc(project: any, git: SimpleGit, commit: CommitRef, before: Graph, files: number, diff: { depAdded: number; depRemoved: number }) {
+    let patch = '';
+    let changedFiles: string[] = [];
+    try {
+      patch = await git.show([commit.hash, '--patch']);
+      changedFiles = (await git.show([commit.hash, '--name-only', '--format='])).split('\n').map(f => f.trim()).filter(Boolean);
+    } catch { /* evidence is best-effort */ }
+    let type = 'DEPENDENCY CHANGE';
+    if (files > before.nodes.length) type = 'MODULE EXTRACTION';
+    if (files < before.nodes.length) type = 'MODULE REMOVAL';
+    return {
+      projectId: project._id, changeTitle: commit.message.split('\n')[0] || 'Architectural Change', type,
+      repository: project.name || 'repository', commit: commit.hash.substring(0, 7), files: changedFiles.length, date: commit.date,
+      summary: `Detected structural change: ${diff.depAdded} dependencies added, ${diff.depRemoved} dependencies removed.`,
+      depsAdded: diff.depAdded, depsRemoved: diff.depRemoved, sourceFiles: changedFiles, diffBefore: patch, diffAfter: '',
+    };
+  }
+
   /**
-   * Diff counts are relative to the previous *mined* snapshot. When a run fills a gap, the snapshot right after
-   * it (mined earlier, against an older baseline) gets its counts recomputed.
+   * Recounts every snapshot whose base is not the one its first-parent line gives now: a gap a later run filled put a
+   * nearer commit in between, or the snapshot was counted under the old rule (previous snapshot in time, whatever its
+   * branch) and has no baseHash. Its evidence record is redone to match. Commits no longer in the history keep their counts.
    */
-  private static async refreshSuccessors(projectId: string, processed: Set<string>) {
-    const timeline = await SnapshotModel.find({ projectId }).select('hash date').sort({ date: 1 }).lean();
-    const successors: string[] = [];
-    for (let i = 1; i < timeline.length; i++) {
-      if (processed.has(timeline[i - 1].hash) && !processed.has(timeline[i].hash)) successors.push(String(timeline[i]._id));
+  private static async rebaseline(project: any, git: SimpleGit, commits: CommitRef[]): Promise<number> {
+    const projectId = String(project._id);
+    const parents: ParentIndex = new Map(commits.map(c => [c.hash, c.parents]));
+    const byFull = new Map(commits.map(c => [c.hash, c]));
+    const byShort = new Map(commits.map(c => [c.hash.substring(0, 7), c.hash]));
+    const rows = await SnapshotModel.find({ projectId }).select('hash fullHash baseHash').lean() as any[];
+    const fullOf = (r: any): string | undefined => r.fullHash ?? byShort.get(r.hash);
+    const mined = new Set(rows.map(fullOf).filter((h): h is string => !!h));
+    let recounted = 0;
+    for (const row of rows) {
+      const full = fullOf(row);
+      if (!full || !parents.has(full)) continue;
+      const baseHash = firstParentBase(full, parents, h => mined.has(h)) ?? '';
+      if (row.baseHash === baseHash) continue;
+      const after = await this.loadGraph(projectId, full);
+      if (!after) continue;
+      const before = baseHash ? await this.loadGraph(projectId, baseHash) : null;
+      const diff = this.diffGraphs(before, after);
+      const archChanges = diff.depAdded + diff.depRemoved > 0 ? 1 : 0;
+      await SnapshotModel.updateOne({ _id: row._id }, { $set: { depAdded: diff.depAdded, depRemoved: diff.depRemoved, archChanges, baseHash, fullHash: full } });
+      await EvidenceModel.deleteMany({ projectId, commit: row.hash });
+      if (archChanges && before) await EvidenceModel.insertMany([await this.evidenceDoc(project, git, byFull.get(full)!, before, after.nodes.length, diff)]);
+      recounted++;
     }
-    for (const id of successors) {
-      const next = await SnapshotModel.findOne({ _id: id });
-      if (!next) continue;
-      const before = await this.snapshotBefore(projectId, next.date);
-      const diff = this.diffGraphs(before, { nodes: next.nodes, edges: next.edges });
-      await SnapshotModel.updateOne({ _id: id }, { $set: { depAdded: diff.depAdded, depRemoved: diff.depRemoved, archChanges: diff.depAdded + diff.depRemoved > 0 ? 1 : 0 } });
-    }
+    return recounted;
   }
 
   private static async discardSnapshots(projectId: string, commits: CommitRef[]) {
