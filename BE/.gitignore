@@ -4,3 +4,4 @@ dist/
 *.log
 mining-cache/
 tmp-workspace/
+rq1-results/

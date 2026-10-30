@@ -37,7 +37,11 @@ export interface StepSide {
   summary: Record<ChangeKind, number>;
   /** Changes other than kept and renamed: splits, merges, restructurings, removals and additions. */
   structural: number;
+  /** Every change, with component names, for a person to judge (RQ1 change detection). */
+  changes: NamedChange[];
 }
+
+export interface NamedChange { kind: ChangeKind; before: string[]; after: string[]; reason?: string }
 
 export interface StepEvaluation { from: string; to: string; recovered: StepSide; baseline: StepSide }
 
@@ -62,10 +66,18 @@ const followable = (components: MatchComponent[]) => components.filter(c => c.na
 
 function side(before: MatchComponent[], after: MatchComponent[], followBefore: MatchComponent[], followAfter: MatchComponent[]): StepSide {
   const matching = matchComponents(followBefore, followAfter);
+  const nameBefore = new Map(followBefore.map(c => [c.id, c.name]));
+  const nameAfter = new Map(followAfter.map(c => [c.id, c.name]));
   return {
     stability: mojoFM(groupingOf(before), groupingOf(after)),
     summary: matching.summary,
     structural: STRUCTURAL.reduce((n, k) => n + matching.summary[k], 0),
+    changes: matching.changes.map(c => ({
+      kind: c.kind,
+      before: c.before.map(id => nameBefore.get(id) ?? id),
+      after: c.after.map(id => nameAfter.get(id) ?? id),
+      ...(c.reason ? { reason: c.reason } : {}),
+    })),
   };
 }
 
