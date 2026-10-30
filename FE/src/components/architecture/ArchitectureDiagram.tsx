@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { MutableRefObject, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
-import { App, ConfigProvider } from 'antd';
+import { ConfigProvider } from 'antd';
 import DiagramSvg from './DiagramSvg';
 import type { DiagramSvgProps } from './DiagramSvg';
 import Minimap from './Minimap';
+import { isFrameKey } from '@/features/architecture/panels';
 import { boundsOf, centerOn, fitAll, frame, visibleRect, wheel, zoomAt } from '@/features/architecture/viewport';
 import type { Size, Transform } from '@/features/architecture/viewport';
 
@@ -24,10 +25,8 @@ export interface Viewport {
   reveal: (ids: string[]) => void;
   minimap: boolean;
   toggleMinimap: () => void;
-  fullscreen: boolean;
-  toggleFullscreen: () => void;
   setZoom: (k: number) => void;
-  /** Where popups go, so they stay visible in full screen. */
+  /** Where popups go, so they stay inside the artboard's own layer. */
   container: () => HTMLElement;
 }
 
@@ -45,13 +44,11 @@ export default function ArchitectureDiagram(props: Omit<DiagramSvgProps, 'intera
 }) {
   const { className, gridColor = '#1e2732', overlay, apiRef, ...svgProps } = props;
   const { layout, highlight, selectedNode, theme, scene } = svgProps;
-  const { message } = App.useApp();
   const shell = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<Size>({ w: 0, h: 0 });
   const [manual, setManual] = useState<(Transform & { key: string }) | null>(null);
   const [minimap, setMinimap] = useState(true);
-  const [fullscreen, setFullscreen] = useState(false);
   const drag = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -64,12 +61,6 @@ export default function ArchitectureDiagram(props: Omit<DiagramSvgProps, 'intera
     const observer = new ResizeObserver(([entry]) => setSize({ w: entry.contentRect.width, h: entry.contentRect.height }));
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const sync = () => setFullscreen(document.fullscreenElement === shell.current);
-    document.addEventListener('fullscreenchange', sync);
-    return () => document.removeEventListener('fullscreenchange', sync);
   }, []);
 
   // A manual pan/zoom belongs to the layout it was made for; another diagram (or the inner view) is fitted again.
@@ -106,12 +97,6 @@ export default function ArchitectureDiagram(props: Omit<DiagramSvgProps, 'intera
     },
     minimap,
     toggleMinimap: () => setMinimap(v => !v),
-    fullscreen,
-    toggleFullscreen: () => {
-      if (document.fullscreenElement) void document.exitFullscreen();
-      else if (!shell.current?.requestFullscreen) message.warning('This browser cannot show the diagram in full screen. Ctrl + \\ hides the side panels instead.');
-      else shell.current.requestFullscreen().catch(() => message.warning('Full screen was refused by the browser (it needs a click in a focused window). Ctrl + \\ hides the side panels instead.'));
-    },
     setZoom: k => update(zoomAt(t, k / t.k, size.w / 2, size.h / 2)),
     container: () => shell.current ?? document.body,
   };
@@ -138,7 +123,7 @@ export default function ArchitectureDiagram(props: Omit<DiagramSvgProps, 'intera
       if (event.key === '+' || event.key === '=') v.zoomIn();
       else if (event.key === '-' || event.key === '_') v.zoomOut();
       else if (event.key === '0') v.fit();
-      else if (event.key.toLowerCase() === 'f') v.frameSelection();
+      else if (isFrameKey(event)) v.frameSelection(); // Shift + F is full screen, handled by the viewer
       else if (event.key.toLowerCase() === 'm') v.toggleMinimap();
       else return;
       event.preventDefault();
@@ -161,7 +146,7 @@ export default function ArchitectureDiagram(props: Omit<DiagramSvgProps, 'intera
 
   const grid = 24 * t.k;
   return (
-    <div ref={shell} className={`relative ${fullscreen ? 'h-screen w-screen' : className ?? ''}`} style={{ background: theme.background }}>
+    <div ref={shell} className={`relative ${className ?? ''}`} style={{ background: theme.background }}>
       <div ref={box} className="absolute inset-0 overflow-hidden touch-none select-none"
         style={{
           cursor: dragging ? 'grabbing' : 'grab',

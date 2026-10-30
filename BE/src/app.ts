@@ -21,6 +21,7 @@ import {
   projectChatController,
   organizationController,
   onboardingController,
+  rateLimiter,
 } from "./container.js";
 import { createOrganizationRouter } from "./presentation/routes/organization.routes.js";
 import { createRevisionRouter } from "./presentation/routes/revision.routes.js";
@@ -35,6 +36,8 @@ import { createAuthenticateMiddleware } from "./presentation/middlewares/authent
 import { createInvitationRouter } from "./presentation/routes/invitation.routes.js";
 
 export const app = express();
+// Needed for req.ip to be the real client address behind a reverse proxy (see TRUST_PROXY in .env.example).
+app.set("trust proxy", env.trustProxy);
 
 // ── Core Middleware ──
 // Content-Disposition carries the name of downloaded files (report PDFs), which the page reads.
@@ -48,7 +51,7 @@ setupSwagger(app);
 // ── Routes ──
 app.use("/api/health", healthRouter);
 app.use('/api/auth/github', createGitHubRouter(env, new GitHubIdentityService(env.githubClientId, env.githubClientSecret, env.githubCallbackUrl), new GitHubLoginUseCase(), new MongoUserRepository(), jwtTokenService));
-app.use("/api/auth", createAuthRouter(authController, jwtTokenService));
+app.use("/api/auth", createAuthRouter(authController, jwtTokenService, rateLimiter));
 app.use("/api/projects", createProjectChatRouter(projectChatController, jwtTokenService, projectRoleMiddleware));
 app.use("/api/projects", createRevisionRouter(jwtTokenService, projectRoleMiddleware));
 app.use("/api/projects", createOnboardingRouter(onboardingController, jwtTokenService, projectRoleMiddleware));

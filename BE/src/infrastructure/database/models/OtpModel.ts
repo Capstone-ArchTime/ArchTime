@@ -6,7 +6,9 @@ export interface IOtpDocument extends Omit<IOtp, "id">, Document {}
 const OtpSchema = new Schema<IOtpDocument>(
   {
     email: { type: String, required: true, index: true },
-    code: { type: String, required: true },
+    // Codes written before hashing existed had a plain `code` field and no hash: they fail verification and expire on their own.
+    codeHash: { type: String, required: true },
+    attempts: { type: Number, default: 0 },
     expiresAt: {
       type: Date,
       required: true,

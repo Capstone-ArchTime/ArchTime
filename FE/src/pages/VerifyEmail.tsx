@@ -4,9 +4,9 @@ import { Alert, App, Button, Form, Input } from 'antd';
 import { MailCheck } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/auth/auth-context';
-import { authRequest } from '@/auth/requests';
+import { AuthRequestError, authRequest } from '@/auth/requests';
 import { loginDestination } from '@/auth/permissions';
-import { deadlineFrom, formatCountdown, recallOtpDeadline, rememberOtpDeadline } from '@/features/otp-countdown';
+import { deadlineFrom, formatCountdown, recallOtpDeadline, rememberOtpDeadline, resendLabel } from '@/features/otp-countdown';
 
 export default function VerifyEmail() {
   const location = useLocation();
@@ -50,7 +50,7 @@ export default function VerifyEmail() {
         const next = deadlineFrom(result.expiresAt);
         rememberOtpDeadline(email, next); setDeadline(next); setNow(Date.now());
         form.setFieldValue('otp', '');
-        setCooldown(60); void message.success('A new verification code has been sent.');
+        setCooldown(60); void message.success('If this email is waiting to be verified, a new code has been sent.');
       }
       else {
         if (typeof result.accessToken !== 'string' || typeof result.refreshToken !== 'string') throw new Error('Verification response is missing authentication tokens. Try signing in.');
@@ -58,7 +58,15 @@ export default function VerifyEmail() {
         const from = typeof location.state?.from === 'string' ? location.state.from : undefined;
         navigate(loginDestination(user.role, from), { replace: true });
       }
-    } catch (cause) { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Unable to verify email.'); }
+    } catch (cause) {
+      if (controller.signal.aborted) return;
+      if (cause instanceof AuthRequestError && cause.status === 429) {
+        // Resend refused: the button waits exactly as long as the server says. A locked code is useless now, so the box is emptied.
+        if (resend && cause.retryAfterSeconds) setCooldown(cause.retryAfterSeconds);
+        if (!resend && cause.code === 'OTP_LOCKED') form.setFieldValue('otp', '');
+      }
+      setError(cause instanceof Error ? cause.message : 'Unable to verify email.');
+    }
     finally { if (!controller.signal.aborted) setBusy(null); }
   }
 
@@ -77,7 +85,7 @@ export default function VerifyEmail() {
             </p>)}
         <Button type="primary" htmlType="submit" block size="large" loading={busy === 'verify'} disabled={!!busy || expired}>Verify email</Button>
       </Form>
-      <Button type="link" block className="mt-3" loading={busy === 'resend'} disabled={!!busy || cooldown > 0} onClick={() => void submit(true)}>{cooldown ? `Resend in ${cooldown}s` : 'Resend verification code'}</Button>
+      <Button type="link" block className="mt-3" loading={busy === 'resend'} disabled={!!busy || cooldown > 0} onClick={() => void submit(true)}>{cooldown ? resendLabel(cooldown) : 'Resend verification code'}</Button>
       <Link to="/login" className="block text-center text-sm text-[#94a3b8] hover:text-white mt-5">Back to sign in</Link>
     </div></div>
   </main>;

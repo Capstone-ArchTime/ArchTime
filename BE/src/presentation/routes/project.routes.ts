@@ -527,6 +527,37 @@ export function createProjectRouter(
    */
   router.get("/:id/evidences", checkRole("read"), projectController.getEvidences);
 
+  /**
+   * @swagger
+   * /api/projects/{id}/evidences/{evidenceId}/impact:
+   *   get:
+   *     tags: [Projects]
+   *     summary: Commit của một evidence đã thay đổi những component và cạnh component nào (suy luận)
+   *     description: >
+   *       Cầu nối đọc-lúc-gọi giữa evidence (cấp commit) và component (cấp snapshot), không lưu gì thêm. Snapshot của commit
+   *       tìm bằng evidence.commit == snapshot.hash trong project; baseline là snapshot sớm hơn gần nhất (giống lúc mining).
+   *       So sánh các dependency file-với-file đã resolve giữa hai snapshot rồi chiếu lên mapping đã lưu của snapshot đó.
+   *       File đổi tên = một file bị xoá + một file mới; file bị commit xoá không thuộc component nào (unmapped).
+   *       Không bao giờ tự tạo mapping (có thể gọi AI và tốn tiền).
+   *     security: [{ BearerAuth: [] }]
+   *     parameters:
+   *       - { in: path, name: id, required: true, schema: { type: string } }
+   *       - { in: path, name: evidenceId, required: true, schema: { type: string } }
+   *     responses:
+   *       200:
+   *         description: >
+   *           Luôn có { label: "INFERENCE", note, evidence, snapshot, baseline, hasBaseline, fileChanges: { pairsAdded, pairsRemoved, filesAdded, filesRemoved }, grouped }.
+   *           Nếu snapshot chưa có mapping thì grouped=false kèm reason (và chỉ có số liệu file thô ở fileChanges).
+   *           Nếu có (grouped=true) thì thêm mapping: { generator, createdAt, stale },
+   *           components: [{ id, filesAdded, filesRemoved, pairsAdded, pairsRemoved }],
+   *           componentEdges: [{ id, kind (cross, internal hoặc unmapped), source, target, added, removed }] với added/removed = { totalFilePairs, filePairs: [{ source, target }] } (tối đa 10 cặp file mỗi bên),
+   *           unmappedFiles: { total, files } (tối đa 20 file) và unmappedPairs (dependency mà cả hai file đều không thuộc component).
+   *           Cạnh unmapped có một đầu không thuộc component (source hoặc target là null, id dùng "(unmapped)").
+   *       400: { description: evidenceId không hợp lệ }
+   *       404: { description: Không có evidence này trong project, hoặc chưa có snapshot của commit }
+   */
+  router.get("/:id/evidences/:evidenceId/impact", checkRole("read"), projectController.getEvidenceImpact);
+
   // ── Project Member Management Endpoints ──
   if (memberController) {
     /**
@@ -943,6 +974,33 @@ export function createProjectRouter(
    *       400: { description: depth không hợp lệ }
    */
   router.get("/:id/architecture/evaluation", checkRole("read"), projectController.getArchitectureEvaluation);
+
+  /**
+   * @swagger
+   * /api/projects/{id}/architecture/impact:
+   *   get:
+   *     tags: [Projects]
+   *     summary: Các commit đã thay đổi component của một snapshot đang xem, mới nhất trước (suy luận)
+   *     description: >
+   *       Lấy mapping của snapshot, rồi với tối đa N evidence gần nhất có ngày không muộn hơn snapshot đó, chiếu thay đổi của
+   *       từng commit (snapshot của nó so với snapshot sớm hơn gần nhất) lên mapping này. File không còn trong mapping tính vào
+   *       unmappedCount. Chỉ đọc, không tạo mapping. Chi phí bị chặn bởi limit (tối đa 2 x limit snapshot được nạp, lần lượt từng cái).
+   *     security: [{ BearerAuth: [] }]
+   *     parameters:
+   *       - { in: path, name: id, required: true, schema: { type: string } }
+   *       - { in: query, name: snapshotId, schema: { type: string }, description: "Snapshot đang xem (mặc định snapshot mới nhất)" }
+   *       - { in: query, name: limit, schema: { type: integer, default: 20, minimum: 1, maximum: 50 }, description: "Số evidence gần nhất cần xét; ngoài khoảng thì bị chặn về 1 đến 50" }
+   *     responses:
+   *       200:
+   *         description: >
+   *           Luôn có { label: "INFERENCE", note, snapshot, limit, grouped }. Nếu snapshot chưa có mapping thì grouped=false kèm reason và commits rỗng.
+   *           Nếu có (grouped=true) thì thêm mapping: { generator, createdAt }, skipped (evidence không còn snapshot) và
+   *           commits: [{ commit, title, date, evidenceId, comparable, components: [id], componentEdges: [{ id, kind, source, target, added, removed }], unmappedCount }]
+   *           sắp xếp mới nhất trước; added/removed là số cặp file. Chi tiết từng cặp file xem GET /api/projects/{id}/evidences/{evidenceId}/impact.
+   *       400: { description: snapshotId không hợp lệ }
+   *       404: { description: Snapshot không thuộc workspace này }
+   */
+  router.get("/:id/architecture/impact", checkRole("read"), projectController.getArchitectureImpact);
 
   router.get("/:id/architecture/reference", checkRole("read"), projectController.getArchitectureReference);
   router.put("/:id/architecture/reference", checkRole("write"), projectController.saveArchitectureReference);

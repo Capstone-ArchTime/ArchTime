@@ -29,6 +29,7 @@ export interface ErrorResponse {
     code: ErrorCode;
     message: string;
     fields?: Record<string, string>; // validation chi tiết từng trường
+    retryAfterSeconds?: number; // chỉ có khi code = RATE_LIMITED: bao lâu nữa thì được gọi lại
   };
 }
 

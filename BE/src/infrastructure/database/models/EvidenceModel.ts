@@ -47,6 +47,9 @@ const EvidenceSchema = new Schema<IEvidenceDocument>(
   },
 );
 
+// Evidence lists and the architecture impact list read a project's newest records; without this every read scans all projects' evidence, patches included.
+EvidenceSchema.index({ projectId: 1, date: -1 });
+
 export const EvidenceModel: Model<IEvidenceDocument> = mongoose.model<IEvidenceDocument>(
   "Evidence",
   EvidenceSchema,

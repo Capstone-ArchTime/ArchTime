@@ -4,9 +4,12 @@ import { createRoot } from 'react-dom/client';
 import DiagramSvg from './DiagramSvg';
 import type { DiagramSvgProps } from './DiagramSvg';
 import type { ArchitectureView } from '@/features/architecture/types';
+import { MIN_PNG_SCALE, captionHeight, pngScale, standaloneHtml } from '@/features/architecture/export-file';
 import { downloadText } from '@/features/download';
 
-type StaticProps = Pick<DiagramSvgProps, 'scene' | 'layout' | 'theme' | 'title'>;
+type StaticProps = Pick<DiagramSvgProps, 'scene' | 'layout' | 'theme' | 'title' | 'caption'>;
+
+export { standaloneHtml };
 
 /**
  * Renders the whole diagram with no viewer state (no dimming, focus or selection) into a detached node and
@@ -28,45 +31,39 @@ export async function diagramSvg(props: StaticProps): Promise<string> {
   }
 }
 
-export const safeName = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'architecture';
-
-export async function svgToPng(svg: string, width: number, height: number, background: string, scale = 2): Promise<Blob> {
+export async function svgToPng(svg: string, width: number, height: number, background: string, preferredScale = 2): Promise<Blob> {
+  const scale = pngScale(width, height, preferredScale);
+  if (scale < MIN_PNG_SCALE) throw new Error('This diagram is too large for a PNG image. Export it as SVG instead.');
   const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
   try {
     const image = new Image();
     await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = () => reject(new Error('The diagram could not be rendered to an image.')); image.src = url; });
     const canvas = document.createElement('canvas');
-    canvas.width = Math.round(width * scale); canvas.height = Math.round(height * scale);
+    canvas.width = Math.max(1, Math.round(width * scale)); canvas.height = Math.max(1, Math.round(height * scale));
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Canvas is not available in this browser.');
     ctx.fillStyle = background; ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-    return await new Promise<Blob>((resolve, reject) => canvas.toBlob(b => (b ? resolve(b) : reject(new Error('PNG export failed.'))), 'image/png'));
+    return await new Promise<Blob>((resolve, reject) => canvas.toBlob(b => (b ? resolve(b) : reject(new Error('The browser could not create the PNG (the diagram may be too large).'))), 'image/png'));
   } finally { URL.revokeObjectURL(url); }
-}
-
-const escapeHtml = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
-
-/** One self-contained file: the diagram plus the verified data it was drawn from. */
-export function standaloneHtml(svg: string, view: ArchitectureView, background: string): string {
-  const svgBody = svg.replace(/^<\?xml[^>]*\?>\s*/, '');
-  const data = JSON.stringify(view).replace(/</g, '\\u003c');
-  return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(view.title)}</title>\n<style>body{margin:0;background:${background};font-family:Inter,system-ui,sans-serif}main{overflow:auto;padding:16px}svg{max-width:none;height:auto}</style></head>\n<body><main>${svgBody}</main>\n<script type="application/json" id="archtime-view">${data}</script></body></html>\n`;
 }
 
 export function downloadBlob(filename: string, blob: Blob) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = filename; document.body.append(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
 export type ExportFormat = 'svg' | 'png' | 'html' | 'json';
-export async function exportDiagram(format: ExportFormat, props: StaticProps, view: ArchitectureView, background: string) {
-  const base = safeName(props.title);
-  if (format === 'json') { downloadText(`${base}.json`, JSON.stringify(view, null, 2)); return; }
+/**
+ * `fileBase` names the file (no extension); the title and subtitle drawn in the image come from `props.caption`.
+ * Neither is taken from the view's own title, which is the commit title.
+ */
+export async function exportDiagram(format: ExportFormat, props: StaticProps, view: ArchitectureView, background: string, fileBase: string) {
+  if (format === 'json') { downloadText(`${fileBase}.json`, JSON.stringify(view, null, 2)); return; }
   const svg = await diagramSvg(props);
-  if (format === 'svg') downloadText(`${base}.svg`, svg, 'image/svg+xml');
-  else if (format === 'html') downloadText(`${base}.html`, standaloneHtml(svg, view, background), 'text/html');
-  else downloadBlob(`${base}.png`, await svgToPng(svg, props.layout.width, props.layout.height, background));
+  if (format === 'svg') downloadText(`${fileBase}.svg`, svg, 'image/svg+xml');
+  else if (format === 'html') downloadText(`${fileBase}.html`, standaloneHtml(svg, view, background, [props.caption?.title ?? props.title, props.caption?.subtitle].filter(Boolean).join(' · ')), 'text/html');
+  else downloadBlob(`${fileBase}.png`, await svgToPng(svg, props.layout.width, props.layout.height + captionHeight(props.caption), background));
 }

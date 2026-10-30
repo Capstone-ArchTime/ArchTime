@@ -68,6 +68,7 @@ const options: swaggerJsdoc.Options = {
                     "INVALID_CREDENTIALS", "TOKEN_EXPIRED", "TOKEN_INVALID", "SESSION_REVOKED",
                     "EMAIL_NOT_VERIFIED", "EMAIL_ALREADY_VERIFIED", "OTP_INVALID", "OTP_EXPIRED",
                     "RESET_TOKEN_INVALID", "RESET_TOKEN_EXPIRED",
+                    "RATE_LIMITED", "OTP_LOCKED",
                     "NOT_FOUND", "ALREADY_EXISTS", "CONFLICT",
                     "UNAUTHORIZED", "FORBIDDEN",
                     "VALIDATION_ERROR", "BAD_REQUEST",
@@ -76,6 +77,11 @@ const options: swaggerJsdoc.Options = {
                   example: "VALIDATION_ERROR",
                 },
                 message: { type: "string", example: "Fields required: email, password." },
+                retryAfterSeconds: {
+                  type: "integer",
+                  description: "Chỉ có khi code = RATE_LIMITED: số giây phải chờ trước khi thử lại (giống header Retry-After)",
+                  example: 60,
+                },
                 fields: {
                   type: "object",
                   description: "Chi tiết lỗi từng trường (chỉ có khi code = VALIDATION_ERROR)",

@@ -16,6 +16,9 @@ import { BadRequestError } from "../../shared/errors/AppError.js";
 import { sendSuccess } from "../../shared/utils/apiResponse.js";
 import { validatePassword } from "../../shared/utils/validators.js";
 
+/** A non-empty string. Anything else (an object, a number) must never reach a database query or a string method. */
+const isText = (value: unknown): value is string => typeof value === "string" && value.length > 0;
+
 export class AuthController {
   constructor(
     private readonly registerUC: RegisterUseCase,
@@ -112,7 +115,7 @@ export class AuthController {
         confirmPassword?: string;
       };
 
-      if (!name || !email || !password || !confirmPassword) {
+      if (!isText(name) || !isText(email) || !isText(password) || !isText(confirmPassword)) {
         throw new BadRequestError(
           "All fields are required: name, email, password, confirmPassword.",
           "VALIDATION_ERROR",
@@ -137,7 +140,7 @@ export class AuthController {
     try {
       const { email, otp } = req.body as { email?: string; otp?: string };
 
-      if (!email || !otp) {
+      if (!isText(email) || !isText(otp)) {
         throw new BadRequestError("Fields required: email, otp.", "VALIDATION_ERROR");
       }
 
@@ -152,7 +155,7 @@ export class AuthController {
     try {
       const { email } = req.body as { email?: string };
 
-      if (!email) {
+      if (!isText(email)) {
         throw new BadRequestError("Field required: email.", "VALIDATION_ERROR");
       }
 
@@ -167,7 +170,7 @@ export class AuthController {
     try {
       const { email, password } = req.body as { email?: string; password?: string };
 
-      if (!email || !password) {
+      if (!isText(email) || !isText(password)) {
         throw new BadRequestError("Fields required: email, password.", "VALIDATION_ERROR");
       }
 

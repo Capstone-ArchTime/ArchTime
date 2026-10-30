@@ -1,11 +1,14 @@
 import mongoose from "mongoose";
 import { SnapshotModel } from "../database/models/SnapshotModel.js";
+import { EvidenceModel } from "../database/models/EvidenceModel.js";
 import { ArchitectureReferenceModel } from "../database/models/ArchitectureReferenceModel.js";
 import { assessView } from "../../domain/architecture/quality.js";
 import type { ReferenceComponent, ViewAssessment } from "../../domain/architecture/quality.js";
 import { ArchitectureMappingModel } from "../database/models/ArchitectureMappingModel.js";
 import { ALGORITHM_VERSION, buildView, fileDependencies, graphHash, proposeMapping } from "../../domain/architecture/buildView.js";
 import type { MappingComponent, SnapshotGraph } from "../../domain/architecture/buildView.js";
+import { compactImpact, diffResolved, fileChangeTotals, IMPACT_LABEL, ownerMapOf, projectImpact, resolveGraph } from "../../domain/architecture/bridge.js";
+import type { ImpactProjection, ResolvedGraph } from "../../domain/architecture/bridge.js";
 import { refineMapping } from "../../domain/architecture/llm/refine.js";
 import { DEFAULT_REFINE_OPTIONS } from "../../domain/architecture/llm/types.js";
 import type { RefineReceipt } from "../../domain/architecture/llm/types.js";
@@ -60,6 +63,41 @@ export interface ArchitectureEvaluationPayload extends Omit<EvolutionEvaluation,
   hasReference: boolean;
 }
 
+/** Commits listed by a component-impact request: the most recent ones at or before the viewed snapshot. */
+const IMPACT_DEFAULT_LIMIT = 20;
+const IMPACT_MAX_LIMIT = 50;
+const IMPACT_NOTE =
+  "Components are a computed grouping over import edges (an inference, not something the code declares), and the change is derived by comparing two mined snapshots: " +
+  "the commit's snapshot and the latest earlier one. Only resolved file-to-file import changes are compared. A renamed file shows as one removal and one addition, " +
+  "and a file the commit deleted has no component in the grouping.";
+
+type SnapshotSummary = { id: string; hash: string; title: string; date: Date };
+
+export type ArchitectureImpactBase = { label: typeof IMPACT_LABEL; note: string };
+
+export type EvidenceImpactPayload = ArchitectureImpactBase & {
+  evidence: { id: string; commit: string; title: string; date: Date; type: string; depsAdded: number; depsRemoved: number };
+  snapshot: SnapshotSummary;
+  /** The snapshot the change was measured against; null for the first mined commit. */
+  baseline: SnapshotSummary | null;
+  hasBaseline: boolean;
+  fileChanges: ImpactProjection["fileChanges"];
+} & (
+  | { grouped: false; reason: string }
+  | ({ grouped: true; mapping: { generator: string; createdAt: Date; stale: boolean } } & Pick<ImpactProjection, "components" | "componentEdges" | "unmappedFiles" | "unmappedPairs">)
+);
+
+export type CommitImpact = {
+  commit: string; title: string; date: Date; evidenceId: string;
+  /** False when the commit's snapshot or the one before it could not be loaded, so nothing could be compared. */
+  comparable: boolean;
+} & ReturnType<typeof compactImpact>;
+
+export type CommitImpactsPayload = ArchitectureImpactBase & { snapshot: SnapshotSummary; limit: number } & (
+  | { grouped: false; reason: string; commits: [] }
+  | { grouped: true; mapping: { generator: string; createdAt: Date }; commits: CommitImpact[]; skipped: number }
+);
+
 export interface ArchitectureOptions { minComponents?: number; maxComponents?: number }
 
 /** Who asked for a refinement and with which model; recorded with the run. */
@@ -74,9 +112,11 @@ export interface RefineRunContext {
 }
 
 export class ArchitectureService {
-  private static async pickSnapshot(projectId: string, snapshotId?: string) {
+  /** `select` leaves out the node and edge lists for callers that only need the snapshot's identity. */
+  private static async pickSnapshot(projectId: string, snapshotId?: string, select?: string) {
     const query = snapshotId ? { _id: snapshotId, projectId } : { projectId };
-    const snapshot = await SnapshotModel.findOne(query).sort({ date: -1 }).lean();
+    const found = SnapshotModel.findOne(query).sort({ date: -1 });
+    const snapshot = await (select ? found.select(select) : found).lean();
     if (!snapshot) throw new NotFoundError(snapshotId ? "Snapshot not found" : "This workspace has no mined snapshots yet");
     return snapshot;
   }
@@ -293,6 +333,90 @@ export class ArchitectureService {
     };
   }
 
+  /**
+   * What one commit changed, in components (the bridge from evidence to the Architecture Map; see domain/architecture/bridge.ts).
+   * The commit's snapshot is found through evidence.commit == snapshot.hash, and the baseline is the latest earlier-dated
+   * snapshot of the project, as MiningService does it. The change is projected onto the mapping stored for that snapshot.
+   * A snapshot without a mapping is answered with the raw file counts and never grouped here: grouping may call an AI.
+   */
+  public static async evidenceImpact(projectId: string, evidenceId: string): Promise<EvidenceImpactPayload> {
+    // The patch and file list are the heavy parts of an evidence record and are not needed here.
+    const evidence = await EvidenceModel.findOne({ _id: evidenceId, projectId }).select("-diffBefore -diffAfter -sourceFiles").lean();
+    if (!evidence) throw new NotFoundError("Evidence not found");
+    const snapshot = await SnapshotModel.findOne({ projectId, hash: evidence.commit }).sort({ date: -1 }).lean();
+    if (!snapshot) throw new NotFoundError("The snapshot of this commit was not found");
+    const [baseline, mapping] = await Promise.all([
+      SnapshotModel.findOne({ projectId, date: { $lt: snapshot.date } }).sort({ date: -1 }).lean(),
+      ArchitectureMappingModel.findOne({ projectId, snapshotId: String(snapshot._id) }).lean(),
+    ]);
+    const graph = this.toGraph(snapshot);
+    const diff = diffResolved(baseline ? resolveGraph(this.toGraph(baseline)) : null, resolveGraph(graph));
+    const head = {
+      label: IMPACT_LABEL as typeof IMPACT_LABEL, note: IMPACT_NOTE,
+      evidence: { id: String(evidence._id), commit: evidence.commit, title: evidence.changeTitle, date: evidence.date, type: evidence.type, depsAdded: evidence.depsAdded, depsRemoved: evidence.depsRemoved },
+      snapshot: this.summary(snapshot), baseline: baseline ? this.summary(baseline) : null,
+      hasBaseline: diff.hasBaseline, fileChanges: fileChangeTotals(diff),
+    };
+    if (!mapping) {
+      return { ...head, grouped: false, reason: "This commit has not been grouped into components yet. Open it in the Architecture Map and group its files." };
+    }
+    const { label: _label, hasBaseline: _hasBaseline, fileChanges: _fileChanges, ...rest } = projectImpact(diff, ownerMapOf(mapping.components));
+    return {
+      ...head, grouped: true, ...rest,
+      mapping: { generator: mapping.generator, createdAt: (mapping as any).updatedAt ?? (mapping as any).createdAt, stale: mapping.graphHash !== graphHash(graph) || mapping.algorithmVersion !== ALGORITHM_VERSION },
+    };
+  }
+
+  /**
+   * The commits that changed the components of ONE viewed snapshot, newest first (component -> commits). The viewed snapshot's
+   * mapping gives the owner map; each of the most recent `limit` evidence records dated at or before the snapshot is turned
+   * into a file-level change (its snapshot against the latest earlier one) and projected onto that owner map, so files that
+   * no longer exist in the mapping count as unmapped. Without a mapping nothing is computed (grouped: false).
+   *
+   * Cost: at most `limit` (default 20, max 50) evidence rows read without their patches (served by the { projectId, date }
+   * index on evidence, so the query does not scan other projects' documents), one lean query for their snapshots'
+   * hashes and dates, one lean baseline lookup per commit, and the node and edge lists of at most 2 x limit snapshots, loaded
+   * one at a time. Neighbouring commits share a snapshot, so a run of consecutive commits loads about limit + 1 graphs, and
+   * only two resolved graphs are ever held in memory. Nothing is written.
+   */
+  public static async commitImpacts(projectId: string, snapshotId?: string, limitInput?: unknown): Promise<CommitImpactsPayload> {
+    const snapshot = await this.pickSnapshot(projectId, snapshotId, "hash title date projectId");
+    const limit = clampInt(limitInput, 1, IMPACT_MAX_LIMIT, IMPACT_DEFAULT_LIMIT);
+    const head = { label: IMPACT_LABEL as typeof IMPACT_LABEL, note: IMPACT_NOTE, snapshot: this.summary(snapshot), limit };
+    const mapping = await ArchitectureMappingModel.findOne({ projectId, snapshotId: String(snapshot._id) }).lean();
+    if (!mapping) {
+      return { ...head, grouped: false, reason: "This snapshot has not been grouped into components yet. Open it in the Architecture Map and group its files.", commits: [] };
+    }
+    const owner = ownerMapOf(mapping.components);
+    const evidences = await EvidenceModel.find({ projectId, date: { $lte: snapshot.date } }).sort({ date: -1, _id: -1 }).limit(limit).select("changeTitle commit date").lean();
+    const hashes = [...new Set(evidences.map(e => e.commit))];
+    const snapshots = hashes.length ? await SnapshotModel.find({ projectId, hash: { $in: hashes } }).sort({ date: -1 }).select("hash date").lean() : [];
+    const byHash = new Map<string, (typeof snapshots)[number]>();
+    for (const s of snapshots) if (!byHash.has(s.hash)) byHash.set(s.hash, s);
+
+    // The older commit's snapshot is usually the newer commit's baseline, so the last baseline is kept for the next round.
+    let kept: { id: string; graph: ResolvedGraph | null } | null = null;
+    const load = async (id: string): Promise<ResolvedGraph | null> => {
+      if (kept?.id === id) return kept.graph;
+      const row = await SnapshotModel.findOne({ _id: id }).select("nodes edges").lean();
+      return row ? resolveGraph(this.toGraph(row)) : null;
+    };
+    const commits: CommitImpact[] = [];
+    let skipped = 0;
+    for (const e of evidences) {
+      const after = byHash.get(e.commit);
+      if (!after) { skipped++; continue; }
+      const base = await SnapshotModel.findOne({ projectId, date: { $lt: after.date } }).sort({ date: -1 }).select("_id").lean();
+      const afterGraph = await load(String(after._id));
+      const beforeGraph = base ? await load(String(base._id)) : null;
+      kept = base ? { id: String(base._id), graph: beforeGraph } : null;
+      const comparable = !!afterGraph && !!beforeGraph;
+      const projection = projectImpact(diffResolved(comparable ? beforeGraph : null, afterGraph ?? { files: [], pairs: [] }), owner);
+      commits.push({ commit: e.commit, title: e.changeTitle, date: e.date, evidenceId: String(e._id), comparable, ...compactImpact(projection) });
+    }
+    return { ...head, grouped: true, mapping: { generator: mapping.generator, createdAt: (mapping as any).updatedAt ?? (mapping as any).createdAt }, commits, skipped };
+  }
+
   public static async getReference(projectId: string): Promise<ReferenceComponent[]> {
     const ref = await ArchitectureReferenceModel.findOne({ projectId }).lean();
     return ref?.components ?? [];
@@ -309,6 +433,6 @@ export class ArchitectureService {
 }
 
 function clampInt(value: unknown, min: number, max: number, fallback: number): number {
-  const n = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
+  const n = typeof value === "number" ? value : typeof value === "string" && value.trim() !== "" ? Number(value) : NaN;
   return Number.isInteger(n) ? Math.min(max, Math.max(min, n)) : fallback;
 }

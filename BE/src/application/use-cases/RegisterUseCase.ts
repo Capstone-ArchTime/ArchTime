@@ -3,11 +3,9 @@ import type { IUserRepository } from "../../domain/interfaces/IUserRepository.js
 import type { IOtpRepository } from "../../domain/interfaces/IOtpRepository.js";
 import type { IEmailService } from "../../domain/interfaces/IEmailService.js";
 import type { BcryptHasher } from "../../infrastructure/services/BcryptHasher.js";
+import type { OtpCodeService } from "../../infrastructure/services/OtpCodeService.js";
 import { ConflictError } from "../../shared/errors/AppError.js";
-
-function generateOtpCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
+import { normalizeEmail } from "../../shared/utils/normalize.js";
 
 const OTP_TTL_MINUTES = 10;
 
@@ -17,6 +15,7 @@ export class RegisterUseCase {
     private readonly otpRepo: IOtpRepository,
     private readonly hasher: BcryptHasher,
     private readonly emailService: IEmailService,
+    private readonly otpCodes: OtpCodeService,
   ) {}
 
   async execute(input: {
@@ -24,7 +23,8 @@ export class RegisterUseCase {
     email: string;
     password: string;
   }): Promise<{ message: string; email: string; expiresAt: string }> {
-    const exists = await this.userRepo.existsByEmail(input.email);
+    const email = normalizeEmail(input.email);
+    const exists = await this.userRepo.existsByEmail(email);
     if (exists) {
       throw new ConflictError("Email is already registered");
     }
@@ -33,17 +33,17 @@ export class RegisterUseCase {
 
     const user = await this.userRepo.create({
       name: input.name,
-      email: input.email,
+      email,
       passwordHash,
       role: UserRole.USER,
     });
 
-    const code = generateOtpCode();
+    const code = this.otpCodes.generate();
     const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
 
-    // Remove any previous OTPs for this email before saving new one
-    await this.otpRepo.deleteByEmail(input.email);
-    await this.otpRepo.create(user.email, code, expiresAt);
+    // Remove any previous OTPs for this email before saving new one. Only a hash of the code is stored.
+    await this.otpRepo.deleteByEmail(user.email);
+    await this.otpRepo.create(user.email, this.otpCodes.hash(user.email, code), expiresAt);
 
     await this.emailService.sendOtp(user.email, code);
 

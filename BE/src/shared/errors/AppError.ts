@@ -10,6 +10,7 @@ export type ErrorCode =
   | "EMAIL_ALREADY_VERIFIED"
   | "OTP_INVALID"
   | "OTP_EXPIRED"
+  | "OTP_LOCKED" // too many wrong guesses on one emailed code: a new code must be requested (HTTP 429)
   | "RESET_TOKEN_INVALID"
   | "RESET_TOKEN_EXPIRED"
   // Resource
@@ -74,6 +75,17 @@ export class ForbiddenError extends AppError {
 export class NotFoundError extends AppError {
   constructor(message = "Not found", code: ErrorCode = "NOT_FOUND") {
     super(404, code, message);
+  }
+}
+
+// ── 429 ───────────────────────────────────────────────────────────────────────
+/** A rate limit was hit. The error handler sends it as 429 with a Retry-After header and `retryAfterSeconds` in the body. */
+export class TooManyRequestsError extends AppError {
+  public readonly retryAfterSeconds: number;
+  constructor(retryAfterSeconds: number) {
+    const seconds = Math.max(1, Math.ceil(retryAfterSeconds));
+    super(429, "RATE_LIMITED", `Too many requests. Try again in ${seconds} ${seconds === 1 ? "second" : "seconds"}.`);
+    this.retryAfterSeconds = seconds;
   }
 }
 

@@ -10,6 +10,7 @@ import { GITHUB_ONLY_PASSWORD_PREFIX, hasUsablePassword } from "../src/applicati
 import { MongoUserRepository } from "../src/infrastructure/repositories/MongoUserRepository.ts";
 import { UserModel } from "../src/infrastructure/database/models/UserModel.ts";
 import { JwtTokenService } from "../src/infrastructure/services/JwtTokenService.ts";
+import { InMemoryRateLimiter } from "../src/infrastructure/services/InMemoryRateLimiter.ts";
 import { AuthController } from "../src/presentation/controllers/AuthController.ts";
 import { createAuthRouter } from "../src/presentation/routes/auth.routes.ts";
 import { errorHandler } from "../src/presentation/middlewares/errorHandler.ts";
@@ -244,7 +245,7 @@ test("HTTP: GET and PATCH /auth/me send the allow-listed user, and set-password 
     new SetPasswordUseCase(repo, hasher));
   const app = express();
   app.use(express.json());
-  app.use("/api/auth", createAuthRouter(controller, jwt));
+  app.use("/api/auth", createAuthRouter(controller, jwt, new InMemoryRateLimiter()));
   app.use(errorHandler);
   const server = app.listen(0, "127.0.0.1");
   await once(server, "listening");

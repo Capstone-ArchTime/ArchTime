@@ -425,6 +425,32 @@ export class ProjectController {
     }
   };
 
+  public getEvidenceImpact = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        res.status(401).json({ success: false, message: "Unauthorized" });
+        return;
+      }
+      res.status(200).json({ success: true, data: await this.architectureUseCase.evidenceImpact(req.params.id, userId, req.params.evidenceId) });
+    } catch (error: any) {
+      next(error);
+    }
+  };
+
+  public getArchitectureImpact = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        res.status(401).json({ success: false, message: "Unauthorized" });
+        return;
+      }
+      res.status(200).json({ success: true, data: await this.architectureUseCase.commitImpacts(req.params.id, userId, req.query) });
+    } catch (error: any) {
+      next(error);
+    }
+  };
+
   public getArchitectureRuns = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = (req as any).user?.userId;

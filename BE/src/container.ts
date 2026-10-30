@@ -4,6 +4,8 @@ import { env } from "./config/env.js";
 import { MongoUserRepository } from "./infrastructure/repositories/MongoUserRepository.js";
 import { MongoOtpRepository } from "./infrastructure/repositories/MongoOtpRepository.js";
 import { MongoProjectRepository } from "./infrastructure/repositories/MongoProjectRepository.js";
+import { MongoRateLimiter } from "./infrastructure/repositories/MongoRateLimiter.js";
+import { OtpCodeService } from "./infrastructure/services/OtpCodeService.js";
 import { BcryptHasher } from "./infrastructure/services/BcryptHasher.js";
 import { JwtTokenService } from "./infrastructure/services/JwtTokenService.js";
 import { NodemailerEmailService } from "./infrastructure/services/NodemailerEmailService.js";
@@ -65,6 +67,9 @@ import { OnboardingController } from "./presentation/controllers/OnboardingContr
 // ─────────────────────────────────────────
 export const userRepository = new MongoUserRepository();
 export const otpRepository = new MongoOtpRepository();
+/** Counts hits across every server instance (the sign-in and e-mail-code routes use it). */
+export const rateLimiter = new MongoRateLimiter();
+const otpCodes = new OtpCodeService(env.otpPepper);
 export const projectRepository = new MongoProjectRepository();
 export const memberRepository = new MongoProjectMemberRepository();
 export const organizationRepository = new MongoOrganizationRepository();
@@ -107,16 +112,19 @@ const registerUseCase = new RegisterUseCase(
   otpRepository,
   bcryptHasher,
   emailService,
+  otpCodes,
 );
 const verifyEmailUseCase = new VerifyEmailUseCase(
   userRepository,
   otpRepository,
   jwtTokenService,
+  otpCodes,
 );
 const resendOtpUseCase = new ResendOtpUseCase(
   userRepository,
   otpRepository,
   emailService,
+  otpCodes,
 );
 const loginUseCase = new LoginUseCase(
   userRepository,

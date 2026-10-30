@@ -15,6 +15,9 @@ code is tested under Node (`npm test`) and can be reused by the backend pipeline
 | `highlight.ts` | What to emphasise for route / focus / reach / selected edge / role lens |
 | `url-state.ts` | Shareable state in the URL hash: `#view=&focus=&reach=&route=a~b&lens=x~y&detail=&edge=` |
 | `fixtures.ts` | Hand-built sample views, derived through `deriveComponentEdges` so they obey the same rules as real data |
+| `issues.ts` | Turns the quality measures, verifier warnings, layout check and mapping state into a ranked list of issues (severity, what it means, what to do, what to highlight). Same data, same text |
+| `panels.ts` | Which side panels are open at which width, in-page full screen, the remembered choice (localStorage, always guarded), Esc and Shift+F rules |
+| `export-file.ts` | File names (`workspace-hash-date`), image title and subtitle, PNG scale limit and the standalone HTML page of an export. Never uses the view's own title (it is the commit title) |
 
 UI lives in `src/components/architecture/` and `src/pages/developer-analyst/ArchitectureMap.tsx` (route `/architecture`).
 
