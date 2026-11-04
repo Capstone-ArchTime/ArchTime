@@ -13,6 +13,7 @@ const AuthPage = lazy(() => import("@/pages/Login"));
 const ApprovalQueue = lazy(() => import("@/pages/project-maintainer/ApprovalQueue"));
 const Team = lazy(() => import("@/pages/project-maintainer/Team"));
 const UserManagement = lazy(() => import("@/pages/system-administrator/UserManagement"));
+const AdminOrganizations = lazy(() => import("@/pages/system-administrator/Organizations"));
 const AuditLog = lazy(() => import("@/pages/system-administrator/AuditLog"));
 const HomePage = lazy(() => import("@/pages/HomePage"));
 const Dashboard = lazy(() => import("@/pages/developer-analyst/Dashboard"));
@@ -102,6 +103,7 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path="/project-maintainer/design-decisions" element={<DesignDecisions />} />
       <Route path="/system-administrator" element={<SystemAdministratorDashboard />} />
       <Route path="/system-administrator/users" element={<UserManagement />} />
+      <Route path="/system-administrator/organizations" element={<AdminOrganizations />} />
       <Route path="/system-administrator/audit-log" element={<AuditLog />} />
       <Route path="/system-administrator/settings" element={<SystemSettings />} />
       <Route path="/system-administrator/mining-jobs" element={<MiningJobsMonitor />} />

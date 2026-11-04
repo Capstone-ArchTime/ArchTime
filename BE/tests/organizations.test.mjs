@@ -9,6 +9,12 @@ import { OrganizationCredentialUseCases } from "../src/application/use-cases/org
 import { RegisterProjectUseCase } from "../src/application/use-cases/projects/RegisterProjectUseCase.ts";
 import { createProjectRoleMiddleware } from "../src/presentation/middlewares/projectRole.ts";
 import { AppError } from "../src/shared/errors/AppError.ts";
+import { InviteProjectMemberUseCase } from "../src/application/use-cases/members/InviteProjectMemberUseCase.ts";
+import {
+  AcceptProjectInvitationUseCase,
+  InviteProjectMemberTokenUseCase,
+} from "../src/application/use-cases/pm/ProjectInvitationUseCases.ts";
+import { ProjectInvitationModel } from "../src/infrastructure/database/models/ProjectInvitationModel.ts";
 
 const rejectsWith = (status) => (err) => err instanceof AppError && err.statusCode === status;
 let seq = 0;
@@ -84,14 +90,26 @@ function world() {
     async findByEmail(email) { return users.find((u) => u.email === email) ?? null; },
   };
 
-  const orgUC = new OrganizationUseCases(organizations, userRepo, projectRepo, memberRepo);
+  const pendingInvitations = [];
+  const invitationStore = {
+    async cancelPending(projectIds, email) {
+      const before = pendingInvitations.length;
+      for (let i = pendingInvitations.length - 1; i >= 0; i--) {
+        if (projectIds.includes(pendingInvitations[i].projectId) && pendingInvitations[i].email === email) pendingInvitations.splice(i, 1);
+      }
+      return before - pendingInvitations.length;
+    },
+  };
+  memberRepo.findByProjectAndEmail = async (projectId, email) => projectMembers.find((m) => m.projectId === projectId && m.email === email) ?? null;
+
+  const orgUC = new OrganizationUseCases(organizations, userRepo, projectRepo, memberRepo, invitationStore);
   const credUC = new OrganizationCredentialUseCases(orgUC, credentialRepo, projectRepo);
   const register = new RegisterProjectUseCase(projectRepo, memberRepo, userRepo, {
     requireOwner: (o, u) => orgUC.requireOwner(o, u),
     requireCredential: (o, c) => credUC.requireCredential(o, c),
   });
   const checkRole = createProjectRoleMiddleware(projectRepo, memberRepo, organizations);
-  return { orgs, orgMembers, credentials, projects, projectMembers, orgUC, credUC, register, checkRole };
+  return { orgs, orgMembers, credentials, projects, projectMembers, pendingInvitations, organizations, projectRepo, memberRepo, userRepo, orgUC, credUC, register, checkRole };
 }
 
 async function run(middleware, user, projectId) {
@@ -152,6 +170,93 @@ test("Organization: removing a member also removes them from every project of th
   assert.ok(w.projectMembers.some((m) => m.id === "pm-dev-2"), "memberships outside the organization are kept");
   const { error } = await run(w.checkRole("read"), as("dev"), project.id);
   assert.equal(error?.statusCode, 403);
+});
+
+test("Organization: removing a member withdraws their pending invitations to its projects only", async () => {
+  const w = world();
+  const org = await w.orgUC.create({ userId: "owner", name: "Acme" });
+  const dev = await w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io" });
+  const project = await w.register.execute({ name: "api", repoUrl: "https://git.example/api", visibility: RepoVisibility.PUBLIC, userId: "owner", organizationId: org.id });
+  const personal = await w.register.execute({ name: "mine", repoUrl: "https://git.example/mine", visibility: RepoVisibility.PUBLIC, userId: "owner" });
+  w.pendingInvitations.push(
+    { projectId: project.id, email: "dan@acme.io" },
+    { projectId: personal.id, email: "dan@acme.io" },
+    { projectId: project.id, email: "oscar@else.io" },
+  );
+
+  const result = await w.orgUC.removeMember({ organizationId: org.id, userId: "owner", memberId: dev.id });
+  assert.equal(result.cancelledInvitations, 1);
+  assert.deepEqual(w.pendingInvitations.map((i) => `${i.projectId}:${i.email}`).sort(), [`${personal.id}:dan@acme.io`, `${project.id}:oscar@else.io`].sort());
+});
+
+test("Organization projects: a project role is only handed to members of the organization", async () => {
+  const w = world();
+  const org = await w.orgUC.create({ userId: "owner", name: "Acme" });
+  await w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io" });
+  const project = await w.register.execute({ name: "api", repoUrl: "https://git.example/api", visibility: RepoVisibility.PUBLIC, userId: "owner", organizationId: org.id });
+  const personal = await w.register.execute({ name: "mine", repoUrl: "https://git.example/mine", visibility: RepoVisibility.PUBLIC, userId: "owner" });
+
+  const direct = new InviteProjectMemberUseCase(w.memberRepo, w.projectRepo, w.userRepo, w.organizations);
+  await assert.rejects(direct.execute({ projectId: project.id, email: "oscar@else.io", name: "Oscar" }), rejectsWith(403), "registered outsider");
+  await assert.rejects(direct.execute({ projectId: project.id, email: "nobody@else.io", name: "Nobody" }), rejectsWith(403), "no account, so not a member");
+  const added = await direct.execute({ projectId: project.id, email: "dan@acme.io", name: "Dan" });
+  assert.equal(added.userId, "dev");
+  const outsiderOnPersonal = await direct.execute({ projectId: personal.id, email: "oscar@else.io", name: "Oscar" });
+  assert.equal(outsiderOnPersonal.userId, "other", "personal projects are not affected");
+
+  const originals = { create: ProjectInvitationModel.create, deleteMany: ProjectInvitationModel.deleteMany };
+  ProjectInvitationModel.deleteMany = async () => ({ deletedCount: 0 });
+  ProjectInvitationModel.create = async (doc) => ({ ...doc, toJSON: () => ({ ...doc }) });
+  try {
+    const byLink = new InviteProjectMemberTokenUseCase(w.projectRepo, w.memberRepo, w.userRepo, undefined, undefined, w.organizations);
+    await assert.rejects(byLink.execute({ projectId: project.id, email: "oscar@else.io", invitedBy: "owner" }), rejectsWith(403));
+    const sent = await byLink.execute({ projectId: personal.id, email: "nobody@else.io", invitedBy: "owner" });
+    assert.equal(sent.email, "nobody@else.io", "personal projects may invite anyone");
+  } finally {
+    Object.assign(ProjectInvitationModel, originals);
+  }
+});
+
+test("Organization projects: an invitation sent before removal can no longer be accepted", async () => {
+  const w = world();
+  const org = await w.orgUC.create({ userId: "owner", name: "Acme" });
+  const dev = await w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io" });
+  const project = await w.register.execute({ name: "api", repoUrl: "https://git.example/api", visibility: RepoVisibility.PUBLIC, userId: "owner", organizationId: org.id });
+  await w.orgUC.removeMember({ organizationId: org.id, userId: "owner", memberId: dev.id });
+
+  const invitation = {
+    projectId: project.id, email: "dan@acme.io", role: ProjectMemberRole.MAINTAINER, status: "pending",
+    expiresAt: new Date(Date.now() + 60_000), async save() {},
+  };
+  const originalFindOne = ProjectInvitationModel.findOne;
+  ProjectInvitationModel.findOne = async () => invitation;
+  try {
+    const accept = new AcceptProjectInvitationUseCase(w.memberRepo, w.userRepo, w.projectRepo, w.organizations);
+    await assert.rejects(accept.execute("token", "dev"), rejectsWith(403));
+    assert.equal(invitation.status, "pending", "nothing was accepted");
+    assert.equal(w.projectMembers.filter((m) => m.projectId === project.id && m.userId === "dev").length, 0, "no dormant role left behind");
+
+    await w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io" });
+    const accepted = await accept.execute("token", "dev");
+    assert.equal(accepted.role, ProjectMemberRole.MAINTAINER, "a member again may accept");
+  } finally {
+    ProjectInvitationModel.findOne = originalFindOne;
+  }
+});
+
+test("Organization: a removed member's open session loses access to the organization's projects at once", async () => {
+  const w = world();
+  const org = await w.orgUC.create({ userId: "owner", name: "Acme" });
+  const dev = await w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io" });
+  const project = await w.register.execute({ name: "api", repoUrl: "https://git.example/api", visibility: RepoVisibility.PUBLIC, userId: "owner", organizationId: org.id });
+  w.projects.find((p) => p.id === project.id).userId = "dev"; // the removed person owns it: ownership does not outlive membership
+  assert.equal((await run(w.checkRole("write"), as("dev"), project.id)).error, undefined, "before: owner of the project");
+  await w.orgUC.removeMember({ organizationId: org.id, userId: "owner", memberId: dev.id });
+  // Same token, no new sign-in: access is decided on every request.
+  for (const action of ["metadata", "read", "write"]) {
+    const { error } = await run(w.checkRole(action), as("dev"), project.id);
+    assert.equal(error?.statusCode, 403, `${action} after removal`);
+  }
 });
 
 test("Organization: any member may leave; members cannot remove others", async () => {

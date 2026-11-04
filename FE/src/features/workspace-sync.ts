@@ -1,8 +1,13 @@
 import { apiRequest, ApiError } from '../api/client.ts';
+import { canonicalStatus } from './canonical-map.ts';
 
 export type Component = { id: string; name: string; kind: string; description: string };
 export type Dependency = { id: string; source: string; target: string; label: string };
-export type Diagram = { components: Component[]; dependencies: Dependency[]; revision: number; confirmedAt: string | null };
+/**
+ * `confirmedAt` is the one confirmation field the page sends back: a new time asks the server to confirm. Who confirmed
+ * and at which revision are set by the server and only read here.
+ */
+export type Diagram = { components: Component[]; dependencies: Dependency[]; revision: number; confirmedAt: string | null; confirmedByName?: string | null; confirmedRevision?: number | null };
 export type Rule = { id: string; name: string; source: string; target: string; constraint: 'forbidden' | 'required'; severity: 'error' | 'warning'; rationale: string; enabled: boolean };
 export type Decision = { id: string; number: number; title: string; status: 'Proposed' | 'Accepted' | 'Deprecated'; context: string; decision: string; alternatives: string; consequences: string; componentIds: string[]; createdAt: string; updatedAt: string };
 export type Workspace = { diagram: Diagram; rules: Rule[]; decisions: Decision[] };
@@ -29,6 +34,10 @@ export function fromServer(ws: any): Workspace {
       dependencies: (ws?.diagram?.dependencies ?? []).map((d: any) => ({ id: text(d.id), source: text(d.source), target: text(d.target), label: text(d.label) })),
       revision: Number.isInteger(revision) && revision > 0 ? revision : 1,
       confirmedAt: date(ws?.diagram?.confirmedAt) || null,
+      ...(date(ws?.diagram?.confirmedAt) ? {
+        confirmedByName: canonicalStatus(ws?.diagram).confirmedByName,
+        confirmedRevision: canonicalStatus(ws?.diagram).confirmedRevision,
+      } : {}),
     },
     rules: ws?.rules ?? [],
     // Keep provenance fields (origin, sources, history); the server ignores changes to them on a workspace save.

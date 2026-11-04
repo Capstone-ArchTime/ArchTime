@@ -32,6 +32,7 @@ export class GetProjectDiagramUseCase {
           revision: 1,
           confirmedAt: null,
           confirmedBy: null,
+          confirmedRevision: null,
         },
         rules: [],
         decisions: [],

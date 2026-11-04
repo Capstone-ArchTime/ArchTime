@@ -5,6 +5,7 @@ import type { AdminAuditController } from "../controllers/AdminAuditController.j
 import type { AdminSettingsController } from "../controllers/AdminSettingsController.js";
 import type { AdminMetricsController } from "../controllers/AdminMetricsController.js";
 import type { AdminLlmController } from "../controllers/LlmController.js";
+import type { AdminOrganizationController } from "../controllers/AdminOrganizationController.js";
 import type { JwtTokenService } from "../../infrastructure/services/JwtTokenService.js";
 import { createAuthenticateMiddleware } from "../middlewares/authenticate.js";
 import { authorize } from "../middlewares/authorize.js";
@@ -17,6 +18,7 @@ export interface AdminControllersConfig {
   settingsController: AdminSettingsController;
   metricsController: AdminMetricsController;
   llmController: AdminLlmController;
+  organizationController?: AdminOrganizationController;
 }
 
 export function createAdminRouter(
@@ -31,11 +33,51 @@ export function createAdminRouter(
     settingsController,
     metricsController,
     llmController,
+    organizationController,
   } = controllers;
 
   // All admin routes require authentication and SYSTEM_ADMINISTRATOR role
   router.use(createAuthenticateMiddleware(jwtTokenService));
   router.use(authorize(UserRole.SYSTEM_ADMINISTRATOR));
+
+  // ────────────────────────────────────────────────────────────
+  // Organizations (T44): metadata only
+  // ────────────────────────────────────────────────────────────
+  /**
+   * @swagger
+   * /api/admin/organizations:
+   *   get:
+   *     tags: [Admin - Organizations]
+   *     summary: Danh sách tổ chức (chỉ metadata)
+   *     description: Tên, mô tả, người tạo, owner, số thành viên, số project. Không có nội dung project nào.
+   *     security: [{ BearerAuth: [] }]
+   *     parameters:
+   *       - { in: query, name: page, schema: { type: integer, default: 1 } }
+   *       - { in: query, name: limit, schema: { type: integer, default: 10, maximum: 50 } }
+   *       - { in: query, name: search, schema: { type: string }, description: Tìm theo tên tổ chức }
+   *     responses:
+   *       200:
+   *         description: "{ organizations: [{ id, name, description, createdAt, createdBy, owners, memberCount, projectCount }] } + meta"
+   *       401: { $ref: "#/components/responses/Unauthorized" }
+   *       403: { $ref: "#/components/responses/Forbidden" }
+   * /api/admin/organizations/{id}:
+   *   get:
+   *     tags: [Admin - Organizations]
+   *     summary: Chi tiết tổ chức (chỉ metadata)
+   *     description: >
+   *       Thành viên (tên, email, vai trò) và project ở mức metadata (tên, trạng thái, visibility, số commit, ngày tạo).
+   *       Không có địa chỉ repository, mô tả project, token, mã nguồn, evidence, map hay ADR.
+   *     security: [{ BearerAuth: [] }]
+   *     parameters:
+   *       - { in: path, name: id, required: true, schema: { type: string } }
+   *     responses:
+   *       200: { description: "{ organization }" }
+   *       404: { $ref: "#/components/responses/NotFound" }
+   */
+  if (organizationController) {
+    router.get("/organizations", organizationController.list);
+    router.get("/organizations/:id", organizationController.get);
+  }
 
   // ────────────────────────────────────────────────────────────
   // 1. User Management (SA-02)

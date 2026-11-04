@@ -16,8 +16,13 @@ export interface IWorkspaceDiagram {
   components: IWorkspaceComponent[];
   dependencies: IWorkspaceDependency[];
   revision: number;
+  /** Set by the server only (domain/architecture/canonical.ts): a confirmed diagram is the canonical map. */
   confirmedAt?: Date | null;
   confirmedBy?: string | null;
+  /** The workspace revision at which it was confirmed. */
+  confirmedRevision?: number | null;
+  /** Read-only: the confirmer's name, added when the workspace is read; never stored. */
+  confirmedByName?: string | null;
 }
 
 export interface IWorkspaceRule {

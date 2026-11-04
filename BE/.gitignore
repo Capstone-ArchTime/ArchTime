@@ -5,3 +5,4 @@ dist/
 mining-cache/
 tmp-workspace/
 rq1-results/
+extractor-results/

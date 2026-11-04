@@ -1,6 +1,7 @@
 import './register-tsx.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mockGlobal } from './mock-global.mjs';
 const {
   MAX_COMMITS, MAX_COMPONENTS, MAX_EDGES, MAX_FILES, MAX_PAIRS, IMPACT_NOTE,
   parseEvidenceImpact, parseCommitImpacts, getEvidenceImpact, getCommitImpacts,
@@ -11,8 +12,8 @@ Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, writab
 Object.defineProperty(globalThis, 'localStorage', { configurable: true, writable: true, value: undefined });
 const storage = () => ({ getItem: () => null, setItem() {} });
 const signedIn = t => {
-  t.mock.property(globalThis, 'sessionStorage', storage());
-  t.mock.property(globalThis, 'localStorage', storage());
+  mockGlobal(t, 'sessionStorage', storage());
+  mockGlobal(t, 'localStorage', storage());
 };
 
 const snap = (n, extra = {}) => ({ id: `s${n}`, hash: `h${n}`, title: `commit ${n}`, date: `2024-01-0${n}T10:00:00.000Z`, ...extra });

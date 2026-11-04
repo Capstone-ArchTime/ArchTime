@@ -51,6 +51,11 @@ function parseRole(value: unknown): OrganizationRole {
   return value as OrganizationRole;
 }
 
+/** Pending project invitations; removing someone from an organization withdraws the ones sent to them for its projects. */
+export interface PendingInvitationStore {
+  cancelPending(projectIds: string[], email: string): Promise<number>;
+}
+
 /**
  * Organizations, their members and who may manage them. Only members see an organization; only owners change it.
  * A System Administrator is not a member and gets no access here: platform operators do not read organization content.
@@ -61,6 +66,7 @@ export class OrganizationUseCases {
     private readonly users: IUserRepository,
     private readonly projects: IProjectRepository,
     private readonly projectMembers: IProjectMemberRepository,
+    private readonly invitations?: PendingInvitationStore,
   ) {}
 
   /** The caller's membership; 404 rather than 403 for non-members so organization ids cannot be probed. */
@@ -159,9 +165,10 @@ export class OrganizationUseCases {
 
   /**
    * Owners remove members; any member may remove themselves (leave). The person loses every project membership in the
-   * organization's projects, and project access checks also require organization membership (see projectRole.ts).
+   * organization's projects, invitations to them still waiting for an answer are withdrawn, and project access checks
+   * also require organization membership (see ProjectAccessPolicy), so a session that is still open loses access at once.
    */
-  async removeMember(input: { organizationId: string; userId: string; memberId: string }): Promise<{ removedProjectMemberships: number }> {
+  async removeMember(input: { organizationId: string; userId: string; memberId: string }): Promise<{ removedProjectMemberships: number; cancelledInvitations: number }> {
     const caller = await this.requireMember(input.organizationId, input.userId);
     const member = await this.organizations.findMemberById(input.organizationId, input.memberId);
     if (!member) throw new NotFoundError("Member not found.");
@@ -174,6 +181,11 @@ export class OrganizationUseCases {
     await this.organizations.removeMember(member.id);
     const projectIds = (await this.projects.findByOrganizationId(input.organizationId)).map(p => p.id);
     const removedProjectMemberships = await this.projectMembers.deleteByUserInProjects(member.userId, projectIds);
-    return { removedProjectMemberships };
+    let cancelledInvitations = 0;
+    if (this.invitations && projectIds.length) {
+      const email = (await this.users.findById(member.userId))?.email;
+      if (email) cancelledInvitations = await this.invitations.cancelPending(projectIds, email.trim().toLowerCase());
+    }
+    return { removedProjectMemberships, cancelledInvitations };
   }
 }

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { emptyWorkspace, fetchServerWorkspace, fromServer, isRevisionConflict, isServerProjectId, saveServerWorkspace } from '../src/features/workspace-sync.ts';
+import { mockGlobal } from './mock-global.mjs';
 Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, writable: true, value: undefined });
 Object.defineProperty(globalThis, 'localStorage', { configurable: true, writable: true, value: undefined });
 function storage(initial = {}) {
@@ -8,8 +9,8 @@ function storage(initial = {}) {
   return { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
 }
 const signedIn = t => {
-  t.mock.property(globalThis, 'sessionStorage', storage({ accessToken: 'token' }));
-  t.mock.property(globalThis, 'localStorage', storage());
+  mockGlobal(t, 'sessionStorage', storage({ accessToken: 'token' }));
+  mockGlobal(t, 'localStorage', storage());
 };
 const serverWorkspace = {
   id: 'w1', projectId: 'p1', revision: 4,

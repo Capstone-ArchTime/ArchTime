@@ -5,7 +5,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
-  GIT_LOG_FORMAT, analysisProgress, chunk, monthlyHistogram, parseCommitLog, parseMineRequest, redactSecret, selectPending,
+  GIT_LOG_FORMAT, analysisProgress, chunk, monthlyHistogram, orderForMining, parseCommitLog, parseMineRequest, parseTagRefs, redactSecret, selectPending,
+  snapshotLabel,
 } from '../src/domain/mining/miningPlan.ts';
 
 const commit = (hash, iso) => ({ hash, date: new Date(iso), author: 'a@x', ref: 'main', message: hash });
@@ -70,4 +71,32 @@ test('parseCommitLog reads real git output including subjects with odd character
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('milestones requests: accepted, and milestonesOnly is only read in that mode', () => {
+  assert.deepEqual(parseMineRequest({ mode: 'milestones' }), { mode: 'milestones', since: undefined, until: undefined, force: false, milestonesOnly: false });
+  assert.equal(parseMineRequest({ mode: 'milestones', milestonesOnly: true }).milestonesOnly, true);
+  assert.equal('milestonesOnly' in parseMineRequest({ mode: 'remaining', milestonesOnly: true }), false);
+  assert.throws(() => parseMineRequest({ mode: 'tags' }), /milestones/);
+});
+
+test('parseTagRefs peels annotated tags, keeps lightweight ones, and groups several tags on one commit', () => {
+  const a = 'a'.repeat(40), b = 'b'.repeat(40), tagObject = 'c'.repeat(40);
+  const raw = [`v1.10.0\x1f${a}\x1f`, `v1.2.0\x1f${a}\x1f`, `release-2\x1f${tagObject}\x1f${b}`, `broken\x1fnot-a-hash\x1f`, ''].join('\n');
+  const tags = parseTagRefs(raw);
+  assert.deepEqual([...tags.keys()].sort(), [a, b]);
+  assert.deepEqual(tags.get(a), ['v1.2.0', 'v1.10.0'], 'numeric order, not string order');
+  assert.deepEqual(tags.get(b), ['release-2'], 'the annotated tag counts for the commit it points at');
+  assert.equal(snapshotLabel(a.toUpperCase(), tags), 'v1.2.0, v1.10.0');
+  assert.equal(snapshotLabel('d'.repeat(40), tags), 'ddddddd', 'untagged: the short hash, as before');
+});
+
+test('orderForMining puts tagged commits first in milestones mode and never adds or repeats one', () => {
+  const pending = ['1', '2', '3', '4', '5'].map((n, i) => commit(n.repeat(40), `2024-01-0${i + 1}T00:00:00Z`));
+  const tags = new Map([[pending[3].hash, ['v2']], [pending[1].hash, ['v1']]]);
+  const ids = (list) => list.map((c) => c.hash[0]).join('');
+  assert.equal(ids(orderForMining(pending, tags, { mode: 'milestones' })), '24135');
+  assert.equal(ids(orderForMining(pending, tags, { mode: 'milestones', milestonesOnly: true })), '24');
+  assert.equal(ids(orderForMining(pending, tags, { mode: 'remaining' })), '12345', 'other modes keep their order');
+  assert.equal(ids(orderForMining(pending, new Map(), { mode: 'milestones', milestonesOnly: true })), '', 'no tags: nothing to mine first');
 });

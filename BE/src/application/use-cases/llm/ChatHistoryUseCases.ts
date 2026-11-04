@@ -1,6 +1,7 @@
 import { ChatConversationModel, type IChatMessage } from "../../../infrastructure/database/models/ChatConversationModel.js";
 import { BadRequestError, NotFoundError } from "../../../shared/errors/AppError.js";
 import type { ChatCitations } from "./ProjectChatContext.js";
+import type { LabelCheck } from "../../../domain/mentor/claimLabels.js";
 
 /** One exchange is two messages; a conversation stops growing here so a single document stays small. */
 export const MAX_STORED_MESSAGES = 100;
@@ -28,11 +29,13 @@ export interface SavedAnswer {
   evidence: ChatCitations | null;
   model: { name: string; host: string; external: boolean };
   usage: { inputTokens: number; outputTokens: number } | null;
+  /** What the FACT / citation check changed, kept with the answer as its record. */
+  labelCheck?: LabelCheck;
 }
 
 export interface ConversationSummary { id: string; title: string; messageCount: number; createdAt: Date; updatedAt: Date }
 export interface ConversationDetail extends ConversationSummary {
-  messages: { role: "user" | "assistant"; content: string; evidence: ChatCitations | null; model: IChatMessage["model"] | null; createdAt: Date }[];
+  messages: { role: "user" | "assistant"; content: string; evidence: ChatCitations | null; model: IChatMessage["model"] | null; createdAt: Date; labelCheck?: IChatMessage["labelCheck"] }[];
 }
 
 type Row = { _id: unknown; title: string; messageCount?: number; createdAt: Date; updatedAt: Date; messages?: IChatMessage[] };
@@ -59,6 +62,7 @@ export class ChatHistoryUseCases {
       {
         role: "assistant", content: input.answer.content, evidence: input.answer.evidence, createdAt: new Date(),
         model: input.answer.model, ...(input.answer.usage ? { usage: input.answer.usage } : {}),
+        ...(input.answer.labelCheck ? { labelCheck: input.answer.labelCheck } : {}),
       },
     ] as IChatMessage[];
 
@@ -89,7 +93,10 @@ export class ChatHistoryUseCases {
     if (!row) throw new NotFoundError("Conversation not found.");
     return {
       ...summaryOf(row),
-      messages: (row.messages ?? []).map(m => ({ role: m.role, content: m.content, evidence: m.evidence ?? null, model: m.model ?? null, createdAt: m.createdAt })),
+      messages: (row.messages ?? []).map(m => ({
+        role: m.role, content: m.content, evidence: m.evidence ?? null, model: m.model ?? null, createdAt: m.createdAt,
+        ...(m.labelCheck ? { labelCheck: m.labelCheck } : {}),
+      })),
     };
   }
 

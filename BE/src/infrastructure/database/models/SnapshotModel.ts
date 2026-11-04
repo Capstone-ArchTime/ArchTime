@@ -5,7 +5,10 @@ export interface ISnapshot {
   projectId: string;
   hash: string;
   fullHash?: string;
+  /** Display name: the commit's tags (a release, a milestone) when it has any, else the short hash. */
   version: string;
+  /** Tags on this commit when it was last mined or scanned. */
+  tags?: string[];
   title: string;
   author: string;
   date: Date;
@@ -35,6 +38,7 @@ const SnapshotSchema = new Schema<ISnapshotDocument>(
     hash: { type: String, required: true },
     fullHash: { type: String },
     version: { type: String },
+    tags: { type: [String], default: [] },
     title: { type: String, required: true },
     author: { type: String, required: true },
     date: { type: Date, required: true },

@@ -32,7 +32,9 @@ export interface IMiningJob {
   purpose?: "user" | "benchmark";
   benchmarkId?: string;
   benchmarkModels?: string[];
-  mode?: "range" | "remaining";
+  mode?: "range" | "remaining" | "milestones";
+  /** milestones mode: stop after the tagged commits. */
+  milestonesOnly?: boolean;
   rangeSince?: Date;
   rangeUntil?: Date;
   force?: boolean;
@@ -70,7 +72,8 @@ const MiningJobSchema = new Schema<IMiningJobDocument>(
     purpose: { type: String, enum: ["user", "benchmark"] },
     benchmarkId: { type: String },
     benchmarkModels: { type: [String], default: undefined },
-    mode: { type: String, enum: ["range", "remaining"] },
+    mode: { type: String, enum: ["range", "remaining", "milestones"] },
+    milestonesOnly: { type: Boolean },
     rangeSince: { type: Date },
     rangeUntil: { type: Date },
     force: { type: Boolean, default: false },

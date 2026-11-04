@@ -1,6 +1,7 @@
 import './register-tsx.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mockGlobal } from './mock-global.mjs';
 const { countManagedProjects, getManagedProjects } = await import('../src/features/project-data.ts');
 const { ApiError } = await import('../src/api/client.ts');
 const { describeAccessError, pickWorkspace } = await import('../src/pages/project-maintainer/managed-access.ts');
@@ -12,8 +13,8 @@ function storage() {
   return { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
 }
 function serve(t, body, status = 200) {
-  t.mock.property(globalThis, 'sessionStorage', storage());
-  t.mock.property(globalThis, 'localStorage', storage());
+  mockGlobal(t, 'sessionStorage', storage());
+  mockGlobal(t, 'localStorage', storage());
   const urls = [];
   t.mock.method(globalThis, 'fetch', async url => { urls.push(url); return Response.json(body, { status }); });
   return urls;

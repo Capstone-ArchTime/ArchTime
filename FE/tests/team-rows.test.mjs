@@ -1,6 +1,7 @@
 import './register-tsx.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mockGlobal } from './mock-global.mjs';
 const { teamRows, filterTeamRows } = await import('../src/pages/project-maintainer/team-rows.ts');
 const { updateMemberRole, removeMember } = await import('../src/features/pm-api.ts');
 
@@ -45,7 +46,7 @@ test('filtering by workspace keeps only that workspace’s rows; search matches 
 });
 
 test('role changes and removals go to the member route of the chosen workspace', async t => {
-  t.mock.property(globalThis, 'sessionStorage', { getItem: () => 'token', setItem() {} });
+  mockGlobal(t, 'sessionStorage', { getItem: () => 'token', setItem() {} });
   const calls = [];
   t.mock.method(globalThis, 'fetch', async (url, init) => {
     calls.push([init?.method, String(url).replace(/^.*\/api/, '')]);

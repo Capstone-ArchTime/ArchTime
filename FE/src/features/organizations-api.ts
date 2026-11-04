@@ -87,9 +87,12 @@ export async function updateMemberRole(orgId: string, memberId: string, role: Or
 }
 
 /** Removes a member (owners), or leaves (anyone, with their own membership id). Their roles in the organization's workspaces go too. */
-export async function removeMember(orgId: string, memberId: string): Promise<{ removedProjectMemberships: number }> {
-  const body = await apiRequest<Envelope<{ removedProjectMemberships?: number }>>(`${base(orgId)}/members/${encodeURIComponent(memberId)}`, json('DELETE'));
-  return { removedProjectMemberships: Number(body?.data?.removedProjectMemberships) || 0 };
+export async function removeMember(orgId: string, memberId: string): Promise<{ removedProjectMemberships: number; cancelledInvitations: number }> {
+  const body = await apiRequest<Envelope<{ removedProjectMemberships?: number; cancelledInvitations?: number }>>(`${base(orgId)}/members/${encodeURIComponent(memberId)}`, json('DELETE'));
+  return {
+    removedProjectMemberships: Number(body?.data?.removedProjectMemberships) || 0,
+    cancelledInvitations: Number(body?.data?.cancelledInvitations) || 0,
+  };
 }
 
 // ── Credentials (owners only) ──

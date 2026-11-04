@@ -16,6 +16,7 @@ import { createAuthRouter } from "../src/presentation/routes/auth.routes.ts";
 import { errorHandler } from "../src/presentation/middlewares/errorHandler.ts";
 import { UpdateProfileUseCase } from "../src/application/use-cases/UpdateProfileUseCase.ts";
 import { LogoutAllDevicesUseCase } from "../src/application/use-cases/LogoutAllDevicesUseCase.ts";
+import { ChangePasswordUseCase } from "../src/application/use-cases/ChangePasswordUseCase.ts";
 import { UpdateUserRoleUseCase } from "../src/application/use-cases/admin/UpdateUserRoleUseCase.ts";
 import { InviteUserUseCase } from "../src/application/use-cases/admin/InviteUserUseCase.ts";
 import { AppError } from "../src/shared/errors/AppError.ts";
@@ -279,4 +280,51 @@ test("HTTP: GET and PATCH /auth/me send the allow-listed user, and set-password 
   assert.equal(ok.status, 200);
   assert.deepEqual((await ok.json()).data.signInMethods, { password: true, github: true });
   assert.equal((await fetch(`${base}/me`, { headers: as("gh") })).status, 200, "the same token still works afterwards");
+});
+
+test("HTTP: change-password checks the current password, hashes the new one, leaks nothing and ends every session", async (t) => {
+  const repo = userRepo([{ id: "pw", name: "Pat", email: "pat@x.io", passwordHash: "hashed:OldPassword1!", tokenVersion: 3 }]);
+  repo.findByEmail = async (email) => repo.users.find((u) => u.email === email) ?? null;
+  repo.updatePassword = async (userId, passwordHash) => {
+    const user = repo.users.find((u) => u.id === userId);
+    user.passwordHash = passwordHash;
+    user.tokenVersion += 1; // as MongoUserRepository.updatePassword does
+  };
+  const checker = { hashPassword: async (p) => `hashed:${p}`, comparePassword: async (p, hash) => hash === `hashed:${p}` };
+  t.mock.method(MongoUserRepository.prototype, "findById", async (id) => repo.findById(id));
+  const logged = [];
+  for (const level of ["log", "info", "warn", "error"]) t.mock.method(console, level, (...args) => { logged.push(args.map(String).join(" ")); });
+
+  const jwt = new JwtTokenService("test-jwt-secret", "15m", "7d");
+  const unused = {};
+  const controller = new AuthController(unused, unused, unused, unused, unused, unused, unused, new ChangePasswordUseCase(repo, checker));
+  const app = express();
+  app.use(express.json());
+  app.use("/api/auth", createAuthRouter(controller, jwt, new InMemoryRateLimiter()));
+  app.use(errorHandler);
+  const server = app.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const base = `http://127.0.0.1:${server.address().port}/api/auth`;
+  const token = jwt.generateTokens("pw", UserRole.USER, 3).accessToken;
+  const change = (body, auth = token) => fetch(`${base}/change-password`, {
+    method: "POST", headers: { "Content-Type": "application/json", ...(auth ? { Authorization: `Bearer ${auth}` } : {}) }, body: JSON.stringify(body),
+  });
+  const good = { oldPassword: "OldPassword1!", newPassword: "NewPassword2@", confirmNewPassword: "NewPassword2@" };
+
+  assert.equal((await change(good, null)).status, 401, "signed-in accounts only");
+  assert.equal((await change({ ...good, confirmNewPassword: "Different3#" })).status, 400, "the repeat must match");
+  const wrong = await change({ ...good, oldPassword: "Guess1234!" });
+  assert.equal(wrong.status, 400);
+  assert.match((await wrong.json()).error.message, /old password/i);
+  assert.equal((await change({ ...good, newPassword: "short", confirmNewPassword: "short" })).status, 400, "the password rules apply");
+  assert.equal(repo.users[0].passwordHash, "hashed:OldPassword1!", "nothing was written by a refused request");
+
+  const ok = await change(good);
+  assert.equal(ok.status, 200);
+  const raw = await ok.text();
+  for (const secret of ["OldPassword1!", "NewPassword2@", "hashed:"]) assert.equal(raw.includes(secret), false, `response leaks ${secret}`);
+  assert.equal(repo.users[0].passwordHash, "hashed:NewPassword2@", "stored hashed, never as typed");
+  assert.equal(logged.some((line) => line.includes("OldPassword1!") || line.includes("NewPassword2@")), false, "no password reaches the logs");
+  assert.equal((await fetch(`${base}/me`, { headers: { Authorization: `Bearer ${token}` } })).status, 401, "the token from before the change no longer works");
 });

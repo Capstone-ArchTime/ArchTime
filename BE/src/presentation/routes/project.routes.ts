@@ -325,8 +325,12 @@ export function createProjectRouter(
    *             properties:
    *               mode:
    *                 type: string
-   *                 enum: [range, remaining]
+   *                 enum: [range, remaining, milestones]
    *                 example: remaining
+   *                 description: "milestones: mine tagged commits (releases) first, then the rest, skipping anything already mined"
+   *               milestonesOnly:
+   *                 type: boolean
+   *                 description: "milestones mode: stop after the tagged commits"
    *               since:
    *                 type: string
    *                 format: date

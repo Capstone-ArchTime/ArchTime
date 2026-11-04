@@ -2,12 +2,16 @@ import type { ChatEvidence } from './chat-answer';
 
 export interface ChatModelNote { name: string; host: string; external: boolean }
 
+/** What the server's FACT / citation check changed in an answer (BE/src/domain/mentor/claimLabels.ts). */
+export interface LabelCheck { downgraded: number; removedCitations: string[] }
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
   evidence?: ChatEvidence | null;
+  labelCheck?: LabelCheck | null;
   isError?: boolean;
   /** The answer arrived but could not be written to the saved history. */
   unsaved?: boolean;
@@ -22,7 +26,34 @@ export interface StoredMessage {
   content: string;
   evidence?: ChatEvidence | null;
   model?: ChatModelNote | null;
+  labelCheck?: unknown;
   createdAt: string;
+}
+
+/** The check as the server sent it, or null when there is none or it is malformed. */
+export function readLabelCheck(value: unknown): LabelCheck | null {
+  const v = value as { downgraded?: unknown; removedCitations?: unknown } | null;
+  if (!v || typeof v !== 'object') return null;
+  const downgraded = Number.isInteger(v.downgraded) && (v.downgraded as number) > 0 ? (v.downgraded as number) : 0;
+  const removedCitations = Array.isArray(v.removedCitations) ? v.removedCitations.filter((h): h is string => typeof h === 'string') : [];
+  return { downgraded, removedCitations };
+}
+
+/**
+ * A plain note under an answer when the check changed it, so the reader knows a label was lowered or a citation dropped
+ * on purpose; null when nothing changed.
+ */
+export function labelCheckNote(check: LabelCheck | null | undefined): string | null {
+  if (!check || (!check.downgraded && !check.removedCitations.length)) return null;
+  const parts: string[] = [];
+  if (check.downgraded) {
+    parts.push(`${check.downgraded} claim${check.downgraded === 1 ? ' was' : 's were'} marked FACT without citing a mined commit, so ${check.downgraded === 1 ? 'it now reads' : 'they now read'} INFERENCE`);
+  }
+  if (check.removedCitations.length) {
+    const n = check.removedCitations.length;
+    parts.push(`${n} cited commit${n === 1 ? ' is' : 's are'} not in this workspace's mined history and ${n === 1 ? 'was' : 'were'} removed (${check.removedCitations.join(', ')})`);
+  }
+  return `Checked by ArchTime: ${parts.join('; ')}.`;
 }
 
 const isStored = (value: unknown): value is StoredMessage => {
@@ -43,6 +74,7 @@ export function fromStored(messages: readonly unknown[], nextId: (prefix: string
     content: message.content,
     timestamp: when(message.createdAt),
     evidence: message.role === 'assistant' ? message.evidence ?? null : null,
+    ...(message.role === 'assistant' && message.labelCheck ? { labelCheck: readLabelCheck(message.labelCheck) } : {}),
   }));
 }
 

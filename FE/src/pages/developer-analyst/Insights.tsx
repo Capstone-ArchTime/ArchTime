@@ -20,7 +20,7 @@ import { apiRequest } from '@/api/client';
 import AssistantMessage from '@/components/chat/AssistantMessage';
 import type { ChatEvidence } from '@/features/chat-answer';
 import {
-  describeWhen, fromStored, lastModel,
+  describeWhen, fromStored, labelCheckNote, lastModel, readLabelCheck,
   type ChatMessage, type ChatModelNote, type ConversationSummary,
 } from '@/features/chat-history';
 import { openingWorkspace, readMentorParams } from '@/features/onboarding-context';
@@ -32,6 +32,8 @@ interface ChatResponse {
     evidence: ChatEvidence | null;
     model: ChatModelNote;
     usage: { inputTokens: number; outputTokens: number } | null;
+    /** What the server's FACT / citation check changed; older servers leave it out. */
+    labelCheck?: unknown;
     /** Where the exchange was saved; null when saving failed. */
     conversation: { id: string; title: string } | null;
   };
@@ -241,7 +243,8 @@ const Insights: React.FC = () => {
         });
       }
       setMessages(prev => [...prev, {
-        id: nextId('assistant'), role: 'assistant', content: res.data.answer, timestamp: new Date(), evidence: res.data.evidence, unsaved: !saved
+        id: nextId('assistant'), role: 'assistant', content: res.data.answer, timestamp: new Date(), evidence: res.data.evidence, unsaved: !saved,
+        labelCheck: readLabelCheck(res.data.labelCheck)
       }]);
     } catch (error) {
       if (controller.signal.aborted) return;
@@ -469,6 +472,9 @@ const Insights: React.FC = () => {
                     <p className="text-[10px] text-[#94a3b8] mt-1 font-mono" style={mono}>
                       {message.timestamp.toLocaleTimeString()}
                     </p>
+                    {labelCheckNote(message.labelCheck) && (
+                      <p className="text-[10px] text-[#94a3b8] mt-1">{labelCheckNote(message.labelCheck)}</p>
+                    )}
                     {message.unsaved && (
                       <p role="status" className="text-[10px] text-[#ffb03a] mt-1">This answer could not be saved to your history.</p>
                     )}

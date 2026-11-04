@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { changeRows, getComponentMatch, hasStructuralChange, linkStrength } from '../src/features/component-matching.ts';
+import { mockGlobal } from './mock-global.mjs';
 Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, writable: true, value: undefined });
 Object.defineProperty(globalThis, 'localStorage', { configurable: true, writable: true, value: undefined });
 function storage(initial = {}) {
@@ -55,8 +56,8 @@ test('only kept components is no structural change', () => {
 });
 
 test('the request passes both revisions and surfaces the server reason', async t => {
-  t.mock.property(globalThis, 'sessionStorage', storage({ accessToken: 'token' }));
-  t.mock.property(globalThis, 'localStorage', storage());
+  mockGlobal(t, 'sessionStorage', storage({ accessToken: 'token' }));
+  mockGlobal(t, 'localStorage', storage());
   let url;
   t.mock.method(globalThis, 'fetch', async u => { url = u; return Response.json({ success: true, data: result }); });
   const got = await getComponentMatch('p1', 'b1', 't1');

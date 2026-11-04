@@ -14,6 +14,7 @@ import {
   ConflictError,
   NotFoundError,
 } from "../../../shared/errors/AppError.js";
+import { requireOrganizationMember, type OrganizationMembershipLookup } from "../../services/organizationGate.js";
 
 export interface InviteMemberTokenInput {
   projectId: string;
@@ -30,6 +31,7 @@ export class InviteProjectMemberTokenUseCase {
     private readonly emailService?: IEmailService,
     /** Where the frontend runs; the email links to its /invitations/accept page. */
     private readonly frontendUrl = "http://localhost:5173",
+    private readonly organizations?: OrganizationMembershipLookup,
   ) {}
 
   async execute(input: InviteMemberTokenInput): Promise<IProjectInvitation> {
@@ -41,6 +43,7 @@ export class InviteProjectMemberTokenUseCase {
 
     // Check if already a member
     const existingUser = await this.userRepository.findByEmail(email);
+    await requireOrganizationMember(project, existingUser?.id, this.organizations);
     if (existingUser) {
       const isMember = await this.memberRepository.findByProjectAndUserId(input.projectId, existingUser.id);
       if (isMember) {
@@ -109,6 +112,8 @@ export class AcceptProjectInvitationUseCase {
   constructor(
     private readonly memberRepository: IProjectMemberRepository,
     private readonly userRepository: IUserRepository,
+    private readonly projectRepository?: Pick<IProjectRepository, "findById">,
+    private readonly organizations?: OrganizationMembershipLookup,
   ) {}
 
   async execute(token: string, userId?: string): Promise<{ success: boolean; projectId: string; role: string }> {
@@ -137,6 +142,14 @@ export class AcceptProjectInvitationUseCase {
       throw new BadRequestError(
         "Please register or log in with the invited email address to accept this invitation.",
       );
+    }
+
+    // An invitation sent before the person left (or was removed from) the workspace's organization grants nothing.
+    if (this.projectRepository) {
+      const project = await this.projectRepository.findById(invitation.projectId);
+      if (!project) throw new NotFoundError("Workspace not found.");
+      await requireOrganizationMember(project, user.id, this.organizations,
+        "You are not a member of the organization that owns this workspace, so this invitation can no longer be accepted.");
     }
 
     // Add to project membership

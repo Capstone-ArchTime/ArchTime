@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { apiRequest } from '../src/api/client.ts';
+import { mockGlobal } from './mock-global.mjs';
 Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, writable: true, value: undefined });
 Object.defineProperty(globalThis, 'localStorage', { configurable: true, writable: true, value: undefined });
 function storage(initial = {}) {
@@ -8,8 +9,8 @@ function storage(initial = {}) {
   return { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
 }
 test('concurrent unauthorized requests share a single token refresh', async t => {
-  t.mock.property(globalThis, 'sessionStorage', storage({ accessToken: 'old', refreshToken: 'refresh' }));
-  t.mock.property(globalThis, 'localStorage', storage());
+  mockGlobal(t, 'sessionStorage', storage({ accessToken: 'old', refreshToken: 'refresh' }));
+  mockGlobal(t, 'localStorage', storage());
   let refreshes = 0;
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     if (url.endsWith('/auth/refresh')) { refreshes++; return Response.json({ accessToken: 'new' }); }
@@ -22,8 +23,8 @@ test('concurrent unauthorized requests share a single token refresh', async t =>
   assert.equal(sessionStorage.getItem('accessToken'), 'new');
 });
 test('API errors preserve permission feedback and do not turn HTML errors into parser messages', async t => {
-  t.mock.property(globalThis, 'sessionStorage', storage());
-  t.mock.property(globalThis, 'localStorage', storage());
+  mockGlobal(t, 'sessionStorage', storage());
+  mockGlobal(t, 'localStorage', storage());
   t.mock.method(globalThis, 'fetch', async () => new Response('<html>Forbidden</html>', { status: 403 }));
   await assert.rejects(apiRequest('/projects'), error => error.status === 403 && error.message.includes('permission'));
 });

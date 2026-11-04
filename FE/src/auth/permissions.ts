@@ -21,7 +21,7 @@ export const maintainerRoutes: readonly string[] = ['/project-maintainer', '/pro
 
 const routes: Record<Role, readonly string[]> = {
   'developer-analyst': ['/dashboard', '/projects', '/organizations', '/project', '/history', '/architecture', '/compare', '/evidence', '/insights', '/reports', '/ai-usage', '/learning', ...maintainerRoutes],
-  'system-administrator': ['/system-administrator', '/system-administrator/users', '/system-administrator/audit-log', '/system-administrator/settings', '/system-administrator/mining-jobs', '/system-administrator/ai-models', '/system-administrator/ai-metrics'],
+  'system-administrator': ['/system-administrator', '/system-administrator/users', '/system-administrator/organizations', '/system-administrator/audit-log', '/system-administrator/settings', '/system-administrator/mining-jobs', '/system-administrator/ai-models', '/system-administrator/ai-metrics'],
 };
 
 /** Paths with an id after them (the workspace of one project or sample). */

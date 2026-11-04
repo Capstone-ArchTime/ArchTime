@@ -33,7 +33,7 @@ test('the sidebar of a developer-analyst has six entries, seven with the Maintai
   assert.deepEqual(topLevel(navGroupsFor('developer-analyst', { maintains: false })), ['Dashboard', 'Workspaces', 'Organizations', 'Analyze', 'Learning', 'Reports']);
   assert.deepEqual(topLevel(navGroupsFor('developer-analyst', { maintains: true })), ['Dashboard', 'Workspaces', 'Organizations', 'Analyze', 'Learning', 'Reports', 'Maintain']);
   assert.deepEqual(analyzeNavItems.map(item => item.path), ['/architecture', '/compare', '/evidence', '/insights']);
-  assert.equal(topLevel(navGroupsFor('system-administrator', { maintains: true })).length, 7, 'administrators keep their own seven pages');
+  assert.equal(topLevel(navGroupsFor('system-administrator', { maintains: true })).length, 8, 'administrators keep their own eight pages (Organizations added for T44)');
 });
 
 test('every page still has a way in: the sidebar, the account menu, or (old maintainer reports, old history) a redirect', () => {

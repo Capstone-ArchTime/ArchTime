@@ -372,8 +372,10 @@ const options: swaggerJsdoc.Options = {
               items: { $ref: "#/components/schemas/WorkspaceDependency" },
             },
             revision: { type: "integer", example: 1 },
-            confirmedAt: { type: "string", format: "date-time", nullable: true },
-            confirmedBy: { type: "string", nullable: true },
+            confirmedAt: { type: "string", format: "date-time", nullable: true, description: "Server-set. On save, sending a new time asks to confirm (canonical map), the stored time keeps the confirmation while the content is unchanged, null clears it." },
+            confirmedBy: { type: "string", nullable: true, readOnly: true, description: "Server-set: the user who confirmed." },
+            confirmedRevision: { type: "integer", nullable: true, readOnly: true, description: "Workspace revision written by the confirming save." },
+            confirmedByName: { type: "string", nullable: true, readOnly: true },
           },
         },
         WorkspaceRule: {

@@ -66,10 +66,12 @@ export default function MembersTab({ organization, userId, onCountChange, onLeft
   async function remove(member: OrganizationMember, self: boolean) {
     setBusy(member.id);
     try {
-      const { removedProjectMemberships } = await removeMember(organization.id, member.id);
-      const ended = removedProjectMemberships
+      const { removedProjectMemberships, cancelledInvitations } = await removeMember(organization.id, member.id);
+      const ended = (removedProjectMemberships
         ? ` ${removedProjectMemberships} workspace ${removedProjectMemberships === 1 ? 'role' : 'roles'} in it ended.`
-        : '';
+        : '') + (cancelledInvitations
+        ? ` ${cancelledInvitations} pending workspace ${cancelledInvitations === 1 ? 'invitation was' : 'invitations were'} withdrawn.`
+        : '');
       if (self) {
         message.success(`You left ${organization.name}.${ended}`);
         onLeft();

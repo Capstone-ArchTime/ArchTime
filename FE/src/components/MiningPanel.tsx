@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, App, Button, DatePicker, Modal, Progress, Select, Spin, Tag } from 'antd';
+import { Alert, App, Button, DatePicker, Modal, Progress, Select, Spin, Tag, Tooltip } from 'antd';
 import {
   ACTIVE_STATUSES, cancelMiningJob, getMiningEstimate, getMiningOverview, startMining, startScan,
   type MiningEstimate, type MiningOverview,
@@ -172,6 +172,10 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
             <Button disabled={!!active || fullyMined || (aiModels.length > 0 && !selectedModel)} loading={busy} onClick={() => run(() => startMining(project.id, { mode: 'remaining', model: selectedModel } as any), 'Mining started.')}>
               {overview.mined.count ? `Continue: mine all remaining${overview.remaining ? ` (${overview.remaining})` : ''}` : 'Mine entire history'}
             </Button>
+            <Tooltip title="Mines the tagged commits (releases) first, so the architecture at each release is ready early; then continues with every other commit not mined yet. Stop at any time: what was mined is kept.">
+              <Button disabled={!!active || fullyMined || (aiModels.length > 0 && !selectedModel)} loading={busy}
+                onClick={() => run(() => startMining(project.id, { mode: 'milestones', model: selectedModel }), 'Mining releases first.')}>Releases first, then the rest</Button>
+            </Tooltip>
             <Button disabled={!!active} loading={busy} onClick={() => run(() => startScan(project.id), 'Fetching new commits.')}>Check for new commits</Button>
           </div>
           <p className="text-xs text-[#94a3b8]">Commits are analyzed in batches and saved after each one, so you can stop at any time and continue later. Each snapshot is compared with the previous mined snapshot, so mining non-adjacent ranges shows larger changes at the gaps.</p>

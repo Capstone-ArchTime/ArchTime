@@ -27,6 +27,7 @@ export const maintainNavItems: readonly NavItem[] = [
 const adminNavItems: readonly NavItem[] = [
   { path: '/system-administrator', label: 'Overview', icon: LayoutDashboard },
   { path: '/system-administrator/users', label: 'User Management', icon: Users2 },
+  { path: '/system-administrator/organizations', label: 'Organizations', icon: Building2 },
   { path: '/system-administrator/settings', label: 'System Settings', icon: SlidersHorizontal },
   { path: '/system-administrator/audit-log', label: 'Audit Log', icon: ScrollText },
   { path: '/system-administrator/mining-jobs', label: 'Mining Jobs Monitor', icon: Activity },

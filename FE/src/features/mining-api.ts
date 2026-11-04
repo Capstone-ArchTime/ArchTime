@@ -14,7 +14,11 @@ export type MiningOverview = {
   lastJob: MiningJobState | null;
 };
 export type MiningEstimate = { inRange: number; alreadyMined: number; toMine: number; batchSize: number; batchCount: number };
-export type MineRequest = { mode: 'remaining'; model?: string } | { mode: 'range'; since: string; until: string; force?: boolean; model?: string };
+export type MineRequest =
+  | { mode: 'remaining'; model?: string }
+  | { mode: 'range'; since: string; until: string; force?: boolean; model?: string }
+  /** Tagged commits (releases) first, then the rest unless milestonesOnly; nothing already mined is mined again. */
+  | { mode: 'milestones'; milestonesOnly?: boolean; model?: string };
 
 export const ACTIVE_STATUSES = ['queued', 'running'];
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);

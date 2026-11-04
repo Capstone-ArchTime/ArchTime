@@ -11,6 +11,7 @@ import {
   ConflictError,
   NotFoundError,
 } from "../../../shared/errors/AppError.js";
+import { requireOrganizationMember, type OrganizationMembershipLookup } from "../../services/organizationGate.js";
 
 export interface InviteProjectMemberRequest {
   projectId: string;
@@ -25,6 +26,7 @@ export class InviteProjectMemberUseCase {
     private readonly memberRepository: IProjectMemberRepository,
     private readonly projectRepository: IProjectRepository,
     private readonly userRepository: IUserRepository,
+    private readonly organizations?: OrganizationMembershipLookup,
   ) {}
 
   async execute(req: InviteProjectMemberRequest): Promise<IProjectMember> {
@@ -64,6 +66,7 @@ export class InviteProjectMemberUseCase {
 
     // Check if the user already exists in the system
     const existingUser = await this.userRepository.findByEmail(email);
+    await requireOrganizationMember(project, existingUser?.id, this.organizations);
 
     const role = req.role ?? ProjectMemberRole.MEMBER;
     const status = existingUser ? MemberStatus.ACTIVE : MemberStatus.INVITED;

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Button, Dropdown, Empty, Progress, Select, Spin, Tooltip } from 'antd';
+import { Alert, Button, Dropdown, Empty, Progress, Select, Spin, Tag, Tooltip } from 'antd';
+import { MAP_KIND, computedMapKind } from '@/features/canonical-map';
 import { ChevronDown, Pickaxe, RefreshCw, Sparkles, Workflow } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ArchitectureViewer from '@/components/architecture/ArchitectureViewer';
@@ -114,9 +115,12 @@ export default function ArchitectureWorkspace() {
   };
 
   // The long explanations sit in collapsed disclosures; an out-of-date snapshot is an issue card (with its Regenerate button), not a box here.
+  const mapKind = computedMapKind(payload?.mapping?.generator);
   const overview = payload?.status === 'ready' && payload.view && projectId ? <>
     <section className="space-y-1.5 text-xs">
       <h3 className={sectionTitle}>Architecture</h3>
+      {mapKind && <p><Tooltip title={MAP_KIND[mapKind].description}><Tag color={MAP_KIND[mapKind].color}>{MAP_KIND[mapKind].label}</Tag></Tooltip>
+        <span className="text-[#94a3b8]">Computed, not the canonical map. The canonical map is the component diagram a maintainer confirms.</span></p>}
       <p className="text-[#94a3b8]">Snapshot <code>{payload.snapshot?.hash}</code>{payload.mapping ? ` · generated ${new Date(payload.mapping.createdAt).toLocaleString()}` : ''}</p>
       <details className="text-[#94a3b8]">
         <summary className="cursor-pointer select-none text-slate-300 hover:text-white">How these components were made</summary>

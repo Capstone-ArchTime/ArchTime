@@ -8,6 +8,8 @@ export interface IChatMessage {
   evidence?: ChatCitations | null;
   model?: { name: string; host: string; external: boolean };
   usage?: { inputTokens: number; outputTokens: number };
+  /** Assistant messages: FACT claims downgraded and citations removed by the check in domain/mentor/claimLabels.ts. */
+  labelCheck?: { downgraded: number; removedCitations: string[]; labels: Record<string, number> };
   createdAt: Date;
 }
 
@@ -29,6 +31,7 @@ const MessageSchema = new Schema<IChatMessage>(
     evidence: { type: Schema.Types.Mixed, default: null },
     model: { type: new Schema({ name: String, host: String, external: Boolean }, { _id: false }), default: undefined },
     usage: { type: new Schema({ inputTokens: Number, outputTokens: Number }, { _id: false }), default: undefined },
+    labelCheck: { type: Schema.Types.Mixed, default: undefined },
     createdAt: { type: Date, default: Date.now },
   },
   { _id: false },

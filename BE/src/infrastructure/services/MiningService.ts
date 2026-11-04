@@ -1,7 +1,6 @@
 import { simpleGit, type SimpleGit } from 'simple-git';
 import fs from 'fs';
 import path from 'path';
-import ts from 'typescript';
 import { ProjectModel } from '../database/models/ProjectModel.js';
 import { MiningJobModel, JobStatus, JobKind } from '../database/models/MiningJobModel.js';
 import { SnapshotModel } from '../database/models/SnapshotModel.js';
@@ -13,27 +12,28 @@ import {
   analysisProgress,
   chunk,
   monthlyHistogram,
+  orderForMining,
   parseCommitLog,
+  parseTagRefs,
   redactSecret,
   selectPending,
+  snapshotLabel,
+  TAG_REF_FORMAT,
   type CommitRef,
   type MineRequest,
   type MinedIndex,
+  type TagIndex,
 } from '../../domain/mining/miningPlan.js';
 import { runArchitectureJob } from './ArchitectureJob.js';
 import { firstParentBase, type ParentIndex } from '../../domain/mining/baseline.js';
 import { MongoOrganizationCredentialRepository } from '../repositories/MongoOrganizationCredentialRepository.js';
 import { allowLocalRepos, validateRepoUrl } from '../../domain/mining/repoUrl.js';
 import { ConflictError, NotFoundError } from '../../shared/errors/AppError.js';
-
-type GraphNode = { id: string; name: string; type: string };
-type GraphEdge = { source: string; target: string; type: string };
-type Graph = { nodes: GraphNode[]; edges: GraphEdge[] };
+import { edgeKey, extractDependencies, type Graph, type GraphEdge, type GraphNode } from './DependencyExtractor.js';
 
 const CACHE_ROOT = path.join(process.cwd(), 'mining-cache');
 const PROGRESS_WRITE_INTERVAL_MS = 750;
 const batchSize = () => Math.max(1, Math.floor(Number(process.env.MINING_BATCH_SIZE)) || DEFAULT_BATCH_SIZE);
-const edgeKey = (e: GraphEdge) => `${e.source}\u0000${e.target}`;
 /** Graphs of recently mined commits kept in memory, so a parent mined a moment ago is not read back from the database. */
 const RECENT_GRAPHS = 64;
 
@@ -88,6 +88,7 @@ export class MiningService {
       rangeSince: req.since,
       rangeUntil: req.until,
       force: req.force,
+      ...(req.mode === 'milestones' ? { milestonesOnly: !!req.milestonesOnly } : {}),
     });
   }
 
@@ -279,6 +280,8 @@ export class MiningService {
         scannedAt: new Date(),
       } } });
       await this.markVanishedCommits(String(project._id), git);
+      const tags = await this.listTags(git);
+      await this.labelMilestones(String(project._id), tags);
 
       if (job.kind === JobKind.SCAN) {
         await set({ stage: 'Checking dependency counts', progress: 90 });
@@ -287,9 +290,10 @@ export class MiningService {
         return;
       }
 
-      const request: MineRequest = { mode: job.mode ?? 'remaining', since: job.rangeSince ?? undefined, until: job.rangeUntil ?? undefined, force: !!job.force };
+      const request: MineRequest = { mode: job.mode ?? 'remaining', since: job.rangeSince ?? undefined, until: job.rangeUntil ?? undefined, force: !!job.force, milestonesOnly: !!job.milestonesOnly };
       const index = await this.minedIndex(String(project._id));
-      const pending = selectPending(commits, index, request);
+      // Milestones mode mines the tagged commits first; already mined commits are never mined twice (selectPending).
+      const pending = orderForMining(selectPending(commits, index, request), tags, request);
       const batches = chunk(pending, job.batchSize || batchSize());
       await set({ total: pending.length, batchCount: batches.length, stage: pending.length ? 'Starting analysis' : 'Nothing to mine', progress: 10 });
 
@@ -324,7 +328,7 @@ export class MiningService {
 
           try {
             await git.raw(['checkout', '--force', '--quiet', commit.hash]);
-            const { nodes, edges } = this.analyzeAST(this.repoDir(String(project._id)));
+            const { nodes, edges } = extractDependencies(this.repoDir(String(project._id)));
 
             // Baseline: the nearest mined commit on this commit's first-parent line (see domain/mining/baseline.ts).
             const baseHash = firstParentBase(commit.hash, parents, isMined) ?? '';
@@ -333,7 +337,8 @@ export class MiningService {
             const archChanges = diff.depAdded + diff.depRemoved > 0 ? 1 : 0;
 
             snapshotDocs.push({
-              projectId: project._id, hash: shortHash, fullHash: commit.hash, version: shortHash,
+              projectId: project._id, hash: shortHash, fullHash: commit.hash, version: snapshotLabel(commit.hash, tags),
+              tags: tags.get(commit.hash.toLowerCase()) ?? [],
               title: commit.message || '(no message)', author: commit.author || 'unknown', date: commit.date,
               branches: commit.ref ? [commit.ref] : [], files: nodes.length, archChanges,
               depAdded: diff.depAdded, depRemoved: diff.depRemoved, baseHash, nodes, edges,
@@ -405,7 +410,8 @@ export class MiningService {
       await report('Fetching new commits', 3);
       const git = remote(dir);
       try {
-        await git.fetch(['origin', '--prune', '+refs/heads/*:refs/remotes/origin/*']);
+        // --tags: a release tagged on an older commit is a milestone too, not only tags on newly fetched commits.
+        await git.fetch(['origin', '--prune', '--tags', '+refs/heads/*:refs/remotes/origin/*']);
         return git;
       } catch {
         fs.rmSync(dir, { recursive: true, force: true }); // corrupt cache: fall through to a fresh clone
@@ -415,6 +421,30 @@ export class MiningService {
     fs.mkdirSync(dir, { recursive: true });
     await remote(dir).clone(remoteUrl, '.', ['--no-checkout']);
     return simpleGit(dir);
+  }
+
+  /** Tags of the repository by commit; an unreadable tag list means no milestones, not a failed job. */
+  private static async listTags(git: SimpleGit): Promise<TagIndex> {
+    try {
+      return parseTagRefs(await git.raw(['for-each-ref', 'refs/tags', `--format=${TAG_REF_FORMAT}`]));
+    } catch (error) {
+      console.warn('[mining] could not list tags; milestones are skipped', error);
+      return new Map();
+    }
+  }
+
+  /**
+   * Names mined snapshots after the tags on their commits (a tag added after the commit was mined counts too), and
+   * takes the name off snapshots whose tag is gone, so the history can be read release by release.
+   */
+  private static async labelMilestones(projectId: string, tags: TagIndex): Promise<void> {
+    for (const [hash, names] of tags) {
+      await SnapshotModel.updateMany({ projectId, fullHash: hash }, { $set: { tags: names, version: snapshotLabel(hash, tags) } });
+    }
+    await SnapshotModel.updateMany(
+      { projectId, tags: { $exists: true, $ne: [] }, fullHash: { $nin: [...tags.keys()] } },
+      [{ $set: { tags: [], version: '$hash' } }],
+    );
   }
 
   private static async listCommits(git: SimpleGit): Promise<CommitRef[]> {
@@ -546,192 +576,5 @@ export class MiningService {
       ? (failed ? ProjectStatus.FAILED : ProjectStatus.PENDING)
       : total > 0 && mined >= total ? ProjectStatus.COMPLETED : ProjectStatus.PARTIAL;
     await project.save();
-  }
-
-  /** All source extensions the mining engine understands. */
-  private static readonly ALL_SOURCE_EXTS = ['.ts', '.tsx', '.js', '.jsx', '.cs', '.java', '.py', '.go', '.rb', '.c', '.cpp', '.h', '.hpp'];
-
-  private static analyzeAST(dirPath: string) {
-    const nodes: { id: string; name: string; type: string }[] = [];
-    const edges: { source: string; target: string; type: string }[] = [];
-
-    // --- TypeScript / JavaScript (AST-based) ---
-    const tsFiles = this.getAllFiles(dirPath, ['.ts', '.tsx', '.js', '.jsx']);
-    if (tsFiles.length > 0) {
-      const program = ts.createProgram(tsFiles, { allowJs: true });
-      for (const sourceFile of program.getSourceFiles()) {
-        if (!sourceFile.isDeclarationFile && !sourceFile.fileName.includes('node_modules')) {
-          const fileId = path.relative(dirPath, sourceFile.fileName).replace(/\\/g, '/');
-          nodes.push({ id: fileId, name: path.basename(fileId), type: 'module' });
-          ts.forEachChild(sourceFile, node => {
-            if (ts.isImportDeclaration(node)) {
-              const moduleSpecifier = node.moduleSpecifier;
-              if (ts.isStringLiteral(moduleSpecifier)) {
-                let target = moduleSpecifier.text;
-                if (target.startsWith('.')) {
-                  const resolved = path.join(path.dirname(fileId), target).replace(/\\/g, '/');
-                  edges.push({ source: fileId, target: resolved, type: 'imports' });
-                } else {
-                  edges.push({ source: fileId, target, type: 'imports' });
-                }
-              }
-            }
-          });
-        }
-      }
-    }
-
-    // --- C# / Java / Python / Go / Ruby / C/C++ (regex-based) ---
-    const otherFiles = this.getAllFiles(dirPath, ['.cs', '.java', '.py', '.go', '.rb', '.c', '.cpp', '.h', '.hpp']);
-    // Build a lookup: namespace/package → list of file ids that define it
-    const nsToFiles = new Map<string, string[]>();
-    const fileContents = new Map<string, string>();
-
-    for (const absPath of otherFiles) {
-      const fileId = path.relative(dirPath, absPath).replace(/\\/g, '/');
-      nodes.push({ id: fileId, name: path.basename(fileId), type: 'module' });
-      let content: string;
-      try { content = fs.readFileSync(absPath, 'utf-8'); } catch { continue; }
-      fileContents.set(fileId, content);
-
-      // Extract the namespace / package this file belongs to
-      const ext = path.extname(absPath);
-      let ns: string | null = null;
-      if (ext === '.cs') {
-        const m = content.match(/^namespace\s+([\w.]+)/m);
-        ns = m?.[1] ?? null;
-      } else if (ext === '.java') {
-        const m = content.match(/^package\s+([\w.]+)/m);
-        ns = m?.[1] ?? null;
-      } else if (ext === '.py') {
-        // Use directory-based module path: Services/Auth/views.py → Services.Auth.views
-        ns = fileId.replace(/\//g, '.').replace(/\.py$/, '');
-      } else if (ext === '.go') {
-        const m = content.match(/^package\s+(\w+)/m);
-        ns = m?.[1] ?? null;
-      } else if (ext === '.rb') {
-        // Ruby: use directory-based module path like Python
-        ns = fileId.replace(/\//g, '::').replace(/\.rb$/, '');
-      } else if (['.c', '.cpp', '.h', '.hpp'].includes(ext)) {
-        // C/C++: use directory-based path
-        ns = fileId;
-      }
-      if (ns) {
-        const arr = nsToFiles.get(ns) ?? [];
-        arr.push(fileId);
-        nsToFiles.set(ns, arr);
-      }
-    }
-
-    // Now extract imports and resolve them to file-ids via the namespace lookup
-    for (const [fileId, content] of fileContents.entries()) {
-      const ext = path.extname(fileId);
-      const importedNamespaces: string[] = [];
-
-      if (ext === '.cs') {
-        for (const m of content.matchAll(/^using\s+(?:static\s+)?([\w.]+)\s*;/gm)) importedNamespaces.push(m[1]);
-      } else if (ext === '.java') {
-        for (const m of content.matchAll(/^import\s+(?:static\s+)?([\w.]+(?:\.\*)?)\s*;/gm)) {
-          const imp = m[1].replace(/\.\*$/, '');
-          importedNamespaces.push(imp);
-        }
-      } else if (ext === '.py') {
-        for (const m of content.matchAll(/^(?:from\s+([\w.]+)\s+import|import\s+([\w.]+))/gm)) {
-          importedNamespaces.push(m[1] ?? m[2]);
-        }
-      } else if (ext === '.go') {
-        // Go imports are paths like "project/pkg/auth"
-        for (const m of content.matchAll(/^\s*"([^"]+)"/gm)) importedNamespaces.push(m[1]);
-      } else if (ext === '.rb') {
-        // Ruby: require 'lib/foo' or require_relative '../bar'
-        for (const m of content.matchAll(/^\s*require(?:_relative)?\s+['"]([^'"]+)['"]/gm)) {
-          let target = m[1];
-          if (m[0].includes('require_relative')) {
-            target = path.join(path.dirname(fileId), target).replace(/\\/g, '/');
-          }
-          // Push as edge directly; normalization will try adding .rb extension
-          const resolved = target.endsWith('.rb') ? target : target;
-          edges.push({ source: fileId, target: resolved, type: 'imports' });
-          // Also track as namespace for prefix matching
-          importedNamespaces.push(target.replace(/\//g, '::').replace(/\.rb$/, ''));
-        }
-      } else if (['.c', '.cpp', '.h', '.hpp'].includes(ext)) {
-        // C/C++: #include "local/header.h" (skip <system> includes)
-        for (const m of content.matchAll(/^\s*#include\s+"([^"]+)"/gm)) {
-          let target = m[1];
-          // Resolve relative to the current file's directory
-          const resolved = path.join(path.dirname(fileId), target).replace(/\\/g, '/');
-          edges.push({ source: fileId, target: resolved, type: 'includes' });
-          // Also try from repo root
-          if (resolved !== target) {
-            edges.push({ source: fileId, target: target, type: 'includes' });
-          }
-        }
-      }
-
-      for (const ns of importedNamespaces) {
-        // Exact match
-        const targets = nsToFiles.get(ns);
-        if (targets) {
-          for (const t of targets) {
-            if (t !== fileId) edges.push({ source: fileId, target: t, type: 'imports' });
-          }
-          continue;
-        }
-        // Prefix match: using Services.Auth → find all files whose namespace starts with that
-        for (const [key, files] of nsToFiles.entries()) {
-          if (key.startsWith(ns + '.') || ns.startsWith(key + '.')) {
-            for (const t of files) {
-              if (t !== fileId) edges.push({ source: fileId, target: t, type: 'imports' });
-            }
-          }
-        }
-      }
-    }
-
-    // Normalize edge targets to map to actual fileIds if they exist
-    const nodeIds = new Set(nodes.map(n => n.id));
-    edges.forEach(e => {
-      const possibleExts = ['.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.js', '.cs', '.java', '.py', '.go', '.rb', '.c', '.cpp', '.h', '.hpp'];
-      for (const ext of possibleExts) {
-        if (nodeIds.has(e.target + ext)) {
-          e.target = e.target + ext;
-          break;
-        }
-      }
-    });
-
-    // Deduplicate edges
-    const seen = new Set<string>();
-    const deduped = edges.filter(e => {
-      const k = edgeKey(e);
-      if (seen.has(k)) return false;
-      seen.add(k);
-      return true;
-    });
-
-    return { nodes, edges: deduped };
-  }
-
-  private static getAllFiles(dirPath: string, exts: string[], arrayOfFiles: string[] = []) {
-    const base = path.basename(dirPath);
-    if (['node_modules', '.git', 'bin', 'obj', 'target', '__pycache__', 'dist', 'build', '.vs', '.idea'].includes(base)) return arrayOfFiles;
-    
-    const files = fs.readdirSync(dirPath);
-    
-    files.forEach(file => {
-      const fullPath = path.join(dirPath, file);
-      let isDir = false;
-      try { isDir = fs.statSync(fullPath).isDirectory(); } catch { return; } // broken symlink
-      if (isDir) {
-        arrayOfFiles = this.getAllFiles(fullPath, exts, arrayOfFiles);
-      } else {
-        if (exts.some(ext => fullPath.endsWith(ext))) {
-          arrayOfFiles.push(fullPath);
-        }
-      }
-    });
-    
-    return arrayOfFiles;
   }
 }

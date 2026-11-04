@@ -11,6 +11,7 @@ import {
   type ChatCitations, type ChatEvidence, type ChatSnapshot, type ChatStructure,
 } from "./ProjectChatContext.js";
 import { ChatHistoryUseCases, parseConversationId } from "./ChatHistoryUseCases.js";
+import { citedHashes, enforceClaimLabels, minedCommitMatcher, type LabelCheck } from "../../../domain/mentor/claimLabels.js";
 
 const SYSTEM_PROMPT = `You are ArchTime AI, an assistant that explains how a software project's architecture evolved.
 
@@ -59,6 +60,8 @@ export interface ProjectChatResult {
   evidence: ChatCitations | null;
   model: { name: string; host: string; external: boolean };
   usage: { inputTokens: number; outputTokens: number } | null;
+  /** What the FACT / citation check changed in the model's answer before it was returned. */
+  labelCheck: LabelCheck;
   /** Where this exchange was saved; null when saving failed (the answer is still returned). */
   conversation: { id: string; title: string } | null;
 }
@@ -68,6 +71,18 @@ export interface ChatRunLog {
   record(input: RecordChatRunInput): Promise<unknown>;
 }
 const runLog: ChatRunLog = { record: input => LlmRunService.recordChat(input) };
+
+/** The mined commits of a project among some cited hashes; vanished commits (no longer in the repository) are left out. */
+export interface MinedCommitLookup {
+  among(projectId: string, hashes: string[]): Promise<{ hash: string; fullHash?: string | null }[]>;
+}
+const minedCommits: MinedCommitLookup = {
+  async among(projectId, hashes) {
+    if (!hashes.length) return [];
+    const shorts = [...new Set(hashes.map(h => h.slice(0, 7)))];
+    return SnapshotModel.find({ projectId, hash: { $in: shorts }, missingSince: null }).select("hash fullHash").lean<{ hash: string; fullHash?: string }[]>();
+  },
+};
 
 /** How long the user may be kept waiting for the accounting record; a slower write carries on in the background. */
 export const RUN_LOG_WAIT_MS = 3_000;
@@ -81,7 +96,19 @@ export class ProjectChatUseCase {
   constructor(
     private readonly history = new ChatHistoryUseCases(),
     private readonly runs: ChatRunLog = runLog,
+    private readonly commits: MinedCommitLookup = minedCommits,
   ) {}
+
+  /** Applies the FACT / citation rules (domain/mentor/claimLabels.ts) against the project's mined commits. */
+  private async checkLabels(projectId: string, answer: string): Promise<{ text: string; check: LabelCheck }> {
+    const cited = citedHashes(answer);
+    const known = cited.length ? await this.commits.among(projectId, cited) : [];
+    const result = enforceClaimLabels(answer, minedCommitMatcher(known));
+    if (result.check.downgraded || result.check.removedCitations.length) {
+      console.info(`[mentor] project ${projectId}: ${result.check.downgraded} FACT without a valid citation downgraded to INFERENCE; removed citations: ${result.check.removedCitations.join(", ") || "none"}`);
+    }
+    return result;
+  }
 
   /**
    * Accounting must never decide whether the user gets an answer, or which error: a log that fails is only reported, and a
@@ -154,18 +181,21 @@ export class ProjectChatUseCase {
     let conversation: ProjectChatResult["conversation"] = null;
     try {
       const used = usedTokens();
+      const checked = await this.checkLabels(projectId, answer.trim());
       const result = {
-        answer: answer.trim(),
-        evidence: citedEvidence(answer, evidences, snapshots),
+        answer: checked.text,
+        // Built from the checked text, so a removed citation shows no evidence either.
+        evidence: citedEvidence(checked.text, evidences, snapshots),
         model: { name: info.model, host: info.host, external: info.external },
         usage: used ? { inputTokens: used.inputTokens, outputTokens: used.outputTokens } : null,
+        labelCheck: checked.check,
       };
 
       // The answer is already paid for: a history that cannot be written must not take it away. The page is told it was not saved.
       try {
         conversation = await this.history.append({
           conversationId, projectId, userId: input.userId, question: turns[turns.length - 1].content, askedAt,
-          answer: { content: result.answer, evidence: result.evidence, model: result.model, usage: result.usage },
+          answer: { content: result.answer, evidence: result.evidence, model: result.model, usage: result.usage, labelCheck: result.labelCheck },
         });
       } catch (error) {
         console.error("Project chat: the conversation could not be saved.", error);

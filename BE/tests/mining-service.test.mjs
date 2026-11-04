@@ -191,6 +191,46 @@ test('a scan flags snapshots whose commit was force-pushed away, and clears the 
   assert.equal(snapOf(tip).missingSince, null, 'pushed back: the flag is cleared');
 });
 
+test('milestones: tagged commits are mined first, the rest follows, nothing is mined twice, and tags name the snapshots', async () => {
+  fakes.snap.rows.length = 0;
+  fakes.evid.rows.length = 0;
+  const hashes = git('log', '--reverse', '--format=%H').trim().split('\n');
+  git('tag', 'v0.1.0', hashes[1]); // lightweight
+  git('tag', '-a', 'v0.2.0', '-m', 'release', hashes[4]); // annotated: points at a tag object, peeled to the commit
+  try {
+    const only = await settled(await MiningService.startMiningJob(project._id, 'u1', { mode: 'milestones', force: false, milestonesOnly: true }));
+    assert.equal(only.status, 'completed', only.error);
+    assert.equal(only.total, 2, 'only the two releases');
+    assert.deepEqual(fakes.snap.rows.map((s) => s.fullHash).sort(), [hashes[1], hashes[4]].sort());
+    assert.deepEqual(fakes.snap.rows.map((s) => s.version).sort(), ['v0.1.0', 'v0.2.0']);
+    const v2 = fakes.snap.rows.find((s) => s.fullHash === hashes[4]);
+    assert.deepEqual(v2.tags, ['v0.2.0']);
+    assert.equal(v2.depAdded, 3, 'measured against the previous release on the same line: three imports were added in between');
+
+    const order = [];
+    const original = SnapshotModel.insertMany;
+    SnapshotModel.insertMany = async (docs, opts) => { order.push(...docs.map((d) => d.fullHash)); return original(docs, opts); };
+    try {
+      const rest = await settled(await MiningService.startMiningJob(project._id, 'u1', { mode: 'milestones', force: false }));
+      assert.equal(rest.status, 'completed', rest.error);
+      assert.equal(rest.total, 4, 'the releases are already mined');
+    } finally {
+      SnapshotModel.insertMany = original;
+    }
+    assert.deepEqual(order, [hashes[0], hashes[2], hashes[3], hashes[5]], 'the remaining commits, oldest first');
+    assert.equal(fakes.snap.rows.length, 6);
+    assert.equal(new Set(fakes.snap.rows.map((s) => s.fullHash)).size, 6, 'no duplicate snapshots');
+    assert.equal(fakes.snap.rows.find((s) => s.fullHash === hashes[4]).depAdded, 1, 'rebaselined once the commit before it was mined');
+
+    git('tag', 'v0.0.1', hashes[0]); // a release tagged after its commit was mined
+    const scan = await settled(await MiningService.startScanJob(project._id, 'u1'));
+    assert.equal(scan.status, 'completed', scan.error);
+    assert.equal(fakes.snap.rows.find((s) => s.fullHash === hashes[0]).version, 'v0.0.1', 'a scan names already mined snapshots too');
+  } finally {
+    for (const t of ['v0.0.1', 'v0.1.0', 'v0.2.0']) { try { git('tag', '-d', t); } catch {} }
+  }
+});
+
 test('a project registered with a local path is refused at mining time too', async () => {
   delete process.env.ARCHTIME_ALLOW_LOCAL_REPOS;
   try {

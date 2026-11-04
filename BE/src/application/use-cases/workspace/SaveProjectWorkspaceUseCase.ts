@@ -11,6 +11,7 @@ import {
   ConflictError,
   NotFoundError,
 } from "../../../shared/errors/AppError.js";
+import { requestedConfirmation, settleConfirmation } from "../../../domain/architecture/canonical.js";
 
 export interface SaveWorkspaceRequest {
   projectId: string;
@@ -86,17 +87,29 @@ export class SaveProjectWorkspaceUseCase {
 
     const current = await this.workspaceRepository.findByProjectId(projectId);
 
+    // The confirmation is decided here, never copied from the request: see domain/architecture/canonical.ts.
+    const request = requestedConfirmation(current?.diagram, diagram);
+    if (request === "confirm" && diagram.components.length === 0) {
+      throw new BadRequestError("Add at least one component before confirming the diagram.", "VALIDATION_ERROR");
+    }
+    // A confirmation names the revision it writes, so it is only made against a known revision.
+    const baseRevision = expectedRevision ?? (request === "confirm" ? current?.revision ?? 1 : undefined);
+    const confirmation = settleConfirmation({
+      stored: current?.diagram, incoming: diagram, request, userId, now: new Date(),
+      nextRevision: (baseRevision ?? current?.revision ?? 1) + 1,
+    });
+
     try {
       const saved = await this.workspaceRepository.save(
         {
           projectId,
-          revision: expectedRevision ?? 1,
-          diagram,
+          revision: baseRevision ?? 1,
+          diagram: { components: diagram.components, dependencies: diagram.dependencies, revision: diagram.revision, ...confirmation },
           rules: rules ?? [],
           decisions: keepProvenance(decisions ?? [], current?.decisions ?? [], userId),
           updatedBy: userId,
         },
-        expectedRevision,
+        baseRevision,
       );
 
       return saved;

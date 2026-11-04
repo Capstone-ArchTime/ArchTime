@@ -32,6 +32,7 @@ const DiagramSchema = new Schema(
     revision: { type: Number, default: 1 },
     confirmedAt: { type: Date, default: null },
     confirmedBy: { type: String, default: null },
+    confirmedRevision: { type: Number, default: null },
   },
   { _id: false },
 );

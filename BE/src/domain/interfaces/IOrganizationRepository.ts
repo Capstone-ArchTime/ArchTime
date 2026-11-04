@@ -20,6 +20,8 @@ export interface IOrganizationRepository {
   updateMemberRole(memberId: string, role: OrganizationRole): Promise<IOrganizationMember | null>;
   removeMember(memberId: string): Promise<boolean>;
   countOwners(organizationId: string): Promise<number>;
+  /** Every organization, newest first, for platform administration; `search` matches the name. */
+  findPaginated(filter: { page: number; limit: number; search?: string }): Promise<{ items: IOrganization[]; total: number }>;
 }
 
 /** Secrets go in as plain text and come back only through resolveSecret; encryption is the repository's concern. */

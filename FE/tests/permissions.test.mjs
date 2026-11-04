@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { canAccess, isAuthUser, loginDestination, maintainerRoutes, roles, roleHome } from '../src/auth/permissions.ts';
 
 const paths = {
-  'developer-analyst': ['/dashboard', '/projects', '/project', '/history', '/compare', '/evidence', '/insights', '/reports', ...maintainerRoutes],
-  'system-administrator': ['/system-administrator', '/system-administrator/users', '/system-administrator/audit-log', '/system-administrator/settings', '/system-administrator/mining-jobs'],
+  'developer-analyst': ['/dashboard', '/projects', '/project', '/history', '/compare', '/evidence', '/insights', '/reports', '/learning', '/learning/p1/path1', ...maintainerRoutes],
+  'system-administrator': ['/system-administrator', '/system-administrator/users', '/system-administrator/organizations', '/system-administrator/audit-log', '/system-administrator/settings', '/system-administrator/mining-jobs', '/system-administrator/ai-models', '/system-administrator/ai-metrics'],
 };
 
 test('the server hands out two system roles; maintaining a project is not one of them', () => {

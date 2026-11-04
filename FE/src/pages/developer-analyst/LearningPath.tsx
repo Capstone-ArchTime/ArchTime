@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { Alert, App, Button, Collapse, Progress, Radio, Skeleton, Tag } from 'antd';
+import { Alert, App, Button, Collapse, Progress, Radio, Skeleton, Tag, Tooltip } from 'antd';
+import { MAP_KIND, canonicalSummary } from '@/features/canonical-map';
 import { ArrowLeft, CheckCircle2, Circle, Sparkles } from 'lucide-react';
 import FeaturePage from '@/components/FeaturePage';
 import { evidenceHref } from '@/features/chat-answer';
@@ -252,6 +253,14 @@ export default function LearningPath() {
       <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm text-[#94a3b8]">Your progress</p><p className="text-sm font-mono">{progressText(progress)}</p></div>
       <Progress percent={progress.percent} status={finished ? 'success' : 'active'} />
     </div>
+    {refs?.canonical && <div className="flex flex-wrap items-center gap-2 text-xs text-[#94a3b8]" aria-label="Which architecture these steps refer to">
+      <Tooltip title={MAP_KIND.canonical.description}>
+        <Tag color={refs.canonical.confirmed ? MAP_KIND.canonical.color : 'gold'}>{refs.canonical.confirmed ? MAP_KIND.canonical.label : 'Draft component diagram'}</Tag>
+      </Tooltip>
+      <span>{refs.canonical.confirmed
+        ? `The components in these steps are the reference architecture. ${canonicalSummary(refs.canonical)}`
+        : 'The components in these steps come from a diagram no maintainer has confirmed yet; ask your mentor if something looks off.'}</span>
+    </div>}
     {finished && <Alert type="success" showIcon title="You finished this path" description="You can open any step again to review it." />}
     <Collapse
       activeKey={open}

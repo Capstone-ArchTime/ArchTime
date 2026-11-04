@@ -1,4 +1,5 @@
 import { apiRequest } from '@/api/client';
+import { canonicalStatus, type CanonicalStatus } from './canonical-map.ts';
 
 // Learning paths: written by a workspace's mentors, given to its members, followed step by step.
 // Server: BE/src/presentation/routes/onboarding.routes.ts. Design: docs/onboarding-paths-design.md.
@@ -146,8 +147,10 @@ export type WorkspaceRefs = {
   components: { id: string; name: string; kind: string; description: string }[];
   dependencies: { id: string; source: string; target: string; label: string }[];
   decisions: WorkspaceDecision[];
+  /** Whether these components are the canonical map (confirmed by a maintainer) or still a draft. */
+  canonical?: CanonicalStatus;
 };
-type RawWorkspace = { diagram?: { components?: WorkspaceRefs['components']; dependencies?: WorkspaceRefs['dependencies'] }; decisions?: Partial<WorkspaceDecision>[] };
+type RawWorkspace = { diagram?: { components?: WorkspaceRefs['components']; dependencies?: WorkspaceRefs['dependencies'] } & Record<string, unknown>; decisions?: Partial<WorkspaceDecision>[] };
 export async function getWorkspaceRefs(projectId: string, signal?: AbortSignal): Promise<WorkspaceRefs> {
   const d = data(await apiRequest<Envelope<{ workspace?: RawWorkspace }>>(`/projects/${encodeURIComponent(projectId)}/workspace`, { signal }), 'workspace');
   return {
@@ -158,6 +161,7 @@ export async function getWorkspaceRefs(projectId: string, signal?: AbortSignal):
       id: raw.id ?? '', number: raw.number ?? 0, title: raw.title ?? '', status: raw.status ?? '', context: raw.context ?? '', decision: raw.decision ?? '',
       alternatives: raw.alternatives ?? '', consequences: raw.consequences ?? '', componentIds: raw.componentIds ?? [], sources: raw.sources ?? [],
     })),
+    canonical: canonicalStatus(d.workspace?.diagram),
   };
 }
 

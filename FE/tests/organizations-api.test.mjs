@@ -4,6 +4,7 @@ import {
   addMember, buildRegistration, checkCredentialName, checkEmail, checkOrganizationName, checkToken, createCredential, isLastOwner,
   listCredentials, listOrganizations, memberActions, removeMember, workspaceSpaces,
 } from '../src/features/organizations-api.ts';
+import { mockGlobal } from './mock-global.mjs';
 Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, writable: true, value: undefined });
 Object.defineProperty(globalThis, 'localStorage', { configurable: true, writable: true, value: undefined });
 function storage(initial = {}) {
@@ -11,8 +12,8 @@ function storage(initial = {}) {
   return { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
 }
 const signedIn = t => {
-  t.mock.property(globalThis, 'sessionStorage', storage({ accessToken: 'token' }));
-  t.mock.property(globalThis, 'localStorage', storage());
+  mockGlobal(t, 'sessionStorage', storage({ accessToken: 'token' }));
+  mockGlobal(t, 'localStorage', storage());
 };
 const member = (id, role, userId = `u-${id}`) => ({ id, userId, name: id, email: `${id}@x.test`, role, createdAt: null });
 
@@ -86,7 +87,7 @@ test('API calls use the organization routes and read their envelopes', async t =
   assert.equal(created.last4, 'abcd');
   assert.equal('token' in created, false, 'the token never comes back');
   assert.equal((await listCredentials('o1'))[0].provider, 'other', 'unknown providers are shown as Other');
-  assert.deepEqual(await removeMember('o1', 'm9'), { removedProjectMemberships: 3 });
+  assert.deepEqual(await removeMember('o1', 'm9'), { removedProjectMemberships: 3, cancelledInvitations: 0 }, 'an older server that does not report invitations reads as none');
   assert.deepEqual(calls.map(c => c.split(' ').slice(0, 2).join(' ')), [
     'GET /api/organizations', 'POST /api/organizations/o1/members', 'POST /api/organizations/o1/credentials',
     'GET /api/organizations/o1/credentials', 'DELETE /api/organizations/o1/members/m9',

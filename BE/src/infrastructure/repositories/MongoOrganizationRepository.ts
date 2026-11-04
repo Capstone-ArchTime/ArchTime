@@ -98,4 +98,15 @@ export class MongoOrganizationRepository implements IOrganizationRepository {
   async countOwners(organizationId: string): Promise<number> {
     return OrganizationMemberModel.countDocuments({ organizationId, role: OrganizationRole.OWNER });
   }
+
+  async findPaginated(filter: { page: number; limit: number; search?: string }): Promise<{ items: IOrganization[]; total: number }> {
+    const query: Record<string, unknown> = {};
+    const search = filter.search?.trim();
+    if (search) query.name = { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
+    const [docs, total] = await Promise.all([
+      OrganizationModel.find(query).sort({ createdAt: -1 }).skip((filter.page - 1) * filter.limit).limit(filter.limit).lean(),
+      OrganizationModel.countDocuments(query),
+    ]);
+    return { items: docs.map(doc => this.toOrganization(doc as Record<string, unknown>)), total };
+  }
 }

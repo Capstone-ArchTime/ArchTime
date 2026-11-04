@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { App, Button, Empty, Form, Input, Modal, Popconfirm, Select, Spin, Tag } from 'antd';
+import { App, Button, Empty, Form, Input, Modal, Popconfirm, Select, Spin, Tag, Tooltip } from 'antd';
 import { CheckCircle2, Plus, Save } from 'lucide-react';
 import { WorkspacePage, StorageError, ConflictAlert } from './workspace';
 import { panel, useWorkspace } from './workspace-store';
 import type { Component, Dependency, Diagram } from './workspace-store';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { downloadText } from '@/features/download';
+import { MAP_KIND, canonicalStatus, canonicalSummary } from '@/features/canonical-map';
 
 function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyChange: (dirty: boolean) => void }) {
   const { data, save, saving, loading, loadError, loadErrorMessage, conflictError, reload, loadVersion } = useWorkspace(project);
@@ -28,7 +29,8 @@ function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyCha
 
   if (loading) return <div className="py-20 flex justify-center"><Spin /></div>;
   const options = draft.components.map(c => ({ label: c.name, value: c.id }));
-  function update(next: Diagram) { setDraft({ ...next, confirmedAt: null }); }
+  // Any edit makes the diagram a draft again; the server drops the confirmation too when the content changes.
+  function update(next: Diagram) { setDraft({ ...next, confirmedAt: null, confirmedByName: null, confirmedRevision: null }); }
   async function persist(confirm: boolean) {
     if (confirm && !draft.components.length) { message.error('Add at least one component before confirming.'); return; }
     const next = { ...draft, revision: data.diagram.revision, confirmedAt: confirm ? new Date().toISOString() : null };
@@ -50,10 +52,10 @@ function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyCha
     <ConflictAlert error={conflictError} dirty={dirty} onReload={reload} />
     <div className="flex flex-wrap gap-2"><Button onClick={() => downloadText('component-diagram.json', JSON.stringify({ project, diagram: data.diagram, source: 'archtime' }, null, 2))} disabled={loadError}>Export saved diagram</Button><Button disabled={!dirty} onClick={() => modal.confirm({ title: 'Discard unsaved diagram changes?', okText: 'Discard', okButtonProps: { danger: true }, onOk: () => setDraft(data.diagram) })}>Discard changes</Button></div>
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="flex flex-wrap items-center gap-2"><Tag color={draft.confirmedAt ? 'green' : 'gold'}>{draft.confirmedAt ? 'Confirmed' : 'Needs confirmation'}</Tag><span className="text-xs text-[#94a3b8]">Revision {data.diagram.revision}{dirty ? ' • Unsaved changes' : ' • Saved'}</span></div>
-      <div className="flex flex-wrap gap-2"><Button icon={<Save size={14} />} loading={saving} disabled={!dirty || loadError} onClick={() => persist(false)}>Save draft</Button><Button type="primary" icon={<CheckCircle2 size={14} />} disabled={loadError || saving || !draft.components.length || (!!draft.confirmedAt && !dirty)} onClick={() => modal.confirm({ title: 'Confirm this component diagram?', content: 'The current components and dependencies will become the reviewed diagram. Further edits will require confirmation again.', onOk: () => persist(true) })}>Confirm diagram</Button></div>
+      <div className="flex flex-wrap items-center gap-2"><Tooltip title={MAP_KIND.canonical.description}><Tag color={draft.confirmedAt ? 'green' : 'gold'}>{draft.confirmedAt ? 'Canonical map' : 'Draft · needs confirmation'}</Tag></Tooltip><span className="text-xs text-[#94a3b8]">Revision {data.diagram.revision}{dirty ? ' • Unsaved changes' : ' • Saved'}</span></div>
+      <div className="flex flex-wrap gap-2"><Button icon={<Save size={14} />} loading={saving} disabled={!dirty || loadError} onClick={() => persist(false)}>Save draft</Button><Button type="primary" icon={<CheckCircle2 size={14} />} disabled={loadError || saving || !draft.components.length || (!!draft.confirmedAt && !dirty)} onClick={() => modal.confirm({ title: 'Confirm this as the canonical map?', content: 'The current components and dependencies become the reference architecture newcomers learn from, with your name and this revision on it. Any later edit makes it a draft again until someone confirms it.', onOk: () => persist(true) })}>Confirm diagram</Button></div>
     </div>
-    {draft.confirmedAt && <p className="text-xs text-[#94a3b8]">Confirmed on {new Date(draft.confirmedAt).toLocaleString()}</p>}
+    {draft.confirmedAt && <p className="text-xs text-[#94a3b8]">{canonicalSummary(canonicalStatus(draft), iso => new Date(iso).toLocaleString())}</p>}
     <div className={panel}>
       <div className="flex flex-wrap justify-between gap-3 mb-4"><div><h3 className="text-lg font-semibold">Component map</h3><p className="text-xs text-[#94a3b8] mt-1">Dependency arrows point from caller to target. Select a component to edit.</p></div><Button icon={<Plus size={14} />} onClick={() => editComponent(null)}>Add component</Button></div>
       {!draft.components.length ? <Empty description="No components yet. Add a component to start your diagram." /> : <div className="overflow-x-auto bg-[#080b0e] border border-[#242527]">

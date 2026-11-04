@@ -52,6 +52,9 @@ import { ProjectAccessPolicy } from "./application/services/ProjectAccessPolicy.
 import { MongoOrganizationRepository } from "./infrastructure/repositories/MongoOrganizationRepository.js";
 import { MongoOrganizationCredentialRepository } from "./infrastructure/repositories/MongoOrganizationCredentialRepository.js";
 import { OrganizationUseCases } from "./application/use-cases/organizations/OrganizationUseCases.js";
+import { MongoPendingInvitationStore } from "./infrastructure/repositories/MongoPendingInvitationStore.js";
+import { GetAdminOrganizationsUseCase } from "./application/use-cases/admin/GetAdminOrganizationsUseCase.js";
+import { AdminOrganizationController } from "./presentation/controllers/AdminOrganizationController.js";
 import { OrganizationCredentialUseCases } from "./application/use-cases/organizations/OrganizationCredentialUseCases.js";
 import { OrganizationController } from "./presentation/controllers/OrganizationController.js";
 
@@ -79,7 +82,7 @@ export const projectAccessPolicy = new ProjectAccessPolicy(projectRepository, me
 const bcryptHasher = new BcryptHasher();
 
 // ── Organizations ──
-const organizationUseCases = new OrganizationUseCases(organizationRepository, userRepository, projectRepository, memberRepository);
+const organizationUseCases = new OrganizationUseCases(organizationRepository, userRepository, projectRepository, memberRepository, new MongoPendingInvitationStore());
 const organizationCredentialUseCases = new OrganizationCredentialUseCases(organizationUseCases, organizationCredentialRepository, projectRepository);
 export const organizationController = new OrganizationController(organizationUseCases, organizationCredentialUseCases);
 
@@ -167,6 +170,7 @@ const inviteProjectMemberUseCase = new InviteProjectMemberUseCase(
   memberRepository,
   projectRepository,
   userRepository,
+  organizationRepository,
 );
 const getProjectMembersUseCase = new GetProjectMembersUseCase(
   memberRepository,
@@ -228,6 +232,7 @@ export const workspaceRepository = new MongoWorkspaceRepository();
 const getProjectWorkspaceUseCase = new GetProjectWorkspaceUseCase(
   workspaceRepository,
   projectRepository,
+  userRepository,
 );
 const saveProjectWorkspaceUseCase = new SaveProjectWorkspaceUseCase(
   workspaceRepository,
@@ -339,6 +344,7 @@ export const adminControllersConfig: AdminControllersConfig = {
   settingsController: adminSettingsController,
   metricsController: adminMetricsController,
   llmController: adminLlmController,
+  organizationController: new AdminOrganizationController(new GetAdminOrganizationsUseCase(organizationRepository, projectRepository, userRepository)),
 };
 
 // ── Project Maintainer (PM) ──
@@ -420,10 +426,11 @@ export const projectMaintainerController = new ProjectMaintainerController({
     userRepository,
     emailService,
     env.corsOrigin,
+    organizationRepository,
   ),
   getInvitationsUseCase: new GetProjectInvitationsUseCase(),
   cancelInvitationUseCase: new CancelProjectInvitationUseCase(),
-  acceptInvitationUseCase: new AcceptProjectInvitationUseCase(memberRepository, userRepository),
+  acceptInvitationUseCase: new AcceptProjectInvitationUseCase(memberRepository, userRepository, projectRepository, organizationRepository),
   declineInvitationUseCase: new DeclineProjectInvitationUseCase(),
   getReportsUseCase: new GetProjectReportsUseCase(projectRepository),
   generateReportUseCase: new GenerateProjectReportUseCase(projectRepository, workspaceRepository),

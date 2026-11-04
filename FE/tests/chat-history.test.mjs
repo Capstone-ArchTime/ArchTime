@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { describeWhen, fromStored, lastModel } from '../src/features/chat-history.ts';
+import { describeWhen, fromStored, labelCheckNote, lastModel, readLabelCheck } from '../src/features/chat-history.ts';
 
 const ids = () => { let n = 0; return prefix => `${prefix}-${++n}`; };
 const evidence = { commits: ['a1b2c3d'], files: 12, dependencies: { added: 4, removed: 1 }, items: [] };
@@ -44,4 +44,24 @@ test('a time today is shown as Today, an older one with its date', () => {
   assert.doesNotMatch(older, /^Today/);
   assert.ok(older.length > 5);
   assert.equal(describeWhen('garbage', now), '');
+});
+
+test('the FACT / citation check is read defensively and only noted when it changed something', () => {
+  assert.equal(labelCheckNote(readLabelCheck({ downgraded: 0, removedCitations: [] })), null);
+  assert.equal(labelCheckNote(readLabelCheck(null)), null);
+  assert.equal(labelCheckNote(readLabelCheck({ downgraded: 'x', removedCitations: 'y' })), null, 'malformed reads as nothing changed');
+  assert.equal(
+    labelCheckNote(readLabelCheck({ downgraded: 1, removedCitations: ['badc0de'] })),
+    'Checked by ArchTime: 1 claim was marked FACT without citing a mined commit, so it now reads INFERENCE; 1 cited commit is not in this workspace\'s mined history and was removed (badc0de).',
+  );
+  assert.match(labelCheckNote({ downgraded: 2, removedCitations: [] }), /2 claims were marked FACT .* they now read INFERENCE\.$/);
+});
+
+test('a saved answer keeps its check; a question never carries one', () => {
+  const [question, answer] = fromStored([
+    { role: 'user', content: 'q', labelCheck: { downgraded: 1, removedCitations: [] }, createdAt: '2026-10-20T08:00:00.000Z' },
+    { role: 'assistant', content: '[INFERENCE] a', labelCheck: { downgraded: 1, removedCitations: [] }, createdAt: '2026-10-20T08:00:01.000Z' },
+  ], (() => { let n = 0; return prefix => `${prefix}-${++n}`; })());
+  assert.equal(question.labelCheck, undefined);
+  assert.deepEqual(answer.labelCheck, { downgraded: 1, removedCitations: [] });
 });
