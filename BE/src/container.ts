@@ -237,6 +237,7 @@ const getProjectWorkspaceUseCase = new GetProjectWorkspaceUseCase(
 const saveProjectWorkspaceUseCase = new SaveProjectWorkspaceUseCase(
   workspaceRepository,
   projectRepository,
+  userRepository,
 );
 
 export const workspaceController = new WorkspaceController(

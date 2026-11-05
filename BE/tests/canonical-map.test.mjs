@@ -152,3 +152,13 @@ test("Canonical map: only maintainers may confirm; members and viewers may not",
   assert.equal(await status("newcomer"), 403);
   assert.equal(await status("passer-by"), 403, "a viewer of a public project");
 });
+
+test("Canonical map: the answer to a confirming save already names the confirmer", async () => {
+  const ws = store();
+  const users = { async findById(id) { return id === "mentor" ? { id, name: "Mia Mentor" } : null; } };
+  const saved = await new SaveProjectWorkspaceUseCase(ws, projects, users).execute({
+    projectId: "p1", expectedRevision: 1, diagram: diagram([component("api")], [], { confirmedAt: new Date().toISOString() }), userId: "mentor",
+  });
+  assert.equal(saved.diagram.confirmedByName, "Mia Mentor");
+  assert.equal("confirmedByName" in ws.current.diagram, false, "the name is added to the answer, never stored");
+});

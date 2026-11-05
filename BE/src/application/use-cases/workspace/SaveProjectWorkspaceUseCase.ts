@@ -1,5 +1,6 @@
 import type { IWorkspaceRepository } from "../../../domain/interfaces/IWorkspaceRepository.js";
 import type { IProjectRepository } from "../../../domain/interfaces/IProjectRepository.js";
+import type { IUserRepository } from "../../../domain/interfaces/IUserRepository.js";
 import type {
   IWorkspace,
   IWorkspaceDiagram,
@@ -63,6 +64,8 @@ export class SaveProjectWorkspaceUseCase {
   constructor(
     private readonly workspaceRepository: IWorkspaceRepository,
     private readonly projectRepository: IProjectRepository,
+    /** Names the confirmer in the answer, as a read does, so the page shows who confirmed without reloading. */
+    private readonly users?: Pick<IUserRepository, "findById">,
   ) {}
 
   async execute(req: SaveWorkspaceRequest): Promise<IWorkspace> {
@@ -112,7 +115,10 @@ export class SaveProjectWorkspaceUseCase {
         baseRevision,
       );
 
-      return saved;
+      const by = saved.diagram?.confirmedAt && saved.diagram.confirmedBy && this.users
+        ? await this.users.findById(saved.diagram.confirmedBy).catch(() => null)
+        : null;
+      return { ...saved, diagram: { ...saved.diagram, confirmedByName: by?.name ?? null } };
     } catch (err: any) {
       if (err.isConflict) {
         throw new ConflictError(
