@@ -130,6 +130,20 @@ Một cặp được tính khi đã có `trueChanges` và đủ mọi `verdict`.
 - Quy tắc đã dùng: một thay đổi thật là một khối chức năng được thêm, bỏ, tách, gộp hay tổ chức lại, nhìn thấy qua một nhóm file mới hoặc bị xoá tạo thành một năng lực. Không tính các trường hợp chỉ sửa file, thêm 1–2 file vào vùng có sẵn, hay merge commit không đổi mã nguồn.
 - Vì người gán nhãn đầu là AI, **người thứ hai phải là thành viên nhóm**, làm độc lập và không mở phiếu của Claude. Báo cáo phải ghi rõ một người gán nhãn là AI.
 
+**Luật chung "chỉ sửa file"** (áp dụng cho mọi người gán nhãn): một cặp mà giữa hai mốc không có file nguồn nào được thêm, xoá hay chuyển chỗ, chỉ có file bị sửa, thì có `trueChanges = 0` và mọi thay đổi được báo ra đều là `wrong`. Tập phát triển có 12/36 cặp như vậy.
+
+**Người gán nhãn thứ hai chấm theo mẫu:** người thứ hai chấm một mẫu ngẫu nhiên gồm 10 trong 24 cặp có file được thêm, xoá hoặc chuyển chỗ, chọn với seed 2026 (`make_label_page.py cong --sample 10 --seed 2026`):
+- Mẫu gồm: 0eba04 cặp 4, 12, 17, 21, 22, 24, 26, 27; 1f8c4f cặp 2; Hackathon cặp 1.
+- Độ đồng thuận (kappa) chỉ tính trên các cặp trong mẫu.
+- Khi hợp nhất, cặp nào người thứ hai bỏ trống thì giữ nhãn của người thứ nhất.
+- Chỗ hai người lệch nhau trong mẫu được thống nhất rồi mới tính điểm.
+- Báo cáo phải ghi rõ: người thứ hai chỉ chấm mẫu 10/24 cặp.
+
+**Công cụ chấm:** `python "D:/FPT/Fall 2026/Capstone/_scratch/make_label_page.py" <tên>` tạo trang `BE/rq1-results/label-tool.html`.
+- Trang gom file mới, file bị xoá và file chuyển chỗ theo thư mục. Với mỗi nhóm, người chấm chọn: chức năng mới, cùng chức năng với nhóm đã chọn, hoặc không phải. `trueChanges` là số nhóm được chọn là "chức năng mới".
+- Trang chỉ hiện các thay đổi cần chấm sau khi đã trả lời xong phần này.
+- Trang không chứa phiếu hay khoá của người khác. Kết quả được tải về thành file `<workspace>.<tên>.json`.
+
 ## 5. Chỉ số và kiểm định
 
 - **A:** MoJoFM (0–100) của từng method so với tham chiếu, trên các file mà tham chiếu bao phủ.

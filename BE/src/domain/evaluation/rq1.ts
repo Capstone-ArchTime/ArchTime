@@ -261,8 +261,10 @@ export function agreement(a: LabelSheet, b: LabelSheet): Agreement {
 }
 
 /**
- * The reconciled sheet from the annotators' sheets: a value all annotators agree on is filled in; a disagreement stays
- * empty (or keeps what was already decided in `existing`) and is described in the note, to be settled together.
+ * The reconciled sheet from the annotators' sheets: a value all annotators who gave one agree on is filled in; a
+ * disagreement stays empty (or keeps what was already decided in `existing`) and is described in the note, to be settled
+ * together. An annotator who left a value empty does not count for it, so a second annotator may label only a sample of
+ * the pairs: the other pairs keep the first annotator's labels.
  */
 export function reconcile(sheets: LabelSheet[], existing?: LabelSheet | null): { sheet: LabelSheet; conflicts: number } {
   if (!sheets.length) throw new Error('reconcile needs at least one annotator sheet');
@@ -278,16 +280,18 @@ export function reconcile(sheets: LabelSheet[], existing?: LabelSheet | null): {
     const counts = all.map(q => q?.trueChanges ?? null);
     let trueChanges = prior?.trueChanges ?? null;
     if (trueChanges === null) {
-      if (counts.every(c => c !== null && c === counts[0])) trueChanges = counts[0];
-      else if (counts.some(c => c !== null)) { conflicts++; notes.push(`trueChanges: ${counts.map((c, i) => `${who(sheets[i], i)}=${c ?? '-'}`).join(', ')}`); }
+      const given = counts.filter((c): c is number => c !== null);
+      if (given.length && given.every(c => c === given[0])) trueChanges = given[0];
+      else if (given.length) { conflicts++; notes.push(`trueChanges: ${counts.map((c, i) => `${who(sheets[i], i)}=${c ?? '-'}`).join(', ')}`); }
     }
     const changes = p.changes.map((c): BlindChange => {
       const priorVerdict = prior?.changes.find(x => x.key === c.key)?.verdict ?? null;
       const vs = all.map(q => q?.changes.find(x => x.key === c.key)?.verdict ?? null);
       let verdict = priorVerdict;
       if (verdict === null) {
-        if (vs.every(v => v !== null && v === vs[0])) verdict = vs[0];
-        else if (vs.some(v => v !== null)) { conflicts++; notes.push(`${c.key}: ${vs.map((v, i) => `${who(sheets[i], i)}=${v ?? '-'}`).join(', ')}`); }
+        const given = vs.filter((v): v is Verdict => v !== null);
+        if (given.length && given.every(v => v === given[0])) verdict = given[0];
+        else if (given.length) { conflicts++; notes.push(`${c.key}: ${vs.map((v, i) => `${who(sheets[i], i)}=${v ?? '-'}`).join(', ')}`); }
       }
       const { note: _n, ...rest } = c;
       return { ...rest, verdict };

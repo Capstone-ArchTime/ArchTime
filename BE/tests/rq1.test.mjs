@@ -143,6 +143,17 @@ test('agreement of two annotators, and reconciliation keeps only what they agree
   sheet.pairs[1].trueChanges = 1;
   const again = reconcile([a, b], sheet);
   assert.equal(again.sheet.pairs[1].trueChanges, 1, 'a value settled in the reconciled sheet is kept');
+
+  // A second annotator who labels only a sample: the pairs they left empty keep the first annotator's labels.
+  const sample = structuredClone(a);
+  sample.annotator = 'binh';
+  sample.pairs[0].trueChanges = null;
+  for (const c of sample.pairs[0].changes) c.verdict = null;
+  const partial = reconcile([a, sample]);
+  assert.equal(partial.conflicts, 0);
+  assert.equal(partial.sheet.pairs[0].trueChanges, a.pairs[0].trueChanges);
+  assert.deepEqual(partial.sheet.pairs[0].changes.map(c => c.verdict), a.pairs[0].changes.map(c => c.verdict));
+  assert.equal(agreement(a, sample).pairs, 1, 'agreement only over the pairs both labelled');
 });
 
 test('recovery and stability tables have one column set per method; the report tests and warns', () => {
