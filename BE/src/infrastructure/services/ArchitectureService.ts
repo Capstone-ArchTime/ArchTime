@@ -16,6 +16,7 @@ import { validateView } from "../../domain/architecture/validate.js";
 import { matchComponents, trackLineages } from "../../domain/architecture/matching.js";
 import type { ComponentMatching, Lineage, MatchComponent } from "../../domain/architecture/matching.js";
 import { evaluateEvolution, UNASSIGNED_COMPONENT } from "../../domain/architecture/evaluation.js";
+import { anchorSequence } from "../../domain/architecture/anchored.js";
 import type { EvolutionEvaluation } from "../../domain/architecture/evaluation.js";
 import type { LlmCapability } from "../llm/runtime.js";
 import { LlmModelRegistry } from "../llm/registry.js";
@@ -99,6 +100,19 @@ export type CommitImpactsPayload = ArchitectureImpactBase & { snapshot: Snapshot
 );
 
 export interface ArchitectureOptions { minComponents?: number; maxComponents?: number }
+
+/** What the evaluation compares (RQ1). By default the stored grouping and the directory baseline. */
+export interface EvaluationOptions {
+  depth?: number;
+  /** Only these snapshots (for example the milestones of an evaluation); by default every snapshot with components. */
+  snapshotIds?: string[];
+  /** Also measure the deterministic clustering alone (no AI). */
+  clustering?: boolean;
+  /** Also measure the recovered grouping anchored on the previous snapshot (domain/architecture/anchored.ts). */
+  anchored?: boolean | { tolerance?: number };
+  /** List the member files of the components in every change (for the RQ1 label sheets). */
+  withFiles?: boolean;
+}
 
 /** Who asked for a refinement and with which model; recorded with the run. */
 export interface RefineRunContext {
@@ -315,17 +329,40 @@ export class ArchitectureService {
    * domain/architecture/evaluation.ts): agreement with the reference architecture, stability between snapshots, and the
    * structural changes each one shows.
    */
-  public static async evaluation(projectId: string, options: { depth?: number } = {}): Promise<ArchitectureEvaluationPayload> {
-    const [{ snapshots, bySnapshot }, reference] = await Promise.all([
+  public static async evaluation(projectId: string, options: EvaluationOptions = {}): Promise<ArchitectureEvaluationPayload> {
+    const [{ snapshots: all, bySnapshot }, reference] = await Promise.all([
       this.mappedSnapshots(projectId),
       ArchitectureReferenceModel.findOne({ projectId }).lean(),
     ]);
+    const only = options.snapshotIds?.length ? new Set(options.snapshotIds) : null;
+    const snapshots = only ? all.filter(s => only.has(String(s._id))) : all;
+    const asMatch = (components: { id: string; name: string; memberIds: string[] }[]): MatchComponent[] =>
+      components.map(c => ({ id: c.id, name: c.name, memberIds: c.memberIds }));
     const inputs = snapshots.map(s => {
       const mapping = bySnapshot.get(String(s._id))!;
-      const view = buildView({ projectId, snapshotId: String(s._id), title: s.title ?? "Snapshot", generator: mapping.generator }, this.toGraph(s), mapping.components);
-      return { snapshotId: String(s._id), components: view.components.map(c => ({ id: c.id, name: c.name, memberIds: c.memberIds })), generator: mapping.generator };
+      const graph = this.toGraph(s);
+      const meta = { projectId, snapshotId: String(s._id), title: s.title ?? "Snapshot", generator: mapping.generator };
+      const view = buildView(meta, graph, mapping.components);
+      const variants: Record<string, MatchComponent[]> = {};
+      if (options.clustering) {
+        // The deterministic clustering alone, with the component range the stored grouping was made with.
+        const range = { minComponents: mapping.options?.minComponents ?? 8, maxComponents: mapping.options?.maxComponents ?? 15 };
+        variants.clustering = asMatch(buildView({ ...meta, generator: "cluster-only" }, graph, proposeMapping(graph, range).components).components);
+      }
+      return {
+        snapshotId: String(s._id), components: asMatch(view.components), generator: mapping.generator, variants,
+        edges: options.anchored ? fileDependencies(graph).edges : [],
+      };
     });
-    const result = evaluateEvolution(inputs, { reference: reference?.components ?? null, baseline: options.depth ? { depth: options.depth } : {} });
+    if (options.anchored) {
+      const tolerance = typeof options.anchored === "object" ? options.anchored.tolerance : undefined;
+      const anchored = anchorSequence(inputs.map(i => ({ components: i.components, edges: i.edges })), tolerance === undefined ? {} : { tolerance });
+      inputs.forEach((input, k) => { input.variants.anchored = anchored[k].components; });
+    }
+    const result = evaluateEvolution(
+      inputs.map(({ snapshotId, components, variants }) => ({ snapshotId, components, variants })),
+      { reference: reference?.components ?? null, baseline: options.depth ? { depth: options.depth } : {}, withFiles: options.withFiles ?? false },
+    );
     return {
       ...result,
       snapshots: result.snapshots.map((e, i) => ({ ...e, snapshot: this.summary(snapshots[i]), generator: inputs[i].generator })),
