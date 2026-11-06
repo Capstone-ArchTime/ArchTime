@@ -30,6 +30,27 @@ Phần tính toán nằm ở `BE/src/domain/evaluation/rq1.ts` (phiếu nhãn, �
 3. Có tài liệu kiến trúc (ARCHITECTURE.md, ADR, thư mục docs) để viết tham chiếu mà không cần nhìn kết quả ArchTime.
 4. Không phải repo của nhóm. Có ít nhất một repo mà cấu trúc thư mục **không** phản ánh đúng kiến trúc chức năng.
 
+### Tập kiểm tra đã chọn (07/11/2026)
+
+Số liệu lấy từ GitHub API ngày 07/11/2026 (nhánh mặc định). "File nguồn" là số file .ts/.tsx/.js/.jsx/.mjs/.cjs, đã bỏ test, build, docs, examples và scripts.
+
+| Repo | JS/TS | File nguồn | Tag | Có từ | Tài liệu kiến trúc |
+|---|---|---|---|---|---|
+| outline/outline | 99% | 2.012 | 255 | 2016 | `docs/ARCHITECTURE.md` |
+| facebook/docusaurus | 98% | 690 | 189 | 2017 | `website/docs/advanced/architecture.mdx` |
+| actualbudget/actual | 99% | 1.824 | 64 | 2022 | `packages/docs/.../project-details/architecture.md`, ADR |
+| marmelab/react-admin | 100% | 1.056 | 448 | 2016 | `docs/Architecture.md` |
+| remix-run/react-router | 100% | 512 | 1.081 | 2014 | thư mục `decisions/` (ADR) |
+
+- **Tiêu chí 4:** outline thoả. Thư mục của nó chia theo tầng (`app/`, `server/`, `shared/`), còn các khối chức năng (document, collection, search, auth...) cắt ngang các tầng.
+- **Repo bị loại:**
+  - eslint/eslint: viết bằng CommonJS (`require`), mà bộ trích xuất chỉ đọc `import` kiểu ES (LI-02), nên đồ thị phụ thuộc gần như rỗng.
+  - excalidraw, typeorm, nest, vite, insomnia: không có tài liệu kiến trúc.
+  - immich: chỉ 53% mã là JS/TS.
+  - bruno, astro: tài liệu "architecture" chỉ là file hướng dẫn cho AI.
+- **Dự phòng** (nếu một repo không mine được): tldraw/tldraw, keystonejs/keystone.
+- **Lịch sử lớn:** với repo có lịch sử dài (outline, react-router), chỉ mine một cửa sổ 2–3 năm gần nhất chứa đủ release tag, rồi chọn khoảng 12 tag minor bằng `--tags`. Ghi lại cửa sổ đã dùng.
+
 ## 2. Chuẩn bị dữ liệu
 
 1. **Tạo workspace và mine toàn bộ lịch sử** của mỗi repo (Manage mining → Scan → Mine remaining), để các commit có tag đều có snapshot.
@@ -103,6 +124,11 @@ Quy trình cho mỗi workspace:
 Một cặp được tính khi đã có `trueChanges` và đủ mọi `verdict`. Nếu một method có nhiều thay đổi `correct` hơn `trueChanges`, báo cáo liệt kê cặp đó ở mục *Label problems* và chỉ tính tối đa bằng `trueChanges`.
 
 Ước lượng công sức: khoảng 5–10 phút cho mỗi cặp, với mỗi người.
+
+**Trạng thái tập phát triển (07/11/2026):**
+- 36 cặp đã được gán nhãn bởi **một** người gán nhãn là trợ lý AI (Claude), trong file `labels/<workspace>.claude.json`.
+- Quy tắc đã dùng: một thay đổi thật là một khối chức năng được thêm, bỏ, tách, gộp hay tổ chức lại, nhìn thấy qua một nhóm file mới hoặc bị xoá tạo thành một năng lực. Không tính các trường hợp chỉ sửa file, thêm 1–2 file vào vùng có sẵn, hay merge commit không đổi mã nguồn.
+- Vì người gán nhãn đầu là AI, **người thứ hai phải là thành viên nhóm**, làm độc lập và không mở phiếu của Claude. Báo cáo phải ghi rõ một người gán nhãn là AI.
 
 ## 5. Chỉ số và kiểm định
 
