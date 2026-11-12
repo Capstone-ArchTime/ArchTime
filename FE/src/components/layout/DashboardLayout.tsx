@@ -121,7 +121,7 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
           </Dropdown>
         </div>
       </header>
-      <main id="main-content" ref={mainRef} tabIndex={-1} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 xl:p-9 focus:outline-none">
+      <main id="main-content" ref={mainRef} tabIndex={-1} className="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 xl:p-9 focus:outline-none">
         <h1 className="sr-only">{currentPage}</h1>{children}
       </main>
     </div>

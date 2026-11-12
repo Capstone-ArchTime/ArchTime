@@ -5,7 +5,7 @@ import { passwordRequirements } from '@/features/profile-validation';
 export default function PasswordRequirements({ id, password }: { id: string; password: string }) {
   const rules = passwordRequirements(password);
   const met = rules.filter(rule => rule.met).length;
-  return <div id={id} className="mt-2 rounded border border-[var(--at-line)] bg-[var(--at-panel)] p-3">
+  return <div id={id} className="relative mt-2 rounded border border-[var(--at-line)] bg-[var(--at-panel)] p-3">
     <div className="mb-2 flex gap-1" aria-hidden="true">
       {rules.map((rule, index) => <div key={rule.label} className={`h-1 flex-1 transition-colors ${index < met ? (met === rules.length ? 'bg-green-400' : 'bg-amber-400') : 'bg-[var(--at-line)]'}`} />)}
     </div>
