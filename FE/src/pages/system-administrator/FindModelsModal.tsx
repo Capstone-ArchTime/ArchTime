@@ -78,7 +78,7 @@ export default function FindModelsModal({ start, models, onClose, onAdded }: { s
 
   const rows = (found ?? []).filter(m => !onlyFree || m.free);
   const columns: ColumnsType<DiscoveredModel> = [
-    { title: 'Model', render: (_, m) => <div><span className="font-mono text-xs">{m.id}</span>{m.name && <span className="block text-[11px] text-[#94a3b8]">{m.name}</span>}</div> },
+    { title: 'Model', render: (_, m) => <div><span className="font-mono text-xs">{m.id}</span>{m.name && <span className="block text-[11px] text-[var(--at-muted)]">{m.name}</span>}</div> },
     { title: '', width: 150, render: (_, m) => <span className="flex flex-wrap gap-1">
       {m.free && <Tag color="green">Free</Tag>}
       {m.registered && <Tag>Added</Tag>}
@@ -90,7 +90,7 @@ export default function FindModelsModal({ start, models, onClose, onAdded }: { s
 
   return <Modal open title="Find models" width={760} onCancel={onClose} destroyOnHidden
     footer={<div className="flex items-center justify-between gap-2">
-      <span className="text-xs text-[#94a3b8]">{found ? `${selected.length} selected` : ''}</span>
+      <span className="text-xs text-[var(--at-muted)]">{found ? `${selected.length} selected` : ''}</span>
       <span className="flex gap-2"><Button onClick={onClose}>Cancel</Button><Button type="primary" disabled={!selected.length} loading={busy === 'add'} onClick={() => void add()}>Add {selected.length || ''} and test</Button></span>
     </div>}>
     <div className="space-y-3">
@@ -102,7 +102,7 @@ export default function FindModelsModal({ start, models, onClose, onAdded }: { s
           <Input className="mt-1" value={baseUrl} disabled={preset.provider !== 'openai-compatible'} placeholder={preset.provider === 'openai-compatible' ? 'https://…/v1' : 'Provider default'} onChange={e => { setBaseUrl(e.target.value); setFound(null); }} />
         </label>
       </div>
-      <p className="text-xs text-[#94a3b8]">{preset.hint}{preset.keyUrl && <> Get a key at <a href={preset.keyUrl} target="_blank" rel="noreferrer" className="text-[#93c5fd]">{new URL(preset.keyUrl).host}</a>.</>}</p>
+      <p className="text-xs text-[var(--at-muted)]">{preset.hint}{preset.keyUrl && <> Get a key at <a href={preset.keyUrl} target="_blank" rel="noreferrer" className="text-[var(--at-link)]">{new URL(preset.keyUrl).host}</a>.</>}</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm">API key{preset.keyOptional ? ' (optional)' : ''}
           <Input.Password className="mt-1" autoComplete="new-password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder={keyFrom ? 'Using a stored key' : ''} />

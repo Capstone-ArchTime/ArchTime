@@ -47,7 +47,7 @@ function StepEditor({ index, count, step, problems, assessment, refs, commits, o
   return <section className={`${featurePanel} space-y-3`} aria-label={`Step ${n}`}>
     <div className="flex flex-wrap items-center justify-between gap-2">
       <div className="flex items-center gap-2">
-        <span className="font-mono text-sm text-[#94a3b8]">{n}.</span>
+        <span className="font-mono text-sm text-[var(--at-muted)]">{n}.</span>
         {step.id
           ? <Tag>{kindLabel(step.kind)}</Tag>
           : <Select size="small" aria-label={`Kind of step ${n}`} value={step.kind} onChange={kind => onChange({ kind })} options={STEP_KINDS.map(k => ({ value: k.kind, label: k.label }))} className="w-40" />}
@@ -101,7 +101,7 @@ function StepEditor({ index, count, step, problems, assessment, refs, commits, o
         {fieldError(problems['question.prompt'])}
       </div>
       <fieldset className="space-y-2">
-        <legend className="mb-1 text-xs text-[#94a3b8]">Answers: select the right one</legend>
+        <legend className="mb-1 text-xs text-[var(--at-muted)]">Answers: select the right one</legend>
         <Radio.Group value={q.correctIndex} onChange={e => setQuestion({ correctIndex: e.target.value as number })} className="flex w-full flex-col gap-2">
           {q.options.map((option, i) => (
             <div key={i} className="flex items-center gap-2">
@@ -211,7 +211,7 @@ export default function PathEditor() {
     modal.confirm({ title: 'Load the latest version?', content: 'Your unsaved changes will be discarded. Copy anything you want to keep before continuing.', okText: 'Discard and load latest', okButtonProps: { danger: true }, onOk: reload });
   }
 
-  const back = <Link to={`/learning?tab=manage&workspace=${encodeURIComponent(projectId)}`} className="inline-flex items-center gap-1 text-sm text-[#93c5fd]"><ArrowLeft size={14} aria-hidden="true" />Manage paths</Link>;
+  const back = <Link to={`/learning?tab=manage&workspace=${encodeURIComponent(projectId)}`} className="inline-flex items-center gap-1 text-sm text-[var(--at-link)]"><ArrowLeft size={14} aria-hidden="true" />Manage paths</Link>;
   const title = isNew ? 'New learning path' : 'Edit learning path';
   const description = 'Steps explain components, commits and design decisions of this workspace, and check understanding with questions.';
 
@@ -227,31 +227,31 @@ export default function PathEditor() {
 
     <section className={`${featurePanel} space-y-4`} aria-label="About this path">
       <div>
-        <label htmlFor="path-title" className="mb-1 block text-xs text-[#94a3b8]">Title</label>
+        <label htmlFor="path-title" className="mb-1 block text-xs text-[var(--at-muted)]">Title</label>
         <Input id="path-title" placeholder="For example: Week 1, the billing core" maxLength={120} value={draft.title} status={problems.path.title ? 'error' : undefined} onChange={e => change({ title: e.target.value })} />
         {fieldError(problems.path.title)}
       </div>
       <div>
-        <label htmlFor="path-description" className="mb-1 block text-xs text-[#94a3b8]">Description</label>
+        <label htmlFor="path-description" className="mb-1 block text-xs text-[var(--at-muted)]">Description</label>
         <Input.TextArea id="path-description" placeholder="Who is this for, and what will they know afterwards?" rows={3} maxLength={2000} value={draft.description} onChange={e => change({ description: e.target.value })} />
         {fieldError(problems.path.description)}
       </div>
       <div>
-        <p className="mb-1 text-xs text-[#94a3b8]">Who can see it</p>
+        <p className="mb-1 text-xs text-[var(--at-muted)]">Who can see it</p>
         <Segmented value={draft.status} onChange={v => change({ status: v as PathDraft['status'] })} options={[{ value: 'draft', label: 'Draft: only you' }, { value: 'published', label: 'Published: people it is given to' }]} />
         {fieldError(problems.path.status)}
       </div>
     </section>
 
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <h3 className="text-lg font-semibold">Steps <span className="text-sm font-normal text-[#94a3b8]">{draft.steps.length} of {MAX_STEPS}</span></h3>
+      <h3 className="text-lg font-semibold">Steps <span className="text-sm font-normal text-[var(--at-muted)]">{draft.steps.length} of {MAX_STEPS}</span></h3>
       <div className="flex flex-wrap gap-2" role="group" aria-label="Add a step">
         {STEP_KINDS.map(k => <Button key={k.kind} icon={<Plus size={14} />} title={k.hint} disabled={draft.steps.length >= MAX_STEPS} onClick={() => addStep(k.kind)}>{k.label}</Button>)}
       </div>
     </div>
     {fieldError(problems.path.steps)}
 
-    {!draft.steps.length && <div className={`${featurePanel} text-sm text-[#94a3b8]`}>No steps yet. Add a component, a commit, a design decision or a question to start.</div>}
+    {!draft.steps.length && <div className={`${featurePanel} text-sm text-[var(--at-muted)]`}>No steps yet. Add a component, a commit, a design decision or a question to start.</div>}
     {draft.steps.map((step, i) => (
       <div key={step.key}>
         <StepEditor index={i} count={draft.steps.length} step={step} problems={problems.steps[i] ?? {}} assessment={serverPath?.steps.find(s => s.id === step.id)?.assessment}
@@ -260,8 +260,8 @@ export default function PathEditor() {
       </div>
     ))}
 
-    <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border border-[#242527] bg-[#0b0f13] p-3">
-      <p className="text-xs text-[#94a3b8]">{isNew ? 'Not saved yet.' : `Revision ${serverPath?.revision ?? ''}${dirty ? ' · unsaved changes' : ' · saved'}`}</p>
+    <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border border-[var(--at-line)] bg-[#0b0f13] p-3">
+      <p className="text-xs text-[var(--at-muted)]">{isNew ? 'Not saved yet.' : `Revision ${serverPath?.revision ?? ''}${dirty ? ' · unsaved changes' : ' · saved'}`}</p>
       <div className="flex gap-2">
         {!isNew && <Button disabled={!dirty || saving} onClick={() => serverPath && adopt(serverPath)}>Discard changes</Button>}
         <Button type="primary" loading={saving} disabled={!isNew && !dirty} onClick={() => void save()}>{isNew ? 'Create path' : 'Save'}</Button>

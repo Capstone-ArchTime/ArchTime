@@ -39,7 +39,7 @@ function Section({ icon, title, hint, children }: { icon: ReactNode; title: stri
     <section aria-label={title} className="space-y-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="flex items-center gap-2 text-lg font-semibold">{icon}{title}</h3>
-        {hint && <span className="text-xs text-[#94a3b8]">{hint}</span>}
+        {hint && <span className="text-xs text-[var(--at-muted)]">{hint}</span>}
       </div>
       {children}
     </section>
@@ -53,9 +53,9 @@ function Failed({ load }: { load: Load<unknown> }) {
 function Tile({ label, value, detail }: { label: string; value: ReactNode; detail?: ReactNode }) {
   return (
     <div className={featurePanel}>
-      <p className="text-xs uppercase tracking-wider text-[#94a3b8]">{label}</p>
+      <p className="text-xs uppercase tracking-wider text-[var(--at-muted)]">{label}</p>
       <p className="mt-2 text-2xl font-bold">{value}</p>
-      {detail && <p className="mt-1 text-xs text-[#94a3b8]">{detail}</p>}
+      {detail && <p className="mt-1 text-xs text-[var(--at-muted)]">{detail}</p>}
     </div>
   );
 }
@@ -68,8 +68,8 @@ function WorkspaceRow({ workspace, link }: { workspace: MyWorkspace; link: strin
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 py-3">
       <div className="min-w-0">
-        <p className="font-medium break-words">{link ? <Link to={link} className="hover:text-[#93c5fd]">{workspace.name}</Link> : workspace.name}</p>
-        <p className="text-xs text-[#94a3b8]">
+        <p className="font-medium break-words">{link ? <Link to={link} className="hover:text-[var(--at-link)]">{workspace.name}</Link> : workspace.name}</p>
+        <p className="text-xs text-[var(--at-muted)]">
           {workspace.totalCommits !== null ? `${workspace.totalCommits} commits` : 'History not scanned yet'}
           {last && ` · last commit ${last}`}
         </p>
@@ -112,7 +112,7 @@ export default function MyWork() {
           detail={learning ? `${learning.finished} of ${learning.assigned} paths finished` : null} />
       </div>
 
-      <Section icon={<Building2 size={18} className="text-[#93c5fd]" />} title="Organizations">
+      <Section icon={<Building2 size={18} className="text-[var(--at-link)]" />} title="Organizations">
         {organizations.error ? <Failed load={organizations} /> : !organizations.data ? <Skeleton active paragraph={{ rows: 2 }} /> : !orgs.length ? (
           <div className={featurePanel}><Empty description="You do not belong to an organization. Your workspaces are in your personal space." /></div>
         ) : (
@@ -123,8 +123,8 @@ export default function MyWork() {
                   <h4 className="font-semibold break-words">{o.name}</h4>
                   <Tag color={o.myRole === 'owner' ? 'blue' : undefined}>{ORGANIZATION_ROLE_LABELS[o.myRole]}</Tag>
                 </div>
-                {o.description && <p className="mt-1 text-sm text-[#94a3b8] line-clamp-2">{o.description}</p>}
-                <p className="mt-3 text-xs text-[#94a3b8]">
+                {o.description && <p className="mt-1 text-sm text-[var(--at-muted)] line-clamp-2">{o.description}</p>}
+                <p className="mt-3 text-xs text-[var(--at-muted)]">
                   {o.memberCount} {o.memberCount === 1 ? 'member' : 'members'}
                   {workspaces.data && ` · ${perOrg.get(o.id) ?? 0} of your workspaces`}
                 </p>
@@ -134,7 +134,7 @@ export default function MyWork() {
         )}
       </Section>
 
-      <Section icon={<FolderKanban size={18} className="text-[#93c5fd]" />} title="Workspaces"
+      <Section icon={<FolderKanban size={18} className="text-[var(--at-link)]" />} title="Workspaces"
         hint={workspaces.data && workspaces.data.total > list.length ? `Showing the first ${MAX_WORKSPACES} of ${workspaces.data.total}` : undefined}>
         {workspaces.error ? <Failed load={workspaces} /> : !workspaces.data ? <Skeleton active paragraph={{ rows: 4 }} /> : !list.length ? (
           <div className={featurePanel}><Empty description="No workspaces yet. Add a repository, or ask a maintainer to invite you to theirs." /></div>
@@ -142,11 +142,11 @@ export default function MyWork() {
           <div className="space-y-3">
             {groupWorkspaces(list, orgs).map(group => (
               <div key={group.key} className={featurePanel}>
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#242527] pb-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--at-line)] pb-2">
                   <h4 className="font-semibold">{group.title}</h4>
-                  <span className="text-xs text-[#94a3b8]">{group.workspaces.length} {group.workspaces.length === 1 ? 'workspace' : 'workspaces'}</span>
+                  <span className="text-xs text-[var(--at-muted)]">{group.workspaces.length} {group.workspaces.length === 1 ? 'workspace' : 'workspaces'}</span>
                 </div>
-                <ul className="divide-y divide-[#242527]">
+                <ul className="divide-y divide-[var(--at-line)]">
                   {group.workspaces.map(w => <WorkspaceRow key={w.id} workspace={w} link={workspaceLink(w.id)} />)}
                 </ul>
               </div>
@@ -155,23 +155,23 @@ export default function MyWork() {
         )}
       </Section>
 
-      <Section icon={<GraduationCap size={18} className="text-[#93c5fd]" />} title="Learning progress"
+      <Section icon={<GraduationCap size={18} className="text-[var(--at-link)]" />} title="Learning progress"
         hint={learning && learning.assigned > 0 ? `${learning.inProgress} in progress · ${learning.notStarted} not started` : undefined}>
         {paths.error ? <Failed load={paths} /> : !paths.data ? <Skeleton active paragraph={{ rows: 3 }} /> : !paths.data.length ? (
           <div className={featurePanel}><Empty description="No learning paths given to you yet." /></div>
         ) : (
-          <ul className={`${featurePanel} divide-y divide-[#242527]`}>
+          <ul className={`${featurePanel} divide-y divide-[var(--at-line)]`}>
             {orderPaths(paths.data).map(p => {
               const link = pathLink(p);
               const finished = p.total > 0 && p.done >= p.total;
               return (
                 <li key={`${p.projectId}:${p.pathId}`} className="grid gap-2 py-3 md:grid-cols-[1fr_minmax(160px,240px)] md:items-center">
                   <div className="min-w-0">
-                    <p className="font-medium break-words">{link ? <Link to={link} className="hover:text-[#93c5fd]">{p.title}</Link> : p.title}</p>
-                    <p className="text-xs text-[#94a3b8]">{p.projectName ?? 'Workspace'} · last activity {date(p.lastActivityAt)}</p>
+                    <p className="font-medium break-words">{link ? <Link to={link} className="hover:text-[var(--at-link)]">{p.title}</Link> : p.title}</p>
+                    <p className="text-xs text-[var(--at-muted)]">{p.projectName ?? 'Workspace'} · last activity {date(p.lastActivityAt)}</p>
                   </div>
                   <div>
-                    <div className="flex justify-between text-xs text-[#94a3b8]"><span>{progressText(p)}</span><span>{p.percent}%</span></div>
+                    <div className="flex justify-between text-xs text-[var(--at-muted)]"><span>{progressText(p)}</span><span>{p.percent}%</span></div>
                     <Progress percent={p.percent} showInfo={false} size="small" status={finished ? 'success' : 'active'} />
                   </div>
                 </li>

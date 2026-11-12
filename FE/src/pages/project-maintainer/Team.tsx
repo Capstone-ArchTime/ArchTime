@@ -157,7 +157,7 @@ function TeamView({ projects }: { projects: ProjectSummary[] }) {
       {loading && !members.length ? (
         <div className="p-12 text-center">
           <Spin />
-          <p className="mt-3 text-[#94a3b8]">Loading team...</p>
+          <p className="mt-3 text-[var(--at-muted)]">Loading team...</p>
         </div>
       ) : (
         <Table
@@ -173,7 +173,7 @@ function TeamView({ projects }: { projects: ProjectSummary[] }) {
               render: (_, r: TeamRow) => (
                 <div>
                   {r.name}
-                  <p className="text-xs text-[#94a3b8]">{r.email}</p>
+                  <p className="text-xs text-[var(--at-muted)]">{r.email}</p>
                 </div>
               ),
             },
@@ -203,7 +203,7 @@ function TeamView({ projects }: { projects: ProjectSummary[] }) {
               title: 'Actions',
               render: (_, r: TeamRow) =>
                 r.isOwner ? (
-                  <span className="text-xs text-[#94a3b8]">Workspace owner</span>
+                  <span className="text-xs text-[var(--at-muted)]">Workspace owner</span>
                 ) : (
                   <Button
                     danger

@@ -5,7 +5,7 @@ import { describeAccessError } from './managed-access';
 import { emptyWorkspace, fetchServerWorkspace, isRevisionConflict, isServerProjectId, saveServerWorkspace } from '@/features/workspace-sync';
 import type { Workspace } from '@/features/workspace-sync';
 
-export const panel = 'border border-[#242527] bg-[#11161b] p-5';
+export const panel = 'border border-[var(--at-line)] bg-[var(--at-panel)] p-5';
 export type { Component, Dependency, Diagram, Rule, Decision, Workspace } from '@/features/workspace-sync';
 
 type LoadState = {

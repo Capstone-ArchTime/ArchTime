@@ -85,17 +85,17 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-10">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#161d24] border border-[#242527] mb-4">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] shadow-[0_0_5px_#3b82f6]"></div>
-            <span className="text-[10px] text-[#93c5fd] tracking-wider font-semibold uppercase" style={{ fontFamily: fontFamily.mono }}>
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[var(--at-panel-2)] border border-[var(--at-line)] mb-4">
+            <div className="w-1.5 h-1.5 rounded-full bg-[var(--at-accent)] shadow-[0_0_5px_#3b82f6]"></div>
+            <span className="text-[10px] text-[var(--at-link)] tracking-wider font-semibold uppercase" style={{ fontFamily: fontFamily.mono }}>
               Project Maintainer Workspace
             </span>
           </div>
 
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Workspace &amp; architecture overview</h2>
-              <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
+              <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)] mb-2">Workspace &amp; architecture overview</h2>
+              <p className="text-[var(--at-muted)] text-sm max-w-xl leading-relaxed">
                 Track architecture health, review changes, manage teams, and document diagrams, rules, and design decisions.
               </p>
             </div>
@@ -111,7 +111,7 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
               <Button loading={loading} onClick={refresh}>Refresh</Button>
             </div>
           </div>
-          <div className="h-[1px] w-full bg-gradient-to-r from-[#242527] to-transparent mt-8"></div>
+          <div className="h-[1px] w-full bg-gradient-to-r from-[var(--at-line)] to-transparent mt-8"></div>
         </div>
 
         {error && <p className="text-red-400">{error}</p>}
@@ -125,49 +125,49 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
             <Link
               key={item.path}
               to={`/project-maintainer/${item.path}${selectedProject ? `?project=${selectedProject}` : ''}`}
-              className="group border border-[#242527] bg-[#11161b] p-5 hover:border-[#3b82f6] focus-visible:outline focus-visible:outline-[#3b82f6] transition-colors"
+              className="group border border-[var(--at-line)] bg-[var(--at-panel)] p-5 hover:border-[var(--at-accent)] focus-visible:outline focus-visible:outline-[var(--at-accent)] transition-colors"
             >
               <div className="flex justify-between gap-3">
-                <h3 className="font-semibold text-sm group-hover:text-[#93c5fd]">{item.title}</h3>
-                <ArrowRight size={16} className="text-[#93c5fd] shrink-0" />
+                <h3 className="font-semibold text-sm group-hover:text-[var(--at-link)]">{item.title}</h3>
+                <ArrowRight size={16} className="text-[var(--at-link)] shrink-0" />
               </div>
-              <p className="text-xs text-[#94a3b8] leading-relaxed mt-3">{item.description}</p>
+              <p className="text-xs text-[var(--at-muted)] leading-relaxed mt-3">{item.description}</p>
             </Link>
           ))}
         </section>
 
         {loading ? (
-          <div className="p-12 text-center"><Spin /><p className="mt-3 text-[#94a3b8]">Loading dashboard...</p></div>
+          <div className="p-12 text-center"><Spin /><p className="mt-3 text-[var(--at-muted)]">Loading dashboard...</p></div>
         ) : dashboard ? (
           <>
             <section>
               <div className="mb-6 flex items-center gap-2">
-                <ShieldCheck size={18} className="text-[#93c5fd]" />
-                <h3 className="text-xl font-bold text-[#f4f4f6] tracking-tight">{dashboard.project.name}</h3>
+                <ShieldCheck size={18} className="text-[var(--at-link)]" />
+                <h3 className="text-xl font-bold text-[var(--at-text)] tracking-tight">{dashboard.project.name}</h3>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-[#161d24] border border-[#242527] p-5">
-                  <p className="text-xs text-[#94a3b8] uppercase tracking-wider mb-2" style={{ fontFamily: fontFamily.mono }}>Components</p>
-                  <p className="text-3xl font-bold text-[#f4f4f6]" style={{ fontFamily: fontFamily.mono }}>{dashboard.diagram.componentsCount}</p>
+                <div className="bg-[var(--at-panel-2)] border border-[var(--at-line)] p-5">
+                  <p className="text-xs text-[var(--at-muted)] uppercase tracking-wider mb-2" style={{ fontFamily: fontFamily.mono }}>Components</p>
+                  <p className="text-3xl font-bold text-[var(--at-text)]" style={{ fontFamily: fontFamily.mono }}>{dashboard.diagram.componentsCount}</p>
                   <Tag className="mt-2" color={dashboard.diagram.confirmedAt ? 'green' : 'gold'}>
                     {dashboard.diagram.confirmedAt ? 'Confirmed' : 'Draft'}
                   </Tag>
                 </div>
-                <div className="bg-[#161d24] border border-[#242527] p-5">
-                  <p className="text-xs text-[#94a3b8] uppercase tracking-wider mb-2" style={{ fontFamily: fontFamily.mono }}>Rules</p>
-                  <p className="text-3xl font-bold text-[#f4f4f6]" style={{ fontFamily: fontFamily.mono }}>{dashboard.rules.enabled}/{dashboard.rules.total}</p>
+                <div className="bg-[var(--at-panel-2)] border border-[var(--at-line)] p-5">
+                  <p className="text-xs text-[var(--at-muted)] uppercase tracking-wider mb-2" style={{ fontFamily: fontFamily.mono }}>Rules</p>
+                  <p className="text-3xl font-bold text-[var(--at-text)]" style={{ fontFamily: fontFamily.mono }}>{dashboard.rules.enabled}/{dashboard.rules.total}</p>
                   {dashboard.rules.violations > 0 && (
                     <Tag className="mt-2" color="red">{dashboard.rules.violations} violations</Tag>
                   )}
                 </div>
-                <div className="bg-[#161d24] border border-[#242527] p-5">
-                  <p className="text-xs text-[#94a3b8] uppercase tracking-wider mb-2" style={{ fontFamily: fontFamily.mono }}>Decisions</p>
-                  <p className="text-3xl font-bold text-[#f4f4f6]" style={{ fontFamily: fontFamily.mono }}>{dashboard.decisions.total}</p>
+                <div className="bg-[var(--at-panel-2)] border border-[var(--at-line)] p-5">
+                  <p className="text-xs text-[var(--at-muted)] uppercase tracking-wider mb-2" style={{ fontFamily: fontFamily.mono }}>Decisions</p>
+                  <p className="text-3xl font-bold text-[var(--at-text)]" style={{ fontFamily: fontFamily.mono }}>{dashboard.decisions.total}</p>
                 </div>
-                <div className="bg-[#161d24] border border-[#242527] p-5">
-                  <p className="text-xs text-[#94a3b8] uppercase tracking-wider mb-2" style={{ fontFamily: fontFamily.mono }}>Pending Approvals</p>
-                  <p className="text-3xl font-bold text-[#ffb03a]" style={{ fontFamily: fontFamily.mono }}>{dashboard.approvals.pending}</p>
+                <div className="bg-[var(--at-panel-2)] border border-[var(--at-line)] p-5">
+                  <p className="text-xs text-[var(--at-muted)] uppercase tracking-wider mb-2" style={{ fontFamily: fontFamily.mono }}>Pending Approvals</p>
+                  <p className="text-3xl font-bold text-[var(--at-warn)]" style={{ fontFamily: fontFamily.mono }}>{dashboard.approvals.pending}</p>
                 </div>
               </div>
             </section>
@@ -182,17 +182,17 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
           <section className="lg:col-span-3">
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-[#f4f4f6] tracking-tight">Pending Approvals</h3>
-                <p className="text-sm text-[#94a3b8] mt-1">Recent architectural change requests.</p>
+                <h3 className="text-xl font-bold text-[var(--at-text)] tracking-tight">Pending Approvals</h3>
+                <p className="text-sm text-[var(--at-muted)] mt-1">Recent architectural change requests.</p>
               </div>
-              <Link to="/project-maintainer/approvals" className="text-sm text-[#93c5fd]">View all →</Link>
+              <Link to="/project-maintainer/approvals" className="text-sm text-[var(--at-link)]">View all →</Link>
             </div>
 
             {approvals.length === 0 ? (
               <Empty description="No pending approvals" />
             ) : (
               <div className="relative pl-6 space-y-6">
-                <div className="absolute left-[3px] top-1 bottom-1 w-px bg-[#242527]"></div>
+                <div className="absolute left-[3px] top-1 bottom-1 w-px bg-[var(--at-line)]"></div>
                 {approvals.map(item => {
                   const meta = statusMeta[item.status];
                   const StatusIcon = meta.icon;
@@ -212,12 +212,12 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
                               <StatusIcon size={11} />
                               {meta.label}
                             </span>
-                            <span className="text-[10px] text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>
+                            <span className="text-[10px] text-[var(--at-muted)]" style={{ fontFamily: fontFamily.mono }}>
                               {new Date(item.requestedAt).toLocaleDateString()}
                             </span>
                           </div>
-                          <h4 className="text-[#f4f4f6] text-sm font-bold mb-1">{item.title}</h4>
-                          <div className="text-xs text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>
+                          <h4 className="text-[var(--at-text)] text-sm font-bold mb-1">{item.title}</h4>
+                          <div className="text-xs text-[var(--at-muted)]" style={{ fontFamily: fontFamily.mono }}>
                             {item.project} · requested by {item.requestedBy}
                           </div>
                         </div>
@@ -232,10 +232,10 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
           <section className="lg:col-span-2">
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-[#f4f4f6] tracking-tight">Team</h3>
-                <p className="text-sm text-[#94a3b8] mt-1">Members on this workspace.</p>
+                <h3 className="text-xl font-bold text-[var(--at-text)] tracking-tight">Team</h3>
+                <p className="text-sm text-[var(--at-muted)] mt-1">Members on this workspace.</p>
               </div>
-              <Link to="/project-maintainer/team" className="text-sm text-[#93c5fd]">Manage →</Link>
+              <Link to="/project-maintainer/team" className="text-sm text-[var(--at-link)]">Manage →</Link>
             </div>
 
             {team.length === 0 ? (
@@ -243,25 +243,25 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
             ) : (
               <div className="grid grid-cols-2 gap-3">
                 {team.map(member => (
-                  <div key={member.key} className="bg-[#11161b] border border-[#242527] p-4 flex flex-col items-center text-center gap-2">
+                  <div key={member.key} className="bg-[var(--at-panel)] border border-[var(--at-line)] p-4 flex flex-col items-center text-center gap-2">
                     <div className="relative">
-                      <div className="w-12 h-12 rounded-full bg-[#161d24] border border-[#242527] flex items-center justify-center text-sm font-bold text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>
+                      <div className="w-12 h-12 rounded-full bg-[var(--at-panel-2)] border border-[var(--at-line)] flex items-center justify-center text-sm font-bold text-[var(--at-muted)]" style={{ fontFamily: fontFamily.mono }}>
                         {member.name.slice(0, 2).toUpperCase()}
                       </div>
                       <div
-                        className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#11161b]"
+                        className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[var(--at-panel)]"
                         style={{ backgroundColor: member.status === 'active' ? '#22c55e' : '#5f636b' }}
                       ></div>
                     </div>
                     <div className="min-w-0 w-full">
-                      <h4 className="text-[#f4f4f6] text-xs font-bold truncate" style={{ fontFamily: fontFamily.mono }}>{member.name}</h4>
-                      <p className="text-[10px] text-[#94a3b8] truncate">{projectRoleLabel(member.role)}</p>
+                      <h4 className="text-[var(--at-text)] text-xs font-bold truncate" style={{ fontFamily: fontFamily.mono }}>{member.name}</h4>
+                      <p className="text-[10px] text-[var(--at-muted)] truncate">{projectRoleLabel(member.role)}</p>
                     </div>
                   </div>
                 ))}
                 <Link
                   to="/project-maintainer/team"
-                  className="border border-dashed border-[#242527] hover:border-[#3b82f6]/50 p-4 flex flex-col items-center justify-center gap-2 text-[#94a3b8] hover:text-[#93c5fd] transition-colors"
+                  className="border border-dashed border-[var(--at-line)] hover:border-[var(--at-accent)]/50 p-4 flex flex-col items-center justify-center gap-2 text-[var(--at-muted)] hover:text-[var(--at-link)] transition-colors"
                 >
                   <UserPlus size={18} />
                   <span className="text-[10px] uppercase tracking-widest" style={{ fontFamily: fontFamily.mono }}>Invite</span>

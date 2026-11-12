@@ -1,10 +1,12 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useLayoutEffect } from 'react';
 import { App as AntApp, ConfigProvider, Result, theme } from 'antd';
 import type { ThemeConfig } from 'antd';
 import { StyleProvider } from '@ant-design/cssinjs';
 import { MotionConfig } from 'motion/react';
 import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, Outlet, Link, Navigate, useLocation } from 'react-router-dom';
 import AuthProvider from '@/auth/AuthProvider';
+import { useAuth } from '@/auth/auth-context';
+import { setUiTheme, themeFor, useUiTheme } from '@/features/ui-theme';
 import RouteGuard from '@/auth/RouteGuard';
 import PageLoading from '@/components/PageLoading';
 import PageErrorBoundary from '@/components/PageErrorBoundary';
@@ -53,12 +55,21 @@ function KeepQuery({ to }: { to: string }) {
   return <Navigate to={`${to}${search}${hash}`} replace />;
 }
 
+/** Puts on the look of the signed-in person's role (before paint, so pages never flash in the other theme). */
+function RoleTheme() {
+  const { user } = useAuth();
+  const { pathname } = useLocation();
+  const theme = themeFor(user?.role, pathname);
+  useLayoutEffect(() => { setUiTheme(theme); }, [theme]);
+  return null;
+}
+
 function RootLayout() {
   const location = useLocation();
   useEffect(() => {
     if (location.pathname === '/') document.title = 'ArchTime · Architecture Observatory';
   }, [location.pathname]);
-  return <AuthProvider><PageErrorBoundary key={location.pathname}><Suspense fallback={<PageLoading />}><Outlet /></Suspense></PageErrorBoundary></AuthProvider>;
+  return <AuthProvider><RoleTheme /><PageErrorBoundary key={location.pathname}><Suspense fallback={<PageLoading />}><Outlet /></Suspense></PageErrorBoundary></AuthProvider>;
 }
 
 const router = createBrowserRouter(createRoutesFromElements(
@@ -110,7 +121,7 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path="/system-administrator/ai-models" element={<AiModels />} />
       <Route path="/system-administrator/ai-metrics" element={<AiMetrics />} />
     </Route>
-    <Route path="*" element={<div className="min-h-screen bg-[#080b0e] p-8"><Result status="404" title="Page not found" extra={<Link to="/">Back to home</Link>} /></div>} />
+    <Route path="*" element={<div className="min-h-screen bg-[var(--at-page)] p-8"><Result status="404" title="Page not found" extra={<Link to="/">Back to home</Link>} /></div>} />
 
   </Route>
 ));
@@ -138,8 +149,34 @@ const APP_THEME: ThemeConfig = {
   },
 };
 
+/**
+ * The developer-analyst look (features/ui-theme.ts): frosted glass panels on a misty slate background, ice-blue text,
+ * light pill buttons with dark text and Montserrat. Same rules as above: component tokens where darkAlgorithm would
+ * otherwise mix or ignore the seed colours.
+ */
+const FROST_THEME: ThemeConfig = {
+  algorithm: theme.darkAlgorithm,
+  token: {
+    colorPrimary: '#9db3dc', colorBgBase: '#161c22', colorBgContainer: '#222a32', colorBgElevated: '#27303a', colorBorder: '#4a5662', colorBorderSecondary: '#38424d',
+    colorText: '#eef2f8', colorTextSecondary: '#c3cdd9', colorTextTertiary: '#a9b5c3', fontFamily: '"Montserrat", system-ui, sans-serif', borderRadius: 10,
+    colorLink: '#d3def3', colorLinkHover: '#ffffff', colorLinkActive: '#d3def3', blue7: '#d3def3', colorTextLightSolid: '#18212c',
+  },
+  components: {
+    Button: {
+      colorPrimary: '#e4eaf5', colorPrimaryHover: '#ffffff', colorPrimaryActive: '#cdd8ea', primaryColor: '#18212c', primaryShadow: '0 0 14px rgba(214, 228, 255, 0.35)',
+      defaultBg: 'rgba(214, 225, 240, 0.06)', defaultBorderColor: 'rgba(220, 230, 245, 0.32)', defaultColor: '#eef2f8',
+      defaultHoverColor: '#ffffff', defaultHoverBorderColor: '#d3def3', defaultHoverBg: 'rgba(214, 225, 240, 0.12)', defaultActiveColor: '#ffffff', defaultActiveBorderColor: '#e4eaf5',
+    },
+    Tabs: { itemSelectedColor: '#ffffff', itemActiveColor: '#ffffff', itemHoverColor: '#e4eaf5', inkBarColor: '#d3def3' },
+    Pagination: { itemActiveColor: '#ffffff', itemActiveColorHover: '#ffffff' },
+    Dropdown: { colorPrimary: '#d3def3' },
+    Modal: { contentBg: '#222a32', headerBg: '#222a32', footerBg: '#222a32' },
+  },
+};
+
 export default function App() {
-  return <PageErrorBoundary><StyleProvider layer><ConfigProvider theme={APP_THEME}>
+  const uiTheme = useUiTheme();
+  return <PageErrorBoundary><StyleProvider layer><ConfigProvider theme={uiTheme === 'frost' ? FROST_THEME : APP_THEME}>
     <AntApp><MotionConfig reducedMotion="user"><RouterProvider router={router} /></MotionConfig></AntApp>
   </ConfigProvider></StyleProvider></PageErrorBoundary>;
 }

@@ -127,11 +127,11 @@ export default function AiModels() {
   const columns: ColumnsType<AdminModel> = [
     { title: 'Model', render: (_, m) => <div>
       <div className="flex flex-wrap items-center gap-1"><span className="font-medium">{m.displayName}</span>{m.isDefault && <Tag color="gold" icon={<Star size={10} className="inline -mt-0.5 mr-0.5" />}>Default</Tag>}</div>
-      <p className="text-[11px] text-[#94a3b8] font-mono">{m.provider} · {m.model}</p>
-      <p className="text-[11px] text-[#94a3b8]">{m.host || 'no host'} · <Tag className="!text-[10px]" color={m.external ? 'blue' : 'green'}>{m.external ? 'External' : 'Local'}</Tag>{m.hasApiKey ? `key …${m.apiKeyLast4}` : 'no key'}</p>
+      <p className="text-[11px] text-[var(--at-muted)] font-mono">{m.provider} · {m.model}</p>
+      <p className="text-[11px] text-[var(--at-muted)]">{m.host || 'no host'} · <Tag className="!text-[10px]" color={m.external ? 'blue' : 'green'}>{m.external ? 'External' : 'Local'}</Tag>{m.hasApiKey ? `key …${m.apiKeyLast4}` : 'no key'}</p>
     </div> },
     { title: 'Health', render: (_, m) => <Tooltip title={m.health?.lastError ?? (m.health?.checkedAt ? `Checked ${new Date(m.health.checkedAt).toLocaleString()}` : 'Not checked yet')}>
-      <Tag color={healthColor[m.health?.status ?? 'unknown']}>{m.health?.status ?? 'unknown'}</Tag>{m.health?.latencyMs !== undefined && <span className="text-xs text-[#94a3b8]">{formatMs(m.health.latencyMs)}</span>}
+      <Tag color={healthColor[m.health?.status ?? 'unknown']}>{m.health?.status ?? 'unknown'}</Tag>{m.health?.latencyMs !== undefined && <span className="text-xs text-[var(--at-muted)]">{formatMs(m.health.latencyMs)}</span>}
     </Tooltip> },
     { title: 'Price / 1M tokens', render: (_, m) => <span className="text-xs font-mono">in {formatCost(m.pricing?.inputPerMTok)} · out {formatCost(m.pricing?.outputPerMTok)}{m.pricing?.cacheReadPerMTok !== undefined ? ` · cache ${formatCost(m.pricing.cacheReadPerMTok)}` : ''}</span> },
     { title: 'Last 30 days', render: (_, m) => <span className="text-xs">{formatTokens(m.usage30d.runs)} runs · {formatTokens(m.usage30d.totalTokens)} tokens · {formatCost(m.usage30d.cost)}</span> },
@@ -161,7 +161,7 @@ export default function AiModels() {
     {list && <div className={`${featurePanel} flex flex-wrap items-center gap-3`}>
       <Switch checked={list.allowUserModelChoice} aria-label="Let users choose the model"
         onChange={on => void act('settings', () => updateLlmSettings({ allowUserModelChoice: on }), on ? 'Users can now choose a model.' : 'Users now always get the default model.')} />
-      <div><p className="text-sm font-medium">Let users choose the model</p><p className="text-xs text-[#94a3b8]">When off, every request uses the default model.</p></div>
+      <div><p className="text-sm font-medium">Let users choose the model</p><p className="text-xs text-[var(--at-muted)]">When off, every request uses the default model.</p></div>
     </div>}
     <div className={featurePanel}>
       <Table<AdminModel> rowKey="id" size="small" loading={loading} columns={columns} dataSource={list?.models ?? []} pagination={false} scroll={{ x: 1100 }} />

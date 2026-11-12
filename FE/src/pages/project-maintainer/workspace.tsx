@@ -58,16 +58,16 @@ function WorkspaceView({
   return (
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-6">
-        <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 border-b border-[#242527] pb-6">
+        <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 border-b border-[var(--at-line)] pb-6">
           <div>
-            <p className="text-xs uppercase tracking-widest text-[#93c5fd] mb-3">
+            <p className="text-xs uppercase tracking-widest text-[var(--at-link)] mb-3">
               Project maintainer / Architecture governance
             </p>
             <h2 className="text-3xl font-bold mb-2">{title}</h2>
-            <p className="text-sm text-[#94a3b8] max-w-2xl">{description}</p>
+            <p className="text-sm text-[var(--at-muted)] max-w-2xl">{description}</p>
           </div>
           <div className="w-full lg:w-64 shrink-0">
-            <label htmlFor="maintainer-project" className="block text-xs text-[#94a3b8] mb-2">
+            <label htmlFor="maintainer-project" className="block text-xs text-[var(--at-muted)] mb-2">
               Workspace
             </label>
             <Select

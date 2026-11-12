@@ -42,8 +42,8 @@ export function ManagedWorkspaces({ title, scope = 'managed', children }: { titl
 
   if (state.status === 'ready' && state.projects.length) return <>{children(state.projects, state.managed)}</>;
   return <DashboardLayout><div className="max-w-[1100px] mx-auto space-y-6">
-    <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6]">{title}</h2>
-    {state.status === 'loading' && <div className="p-12 text-center" role="status"><Spin /><p className="mt-3 text-[#94a3b8]">Loading your workspaces…</p></div>}
+    <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)]">{title}</h2>
+    {state.status === 'loading' && <div className="p-12 text-center" role="status"><Spin /><p className="mt-3 text-[var(--at-muted)]">Loading your workspaces…</p></div>}
     {state.status === 'error' && <Alert type="error" showIcon title={state.error} action={<Button size="small" onClick={() => { setState({ status: 'loading', projects: [], managed: nothing }); setAttempt(n => n + 1); }}>Retry</Button>} />}
     {state.status === 'ready' && (scope === 'readable' ? <NoWorkspaces /> : <NoManagedWorkspaces />)}
   </div></DashboardLayout>;
