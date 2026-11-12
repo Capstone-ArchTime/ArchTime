@@ -279,24 +279,24 @@ const Insights: React.FC = () => {
         <div className="shrink-0 mb-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#3b82f6]/10 border border-[#3b82f6]/30 mb-4">
-                <Sparkles size={12} className="text-[#93c5fd]" />
-                <span className="text-[10px] font-mono text-[#93c5fd] tracking-wider font-semibold uppercase" style={mono}>Evidence-Grounded AI</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--at-accent)]/10 border border-[var(--at-accent)]/30 mb-4">
+                <Sparkles size={12} className="text-[var(--at-link)]" />
+                <span className="text-[10px] font-mono text-[var(--at-link)] tracking-wider font-semibold uppercase" style={mono}>Evidence-Grounded AI</span>
               </div>
-              <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">AI Architectural Insights</h2>
-              <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
+              <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)] mb-2">AI Architectural Insights</h2>
+              <p className="text-[var(--at-muted)] text-sm max-w-xl leading-relaxed">
                 Chat with ArchTime AI to understand architectural changes through evidence-grounded explanations.
               </p>
             </div>
             <div className="flex items-end gap-3">
               <div className="flex flex-col gap-1">
-                <label htmlFor="insights-project" className="text-[10px] uppercase tracking-wider text-[#94a3b8]" style={mono}>Workspace</label>
+                <label htmlFor="insights-project" className="text-[10px] uppercase tracking-wider text-[var(--at-muted)]" style={mono}>Workspace</label>
                 <select
                   id="insights-project"
                   value={selectedProjectId}
                   onChange={(e) => handleProjectChange(e.target.value)}
                   disabled={projectsLoading || noProjects}
-                  className="h-9 min-w-[200px] bg-[#080b0e] border border-[#242527] focus:border-[#3b82f6]/50 px-3 text-sm text-[#f4f4f6] focus:outline-none disabled:opacity-50"
+                  className="h-9 min-w-[200px] bg-[var(--at-page)] border border-[var(--at-line)] focus:border-[var(--at-accent)]/50 px-3 text-sm text-[var(--at-text)] focus:outline-none disabled:opacity-50"
                 >
                   {projectsLoading && <option value="">Loading workspaces...</option>}
                   {noProjects && <option value="">No workspaces</option>}
@@ -309,7 +309,7 @@ const Insights: React.FC = () => {
                 aria-expanded={historyOpen}
                 aria-controls="chat-history"
                 disabled={!canChat}
-                className={`flex items-center gap-2 h-9 px-3 text-xs border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${historyOpen ? 'text-[#93c5fd] border-[#3b82f6]/50 bg-[#3b82f6]/10' : 'text-[#94a3b8] hover:text-[#f4f4f6] border-[#242527] hover:border-[#3b82f6]/30'}`}
+                className={`flex items-center gap-2 h-9 px-3 text-xs border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${historyOpen ? 'text-[var(--at-link)] border-[var(--at-accent)]/50 bg-[var(--at-accent)]/10' : 'text-[var(--at-muted)] hover:text-[var(--at-text)] border-[var(--at-line)] hover:border-[var(--at-accent)]/30'}`}
               >
                 <History size={14} />
                 History{conversations.length > 0 ? ` (${conversations.length})` : ''}
@@ -317,7 +317,7 @@ const Insights: React.FC = () => {
               <button
                 type="button"
                 onClick={() => resetConversation('New chat started. How can I help you understand your architecture?')}
-                className="flex items-center gap-2 h-9 px-3 text-xs text-[#94a3b8] hover:text-[#f4f4f6] border border-[#242527] hover:border-[#3b82f6]/30 transition-colors"
+                className="flex items-center gap-2 h-9 px-3 text-xs text-[var(--at-muted)] hover:text-[var(--at-text)] border border-[var(--at-line)] hover:border-[var(--at-accent)]/30 transition-colors"
               >
                 <Plus size={14} />
                 New chat
@@ -328,22 +328,22 @@ const Insights: React.FC = () => {
         </div>
 
         {/* CHAT CONTAINER */}
-        <div className="relative flex-1 flex bg-[#080b0e] border border-[#242527] overflow-hidden min-h-0">
+        <div className="relative flex-1 flex bg-[var(--at-page)] border border-[var(--at-line)] overflow-hidden min-h-0">
 
           {/* Saved chats */}
           {historyOpen && (
             <aside
               id="chat-history"
               aria-label="Saved chats"
-              className="absolute inset-y-0 left-0 z-20 w-72 max-w-full md:static md:z-auto shrink-0 flex flex-col min-h-0 bg-[#0b0f13] border-r border-[#242527]"
+              className="absolute inset-y-0 left-0 z-20 w-72 max-w-full md:static md:z-auto shrink-0 flex flex-col min-h-0 bg-[#0b0f13] border-r border-[var(--at-line)]"
             >
-              <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-[#242527]">
-                <h3 className="text-[10px] font-mono font-bold text-[#94a3b8] uppercase tracking-widest" style={mono}>Saved chats</h3>
+              <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-[var(--at-line)]">
+                <h3 className="text-[10px] font-mono font-bold text-[var(--at-muted)] uppercase tracking-widest" style={mono}>Saved chats</h3>
                 <button
                   type="button"
                   onClick={() => setHistoryOpen(false)}
                   aria-label="Close saved chats"
-                  className="w-6 h-6 flex items-center justify-center text-[#94a3b8] hover:text-[#f4f4f6] hover:bg-[#242527] focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]"
+                  className="w-6 h-6 flex items-center justify-center text-[var(--at-muted)] hover:text-[var(--at-text)] hover:bg-[var(--at-line)] focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--at-accent)]"
                 >
                   <X size={14} />
                 </button>
@@ -353,38 +353,38 @@ const Insights: React.FC = () => {
 
               <div className="flex-1 overflow-y-auto min-h-0">
                 {historyStatus === 'loading' && (
-                  <p className="px-4 py-4 text-xs text-[#94a3b8] flex items-center gap-2"><Loader2 size={12} className="animate-spin" /> Loading saved chats...</p>
+                  <p className="px-4 py-4 text-xs text-[var(--at-muted)] flex items-center gap-2"><Loader2 size={12} className="animate-spin" /> Loading saved chats...</p>
                 )}
                 {historyStatus === 'error' && (
-                  <div className="px-4 py-4 text-xs text-[#94a3b8] space-y-2">
+                  <div className="px-4 py-4 text-xs text-[var(--at-muted)] space-y-2">
                     <p>Saved chats could not be loaded.</p>
                     <button
                       type="button"
                       onClick={() => { setHistoryStatus('loading'); loadHistory(selectedProjectId); }}
-                      className="px-3 py-1.5 border border-[#242527] hover:border-[#3b82f6]/50 text-[#93c5fd]"
+                      className="px-3 py-1.5 border border-[var(--at-line)] hover:border-[var(--at-accent)]/50 text-[var(--at-link)]"
                     >
                       Try again
                     </button>
                   </div>
                 )}
                 {historyStatus === 'ready' && conversations.length === 0 && (
-                  <p className="px-4 py-4 text-xs text-[#94a3b8] leading-relaxed">No saved chats for this workspace yet. Ask a question and it will appear here.</p>
+                  <p className="px-4 py-4 text-xs text-[var(--at-muted)] leading-relaxed">No saved chats for this workspace yet. Ask a question and it will appear here.</p>
                 )}
                 {historyStatus === 'ready' && conversations.length > 0 && (
-                  <ul className="divide-y divide-[#242527]">
+                  <ul className="divide-y divide-[var(--at-line)]">
                     {conversations.map(conversation => {
                       const current = conversation.id === conversationId;
                       return (
-                        <li key={conversation.id} className={`flex items-stretch ${current ? 'bg-[#3b82f6]/10' : ''}`}>
+                        <li key={conversation.id} className={`flex items-stretch ${current ? 'bg-[var(--at-accent)]/10' : ''}`}>
                           <button
                             type="button"
                             onClick={() => void openConversation(conversation)}
                             disabled={isTyping || opening}
                             aria-current={current ? 'true' : undefined}
-                            className="flex-1 min-w-0 text-left px-4 py-3 hover:bg-[#242527]/40 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[#3b82f6]"
+                            className="flex-1 min-w-0 text-left px-4 py-3 hover:bg-[var(--at-line)]/40 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--at-accent)]"
                           >
-                            <span className="block text-xs text-[#f4f4f6] line-clamp-2 break-words">{conversation.title}</span>
-                            <span className="block mt-1 text-[10px] text-[#94a3b8] font-mono" style={mono}>
+                            <span className="block text-xs text-[var(--at-text)] line-clamp-2 break-words">{conversation.title}</span>
+                            <span className="block mt-1 text-[10px] text-[var(--at-muted)] font-mono" style={mono}>
                               {describeWhen(conversation.updatedAt)} · {conversation.messageCount} messages
                             </span>
                           </button>
@@ -392,7 +392,7 @@ const Insights: React.FC = () => {
                             type="button"
                             onClick={() => void removeConversation(conversation)}
                             aria-label={`Delete saved chat: ${conversation.title}`}
-                            className="shrink-0 w-10 flex items-center justify-center text-[#94a3b8] hover:text-red-400 hover:bg-[#242527]/40 focus:outline-none focus-visible:text-red-400 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-red-400"
+                            className="shrink-0 w-10 flex items-center justify-center text-[var(--at-muted)] hover:text-red-400 hover:bg-[var(--at-line)]/40 focus:outline-none focus-visible:text-red-400 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-red-400"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -403,7 +403,7 @@ const Insights: React.FC = () => {
                 )}
               </div>
 
-              <p className="shrink-0 px-4 py-3 border-t border-[#242527] text-[10px] text-[#94a3b8] leading-relaxed">
+              <p className="shrink-0 px-4 py-3 border-t border-[var(--at-line)] text-[10px] text-[var(--at-muted)] leading-relaxed">
                 Chats are saved to your account for this workspace. Only you can see them.
               </p>
             </aside>
@@ -412,24 +412,24 @@ const Insights: React.FC = () => {
           <div className="flex-1 flex flex-col min-w-0 min-h-0">
 
           {/* Chat Header */}
-          <div className="shrink-0 p-4 border-b border-[#242527] bg-[#11161b] flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#3b82f6]/20 flex items-center justify-center rounded-full">
-              <Bot size={16} className="text-[#93c5fd]" />
+          <div className="shrink-0 p-4 border-b border-[var(--at-line)] bg-[var(--at-panel)] flex items-center gap-3">
+            <div className="w-8 h-8 bg-[var(--at-accent)]/20 flex items-center justify-center rounded-full">
+              <Bot size={16} className="text-[var(--at-link)]" />
             </div>
             <div>
-              <span className="text-sm font-semibold text-[#f4f4f6]">ArchTime AI</span>
-              <span className="text-xs text-[#94a3b8] ml-2">Evidence-Grounded Architecture Assistant</span>
+              <span className="text-sm font-semibold text-[var(--at-text)]">ArchTime AI</span>
+              <span className="text-xs text-[var(--at-muted)] ml-2">Evidence-Grounded Architecture Assistant</span>
             </div>
             <div className="ml-auto flex items-center gap-2">
               <span className={`w-2 h-2 rounded-full ${canChat ? 'bg-[#22c55e] animate-pulse' : 'bg-[#5f636b]'}`} />
-              <span className="text-xs text-[#94a3b8]">{canChat ? 'Ready' : 'No workspace selected'}</span>
+              <span className="text-xs text-[var(--at-muted)]">{canChat ? 'Ready' : 'No workspace selected'}</span>
             </div>
           </div>
 
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6 min-h-0" aria-live="polite">
             {noProjects && (
-              <div className="p-4 border border-[#ffb03a]/30 bg-[#ffb03a]/10 text-sm text-[#ffb03a]">
+              <div className="p-4 border border-[var(--at-warn)]/30 bg-[var(--at-warn)]/10 text-sm text-[var(--at-warn)]">
                 You have no workspaces yet. <Link to="/projects" className="underline">Add a workspace</Link> and let it finish mining before asking questions.
               </div>
             )}
@@ -444,10 +444,10 @@ const Insights: React.FC = () => {
                   className={`flex gap-4 ${message.role === 'user' ? 'justify-end' : ''}`}
                 >
                   {message.role === 'assistant' && (
-                    <div className={`shrink-0 w-8 h-8 flex items-center justify-center rounded-full ${message.isError ? 'bg-red-500/20' : 'bg-[#3b82f6]/20'}`}>
+                    <div className={`shrink-0 w-8 h-8 flex items-center justify-center rounded-full ${message.isError ? 'bg-red-500/20' : 'bg-[var(--at-accent)]/20'}`}>
                       {message.isError
                         ? <AlertTriangle size={14} className="text-red-400" />
-                        : <Sparkles size={14} className="text-[#93c5fd]" />}
+                        : <Sparkles size={14} className="text-[var(--at-link)]" />}
                     </div>
                   )}
 
@@ -455,34 +455,34 @@ const Insights: React.FC = () => {
                     <div
                       className={`p-4 ${
                         message.role === 'user'
-                          ? 'bg-[#3b82f6]/10 border border-[#3b82f6]/30'
+                          ? 'bg-[var(--at-accent)]/10 border border-[var(--at-accent)]/30'
                           : message.isError
                             ? 'bg-red-500/10 border border-red-500/30'
-                            : 'bg-[#11161b] border border-[#242527]'
+                            : 'bg-[var(--at-panel)] border border-[var(--at-line)]'
                       }`}
                     >
                       {message.role === 'assistant' && !message.isError ? (
                         <AssistantMessage content={message.content} evidence={message.evidence} projectId={selectedProjectId} />
                       ) : (
-                        <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${message.isError ? 'text-red-300' : 'text-[#f4f4f6]'}`}>
+                        <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${message.isError ? 'text-red-300' : 'text-[var(--at-text)]'}`}>
                           {message.content}
                         </p>
                       )}
                     </div>
-                    <p className="text-[10px] text-[#94a3b8] mt-1 font-mono" style={mono}>
+                    <p className="text-[10px] text-[var(--at-muted)] mt-1 font-mono" style={mono}>
                       {message.timestamp.toLocaleTimeString()}
                     </p>
                     {labelCheckNote(message.labelCheck) && (
-                      <p className="text-[10px] text-[#94a3b8] mt-1">{labelCheckNote(message.labelCheck)}</p>
+                      <p className="text-[10px] text-[var(--at-muted)] mt-1">{labelCheckNote(message.labelCheck)}</p>
                     )}
                     {message.unsaved && (
-                      <p role="status" className="text-[10px] text-[#ffb03a] mt-1">This answer could not be saved to your history.</p>
+                      <p role="status" className="text-[10px] text-[var(--at-warn)] mt-1">This answer could not be saved to your history.</p>
                     )}
                   </div>
 
                   {message.role === 'user' && (
-                    <div className="shrink-0 w-8 h-8 bg-[#242527] flex items-center justify-center rounded-full">
-                      <User size={14} className="text-[#94a3b8]" />
+                    <div className="shrink-0 w-8 h-8 bg-[var(--at-line)] flex items-center justify-center rounded-full">
+                      <User size={14} className="text-[var(--at-muted)]" />
                     </div>
                   )}
                 </motion.div>
@@ -491,13 +491,13 @@ const Insights: React.FC = () => {
 
             {isTyping && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-4">
-                <div className="shrink-0 w-8 h-8 bg-[#3b82f6]/20 flex items-center justify-center rounded-full">
-                  <Sparkles size={14} className="text-[#93c5fd]" />
+                <div className="shrink-0 w-8 h-8 bg-[var(--at-accent)]/20 flex items-center justify-center rounded-full">
+                  <Sparkles size={14} className="text-[var(--at-link)]" />
                 </div>
-                <div className="p-4 bg-[#11161b] border border-[#242527]">
+                <div className="p-4 bg-[var(--at-panel)] border border-[var(--at-line)]">
                   <div className="flex items-center gap-2">
-                    <Loader2 size={14} className="text-[#93c5fd] animate-spin" />
-                    <span className="text-xs text-[#94a3b8] font-mono" style={mono}>Analyzing repository evidence...</span>
+                    <Loader2 size={14} className="text-[var(--at-link)] animate-spin" />
+                    <span className="text-xs text-[var(--at-muted)] font-mono" style={mono}>Analyzing repository evidence...</span>
                   </div>
                 </div>
               </motion.div>
@@ -509,7 +509,7 @@ const Insights: React.FC = () => {
           {/* Suggested Questions */}
           {messages.length === 1 && canChat && (
             <div className="shrink-0 px-6 pb-4">
-              <p className="text-xs text-[#94a3b8] mb-3 flex items-center gap-2">
+              <p className="text-xs text-[var(--at-muted)] mb-3 flex items-center gap-2">
                 <MessageSquare size={12} />
                 Suggested questions
               </p>
@@ -519,7 +519,7 @@ const Insights: React.FC = () => {
                     key={question}
                     onClick={() => void handleSend(question)}
                     disabled={isTyping || opening}
-                    className="px-3 py-2 bg-[#11161b] border border-[#242527] hover:border-[#3b82f6]/50 text-xs text-[#94a3b8] hover:text-[#93c5fd] transition-colors disabled:opacity-50"
+                    className="px-3 py-2 bg-[var(--at-panel)] border border-[var(--at-line)] hover:border-[var(--at-accent)]/50 text-xs text-[var(--at-muted)] hover:text-[var(--at-link)] transition-colors disabled:opacity-50"
                   >
                     {question}
                   </button>
@@ -529,7 +529,7 @@ const Insights: React.FC = () => {
           )}
 
           {/* Input Area */}
-          <div className="shrink-0 p-4 border-t border-[#242527] bg-[#11161b]">
+          <div className="shrink-0 p-4 border-t border-[var(--at-line)] bg-[var(--at-panel)]">
             <div className="flex items-center gap-3">
               <div className="flex-1 relative">
                 <input
@@ -541,7 +541,7 @@ const Insights: React.FC = () => {
                   maxLength={4000}
                   aria-label="Ask about this workspace's architecture"
                   placeholder={canChat ? 'Ask about architectural changes, patterns, or decisions...' : 'Select a workspace to start'}
-                  className="w-full h-12 bg-[#080b0e] border border-[#242527] focus:border-[#3b82f6]/50 px-4 pr-12 text-sm text-[#f4f4f6] placeholder-[#5f636b] focus:outline-none transition-colors font-mono"
+                  className="w-full h-12 bg-[var(--at-page)] border border-[var(--at-line)] focus:border-[var(--at-accent)]/50 px-4 pr-12 text-sm text-[var(--at-text)] placeholder-[#5f636b] focus:outline-none transition-colors font-mono"
                   style={mono}
                   disabled={isTyping || opening || !canChat}
                 />
@@ -549,13 +549,13 @@ const Insights: React.FC = () => {
               <button
                 onClick={() => void handleSend(inputValue)}
                 disabled={!inputValue.trim() || isTyping || opening || !canChat}
-                className="h-12 px-6 bg-[#1d4ed8] hover:bg-[#1e40af] disabled:bg-[#242527] disabled:cursor-not-allowed text-white disabled:text-[#5f636b] font-semibold text-sm transition-colors flex items-center gap-2"
+                className="h-12 px-6 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] disabled:bg-[var(--at-line)] disabled:cursor-not-allowed text-[var(--at-on-fill)] disabled:text-[#5f636b] font-semibold text-sm transition-colors flex items-center gap-2"
               >
                 <Send size={16} />
                 Send
               </button>
             </div>
-            <p className="text-[10px] text-[#94a3b8] mt-2 font-mono" style={mono}>
+            <p className="text-[10px] text-[var(--at-muted)] mt-2 font-mono" style={mono}>
               <Box size={10} className="inline mr-1" />
               Answers use this workspace&apos;s stored snapshots and change evidence.
               {modelNote

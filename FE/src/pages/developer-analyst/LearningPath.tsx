@@ -12,9 +12,9 @@ import { componentContext, decisionContext, mentorHref, mentorQuestion } from '@
 import type { MentorSubject, Neighbour } from '@/features/onboarding-context';
 import { answerFeedback, assessmentNote, firstOpenStep, kindLabel, progressText, refGone } from '@/features/onboarding-view';
 
-const reference = 'border border-[#242527] bg-[#0d1217] p-3 text-sm space-y-2';
-const heading = 'text-[10px] font-mono uppercase tracking-widest text-[#94a3b8]';
-const link = 'text-[#93c5fd] hover:text-[#bfdbfe] hover:underline';
+const reference = 'border border-[var(--at-line)] bg-[#0d1217] p-3 text-sm space-y-2';
+const heading = 'text-[10px] font-mono uppercase tracking-widest text-[var(--at-muted)]';
+const link = 'text-[var(--at-link)] hover:text-[var(--at-link-hover)] hover:underline';
 const anchor = (stepId: string) => `learning-step-${stepId}`;
 
 /** A labelled block of an ADR's text; nothing when the ADR leaves it empty. */
@@ -117,7 +117,7 @@ export default function LearningPath() {
     }
   }
 
-  const back = <Link to="/learning" className="inline-flex items-center gap-1 text-sm text-[#93c5fd]"><ArrowLeft size={14} aria-hidden="true" />My learning</Link>;
+  const back = <Link to="/learning" className="inline-flex items-center gap-1 text-sm text-[var(--at-link)]"><ArrowLeft size={14} aria-hidden="true" />My learning</Link>;
 
   if (error) {
     return <FeaturePage title="Learning path" description="" demo={false} actions={back}>
@@ -132,7 +132,7 @@ export default function LearningPath() {
 
   /** A name that opens the step about it when this path has one, else plain text. */
   function toStep(stepId: string | undefined, text: ReactNode) {
-    if (!stepId) return <span className="text-[#f4f4f6]">{text}</span>;
+    if (!stepId) return <span className="text-[var(--at-text)]">{text}</span>;
     return <button type="button" className={link} onClick={() => openStep(stepId)} title={`Open step ${stepNumber(stepId)}`}>{text}</button>;
   }
   const componentStep = (componentId: string) => path.steps.find(s => s.kind === 'component' && s.componentId === componentId)?.id;
@@ -142,8 +142,8 @@ export default function LearningPath() {
     return <div>
       <p className={heading}>{title}</p>
       {list.length
-        ? <ul className="mt-1 space-y-0.5">{list.map((n, i) => <li key={`${n.id}-${i}`}>{toStep(componentStep(n.id), n.name)}{n.label && <span className="text-[#94a3b8]"> · {n.label}</span>}</li>)}</ul>
-        : <p className="text-[#94a3b8]">{empty}</p>}
+        ? <ul className="mt-1 space-y-0.5">{list.map((n, i) => <li key={`${n.id}-${i}`}>{toStep(componentStep(n.id), n.name)}{n.label && <span className="text-[var(--at-muted)]"> · {n.label}</span>}</li>)}</ul>
+        : <p className="text-[var(--at-muted)]">{empty}</p>}
     </div>;
   }
 
@@ -160,7 +160,7 @@ export default function LearningPath() {
       const { component, incoming, outgoing, decisions } = context;
       return <div className={reference}>
         <p className="font-medium">{component.name}<Tag className="ml-2">{component.kind}</Tag></p>
-        <p className="text-slate-300 whitespace-pre-wrap">{component.description || <span className="text-[#94a3b8]">No description yet.</span>}</p>
+        <p className="text-slate-300 whitespace-pre-wrap">{component.description || <span className="text-[var(--at-muted)]">No description yet.</span>}</p>
         <div className="grid gap-3 sm:grid-cols-2">
           {neighbours('Depends on', outgoing, 'Nothing: it calls no other component.')}
           {neighbours('Used by', incoming, 'No other component depends on it.')}
@@ -169,14 +169,14 @@ export default function LearningPath() {
           <p className={heading}>Accepted design decisions about it</p>
           {decisions.length
             ? <ul className="mt-1 space-y-0.5">{decisions.map(d => <li key={d.id}>{toStep(decisionStep(d.id), <><span className="font-mono">{d.label}</span> · {d.title}</>)}</li>)}</ul>
-            : <p className="text-[#94a3b8]">None recorded yet.</p>}
+            : <p className="text-[var(--at-muted)]">None recorded yet.</p>}
         </div>
         {map}
       </div>;
     }
     if (step.kind === 'commit') {
       return <div className={reference}>
-        <p className="font-medium"><span className="font-mono text-[#93c5fd]">{hash}</span>{step.commitTitle ? ` · ${step.commitTitle}` : ''}</p>
+        <p className="font-medium"><span className="font-mono text-[var(--at-link)]">{hash}</span>{step.commitTitle ? ` · ${step.commitTitle}` : ''}</p>
         {hash && <Link to={evidenceHref(projectId, hash)} className={`text-xs ${link}`}>See what this commit changed</Link>}
       </div>;
     }
@@ -203,9 +203,9 @@ export default function LearningPath() {
             ? <ul className="mt-1 space-y-0.5">{sources.map((s, i) => <li key={`${s.kind}-${i}`}>
               {s.href ? <Link to={s.href} className={`font-mono ${link}`}>{s.label}</Link> : <span className="text-slate-300">{s.label}</span>}
               {s.title && <span className="text-slate-300"> · {s.title}</span>}
-              {s.date && <span className="text-[#94a3b8]"> · {new Date(s.date).toLocaleDateString()}</span>}
+              {s.date && <span className="text-[var(--at-muted)]"> · {new Date(s.date).toLocaleDateString()}</span>}
             </li>)}</ul>
-            : <p className="text-[#94a3b8]">No commits or evidence attached yet.</p>}
+            : <p className="text-[var(--at-muted)]">No commits or evidence attached yet.</p>}
         </div>
       </div>;
     }
@@ -243,17 +243,17 @@ export default function LearningPath() {
       </Radio.Group>
       {!done && <Button type="primary" disabled={choices[step.id] === undefined} loading={busy === step.id} onClick={() => void check(step)}>Check my answer</Button>}
       {result && !(done && !result.correct) && <Alert type={answerFeedback(result).type} showIcon title={answerFeedback(result).text} />}
-      {!result && !done && step.progress.attempts > 0 && <p className="text-xs text-[#94a3b8]">You have tried {step.progress.attempts} time{step.progress.attempts === 1 ? '' : 's'} so far.</p>}
+      {!result && !done && step.progress.attempts > 0 && <p className="text-xs text-[var(--at-muted)]">You have tried {step.progress.attempts} time{step.progress.attempts === 1 ? '' : 's'} so far.</p>}
       {done && question.explanation && <Alert type="success" showIcon title="Why" description={<span className="whitespace-pre-wrap">{question.explanation}</span>} />}
     </div>;
   }
 
   return <FeaturePage title={path.title} description={path.description || 'A learning path from your mentors.'} demo={false} actions={back}>
-    <div className="border border-[#242527] bg-[#11161b] p-5 space-y-2" aria-label="Your progress on this path">
-      <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm text-[#94a3b8]">Your progress</p><p className="text-sm font-mono">{progressText(progress)}</p></div>
+    <div className="border border-[var(--at-line)] bg-[var(--at-panel)] p-5 space-y-2" aria-label="Your progress on this path">
+      <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm text-[var(--at-muted)]">Your progress</p><p className="text-sm font-mono">{progressText(progress)}</p></div>
       <Progress percent={progress.percent} status={finished ? 'success' : 'active'} />
     </div>
-    {refs?.canonical && <div className="flex flex-wrap items-center gap-2 text-xs text-[#94a3b8]" aria-label="Which architecture these steps refer to">
+    {refs?.canonical && <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--at-muted)]" aria-label="Which architecture these steps refer to">
       <Tooltip title={MAP_KIND.canonical.description}>
         <Tag color={refs.canonical.confirmed ? MAP_KIND.canonical.color : 'gold'}>{refs.canonical.confirmed ? MAP_KIND.canonical.label : 'Draft component diagram'}</Tag>
       </Tooltip>
@@ -270,7 +270,7 @@ export default function LearningPath() {
         return {
           key: step.id,
           label: <span id={anchor(step.id)} className="flex flex-wrap items-center gap-2 scroll-mt-4">
-            {step.progress.completed ? <CheckCircle2 size={18} className="text-green-500" aria-label="Done" /> : <Circle size={18} className="text-[#94a3b8]" aria-label="Not done yet" />}
+            {step.progress.completed ? <CheckCircle2 size={18} className="text-green-500" aria-label="Done" /> : <Circle size={18} className="text-[var(--at-muted)]" aria-label="Not done yet" />}
             <span className="font-medium">{i + 1}. {step.title}</span>
             <Tag>{kindLabel(step.kind)}</Tag>
             {note && <Tag color={note.level === 'error' ? 'red' : 'orange'}>{note.level === 'error' ? 'Source gone' : 'May be outdated'}</Tag>}

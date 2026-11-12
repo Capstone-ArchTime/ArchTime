@@ -12,7 +12,7 @@ import { downloadReportPdf, generateReport, getProjectReports } from '@/features
 import type { ReportView } from '@/features/report-view';
 
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
-const panel = 'bg-[#11161b] border border-[#242527] p-6';
+const panel = 'bg-[var(--at-panel)] border border-[var(--at-line)] p-6';
 const label = 'text-[11px] text-slate-300 uppercase tracking-widest block mb-2';
 const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? '' : 's'}`;
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : 'Unknown date');
@@ -94,12 +94,12 @@ function ReportsView({ projects, managed }: { projects: ProjectSummary[]; manage
     <DashboardLayout>
       <div className="max-w-[1100px] mx-auto space-y-10">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Reports</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)] mb-2">Reports</h2>
           <p className="text-slate-300 text-sm max-w-xl leading-relaxed">
             Architecture reports of a workspace for maintenance handoff and onboarding: its components, dependencies, rules,
             design decisions and the stretch of history mined. Open one here or download it as a PDF.
           </p>
-          <div className="h-[1px] w-full bg-gradient-to-r from-[#242527] to-transparent mt-8"></div>
+          <div className="h-[1px] w-full bg-gradient-to-r from-[var(--at-line)] to-transparent mt-8"></div>
         </div>
 
         <div className="flex flex-wrap gap-3 items-center">
@@ -111,7 +111,7 @@ function ReportsView({ projects, managed }: { projects: ProjectSummary[]; manage
         {error && <Alert type="error" showIcon title={error} />}
 
         {canGenerate ? <section aria-labelledby="new-report">
-          <h3 id="new-report" className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-4" style={mono}>New report</h3>
+          <h3 id="new-report" className="text-sm font-bold text-[var(--at-text)] tracking-tight uppercase mb-4" style={mono}>New report</h3>
           <div className={`${panel} space-y-4`}>
             <p className="text-sm text-slate-300">A report records {currentProject?.name ?? 'the workspace'} as it is now. Later changes to the map do not change it.</p>
             <div>
@@ -123,19 +123,19 @@ function ReportsView({ projects, managed }: { projects: ProjectSummary[]; manage
         </section> : <p className="text-sm text-slate-300">Only maintainers of {currentProject?.name ?? 'this workspace'} can create reports. You can open and download the ones they made below.</p>}
 
         <section aria-labelledby="report-list">
-          <h3 id="report-list" className="text-sm font-bold text-[#f4f4f6] tracking-tight uppercase mb-4" style={mono}>Reports of this workspace</h3>
+          <h3 id="report-list" className="text-sm font-bold text-[var(--at-text)] tracking-tight uppercase mb-4" style={mono}>Reports of this workspace</h3>
           {loading && reports.length === 0 ? (
             <div className="p-12 text-center"><Spin /><p className="mt-3 text-slate-300">Loading reports…</p></div>
           ) : reports.length === 0 ? (
             <Empty description="No reports yet" />
           ) : (
             <>
-              <ul className="divide-y divide-[#242527] border border-[#242527] bg-[#11161b]">
+              <ul className="divide-y divide-[var(--at-line)] border border-[var(--at-line)] bg-[var(--at-panel)]">
                 {pagination.items.map(report => (
                   <li key={report.id} className="flex flex-wrap items-center gap-4 px-5 py-4">
                     <FileText size={16} className="shrink-0 text-slate-400" aria-hidden="true" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-[#f4f4f6]">{report.title}</p>
+                      <p className="truncate text-sm font-semibold text-[var(--at-text)]">{report.title}</p>
                       <p className="text-xs text-slate-400">
                         {when(report.createdAt)} · {count(report.figures.components, 'component')} · {count(report.figures.decisions, 'decision')} · {count(report.figures.minedCommits, 'mined commit')}
                       </p>
@@ -169,7 +169,7 @@ function ReportsView({ projects, managed }: { projects: ProjectSummary[]; manage
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return <section className="space-y-2">
-    <h4 className="border-b border-[#242527] pb-1 text-sm font-semibold text-[#f4f4f6]">{title}</h4>
+    <h4 className="border-b border-[var(--at-line)] pb-1 text-sm font-semibold text-[var(--at-text)]">{title}</h4>
     {children}
   </section>;
 }
@@ -189,7 +189,7 @@ function ReportBody({ report: r }: { report: ReportView }) {
     {r.summary && <p>{r.summary}</p>}
     <Section title="Key figures">
       <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
-        {figures.map(([k, v]) => <div key={k}><dt className="text-xs text-slate-400">{k}</dt><dd className="font-semibold text-[#f4f4f6]">{v}</dd></div>)}
+        {figures.map(([k, v]) => <div key={k}><dt className="text-xs text-slate-400">{k}</dt><dd className="font-semibold text-[var(--at-text)]">{v}</dd></div>)}
       </dl>
     </Section>
     {(r.history.first || r.history.latest) && <Section title="History covered">
@@ -198,7 +198,7 @@ function ReportBody({ report: r }: { report: ReportView }) {
     </Section>}
     <Section title="Components">
       {r.components.length ? <ul className="space-y-1.5">{r.components.map((c, i) => <li key={`${c.name}-${i}`}>
-        <span className="font-medium text-[#f4f4f6]">{c.name}</span>{c.kind && <span className="text-slate-400"> · {c.kind}</span>}
+        <span className="font-medium text-[var(--at-text)]">{c.name}</span>{c.kind && <span className="text-slate-400"> · {c.kind}</span>}
         {c.description && <p className="text-xs text-slate-400">{c.description}</p>}
       </li>)}</ul> : <p className="text-slate-400">No components on the map.</p>}
     </Section>
@@ -207,7 +207,7 @@ function ReportBody({ report: r }: { report: ReportView }) {
     </Section>
     <Section title="Architecture rules">
       {r.rules === null ? notStored : r.rules.length ? <ul className="space-y-1.5">{r.rules.map((x, i) => <li key={i}>
-        <span className="font-medium text-[#f4f4f6]">{x.name}</span>{!x.enabled && <Tag className="ml-2">Off</Tag>}
+        <span className="font-medium text-[var(--at-text)]">{x.name}</span>{!x.enabled && <Tag className="ml-2">Off</Tag>}
         <p className="text-xs text-slate-400">{x.source} {x.constraint === 'required' ? 'must depend on' : 'must not depend on'} {x.target} · {x.severity}</p>
       </li>)}</ul> : <p className="text-slate-400">No architecture rules.</p>}
     </Section>

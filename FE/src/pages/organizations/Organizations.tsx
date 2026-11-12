@@ -60,13 +60,13 @@ export default function Organizations() {
         ) : (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {organizations.map(o => (
-              <Link key={o.id} to={`/organizations/${encodeURIComponent(o.id)}`} className={`${featurePanel} block hover:border-[#3b82f6]/60 transition-colors`} aria-label={o.name}>
+              <Link key={o.id} to={`/organizations/${encodeURIComponent(o.id)}`} className={`${featurePanel} block hover:border-[var(--at-accent)]/60 transition-colors`} aria-label={o.name}>
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="flex items-center gap-2 font-semibold break-words"><Building2 size={16} className="text-[#93c5fd] shrink-0" />{o.name}</h3>
+                  <h3 className="flex items-center gap-2 font-semibold break-words"><Building2 size={16} className="text-[var(--at-link)] shrink-0" />{o.name}</h3>
                   <Tag color={o.myRole === 'owner' ? 'blue' : undefined}>{o.myRole === 'owner' ? 'Owner' : 'Member'}</Tag>
                 </div>
-                {o.description && <p className="mt-2 text-sm text-[#94a3b8] line-clamp-2">{o.description}</p>}
-                <p className="mt-3 text-xs text-[#94a3b8]">{o.memberCount} {o.memberCount === 1 ? 'member' : 'members'}</p>
+                {o.description && <p className="mt-2 text-sm text-[var(--at-muted)] line-clamp-2">{o.description}</p>}
+                <p className="mt-3 text-xs text-[var(--at-muted)]">{o.memberCount} {o.memberCount === 1 ? 'member' : 'members'}</p>
               </Link>
             ))}
           </div>
@@ -80,7 +80,7 @@ export default function Organizations() {
           <Form.Item name="description" label="Description (optional)" rules={[{ validator: (_, v) => { const p = checkDescription(v ?? ''); return p ? Promise.reject(new Error(p)) : Promise.resolve(); } }]}>
             <Input.TextArea rows={3} maxLength={DESCRIPTION_MAX} showCount placeholder="What the team works on" />
           </Form.Item>
-          <p className="text-xs text-[#94a3b8]">You become the owner. You can add members by the email of their ArchTime account.</p>
+          <p className="text-xs text-[var(--at-muted)]">You become the owner. You can add members by the email of their ArchTime account.</p>
         </Form>
       </Modal>
     </FeaturePage>

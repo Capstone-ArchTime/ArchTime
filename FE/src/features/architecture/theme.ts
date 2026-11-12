@@ -36,4 +36,12 @@ export const LIGHT: DiagramTheme = {
   tag: { FACT: '#15803d', INFERENCE: '#b45309', UNKNOWN: '#475569' }, sans, mono,
 };
 
+/** The dark diagram inside the developer-analyst "frost" look: misty slate, light edges, softer role colours. */
+export const FROST: DiagramTheme = {
+  name: 'dark', background: '#1d242a', card: '#273038', cardStroke: '#5a6773', text: '#eef2f8', muted: '#b4c0ce', edge: '#8a9aac', edgeDim: '#38424c',
+  cycle: '#f87171', route: '#f0c27e', focus: '#e4eaf5', badgeFill: '#2f3943',
+  role: { controller: '#9db3dc', service: '#bca9f2', repository: '#7fd8b6', entity: '#f0cf7a', gateway: '#f39aac', config: '#b4c0ce', util: '#a9c6ee', external: '#f2b083', other: '#8f9cab' },
+  tag: { FACT: '#86efac', INFERENCE: '#f0c27e', UNKNOWN: '#b4c0ce' }, sans: '"Montserrat", system-ui, sans-serif', mono,
+};
+
 export const THEMES = { dark: DARK, light: LIGHT } as const;

@@ -63,12 +63,12 @@ export default function ManagePaths() {
   }
 
   const columns: ColumnsType<PathSummary> = [
-    { title: 'Path', render: (_, p) => <span><Link to={`/learning/manage/${encodeURIComponent(projectId)}/${encodeURIComponent(p.id)}`} className="font-medium text-[#93c5fd]">{p.title}</Link>{p.description && <span className="block text-[11px] text-[#94a3b8] line-clamp-1">{p.description}</span>}</span> },
+    { title: 'Path', render: (_, p) => <span><Link to={`/learning/manage/${encodeURIComponent(projectId)}/${encodeURIComponent(p.id)}`} className="font-medium text-[var(--at-link)]">{p.title}</Link>{p.description && <span className="block text-[11px] text-[var(--at-muted)] line-clamp-1">{p.description}</span>}</span> },
     { title: 'Status', render: (_, p) => { const tag = pathStatusTag(p.status); return <Tag color={tag.color}>{tag.label}</Tag>; } },
     { title: 'Steps', dataIndex: 'stepCount', align: 'right' },
     { title: 'People', dataIndex: 'assigned', align: 'right' },
     { title: 'Finished', dataIndex: 'finished', align: 'right' },
-    { title: 'Needs attention', render: (_, p) => { const text = attentionText(p); return text ? <Tag color={p.missingSteps ? 'red' : 'orange'}>{text}</Tag> : <span className="text-[#94a3b8]">–</span>; } },
+    { title: 'Needs attention', render: (_, p) => { const text = attentionText(p); return text ? <Tag color={p.missingSteps ? 'red' : 'orange'}>{text}</Tag> : <span className="text-[var(--at-muted)]">–</span>; } },
     { title: 'Updated', render: (_, p) => new Date(p.updatedAt).toLocaleDateString() },
     {
       title: '', align: 'right', render: (_, p) => <div className="flex justify-end gap-1">

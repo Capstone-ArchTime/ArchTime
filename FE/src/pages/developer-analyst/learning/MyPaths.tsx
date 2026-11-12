@@ -37,12 +37,12 @@ export default function MyPaths() {
       {paths.map(path => (
         <article key={path.pathId} className={`${featurePanel} flex flex-col gap-3`} aria-label={path.title}>
           <div>
-            <p className="text-xs uppercase tracking-wider text-[#94a3b8]">{path.projectName ?? 'Workspace'}</p>
+            <p className="text-xs uppercase tracking-wider text-[var(--at-muted)]">{path.projectName ?? 'Workspace'}</p>
             <h3 className="mt-1 text-lg font-semibold">{path.title}</h3>
-            {path.description && <p className="mt-1 text-sm text-[#94a3b8] line-clamp-2">{path.description}</p>}
+            {path.description && <p className="mt-1 text-sm text-[var(--at-muted)] line-clamp-2">{path.description}</p>}
           </div>
           <div className="mt-auto space-y-1">
-            <div className="flex items-center justify-between text-xs text-[#94a3b8]"><span>{progressText(path)}</span><span>{path.percent}%</span></div>
+            <div className="flex items-center justify-between text-xs text-[var(--at-muted)]"><span>{progressText(path)}</span><span>{path.percent}%</span></div>
             <Progress percent={path.percent} showInfo={false} status={path.done >= path.total && path.total > 0 ? 'success' : 'active'} />
           </div>
           {path.nextStep && <p className="text-xs text-slate-300 truncate">Next: {path.nextStep.title}</p>}

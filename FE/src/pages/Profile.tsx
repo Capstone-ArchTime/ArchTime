@@ -27,8 +27,8 @@ import {
 } from '@/features/profile-view';
 import type { SetPasswordForm, SetPasswordProblems } from '@/features/profile-view';
 
-const label = 'mb-1 block text-xs text-[#94a3b8]';
-const link = 'text-[#93c5fd] hover:text-[#bfdbfe]';
+const label = 'mb-1 block text-xs text-[var(--at-muted)]';
+const link = 'text-[var(--at-link)] hover:text-[var(--at-link-hover)]';
 const problem = (id: string, text?: string) => (text ? <p id={id} role="alert" className="mt-1 text-xs text-red-400">{text}</p> : null);
 
 type Load<T> = { data: T | null; error: string | null; retry: () => void };
@@ -65,7 +65,7 @@ const loadAiTotals = async (signal: AbortSignal) => {
 /** A summary that links to the page with the details; it shows its own loading and error state. */
 function Tile<T>({ icon, title, load, children }: { icon: ReactNode; title: string; load: Load<T>; children: (data: T) => ReactNode }) {
   return <article aria-label={title} className={`${featurePanel} flex flex-col gap-2`}>
-    <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#94a3b8]">{icon}{title}</h3>
+    <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--at-muted)]">{icon}{title}</h3>
     {load.error ? <div className="space-y-2"><p role="alert" className="text-sm text-red-400">{load.error}</p><Button size="small" onClick={load.retry}>Retry</Button></div>
       : load.data === null ? <Skeleton active title={false} paragraph={{ rows: 2 }} /> : children(load.data)}
   </article>;
@@ -230,19 +230,19 @@ export default function Profile() {
     });
   }
 
-  const iconClass = 'text-[#93c5fd]';
+  const iconClass = 'text-[var(--at-link)]';
 
   return <FeaturePage title="My profile" description="Who you are in ArchTime, what you are part of, and how you sign in." demo={false}>
     <section aria-label="Your account" className={`${featurePanel} flex flex-wrap items-center gap-5`}>
-      <span aria-hidden="true" className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#1d4ed8] text-xl font-semibold text-white">{initials(user.name)}</span>
+      <span aria-hidden="true" className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[var(--at-fill)] text-xl font-semibold text-[var(--at-on-fill)]">{initials(user.name)}</span>
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <h3 className="text-2xl font-bold break-words">{user.name}</h3>
           <Tag color={role === 'system-administrator' ? 'gold' : 'blue'}>{accountTypeLabel(role)}</Tag>
         </div>
         {user.username && <p className="text-sm text-slate-300">@{user.username}</p>}
-        <p className="text-sm text-[#94a3b8] break-all">{user.email}</p>
-        {since && <p className="flex items-center gap-1.5 text-xs text-[#94a3b8]"><CalendarDays size={14} aria-hidden="true" />{since}</p>}
+        <p className="text-sm text-[var(--at-muted)] break-all">{user.email}</p>
+        {since && <p className="flex items-center gap-1.5 text-xs text-[var(--at-muted)]"><CalendarDays size={14} aria-hidden="true" />{since}</p>}
       </div>
     </section>
 
@@ -251,12 +251,12 @@ export default function Profile() {
         const o = organizationOverview(orgs);
         return <>
           <p className="text-2xl font-bold">{o.count}</p>
-          <p className="text-xs text-[#94a3b8]">{o.count ? o.ownedText : 'You do not belong to an organization yet.'}</p>
+          <p className="text-xs text-[var(--at-muted)]">{o.count ? o.ownedText : 'You do not belong to an organization yet.'}</p>
           {o.shown.length > 0 && <ul className="flex flex-wrap gap-2">{o.shown.map(org => {
             const to = `/organizations/${encodeURIComponent(org.id)}`;
-            const chip = <><span className="max-w-40 truncate">{org.name}</span><span className="text-[#94a3b8]">{ORGANIZATION_ROLE_LABELS[org.myRole]}</span></>;
-            const chipClass = 'inline-flex max-w-full items-center gap-1.5 rounded border border-[#242527] px-2 py-1 text-xs text-slate-200';
-            return <li key={org.id} className="max-w-full">{canOpen(to) ? <Link to={to} className={`${chipClass} hover:border-[#3b82f6] hover:text-[#bfdbfe]`}>{chip}</Link> : <span className={chipClass}>{chip}</span>}</li>;
+            const chip = <><span className="max-w-40 truncate">{org.name}</span><span className="text-[var(--at-muted)]">{ORGANIZATION_ROLE_LABELS[org.myRole]}</span></>;
+            const chipClass = 'inline-flex max-w-full items-center gap-1.5 rounded border border-[var(--at-line)] px-2 py-1 text-xs text-slate-200';
+            return <li key={org.id} className="max-w-full">{canOpen(to) ? <Link to={to} className={`${chipClass} hover:border-[var(--at-accent)] hover:text-[var(--at-link-hover)]`}>{chip}</Link> : <span className={chipClass}>{chip}</span>}</li>;
           })}</ul>}
           <TileLinks role={role} links={[['/organizations', !o.count ? 'Start one' : o.more ? `See all (${o.more} more)` : 'See all']]} />
         </>;
@@ -264,13 +264,13 @@ export default function Profile() {
 
       {tiles.includes('workspaces') && <Tile icon={<FolderKanban size={16} className={iconClass} />} title="Workspaces" load={workspaces}>{w => <>
         <p className="text-2xl font-bold">{w.all}</p>
-        <p className="text-xs text-[#94a3b8]">{workspaceOverview(w)}</p>
+        <p className="text-xs text-[var(--at-muted)]">{workspaceOverview(w)}</p>
         <TileLinks role={role} links={[['/projects', 'Open workspaces'], ['/my-work', 'My work']]} />
       </>}</Tile>}
 
       {tiles.includes('learning') && <Tile icon={<GraduationCap size={16} className={iconClass} />} title="Learning" load={paths}>{list => {
         if (!list.length) return <>
-          <p className="text-sm text-[#94a3b8]">No learning paths given to you yet.</p>
+          <p className="text-sm text-[var(--at-muted)]">No learning paths given to you yet.</p>
           <TileLinks role={role} links={[['/learning', 'Learning']]} />
         </>;
         const s = summarizeLearning(list);
@@ -279,7 +279,7 @@ export default function Profile() {
         return <>
           <p className="text-2xl font-bold">{s.percent}%</p>
           <Progress percent={s.percent} showInfo={false} size="small" aria-label="Steps done across your learning paths" />
-          <p className="text-xs text-[#94a3b8]">{s.finished} of {plural(s.assigned, 'path', 'paths')} finished</p>
+          <p className="text-xs text-[var(--at-muted)]">{s.finished} of {plural(s.assigned, 'path', 'paths')} finished</p>
           {next && to && canOpen(to) && <Link to={to} className={`${link} text-sm break-words`}>Continue: {next.title}</Link>}
           <TileLinks role={role} links={[['/learning', 'See all']]} />
         </>;
@@ -287,7 +287,7 @@ export default function Profile() {
 
       {tiles.includes('ai') && <Tile icon={<Sparkles size={16} className={iconClass} />} title="AI usage" load={aiTotals}>{t => <>
         <p className="text-2xl font-bold">{plural(t.runs, 'run', 'runs')}</p>
-        <p className="text-xs text-[#94a3b8]">{formatTokens(t.totalTokens)} tokens · {formatCost(t.cost)} · all time</p>
+        <p className="text-xs text-[var(--at-muted)]">{formatTokens(t.totalTokens)} tokens · {formatCost(t.cost)} · all time</p>
         <TileLinks role={role} links={[['/ai-usage', 'See details']]} />
       </>}</Tile>}
     </div>}
@@ -306,14 +306,14 @@ export default function Profile() {
           <label htmlFor="profile-username" className={label}>Username (optional)</label>
           <Input id="profile-username" value={form.username} maxLength={40} autoComplete="username" status={formProblems.username ? 'error' : undefined}
             aria-describedby={formProblems.username ? 'profile-username-problem' : 'profile-username-hint'} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} />
-          <p id="profile-username-hint" className="mt-1 text-xs text-[#94a3b8]">You can sign in with it instead of your email. {USERNAME_HINT}</p>
+          <p id="profile-username-hint" className="mt-1 text-xs text-[var(--at-muted)]">You can sign in with it instead of your email. {USERNAME_HINT}</p>
           {problem('profile-username-problem', formProblems.username)}
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="profile-email" className={label}>Email</label>
             <Input id="profile-email" value={user.email} readOnly aria-describedby="profile-email-hint" />
-            <p id="profile-email-hint" className="mt-1 text-xs text-[#94a3b8]">The email cannot be changed here.</p>
+            <p id="profile-email-hint" className="mt-1 text-xs text-[var(--at-muted)]">The email cannot be changed here.</p>
           </div>
           <div>
             <label htmlFor="profile-type" className={label}>Account type</label>
@@ -331,16 +331,16 @@ export default function Profile() {
 
         {methods && <div className="space-y-2">
           <h4 id="methods-heading" className="text-sm font-semibold">How you sign in</h4>
-          <dl aria-labelledby="methods-heading" className="divide-y divide-[#242527] rounded border border-[#242527]">
+          <dl aria-labelledby="methods-heading" className="divide-y divide-[var(--at-line)] rounded border border-[var(--at-line)]">
             <SignInMethod icon={<KeyRound size={16} className={iconClass} aria-hidden="true" />} name="Email and password" on={methods.password} onText="Set" offText="Not set" />
             <SignInMethod icon={<Icon icon="mdi:github" width="16" height="16" className={iconClass} aria-hidden="true" />} name="GitHub" on={methods.github} onText="Linked" offText="Not linked" />
           </dl>
         </div>}
 
         {needsPassword(methods) ? (
-          <form onSubmit={e => void submitFirstPassword(e)} className="space-y-4 border-t border-[#242527] pt-5" aria-labelledby="set-password-heading" noValidate>
+          <form onSubmit={e => void submitFirstPassword(e)} className="space-y-4 border-t border-[var(--at-line)] pt-5" aria-labelledby="set-password-heading" noValidate>
             <h4 id="set-password-heading" className="text-base font-semibold">Set a password</h4>
-            <p className="text-sm text-[#94a3b8]">
+            <p className="text-sm text-[var(--at-muted)]">
               {methods?.github ? 'You sign in with GitHub and your account has no password yet.' : 'Your account has no password yet.'}{' '}
               Set one to also sign in with your email and a password. You stay signed in.
             </p>
@@ -350,15 +350,15 @@ export default function Profile() {
             <PasswordField id="setpw-confirmNewPassword" text="Repeat the new password" autoComplete="off" value={firstPassword.confirmNewPassword} error={firstPasswordProblems.confirmNewPassword}
               onChange={value => setFirstPassword(p => ({ ...p, confirmNewPassword: value }))} />
             <Button type="primary" htmlType="submit" loading={settingPassword}>Set password</Button>
-            <p className="text-xs text-[#94a3b8]">
+            <p className="text-xs text-[var(--at-muted)]">
               Or <Link to={forgotPasswordLink(user.email)} className={link}>get a reset code by email</Link> and choose a password there. Doing it that way signs you out of all devices.
             </p>
           </form>
         ) : (
-          <form onSubmit={e => void submitPassword(e)} className="space-y-4 border-t border-[#242527] pt-5" aria-labelledby="password-heading" noValidate>
+          <form onSubmit={e => void submitPassword(e)} className="space-y-4 border-t border-[var(--at-line)] pt-5" aria-labelledby="password-heading" noValidate>
             <h4 id="password-heading" tabIndex={-1} className="text-base font-semibold outline-none"
               ref={el => { if (el && focusChangeForm.current) { focusChangeForm.current = false; el.focus(); } }}>Change password</h4>
-            <p className="text-sm text-[#94a3b8]">
+            <p className="text-sm text-[var(--at-muted)]">
               Changing it signs you out of every device, this one included.
               {!methods && ' If you signed up with GitHub and never set a password, this form cannot change it.'}
             </p>
@@ -372,9 +372,9 @@ export default function Profile() {
           </form>
         )}
 
-        <div className="space-y-3 border-t border-[#242527] pt-5" role="group" aria-labelledby="sessions-heading">
+        <div className="space-y-3 border-t border-[var(--at-line)] pt-5" role="group" aria-labelledby="sessions-heading">
           <h4 id="sessions-heading" className="text-base font-semibold">Sign out of all devices</h4>
-          <p className="text-sm text-[#94a3b8]">Use this if you lost a device or think someone else has your session. Every session of your account ends, including this one.</p>
+          <p className="text-sm text-[var(--at-muted)]">Use this if you lost a device or think someone else has your session. Every session of your account ends, including this one.</p>
           <Button danger loading={signingOut} onClick={confirmSignOutEverywhere}>Sign out of all devices</Button>
         </div>
       </section>

@@ -23,13 +23,13 @@ function Badge({ kind }: { kind: ChangeKind }) {
 }
 
 function Names({ list }: { list: MatchedComponent[] }) {
-  if (!list.length) return <span className="text-[#94a3b8]">—</span>;
+  if (!list.length) return <span className="text-[var(--at-muted)]">—</span>;
   return (
     <span className="inline-flex flex-wrap gap-x-2 gap-y-1">
       {list.map((c, i) => (
-        <span key={c.id} className="text-[#f4f4f6]">
-          {c.name} <span className="text-[10px] text-[#94a3b8] font-mono" style={mono}>({c.files} files)</span>
-          {i < list.length - 1 && <span className="text-[#94a3b8]">,</span>}
+        <span key={c.id} className="text-[var(--at-text)]">
+          {c.name} <span className="text-[10px] text-[var(--at-muted)] font-mono" style={mono}>({c.files} files)</span>
+          {i < list.length - 1 && <span className="text-[var(--at-muted)]">,</span>}
         </span>
       ))}
     </span>
@@ -41,11 +41,11 @@ function Files({ files }: { files: string[] }) {
   const shown = all ? files : files.slice(0, FILES_SHOWN);
   return (
     <>
-      <ul className="mt-1 space-y-0.5 text-[11px] font-mono text-[#94a3b8] break-all" style={mono}>
+      <ul className="mt-1 space-y-0.5 text-[11px] font-mono text-[var(--at-muted)] break-all" style={mono}>
         {shown.map(f => <li key={f}>{f}</li>)}
       </ul>
       {files.length > FILES_SHOWN && (
-        <button type="button" onClick={() => setAll(v => !v)} className="mt-1 text-[11px] text-[#93c5fd] hover:underline">
+        <button type="button" onClick={() => setAll(v => !v)} className="mt-1 text-[11px] text-[var(--at-link)] hover:underline">
           {all ? 'Show fewer' : `Show all ${files.length} files`}
         </button>
       )}
@@ -56,22 +56,22 @@ function Files({ files }: { files: string[] }) {
 function Row({ row }: { row: ChangeRow }) {
   const shared = row.links.reduce((n, l) => n + l.shared.length, 0);
   return (
-    <div className="p-5 hover:bg-[#161d24]/50 transition-colors">
+    <div className="p-5 hover:bg-[var(--at-panel-2)]/50 transition-colors">
       <div className="flex items-center gap-2 mb-2"><Badge kind={row.kind} /></div>
       <div className="text-sm font-bold flex flex-wrap items-center gap-2 mb-1">
         <Names list={row.before} />
-        <ArrowRight size={14} className="text-[#93c5fd] shrink-0" aria-label="became" />
+        <ArrowRight size={14} className="text-[var(--at-link)] shrink-0" aria-label="became" />
         <Names list={row.after} />
       </div>
-      <p className="text-xs text-[#94a3b8]">{row.explanation}</p>
+      <p className="text-xs text-[var(--at-muted)]">{row.explanation}</p>
       {row.links.length > 0 && (
         <details className="mt-3 group">
-          <summary className="cursor-pointer text-xs text-[#93c5fd] select-none">Evidence: {shared} shared {shared === 1 ? 'file' : 'files'}</summary>
-          <div className="mt-2 space-y-3 border-l border-[#242527] pl-3">
+          <summary className="cursor-pointer text-xs text-[var(--at-link)] select-none">Evidence: {shared} shared {shared === 1 ? 'file' : 'files'}</summary>
+          <div className="mt-2 space-y-3 border-l border-[var(--at-line)] pl-3">
             {row.links.map(l => (
               <div key={`${l.before}>${l.after}`}>
-                <div className="text-xs text-[#f4f4f6]">{l.beforeName} → {l.afterName}</div>
-                <div className="text-[11px] text-[#94a3b8]">{linkStrength(l)}</div>
+                <div className="text-xs text-[var(--at-text)]">{l.beforeName} → {l.afterName}</div>
+                <div className="text-[11px] text-[var(--at-muted)]">{linkStrength(l)}</div>
                 <Files files={l.shared} />
               </div>
             ))}
@@ -96,11 +96,11 @@ export default function ComponentMatchPanel({ projectId, baseId, targetId, resul
 
   const header = (
     <div className="mb-4">
-      <h3 className="text-sm font-bold text-[#f4f4f6] tracking-wide uppercase flex items-center gap-2">
-        <GitMerge size={16} className="text-[#93c5fd]" />
+      <h3 className="text-sm font-bold text-[var(--at-text)] tracking-wide uppercase flex items-center gap-2">
+        <GitMerge size={16} className="text-[var(--at-link)]" />
         Component Matching
       </h3>
-      <p className="text-xs text-[#94a3b8] mt-1 max-w-3xl">
+      <p className="text-xs text-[var(--at-muted)] mt-1 max-w-3xl">
         Which component became which. Components are matched through the files they share, not by name, so a component
         renamed by a new grouping is still recognised.
       </p>
@@ -108,17 +108,17 @@ export default function ComponentMatchPanel({ projectId, baseId, targetId, resul
   );
 
   if (loading) {
-    return <section className="shrink-0">{header}<div className="bg-[#11161b] border border-[#242527] p-5 text-xs text-[#94a3b8]">Matching components…</div></section>;
+    return <section className="shrink-0">{header}<div className="bg-[var(--at-panel)] border border-[var(--at-line)] p-5 text-xs text-[var(--at-muted)]">Matching components…</div></section>;
   }
   if (error) {
     return (
       <section className="shrink-0">
         {header}
-        <div className="bg-[#11161b] border border-[#ffb03a]/30 p-5 text-xs text-[#f4f4f6] space-y-3" role="status">
-          <div className="flex items-start gap-2"><AlertTriangle size={14} className="text-[#ffb03a] shrink-0 mt-0.5" /><span>{error}</span></div>
+        <div className="bg-[var(--at-panel)] border border-[var(--at-warn)]/30 p-5 text-xs text-[var(--at-text)] space-y-3" role="status">
+          <div className="flex items-start gap-2"><AlertTriangle size={14} className="text-[var(--at-warn)] shrink-0 mt-0.5" /><span>{error}</span></div>
           <div className="flex flex-wrap gap-4">
-            <Link className="text-[#93c5fd] hover:underline" to={workspaceLink(projectId, baseId)}>Open base revision in workspace</Link>
-            <Link className="text-[#93c5fd] hover:underline" to={workspaceLink(projectId, targetId)}>Open target revision in workspace</Link>
+            <Link className="text-[var(--at-link)] hover:underline" to={workspaceLink(projectId, baseId)}>Open base revision in workspace</Link>
+            <Link className="text-[var(--at-link)] hover:underline" to={workspaceLink(projectId, targetId)}>Open target revision in workspace</Link>
           </div>
         </div>
       </section>
@@ -138,7 +138,7 @@ export default function ComponentMatchPanel({ projectId, baseId, targetId, resul
       {header}
 
       {(swapped || stale.length > 0) && (
-        <div className="mb-3 space-y-1 text-xs text-[#ffb03a]">
+        <div className="mb-3 space-y-1 text-xs text-[var(--at-warn)]">
           {swapped && <p>The target revision is older than the base, so it is shown as "before".</p>}
           {stale.length > 0 && <p>The components of {stale.join(' and ')} were grouped from an older analysis; regenerate them in the workspace for an exact match.</p>}
         </div>
@@ -146,12 +146,12 @@ export default function ComponentMatchPanel({ projectId, baseId, targetId, resul
 
       <div className="flex flex-wrap gap-2 mb-4">
         {CHANGE_KINDS.filter(k => summary[k] > 0).map(k => (
-          <div key={k} className="flex items-center gap-2 bg-[#161d24] border border-[#242527] px-3 py-2">
+          <div key={k} className="flex items-center gap-2 bg-[var(--at-panel-2)] border border-[var(--at-line)] px-3 py-2">
             <Badge kind={k} />
-            <span className="text-sm font-bold font-mono text-[#f4f4f6]" style={mono}>{summary[k]}</span>
+            <span className="text-sm font-bold font-mono text-[var(--at-text)]" style={mono}>{summary[k]}</span>
           </div>
         ))}
-        <div className="flex items-center gap-3 bg-[#161d24] border border-[#242527] px-3 py-2 text-[11px] text-[#94a3b8] font-mono" style={mono}>
+        <div className="flex items-center gap-3 bg-[var(--at-panel-2)] border border-[var(--at-line)] px-3 py-2 text-[11px] text-[var(--at-muted)] font-mono" style={mono}>
           <span>{files.common} files kept</span>
           {files.moved > 0 && <span>{files.moved} moved</span>}
           <span className="text-[#22c55e]">+{files.added}</span>
@@ -160,13 +160,13 @@ export default function ComponentMatchPanel({ projectId, baseId, targetId, resul
       </div>
 
       {!hasStructuralChange(summary) && (
-        <p className="mb-3 text-xs text-[#94a3b8]">No structural change: every component continues with the same files.</p>
+        <p className="mb-3 text-xs text-[var(--at-muted)]">No structural change: every component continues with the same files.</p>
       )}
 
-      <div className="bg-[#11161b] border border-[#242527] overflow-hidden divide-y divide-[#242527]">
+      <div className="bg-[var(--at-panel)] border border-[var(--at-line)] overflow-hidden divide-y divide-[var(--at-line)]">
         {visible.map(r => <Row key={r.key} row={r} />)}
         {kept > 0 && (
-          <button type="button" onClick={() => setShowKept(v => !v)} className="w-full p-3 text-xs text-[#93c5fd] hover:bg-[#161d24]/50 text-left">
+          <button type="button" onClick={() => setShowKept(v => !v)} className="w-full p-3 text-xs text-[var(--at-link)] hover:bg-[var(--at-panel-2)]/50 text-left">
             {showKept ? 'Hide unchanged components' : `Show ${kept} unchanged ${kept === 1 ? 'component' : 'components'}`}
           </button>
         )}
@@ -174,10 +174,10 @@ export default function ComponentMatchPanel({ projectId, baseId, targetId, resul
 
       {result.matching.moves.length > 0 && (
         <details className="mt-3">
-          <summary className="cursor-pointer text-xs text-[#93c5fd] select-none">
+          <summary className="cursor-pointer text-xs text-[var(--at-link)] select-none">
             {result.matching.moves.length} files treated as moved (same unique file name in a new folder)
           </summary>
-          <ul className="mt-2 space-y-0.5 text-[11px] font-mono text-[#94a3b8] break-all" style={mono}>
+          <ul className="mt-2 space-y-0.5 text-[11px] font-mono text-[var(--at-muted)] break-all" style={mono}>
             {result.matching.moves.map(m => <li key={m.from}>{m.from} → {m.to}</li>)}
           </ul>
         </details>

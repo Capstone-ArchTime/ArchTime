@@ -55,8 +55,8 @@ export default function PathPeopleModal({ projectId, path, onClose, onChanged }:
   const candidates = (data?.members ?? []).filter(m => !taken.has(m.userId));
 
   const columns: ColumnsType<LearnerProgress> = [
-    { title: 'Person', render: (_, l) => <span>{l.name ?? 'Unknown person'}<span className="block text-[11px] text-[#94a3b8]">{l.email}</span></span> },
-    { title: 'Progress', render: (_, l) => <div className="min-w-32"><Progress percent={l.percent} size="small" showInfo={false} /><span className="text-xs text-[#94a3b8]">{progressText(l)}</span></div> },
+    { title: 'Person', render: (_, l) => <span>{l.name ?? 'Unknown person'}<span className="block text-[11px] text-[var(--at-muted)]">{l.email}</span></span> },
+    { title: 'Progress', render: (_, l) => <div className="min-w-32"><Progress percent={l.percent} size="small" showInfo={false} /><span className="text-xs text-[var(--at-muted)]">{progressText(l)}</span></div> },
     {
       title: 'Steps', render: (_, l) => <div className="flex flex-wrap gap-1" role="list" aria-label="State of each step">
         {l.steps.map((s, i) => {

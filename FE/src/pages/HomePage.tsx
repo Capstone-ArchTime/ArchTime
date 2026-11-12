@@ -91,7 +91,7 @@ function IsometricCard({
 }) {
   return (
     <motion.div
-      className="border border-[#242527] bg-[#161d24] p-8 space-y-4"
+      className="border border-[var(--at-line)] bg-[var(--at-panel-2)] p-8 space-y-4"
       whileHover={{ y: -6, scale: 1.01, borderColor: "rgba(255, 176, 58, 0.3)" }}
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
@@ -153,7 +153,7 @@ export default function HomePage() {
 
   return (
     <main
-      className="min-h-screen overflow-x-hidden bg-[#080b0e] text-slate-200 antialiased selection:bg-[#f59e0b] selection:text-[#080b0e]"
+      className="min-h-screen overflow-x-hidden bg-[var(--at-page)] text-slate-200 antialiased selection:bg-[#f59e0b] selection:text-[#080b0e]"
       style={{ fontFamily: fontFamily.sans }}
     >
       <div className="fixed bottom-6 right-6 z-[60]">
@@ -179,7 +179,7 @@ export default function HomePage() {
               "radial-gradient(circle at 50% 50%, rgba(255, 176, 58, 0.08) 0%, rgba(56, 189, 248, 0.02) 45%, transparent 70%)",
           }}
         />
-        <div className="absolute bottom-[10%] right-[-5%] h-[40vw] w-[40vw] rounded-full bg-[#3b82f6]/5 blur-[120px]" />
+        <div className="absolute bottom-[10%] right-[-5%] h-[40vw] w-[40vw] rounded-full bg-[var(--at-accent)]/5 blur-[120px]" />
         {!prefersReducedMotion && particleList.map((p, i) => (
           <motion.div
             key={i}
@@ -221,29 +221,29 @@ export default function HomePage() {
             className="hidden items-center gap-8 text-xs uppercase tracking-widest text-white md:flex"
             style={{ fontFamily: fontFamily.mono }}
           >
-            <a href="#architecture" className="text-white visited:text-white transition-colors hover:text-[#93c5fd]">
+            <a href="#architecture" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
               Architecture
             </a>
-            <a href="#console" className="text-white visited:text-white transition-colors hover:text-[#93c5fd]">
+            <a href="#console" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
               Console
             </a>
-            <a href="#modules" className="text-white visited:text-white transition-colors hover:text-[#93c5fd]">
+            <a href="#modules" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
               Modules
             </a>
-            <a href="#hardware" className="text-white visited:text-white transition-colors hover:text-[#93c5fd]">
+            <a href="#hardware" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
               Evidence
             </a>
           </div>
 
           <div className="flex items-center gap-4">
             <span
-              className="hidden border border-[#242527] bg-[#11161b] px-3 py-1 text-[10px] text-[#ffb03a] sm:inline-block"
+              className="hidden border border-[var(--at-line)] bg-[var(--at-panel)] px-3 py-1 text-[10px] text-[var(--at-warn)] sm:inline-block"
               style={{ fontFamily: fontFamily.mono }}
             >
               EVIDENCE // VERIFIED
             </span>
             {authLoading ? (
-              <span role="status" aria-label="Loading account" className="h-10 w-10 animate-pulse rounded-full border border-[#242527] bg-[#11161b] motion-reduce:animate-none" />
+              <span role="status" aria-label="Loading account" className="h-10 w-10 animate-pulse rounded-full border border-[var(--at-line)] bg-[var(--at-panel)] motion-reduce:animate-none" />
             ) : user ? (
               <Suspense fallback={<span className="h-10 w-10" role="status" aria-label="Loading account menu" />}><AccountMenu onNavigate={() => setMobileMenuOpen(false)} /></Suspense>
             ) : (<>
@@ -256,7 +256,7 @@ export default function HomePage() {
             </Link>
             <Link
               to="/register"
-              className="hidden border border-[#3b82f6]/30 bg-[#11161b] px-5 py-2.5 text-xs uppercase tracking-widest text-white transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-[#00f0ff] hover:text-[#00f0ff] md:inline-block"
+              className="hidden border border-[var(--at-accent)]/30 bg-[var(--at-panel)] px-5 py-2.5 text-xs uppercase tracking-widest text-white transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-[var(--at-glow)] hover:text-[var(--at-glow)] md:inline-block"
               style={{ fontFamily: fontFamily.mono }}
             >
               Sign Up
@@ -267,7 +267,7 @@ export default function HomePage() {
               aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileMenuOpen}
               aria-controls="mobile-nav-menu"
-              className="border border-[#242527] bg-[#11161b] p-2.5 text-slate-300 transition-colors hover:border-[#00f0ff] hover:text-white md:hidden"
+              className="border border-[var(--at-line)] bg-[var(--at-panel)] p-2.5 text-slate-300 transition-colors hover:border-[var(--at-glow)] hover:text-white md:hidden"
             >
               <Icon icon={mobileMenuOpen ? "ph:x-bold" : "ph:list-bold"} className="text-lg" />
             </button>
@@ -282,7 +282,7 @@ export default function HomePage() {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
-              className="absolute left-0 top-full w-full overflow-hidden border-b border-[#242527] bg-[#080b0e]/95 backdrop-blur-md md:hidden"
+              className="absolute left-0 top-full w-full overflow-hidden border-b border-[var(--at-line)] bg-[var(--at-page)]/95 backdrop-blur-md md:hidden"
             >
               <nav
                 className="flex flex-col gap-1 px-6 py-4 text-xs uppercase tracking-widest text-white"
@@ -291,28 +291,28 @@ export default function HomePage() {
                 <a
                   href="#architecture"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="border-b border-[#242527]/60 py-3 text-white visited:text-white transition-colors hover:text-[#93c5fd]"
+                  className="border-b border-[var(--at-line)]/60 py-3 text-white visited:text-white transition-colors hover:text-[var(--at-link)]"
                 >
                   Architecture
                 </a>
                 <a
                   href="#console"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="border-b border-[#242527]/60 py-3 text-white visited:text-white transition-colors hover:text-[#93c5fd]"
+                  className="border-b border-[var(--at-line)]/60 py-3 text-white visited:text-white transition-colors hover:text-[var(--at-link)]"
                 >
                   Console
                 </a>
                 <a
                   href="#modules"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="border-b border-[#242527]/60 py-3 text-white visited:text-white transition-colors hover:text-[#93c5fd]"
+                  className="border-b border-[var(--at-line)]/60 py-3 text-white visited:text-white transition-colors hover:text-[var(--at-link)]"
                 >
                   Modules
                 </a>
                 <a
                   href="#hardware"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="border-b border-[#242527]/60 py-3 text-white visited:text-white transition-colors hover:text-[#93c5fd]"
+                  className="border-b border-[var(--at-line)]/60 py-3 text-white visited:text-white transition-colors hover:text-[var(--at-link)]"
                 >
                   Evidence
                 </a>
@@ -320,14 +320,14 @@ export default function HomePage() {
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="py-3 transition-colors hover:text-[#00f0ff]"
+                  className="py-3 transition-colors hover:text-[var(--at-glow)]"
                 >
                   Log In
                 </Link>
                 <Link
                   to="/register"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="mt-2 border border-[#3b82f6]/30 bg-[#11161b] px-5 py-2.5 text-center text-white transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-[#00f0ff] hover:text-[#00f0ff]"
+                  className="mt-2 border border-[var(--at-accent)]/30 bg-[var(--at-panel)] px-5 py-2.5 text-center text-white transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-[var(--at-glow)] hover:text-[var(--at-glow)]"
                 >
                   Sign Up
                 </Link>
@@ -337,7 +337,7 @@ export default function HomePage() {
                     setMobileMenuOpen(false);
                     notifyComingSoon("Repository analysis");
                   }}
-                  className="mt-2 border border-[#242527] bg-transparent px-5 py-2.5 text-center text-slate-400 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400 hover:text-white"
+                  className="mt-2 border border-[var(--at-line)] bg-transparent px-5 py-2.5 text-center text-slate-400 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400 hover:text-white"
                 >
                   Analyze Repository
                 </button>
@@ -360,13 +360,13 @@ export default function HomePage() {
           >
             <source src="/video.mp4" type="video/mp4" />
           </video>
-          <div className="absolute inset-0 bg-gradient-to-t from-[#080b0e] via-[#080b0e]/5 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[var(--at-page)] via-[var(--at-page)]/5 to-transparent" />
         </div>
 
         <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-12 px-6 py-12 lg:grid-cols-12">
           <div className="space-y-8 text-left lg:col-span-7">
-            <div className="inline-flex items-center gap-3 border border-[#242527] bg-[#11161b]/80 px-4 py-1.5">
-              <Icon icon="radix-icons:dot-filled" className="animate-spin motion-reduce:animate-none text-[#ffb03a]" />
+            <div className="inline-flex items-center gap-3 border border-[var(--at-line)] bg-[var(--at-panel)]/80 px-4 py-1.5">
+              <Icon icon="radix-icons:dot-filled" className="animate-spin motion-reduce:animate-none text-[var(--at-warn)]" />
               <span
                 className="text-xs uppercase tracking-widest text-slate-300"
                 style={{ fontFamily: fontFamily.mono }}
@@ -378,7 +378,7 @@ export default function HomePage() {
             <h1 className="text-5xl font-bold leading-[1.1] tracking-tight text-white sm:text-6xl md:text-7xl">
               Reconstruct How Your <br />
               <span
-                className="bg-gradient-to-r from-[#3b82f6] via-[#ffb03a] to-[#f59e0b] bg-clip-text text-transparent"
+                className="bg-gradient-to-r from-[var(--at-accent)] via-[var(--at-warn)] to-[#f59e0b] bg-clip-text text-transparent"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Architecture Evolved.
@@ -392,7 +392,7 @@ export default function HomePage() {
             <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
               <motion.a
                 href="#console"
-                className="rounded-none bg-[#1d4ed8] px-8 py-4 text-center text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#1e40af]"
+                className="rounded-none bg-[var(--at-fill)] px-8 py-4 text-center text-xs font-bold uppercase tracking-widest text-[var(--at-on-fill)] transition-colors hover:bg-[var(--at-fill-hover)]"
                 style={{ fontFamily: fontFamily.mono }}
                 whileHover={{
                   boxShadow:
@@ -406,7 +406,7 @@ export default function HomePage() {
               </motion.a>
               <a
                 href="#architecture"
-                className="rounded-none border border-[#242527] bg-[#11161b]/40 px-8 py-4 text-center text-xs font-light uppercase tracking-widest text-slate-300 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400"
+                className="rounded-none border border-[var(--at-line)] bg-[var(--at-panel)]/40 px-8 py-4 text-center text-xs font-light uppercase tracking-widest text-slate-300 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Explore Pipeline
@@ -421,7 +421,7 @@ export default function HomePage() {
           <div className="grid items-center gap-12 lg:grid-cols-12">
             <div className="space-y-6 lg:col-span-5">
               <span
-                className="block text-xs uppercase tracking-widest text-[#ffb03a]"
+                className="block text-xs uppercase tracking-widest text-[var(--at-warn)]"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Repository Mining
@@ -433,13 +433,13 @@ export default function HomePage() {
                 ArchTime parses source code with an Abstract Syntax Tree and combines it with Git metadata &mdash; commits, authors, timestamps, diffs &mdash; to build a knowledge graph of your system across versions.
               </p>
               <div className="grid grid-cols-2 gap-4 pt-4">
-                <div className="border-l-2 border-[#3b82f6] pl-4">
+                <div className="border-l-2 border-[var(--at-accent)] pl-4">
                   <div className="text-xl font-bold text-white" style={{ fontFamily: fontFamily.mono }}>
                     AST
                   </div>
                   <div className="text-xs uppercase tracking-wider text-slate-500">Structural Parsing</div>
                 </div>
-                <div className="border-l-2 border-[#ffb03a] pl-4">
+                <div className="border-l-2 border-[var(--at-warn)] pl-4">
                   <div className="text-xl font-bold text-white" style={{ fontFamily: fontFamily.mono }}>
                     Git History
                   </div>
@@ -477,11 +477,11 @@ export default function HomePage() {
           </div>
         </RevealSection>
 
-        <RevealSection id="console" className="border-y border-[#242527] bg-[#11161b]/50 py-32">
+        <RevealSection id="console" className="border-y border-[var(--at-line)] bg-[var(--at-panel)]/50 py-32">
           <div className="mx-auto max-w-7xl px-6">
             <div className="mx-auto mb-16 max-w-2xl text-center">
               <span
-                className="mb-3 block text-xs uppercase tracking-widest text-[#93c5fd]"
+                className="mb-3 block text-xs uppercase tracking-widest text-[var(--at-link)]"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Evolution Analysis
@@ -491,8 +491,8 @@ export default function HomePage() {
               </h2>
             </div>
 
-            <div className="mx-auto w-full max-w-4xl overflow-hidden border border-[#242527] bg-[#080b0e] shadow-2xl">
-              <div className="flex select-none items-center justify-between border-b border-[#242527] bg-[#11161b] px-4 py-3">
+            <div className="mx-auto w-full max-w-4xl overflow-hidden border border-[var(--at-line)] bg-[var(--at-page)] shadow-2xl">
+              <div className="flex select-none items-center justify-between border-b border-[var(--at-line)] bg-[var(--at-panel)] px-4 py-3">
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-red-500/40" />
                   <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/40" />
@@ -507,11 +507,11 @@ export default function HomePage() {
               </div>
 
               <div
-                className="min-h-[320px] space-y-4 bg-gradient-to-b from-[#080b0e] to-[#11161b]/20 p-6 text-xs sm:text-sm"
+                className="min-h-[320px] space-y-4 bg-gradient-to-b from-[var(--at-page)] to-[var(--at-panel)]/20 p-6 text-xs sm:text-sm"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 <div className="flex items-start gap-2">
-                  <span className="text-[#93c5fd]">archtime@repo:~$</span>
+                  <span className="text-[var(--at-link)]">archtime@repo:~$</span>
                   <span className="text-slate-300">analyze --repo=./target-service --since=v1.0.0</span>
                 </div>
                 <div className="space-y-1 text-slate-500">
@@ -520,14 +520,14 @@ export default function HomePage() {
                   <div>[ OK ] Comparing architecture snapshots (graph edit distance)...</div>
                 </div>
                 <div className="flex items-start gap-2">
-                  <span className="text-[#93c5fd]">archtime@repo:~$</span>
+                  <span className="text-[var(--at-link)]">archtime@repo:~$</span>
                   <span className="text-slate-300">cat architectural_diff.json</span>
                 </div>
-                <div className="border border-[#242527]/60 bg-[#161d24]/50 p-4 leading-relaxed text-[#ffb03a]">
+                <div className="border border-[var(--at-line)]/60 bg-[var(--at-panel-2)]/50 p-4 leading-relaxed text-[var(--at-warn)]">
                   &quot;Module `billing-service` was split from `core-monolith` at commit 4af21c9. Evidence: 3 commits, 2 authors, dependency direction reversed.&quot;
                 </div>
                 <div className="flex items-center gap-2 pt-2">
-                  <span className="text-[#93c5fd]">archtime@repo:~$</span>
+                  <span className="text-[var(--at-link)]">archtime@repo:~$</span>
                   <TypewriterLine />
                 </div>
               </div>
@@ -539,7 +539,7 @@ export default function HomePage() {
           <div className="mb-16 flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
             <div>
               <span
-                className="mb-3 block text-xs uppercase tracking-widest text-[#ffb03a]"
+                className="mb-3 block text-xs uppercase tracking-widest text-[var(--at-warn)]"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Detected Changes
@@ -552,17 +552,17 @@ export default function HomePage() {
           </div>
 
           <div className="grid gap-8 md:grid-cols-3">
-            <div className="group flex h-80 flex-col justify-between border border-[#242527] bg-[#161d24] p-8 transition-colors hover:border-[#3b82f6]/40">
+            <div className="group flex h-80 flex-col justify-between border border-[var(--at-line)] bg-[var(--at-panel-2)] p-8 transition-colors hover:border-[var(--at-accent)]/40">
               <div>
                 <div className="mb-6 flex items-start justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center border border-[#3b82f6]/20 bg-[#3b82f6]/10 text-xl text-[#93c5fd]">
+                  <div className="flex h-12 w-12 items-center justify-center border border-[var(--at-accent)]/20 bg-[var(--at-accent)]/10 text-xl text-[var(--at-link)]">
                     <Icon icon="ph:cube-light" />
                   </div>
                   <span className="text-xs text-slate-500" style={{ fontFamily: fontFamily.mono }}>
                     01 / CHANGE
                   </span>
                 </div>
-                <h3 className="mb-2 text-xl font-bold text-white transition-colors group-hover:text-[#93c5fd]">
+                <h3 className="mb-2 text-xl font-bold text-white transition-colors group-hover:text-[var(--at-link)]">
                   Module Split / Merge
                 </h3>
                 <p className="text-sm leading-relaxed text-slate-400 font-light">
@@ -577,17 +577,17 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="group flex h-80 flex-col justify-between border border-[#242527] bg-[#161d24] p-8 transition-colors hover:border-[#ffb03a]/40">
+            <div className="group flex h-80 flex-col justify-between border border-[var(--at-line)] bg-[var(--at-panel-2)] p-8 transition-colors hover:border-[var(--at-warn)]/40">
               <div>
                 <div className="mb-6 flex items-start justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center border border-[#ffb03a]/20 bg-[#ffb03a]/10 text-xl text-[#ffb03a]">
+                  <div className="flex h-12 w-12 items-center justify-center border border-[var(--at-warn)]/20 bg-[var(--at-warn)]/10 text-xl text-[var(--at-warn)]">
                     <Icon icon="ph:sliders-horizontal-light" />
                   </div>
                   <span className="text-xs text-slate-500" style={{ fontFamily: fontFamily.mono }}>
                     02 / CHANGE
                   </span>
                 </div>
-                <h3 className="mb-2 text-xl font-bold text-white transition-colors group-hover:text-[#ffb03a]">
+                <h3 className="mb-2 text-xl font-bold text-white transition-colors group-hover:text-[var(--at-warn)]">
                   Dependency Shift
                 </h3>
                 <p className="text-sm leading-relaxed text-slate-400 font-light">
@@ -602,17 +602,17 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="group flex h-80 flex-col justify-between border border-[#242527] bg-[#161d24] p-8 transition-colors hover:border-[#00f0ff]/40">
+            <div className="group flex h-80 flex-col justify-between border border-[var(--at-line)] bg-[var(--at-panel-2)] p-8 transition-colors hover:border-[var(--at-glow)]/40">
               <div>
                 <div className="mb-6 flex items-start justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center border border-[#00f0ff]/20 bg-[#00f0ff]/10 text-xl text-[#00f0ff]">
+                  <div className="flex h-12 w-12 items-center justify-center border border-[var(--at-glow)]/20 bg-[var(--at-glow)]/10 text-xl text-[var(--at-glow)]">
                     <Icon icon="ph:command-light" />
                   </div>
                   <span className="text-xs text-slate-500" style={{ fontFamily: fontFamily.mono }}>
                     03 / CHANGE
                   </span>
                 </div>
-                <h3 className="mb-2 text-xl font-bold text-white transition-colors group-hover:text-[#00f0ff]">
+                <h3 className="mb-2 text-xl font-bold text-white transition-colors group-hover:text-[var(--at-glow)]">
                   Package Restructure
                 </h3>
                 <p className="text-sm leading-relaxed text-slate-400 font-light">
@@ -629,40 +629,40 @@ export default function HomePage() {
           </div>
         </RevealSection>
 
-        <RevealSection id="hardware" className="border-t border-[#242527] bg-[#161d24]/30 py-32">
+        <RevealSection id="hardware" className="border-t border-[var(--at-line)] bg-[var(--at-panel-2)]/30 py-32">
           <div className="mx-auto grid max-w-7xl items-center gap-16 px-6 lg:grid-cols-12">
             <div className="relative order-2 lg:col-span-6 lg:order-1">
-              <div className="pointer-events-none absolute inset-0 rounded-full bg-[#3b82f6]/5 blur-[100px]" />
+              <div className="pointer-events-none absolute inset-0 rounded-full bg-[var(--at-accent)]/5 blur-[100px]" />
               <div
-                className="relative z-10 space-y-4 border border-[#242527] bg-[#080b0e] p-8 text-xs"
+                className="relative z-10 space-y-4 border border-[var(--at-line)] bg-[var(--at-page)] p-8 text-xs"
                 style={{ fontFamily: fontFamily.mono }}
               >
-                <div className="flex justify-between border-b border-[#242527]/40 pb-3 text-slate-500">
+                <div className="flex justify-between border-b border-[var(--at-line)]/40 pb-3 text-slate-500">
                   <span>EVIDENCE RECORD</span>
                   <span>COMMIT 4af21c9</span>
                 </div>
-                <div className="flex justify-between border-b border-[#242527]/40 pb-2">
+                <div className="flex justify-between border-b border-[var(--at-line)]/40 pb-2">
                   <span className="text-slate-400">Author</span>
                   <span className="text-white">j.tran@example.com</span>
                 </div>
-                <div className="flex justify-between border-b border-[#242527]/40 pb-2">
+                <div className="flex justify-between border-b border-[var(--at-line)]/40 pb-2">
                   <span className="text-slate-400">Files Changed</span>
                   <span className="text-white">14 modified, 3 added</span>
                 </div>
-                <div className="flex justify-between border-b border-[#242527]/40 pb-2">
+                <div className="flex justify-between border-b border-[var(--at-line)]/40 pb-2">
                   <span className="text-slate-400">Claim Type</span>
                   <span className="text-white">FACT</span>
                 </div>
                 <div className="flex justify-between pb-1">
                   <span className="text-slate-400">Confidence</span>
-                  <span className="text-[#ffb03a]">Evidence Coverage 92%</span>
+                  <span className="text-[var(--at-warn)]">Evidence Coverage 92%</span>
                 </div>
               </div>
             </div>
 
             <div className="space-y-6 order-1 lg:col-span-6 lg:order-2">
               <span
-                className="block text-xs uppercase tracking-widest text-[#93c5fd]"
+                className="block text-xs uppercase tracking-widest text-[var(--at-link)]"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Evidence-Based Reasoning
@@ -687,9 +687,9 @@ export default function HomePage() {
         </RevealSection>
 
         <RevealSection id="subscribe" className="relative mx-auto max-w-4xl overflow-hidden px-6 py-32 text-center">
-          <div className="pointer-events-none absolute inset-0 rounded-full bg-[#ffb03a]/5 blur-3xl" />
+          <div className="pointer-events-none absolute inset-0 rounded-full bg-[var(--at-warn)]/5 blur-3xl" />
           <div className="relative z-10 space-y-8">
-            <Icon icon="ph:fingerprint-light" className="animate-pulse motion-reduce:animate-none text-4xl text-[#93c5fd]" />
+            <Icon icon="ph:fingerprint-light" className="animate-pulse motion-reduce:animate-none text-4xl text-[var(--at-link)]" />
             <h2 className="text-3xl font-bold tracking-tight text-white sm:text-5xl">
               Follow the ArchTime Build Log
             </h2>
@@ -710,12 +710,12 @@ export default function HomePage() {
                 value={subscribeEmail}
                 onChange={(e) => setSubscribeEmail(e.target.value)}
                 placeholder="you@domain.com"
-                className="w-full border border-[#242527] bg-[#161d24] px-5 py-4 text-xs text-white placeholder:text-slate-600 focus:border-[#3b82f6] focus:outline-none transition-colors"
+                className="w-full border border-[var(--at-line)] bg-[var(--at-panel-2)] px-5 py-4 text-xs text-white placeholder:text-slate-600 focus:border-[var(--at-accent)] focus:outline-none transition-colors"
                 style={{ fontFamily: fontFamily.mono }}
               />
               <button
                 type="submit"
-                className="w-full whitespace-nowrap bg-[#1d4ed8] px-8 py-4 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#1e40af] sm:w-auto"
+                className="w-full whitespace-nowrap bg-[var(--at-fill)] px-8 py-4 text-xs font-bold uppercase tracking-widest text-[var(--at-on-fill)] transition-colors hover:bg-[var(--at-fill-hover)] sm:w-auto"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Subscribe
@@ -724,7 +724,7 @@ export default function HomePage() {
           </div>
         </RevealSection>
 
-        <footer className="relative overflow-hidden border-t border-[#242527]/40 bg-[#11161b] px-6 pb-12 pt-20">
+        <footer className="relative overflow-hidden border-t border-[var(--at-line)]/40 bg-[var(--at-panel)] px-6 pb-12 pt-20">
           <div className="mx-auto mb-16 grid max-w-7xl items-start gap-16 lg:grid-cols-12">
             <div className="space-y-6 lg:col-span-5">
               <Logo />
@@ -736,21 +736,21 @@ export default function HomePage() {
             <div className="grid w-full gap-12 md:grid-cols-3 lg:col-span-7">
               <div>
                 <h4
-                  className="mb-6 text-xs font-bold uppercase tracking-widest text-[#ffb03a]"
+                  className="mb-6 text-xs font-bold uppercase tracking-widest text-[var(--at-warn)]"
                   style={{ fontFamily: fontFamily.mono }}
                 >
                   Pipeline
                 </h4>
                 <ul className="space-y-4 text-xs" style={{ fontFamily: fontFamily.mono }}>
-                  <li><a href="#architecture" className="text-white visited:text-white transition-colors hover:text-[#93c5fd]">Repository Mining</a></li>
-                  <li><a href="#console" className="text-white visited:text-white transition-colors hover:text-[#93c5fd]">Evolution Analysis</a></li>
-                  <li><a href="#hardware" className="text-white visited:text-white transition-colors hover:text-[#93c5fd]">Evidence-Based Reasoning</a></li>
-                  <li><a href="#modules" className="text-white visited:text-white transition-colors hover:text-[#93c5fd]">Architectural Diff</a></li>
+                  <li><a href="#architecture" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">Repository Mining</a></li>
+                  <li><a href="#console" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">Evolution Analysis</a></li>
+                  <li><a href="#hardware" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">Evidence-Based Reasoning</a></li>
+                  <li><a href="#modules" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">Architectural Diff</a></li>
                 </ul>
               </div>
               <div>
                 <h4
-                  className="mb-6 text-xs font-bold uppercase tracking-widest text-[#ffb03a]"
+                  className="mb-6 text-xs font-bold uppercase tracking-widest text-[var(--at-warn)]"
                   style={{ fontFamily: fontFamily.mono }}
                 >
                   Scope
@@ -764,7 +764,7 @@ export default function HomePage() {
               </div>
               <div className="col-span-2 md:col-span-1">
                 <h4
-                  className="mb-6 text-xs font-bold uppercase tracking-widest text-[#ffb03a]"
+                  className="mb-6 text-xs font-bold uppercase tracking-widest text-[var(--at-warn)]"
                   style={{ fontFamily: fontFamily.mono }}
                 >
                   Project
@@ -785,7 +785,7 @@ export default function HomePage() {
           </div>
 
           <div
-            className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-[#242527]/40 pt-8 text-[10px] uppercase tracking-widest text-slate-500 sm:flex-row"
+            className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-[var(--at-line)]/40 pt-8 text-[10px] uppercase tracking-widest text-slate-500 sm:flex-row"
             style={{ fontFamily: fontFamily.mono }}
           >
             <p>&copy; 2026 ArchTime. Capstone Project.</p>

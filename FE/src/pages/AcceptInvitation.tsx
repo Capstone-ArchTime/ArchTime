@@ -39,27 +39,27 @@ export default function AcceptInvitation() {
   }
 
   const busy = state.step === 'busy';
-  return <main className="min-h-dvh bg-[#080b0e] flex items-center justify-center p-5">
-    <div className="w-full max-w-md"><Logo className="mb-10" /><div className="border border-[#242527] bg-[#11161b] p-6 sm:p-8 rounded-lg">
-      <MailPlus size={30} className="text-[#93c5fd] mb-5" aria-hidden="true" />
+  return <main className="min-h-dvh bg-[var(--at-page)] flex items-center justify-center p-5">
+    <div className="w-full max-w-md"><Logo className="mb-10" /><div className="border border-[var(--at-line)] bg-[var(--at-panel)] p-6 sm:p-8 rounded-lg">
+      <MailPlus size={30} className="text-[var(--at-link)] mb-5" aria-hidden="true" />
       {state.step === 'accepted' ? <>
         <h1 className="text-2xl font-semibold mb-3">You joined the workspace</h1>
-        <p className="text-sm text-[#94a3b8] leading-relaxed mb-6">You are now a {projectRoleLabel(state.role).toLowerCase()} of this workspace.{user ? '' : ' Sign in with the email address the invitation was sent to to open it.'}</p>
+        <p className="text-sm text-[var(--at-muted)] leading-relaxed mb-6">You are now a {projectRoleLabel(state.role).toLowerCase()} of this workspace.{user ? '' : ' Sign in with the email address the invitation was sent to to open it.'}</p>
         <Link to={user ? '/projects' : '/login'}><Button type="primary" block size="large">{user ? 'Open your workspaces' : 'Sign in'}</Button></Link>
       </> : state.step === 'declined' ? <>
         <h1 className="text-2xl font-semibold mb-3">Invitation declined</h1>
-        <p className="text-sm text-[#94a3b8] leading-relaxed mb-6">You will not be added to the workspace. Ask its owner for a new invitation if you change your mind.</p>
-        <Link to={user ? '/dashboard' : '/'} className="block text-center text-sm text-[#94a3b8] hover:text-white">{user ? 'Back to your dashboard' : 'Go to the home page'}</Link>
+        <p className="text-sm text-[var(--at-muted)] leading-relaxed mb-6">You will not be added to the workspace. Ask its owner for a new invitation if you change your mind.</p>
+        <Link to={user ? '/dashboard' : '/'} className="block text-center text-sm text-[var(--at-muted)] hover:text-white">{user ? 'Back to your dashboard' : 'Go to the home page'}</Link>
       </> : <>
         <h1 className="text-2xl font-semibold mb-3">You've been invited to a workspace</h1>
-        <p className="text-sm text-[#94a3b8] leading-relaxed mb-6">Accept to join it with the role your invitation gives you. The invitation belongs to the email address it was sent to.</p>
+        <p className="text-sm text-[var(--at-muted)] leading-relaxed mb-6">Accept to join it with the role your invitation gives you. The invitation belongs to the email address it was sent to.</p>
         {state.step === 'error' && <Alert type="error" showIcon role="alert" className="mb-5" title={state.message}
           description={state.needsAccount ? <span>Use the email address the invitation was sent to: <Link to="/register">create an account</Link> or <Link to="/login">sign in</Link>, then open the link from your email again.</span> : undefined} />}
         {token && <div className="flex gap-3">
           <Button type="primary" size="large" className="flex-1" loading={busy && state.action === 'accept'} disabled={busy} onClick={() => void answer('accept')}>Accept invitation</Button>
           <Button size="large" loading={busy && state.action === 'decline'} disabled={busy} onClick={() => void answer('decline')}>Decline</Button>
         </div>}
-        <Link to={user ? '/dashboard' : '/login'} className="block text-center text-sm text-[#94a3b8] hover:text-white mt-5">{user ? 'Back to your dashboard' : 'Back to sign in'}</Link>
+        <Link to={user ? '/dashboard' : '/login'} className="block text-center text-sm text-[var(--at-muted)] hover:text-white mt-5">{user ? 'Back to your dashboard' : 'Back to sign in'}</Link>
       </>}
     </div></div>
   </main>;

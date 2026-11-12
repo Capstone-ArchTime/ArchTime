@@ -14,7 +14,7 @@ function OptionLabel({ m, defaultId }: { m: UserModelOption; defaultId: string |
       <Tag className="!m-0" color={m.external ? 'blue' : 'green'}>{m.external ? 'External' : 'Local'}</Tag>
       {m.health !== 'up' && m.health !== 'unknown' && <Tag className="!m-0" color={healthColor[m.health]}>{m.health}</Tag>}
     </span>
-    <span className="text-[11px] text-[#94a3b8]">
+    <span className="text-[11px] text-[var(--at-muted)]">
       {m.score ? `Score ${m.score.value}${m.score.confident ? '' : ' (few runs)'} · ${formatPercent(m.score.successRate)} success · ` : 'No runs yet · '}
       {m.estimate ? `~${formatCompactTokens(m.estimate.tokens)} tokens, ~${formatCost(m.estimate.cost, m.pricing.currency)}` : `${formatCost(m.pricing.inputPerMTok, m.pricing.currency)}/${formatCost(m.pricing.outputPerMTok, m.pricing.currency)} per 1M in/out`}
     </span>
@@ -44,8 +44,8 @@ export function RunUsage({ receipt }: { receipt: RefineReceipt }) {
     try { await sendRunFeedback(receipt.runId, rating); setRated(rating); message.success('Thanks, this counts towards the model\'s score.'); }
     catch (cause) { message.error(cause instanceof Error ? cause.message : 'Could not save your rating.'); }
   }
-  const item = (label: string, value: string) => <span className="whitespace-nowrap"><span className="text-[#94a3b8]">{label}</span> <span className="font-mono text-[#e2e8f0]">{value}</span></span>;
-  return <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded border border-[#242527] bg-[#11161b] px-3 py-2 text-xs" aria-label="AI usage for this result">
+  const item = (label: string, value: string) => <span className="whitespace-nowrap"><span className="text-[var(--at-muted)]">{label}</span> <span className="font-mono text-[#e2e8f0]">{value}</span></span>;
+  return <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded border border-[var(--at-line)] bg-[var(--at-panel)] px-3 py-2 text-xs" aria-label="AI usage for this result">
     {item('Model', receipt.model)}
     {item('Input', formatTokens(u.inputTokens))}
     {item('Output', formatTokens(u.outputTokens))}
@@ -54,7 +54,7 @@ export function RunUsage({ receipt }: { receipt: RefineReceipt }) {
     {receipt.cost && item('Cost', formatCost(receipt.cost.amount, receipt.cost.currency))}
     {receipt.attempts.length > 1 && item('Attempts', String(receipt.attempts.length))}
     {receipt.runId && <span className="ml-auto flex items-center gap-1">
-      <span className="text-[#94a3b8]">Useful?</span>
+      <span className="text-[var(--at-muted)]">Useful?</span>
       <Button size="small" type={rated === 1 ? 'primary' : 'text'} aria-label="Useful" icon={<ThumbsUp size={13} />} onClick={() => void rate(1)} />
       <Button size="small" type={rated === 0 ? 'primary' : 'text'} aria-label="Not useful" icon={<ThumbsDown size={13} />} onClick={() => void rate(0)} />
     </span>}

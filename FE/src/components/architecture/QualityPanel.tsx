@@ -12,8 +12,8 @@ const tone = (x: number) => (x >= 0.8 ? 'text-[#4ade80]' : x >= 0.5 ? 'text-[#fa
 function Measure({ label, value, hint }: { label: string; value: number | undefined; hint: string }) {
   return <Tooltip title={hint}>
     <div className="min-w-0">
-      <p className="text-[11px] uppercase leading-tight tracking-wider text-[#94a3b8]">{label}</p>
-      <p className={`font-mono text-lg ${value === undefined ? 'text-[#94a3b8]' : tone(value)}`}>{value === undefined ? '–' : pct(Math.max(0, value))}</p>
+      <p className="text-[11px] uppercase leading-tight tracking-wider text-[var(--at-muted)]">{label}</p>
+      <p className={`font-mono text-lg ${value === undefined ? 'text-[var(--at-muted)]' : tone(value)}`}>{value === undefined ? '–' : pct(Math.max(0, value))}</p>
     </div>
   </Tooltip>;
 }
@@ -69,7 +69,7 @@ export default function QualityPanel({ projectId, quality, view, onSaved, canEdi
 
   const q = quality;
   // What the measures found is told by the issue cards above; this panel only shows the scores.
-  return <section className="rounded border border-[#242527] bg-[#11161b] px-3 py-3" aria-label="Architecture quality">
+  return <section className="rounded border border-[var(--at-line)] bg-[var(--at-panel)] px-3 py-3" aria-label="Architecture quality">
     <div className="grid grid-cols-2 gap-x-4 gap-y-3">
       <Measure label="Grounded names" value={q.grounding.score} hint="Share of component names that the file paths inside support. Low values mean invented or vague names." />
       <Measure label="No cycles" value={q.acyclicity.score} hint="Share of components not caught in a dependency loop with other components." />
@@ -80,7 +80,7 @@ export default function QualityPanel({ projectId, quality, view, onSaved, canEdi
     </div>
     {canEdit && <Button size="small" className="mt-3" block icon={<Target size={13} />} onClick={() => void open()}>Reference architecture</Button>}
     <Modal open={editing !== null} title="Reference architecture" okText="Save" confirmLoading={saving} okButtonProps={{ disabled: !!parsed?.errors.length }} onOk={save} onCancel={() => setEditing(null)} width={680} destroyOnHidden>
-      <p className="text-sm text-[#94a3b8] mb-2">How your team sees the system: one component per line, <code>Name: path/prefix, other/prefix</code>. Files go to the component with the longest matching prefix; files no prefix matches are not scored. Leave it empty to remove the reference. The suggestion below is today's grouping; edit it to describe the architecture you intend.</p>
+      <p className="text-sm text-[var(--at-muted)] mb-2">How your team sees the system: one component per line, <code>Name: path/prefix, other/prefix</code>. Files go to the component with the longest matching prefix; files no prefix matches are not scored. Leave it empty to remove the reference. The suggestion below is today's grouping; edit it to describe the architecture you intend.</p>
       <Input.TextArea value={editing ?? ''} onChange={e => setEditing(e.target.value)} autoSize={{ minRows: 8, maxRows: 18 }} className="font-mono text-xs" aria-label="Reference architecture" />
       {parsed?.errors.length ? <ul className="mt-2 text-xs text-red-400">{parsed.errors.slice(0, 5).map(e => <li key={e}>{e}</li>)}</ul> : null}
     </Modal>

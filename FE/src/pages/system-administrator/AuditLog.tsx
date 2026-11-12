@@ -69,11 +69,11 @@ export default function AuditLog() {
             label: value === 'all' ? 'All events' : value.replace('_', ' '),
           }))}
         />
-        <label className="text-xs text-[#94a3b8]">
+        <label className="text-xs text-[var(--at-muted)]">
           From
           <Input type="date" value={from} onChange={e => setFrom(e.target.value)} />
         </label>
-        <label className="text-xs text-[#94a3b8]">
+        <label className="text-xs text-[var(--at-muted)]">
           To
           <Input type="date" value={to} onChange={e => setTo(e.target.value)} />
         </label>
@@ -88,7 +88,7 @@ export default function AuditLog() {
       {loading && !logs.length ? (
         <div className="p-12 text-center">
           <Spin />
-          <p className="mt-3 text-[#94a3b8]">Loading audit logs...</p>
+          <p className="mt-3 text-[var(--at-muted)]">Loading audit logs...</p>
         </div>
       ) : (
         <Table

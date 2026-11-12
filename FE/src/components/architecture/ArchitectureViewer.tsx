@@ -24,7 +24,8 @@ import { escapeAction, escapeTaken, isFocusKey, loadPanelChoice, resolvePanels, 
 import type { PanelChoice, PanelInput, Side } from '@/features/architecture/panels';
 import { parseHash, serializeHash } from '@/features/architecture/url-state';
 import type { ViewerState } from '@/features/architecture/url-state';
-import { THEMES } from '@/features/architecture/theme';
+import { FROST, THEMES } from '@/features/architecture/theme';
+import { useUiTheme } from '@/features/ui-theme';
 import { COMPONENT_ROLES } from '@/features/architecture/types';
 import type { ArchitectureView, ComponentRole } from '@/features/architecture/types';
 import type { SnapshotSummary } from '@/features/architecture/api';
@@ -98,7 +99,8 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
   const [pin, setPin] = useState<Pin | null>(null);
   const searchRef = useRef<{ focus: () => void } | null>(null);
   const viewport = useRef<Viewport | null>(null);
-  const theme = THEMES[themeName];
+  const frost = useUiTheme() === 'frost';
+  const theme = frost && themeName === 'dark' ? FROST : THEMES[themeName];
 
   // Ids in the URL are checked against what is actually on screen: first against the components, then against the class view if one is open.
   const detailId = parseHash(hash, { components: new Set(view.components.map(c => c.id)) }).detail;
@@ -203,7 +205,7 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
 
   const options = scene.nodes.map(n => ({ value: n.id, label: n.title }));
   const roleOptions = COMPONENT_ROLES.filter(r => view.components.some(c => c.role === r)).map(r => ({ value: r, label: ROLE_LABEL[r] }));
-  const panel = 'rounded-lg border border-[#2a3441] bg-[#11161b]/95 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur';
+  const panel = 'rounded-lg border border-[#2a3441] bg-[var(--at-panel)]/95 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur';
 
   if (errors.length > 0) {
     return <div className="p-6"><Alert type="error" showIcon title="This view failed verification and is not drawn" description={<ul className="list-disc pl-5">{errors.slice(0, 8).map((i, n) => <li key={n}><code>{i.code}</code> {i.message}</li>)}</ul>} /></div>;
@@ -214,14 +216,14 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
   const leftWidth = overlay ? 'w-60' : panelLayout === 'roomy' ? 'w-56' : 'w-52';
   const rightWidth = overlay || panelLayout === 'roomy' ? 'w-72' : 'w-64';
   return <div ref={root} className="relative flex h-full min-h-0">
-    {left && <aside aria-label="Layers" className={`${drawer} left-0 ${leftWidth} max-w-[85%] shrink-0 border-r border-[#242527] bg-[#0d1116]`}>
-      {overlay && <div className="flex justify-end border-b border-[#242527] px-2 py-1"><Button size="small" type="text" onClick={() => setSide('left', false)}>Close</Button></div>}
+    {left && <aside aria-label="Layers" className={`${drawer} left-0 ${leftWidth} max-w-[85%] shrink-0 border-r border-[var(--at-line)] bg-[var(--at-chrome)]`}>
+      {overlay && <div className="flex justify-end border-b border-[var(--at-line)] px-2 py-1"><Button size="small" type="text" onClick={() => setSide('left', false)}>Close</Button></div>}
       <LayersPanel scene={scene} theme={theme} highlight={highlight} selected={state.focus} onSelect={selectLayer} onOpen={openDetail}
         snapshots={snapshots} snapshotId={snapshotId} onSnapshot={onSnapshot} />
     </aside>}
 
     <ArchitectureDiagram className="h-full min-w-0 flex-1" apiRef={viewport}
-      gridColor={themeName === 'light' ? '#dbe2ea' : '#1c2530'} scene={scene} layout={layout} theme={theme} title={caption.title} highlight={highlight}
+      gridColor={themeName === 'light' ? '#dbe2ea' : frost ? '#323c45' : '#1c2530'} scene={scene} layout={layout} theme={theme} title={caption.title} highlight={highlight}
       selectedNode={state.focus} selectedEdge={state.edge} hoverEdge={hoverEdge} showWeights={weights}
       onNodeClick={focusNode} onNodeOpen={openDetail} onEdgeClick={selectEdge} onEdgeHover={setHoverEdge}
       overlay={vp => <>
@@ -234,7 +236,7 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
             <button type="button" className="flex items-center gap-1.5 px-2.5 py-1.5 text-[#cbd5e1] hover:text-white" aria-expanded={legend} onClick={() => setLegend(v => !v)}>
               Legend {legend ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
             </button>
-            {legend && <ul className="space-y-1 px-3 pb-2.5 text-[#94a3b8]" aria-label="Legend">
+            {legend && <ul className="space-y-1 px-3 pb-2.5 text-[var(--at-muted)]" aria-label="Legend">
               {roleOptions.map(r => <li key={r.value} className="flex items-center gap-2"><span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: theme.role[r.value as ComponentRole] }} />{r.label}</li>)}
               <li className="flex items-center gap-2"><span className="inline-block w-5 border-t-2" style={{ borderColor: theme.cycle }} />circular dependency</li>
               <li className="flex items-center gap-2"><span className="inline-block w-5 border-t-2 border-dashed" style={{ borderColor: theme.edge }} />points upward</li>
@@ -247,7 +249,7 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
           {focusMode && <Button size="small" type="primary" icon={<Minimize size={14} />} onClick={exitFocus}>Exit full screen</Button>}
         </div>}
 
-        {activePin && <div data-overlay className="absolute bottom-[4.5rem] left-1/2 z-10 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-lg border border-[#2a3441] bg-[#11161b]/95 py-1 pl-3 pr-1 text-xs text-slate-200 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur">
+        {activePin && <div data-overlay className="absolute bottom-[4.5rem] left-1/2 z-10 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-lg border border-[#2a3441] bg-[var(--at-panel)]/95 py-1 pl-3 pr-1 text-xs text-slate-200 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur">
           <span className="min-w-0 truncate">Showing: {activePin.title}</span>
           <Button size="small" type="text" onClick={clearSelection}>Clear highlight</Button>
         </div>}
@@ -279,17 +281,17 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
               ['Click / Enter', 'Focus a component (click again to clear)'], ['Double-click / Shift+Enter', 'Show what is inside a component'],
               ['/', 'Find a component'], ['Esc', 'Clear focus, route or selection; then leave the inner view; then leave full screen'],
               ['T', 'Toggle light / dark theme'], ['W', 'Show dependency counts on all arrows'], ['?', 'This help'],
-            ].map(([k, v]) => <div key={k} className="contents"><dt className="font-mono text-xs text-[#93c5fd]">{k}</dt><dd>{v}</dd></div>)}
+            ].map(([k, v]) => <div key={k} className="contents"><dt className="font-mono text-xs text-[var(--at-link)]">{k}</dt><dd>{v}</dd></div>)}
           </dl>
         </Modal>
       </>} />
 
-    {right && <aside aria-label="Properties" className={`${drawer} right-0 ${rightWidth} max-w-[85%] shrink-0 overflow-auto border-l border-[#242527] bg-[#0d1116]`}>
-      {overlay && <div className="sticky top-0 z-10 flex justify-end border-b border-[#242527] bg-[#0d1116] px-2 py-1">
+    {right && <aside aria-label="Properties" className={`${drawer} right-0 ${rightWidth} max-w-[85%] shrink-0 overflow-auto border-l border-[var(--at-line)] bg-[var(--at-chrome)]`}>
+      {overlay && <div className="sticky top-0 z-10 flex justify-end border-b border-[var(--at-line)] bg-[var(--at-chrome)] px-2 py-1">
         <Button size="small" type="text" onClick={() => setSide('right', false)}>Close</Button>
       </div>}
       <div className="space-y-4 p-3">
-        {hasSelection && <button type="button" onClick={clearSelection} className="flex items-center gap-1.5 text-xs text-[#93c5fd] hover:text-[#bfdbfe]">
+        {hasSelection && <button type="button" onClick={clearSelection} className="flex items-center gap-1.5 text-xs text-[var(--at-link)] hover:text-[var(--at-link-hover)]">
           <ArrowLeft size={12} aria-hidden /> Overview and issues{summary.count ? ` (${summary.count})` : ''}
         </button>}
         {!hasSelection && <IssuesPanel issues={issues} summary={summary} verified={verified} activeId={activePin?.id} inner={scene.mode !== 'components'} onShow={showIssue} onAction={onIssueAction} />}

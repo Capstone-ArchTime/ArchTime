@@ -5,9 +5,9 @@ import { passwordRequirements } from '@/features/profile-validation';
 export default function PasswordRequirements({ id, password }: { id: string; password: string }) {
   const rules = passwordRequirements(password);
   const met = rules.filter(rule => rule.met).length;
-  return <div id={id} className="mt-2 rounded border border-[#242527] bg-[#11161b] p-3">
+  return <div id={id} className="mt-2 rounded border border-[var(--at-line)] bg-[var(--at-panel)] p-3">
     <div className="mb-2 flex gap-1" aria-hidden="true">
-      {rules.map((rule, index) => <div key={rule.label} className={`h-1 flex-1 transition-colors ${index < met ? (met === rules.length ? 'bg-green-400' : 'bg-amber-400') : 'bg-[#242527]'}`} />)}
+      {rules.map((rule, index) => <div key={rule.label} className={`h-1 flex-1 transition-colors ${index < met ? (met === rules.length ? 'bg-green-400' : 'bg-amber-400') : 'bg-[var(--at-line)]'}`} />)}
     </div>
     <p className="mb-1.5 text-xs text-slate-300">Your password needs:</p>
     <ul className="grid gap-1 sm:grid-cols-2">
