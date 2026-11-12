@@ -8,11 +8,19 @@ test('the developer-analyst workspace wears the frost look', () => {
   }
 });
 
-test('administrators, signed-out visitors and the public pages keep the default look', () => {
+test('the landing page wears the frost look for everyone, signed in or not', () => {
+  for (const role of [undefined, 'developer-analyst', 'system-administrator']) {
+    assert.equal(themeFor(role, '/'), 'frost', String(role));
+    assert.equal(themeFor(role, ''), 'frost', String(role));
+  }
+});
+
+test('administrators, signed-out visitors and the other public pages keep the default look', () => {
   assert.equal(themeFor('system-administrator', '/system-administrator'), 'default');
   assert.equal(themeFor('system-administrator', '/profile'), 'default');
   assert.equal(themeFor(undefined, '/dashboard'), 'default');
-  for (const path of ['/', '/login', '/register', '/verify-email', '/forgot-password', '/reset-password', '/invitations/accept', '/auth/github/callback', '/login/']) {
+  assert.equal(themeFor(undefined, '/login'), 'default');
+  for (const path of ['/login', '/register', '/verify-email', '/forgot-password', '/reset-password', '/invitations/accept', '/auth/github/callback', '/login/']) {
     assert.equal(themeFor('developer-analyst', path), 'default', path);
   }
 });

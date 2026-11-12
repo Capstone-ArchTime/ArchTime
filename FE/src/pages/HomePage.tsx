@@ -20,7 +20,7 @@ const particles = [
 ];
 
 const fontFamily = {
-  sans: '"Space Grotesk", sans-serif',
+  sans: '"Montserrat", system-ui, sans-serif',
   mono: '"JetBrains Mono", monospace',
 };
 
@@ -70,7 +70,7 @@ function TypewriterLine() {
       <motion.span
         animate={prefersReducedMotion ? { opacity: 1 } : { opacity: [1, 1, 0, 0] }}
         transition={prefersReducedMotion ? undefined : { duration: 1, repeat: Infinity, times: [0, 0.5, 0.5, 1], ease: "linear" }}
-        style={{ color: "#3b82f6" }}
+        style={{ color: "var(--at-link)" }}
       >
         |
       </motion.span>
@@ -92,12 +92,12 @@ function IsometricCard({
   return (
     <motion.div
       className="border border-[var(--at-line)] bg-[var(--at-panel-2)] p-8 space-y-4"
-      whileHover={{ y: -6, scale: 1.01, borderColor: "rgba(255, 176, 58, 0.3)" }}
+      whileHover={{ y: -6, scale: 1.01, borderColor: "rgba(225, 234, 248, 0.45)" }}
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
       <Icon icon={icon} className="text-3xl" style={{ color: iconColor }} />
       <h3 className="text-xl font-semibold text-white">{title}</h3>
-      <p className="text-sm leading-relaxed text-slate-400 font-light">{description}</p>
+      <p className="text-sm leading-relaxed text-[var(--at-muted)] font-light">{description}</p>
     </motion.div>
   );
 }
@@ -153,7 +153,7 @@ export default function HomePage() {
 
   return (
     <main
-      className="min-h-screen overflow-x-hidden bg-[var(--at-page)] text-slate-200 antialiased selection:bg-[#f59e0b] selection:text-[#080b0e]"
+      className="min-h-screen overflow-x-hidden at-home bg-[var(--at-page)] text-[var(--at-text)] antialiased selection:bg-[#d3def3] selection:text-[#18212c]"
       style={{ fontFamily: fontFamily.sans }}
     >
       <div className="fixed bottom-6 right-6 z-[60]">
@@ -169,14 +169,14 @@ export default function HomePage() {
           style={{
             backgroundSize: "40px 40px",
             backgroundImage:
-              "linear-gradient(to right, rgba(34, 44, 55, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(34, 44, 55, 0.15) 1px, transparent 1px)",
+              "linear-gradient(to right, rgba(220, 230, 245, 0.045) 1px, transparent 1px), linear-gradient(to bottom, rgba(220, 230, 245, 0.045) 1px, transparent 1px)",
           }}
         />
         <div
           className="absolute left-[10%] top-[20%] h-[50vw] w-[50vw] rounded-full blur-3xl"
           style={{
             background:
-              "radial-gradient(circle at 50% 50%, rgba(255, 176, 58, 0.08) 0%, rgba(56, 189, 248, 0.02) 45%, transparent 70%)",
+              "radial-gradient(circle at 50% 50%, rgba(214, 228, 255, 0.1) 0%, rgba(160, 182, 214, 0.04) 45%, transparent 70%)",
           }}
         />
         <div className="absolute bottom-[10%] right-[-5%] h-[40vw] w-[40vw] rounded-full bg-[var(--at-accent)]/5 blur-[120px]" />
@@ -188,8 +188,8 @@ export default function HomePage() {
               left: p.left,
               width: p.size,
               height: p.size,
-              background: "#00f0ff",
-              boxShadow: "0 0 10px rgba(0, 240, 255, 0.65), 0 0 18px rgba(0, 240, 255, 0.35)",
+              background: "#eef4ff",
+              boxShadow: "0 0 10px rgba(226, 236, 255, 0.7), 0 0 18px rgba(200, 218, 255, 0.35)",
               pointerEvents: "none",
             }}
             initial={{ y: "-10vh", x: 0, scale: 0.85, opacity: 0 }}
@@ -208,8 +208,8 @@ export default function HomePage() {
         className="fixed left-0 top-0 z-50 flex w-full items-center border-b transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300"
         animate={{
           height: navScrolled ? 64 : 80,
-          backgroundColor: navScrolled ? "rgba(8, 11, 14, 0.9)" : "rgba(8, 11, 14, 0)",
-          borderColor: navScrolled ? "#242527" : "rgba(0,0,0,0)",
+          backgroundColor: navScrolled ? "rgba(22, 28, 34, 0.72)" : "rgba(22, 28, 34, 0)",
+          borderColor: navScrolled ? "rgba(220, 230, 245, 0.17)" : "rgba(220, 230, 245, 0)",
           backdropFilter: navScrolled ? "blur(12px)" : "blur(0px)",
         }}
         transition={{ duration: 0.3 }}
@@ -337,7 +337,7 @@ export default function HomePage() {
                     setMobileMenuOpen(false);
                     notifyComingSoon("Repository analysis");
                   }}
-                  className="mt-2 border border-[var(--at-line)] bg-transparent px-5 py-2.5 text-center text-slate-400 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400 hover:text-white"
+                  className="mt-2 border border-[var(--at-line)] bg-transparent px-5 py-2.5 text-center text-[var(--at-muted)] transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400 hover:text-white"
                 >
                   Analyze Repository
                 </button>
@@ -378,35 +378,34 @@ export default function HomePage() {
             <h1 className="text-5xl font-bold leading-[1.1] tracking-tight text-white sm:text-6xl md:text-7xl">
               Reconstruct How Your <br />
               <span
-                className="bg-gradient-to-r from-[var(--at-accent)] via-[var(--at-warn)] to-[#f59e0b] bg-clip-text text-transparent"
-                style={{ fontFamily: fontFamily.mono }}
+                className="bg-gradient-to-r from-[#ffffff] via-[#d3def3] to-[#9db3dc] bg-clip-text text-transparent"
               >
                 Architecture Evolved.
               </span>
             </h1>
 
-            <p className="max-w-xl text-base font-light leading-relaxed text-slate-400 sm:text-lg">
+            <p className="max-w-xl text-base font-light leading-relaxed text-[var(--at-muted)] sm:text-lg">
               ArchTime mines Git history and source code to rebuild the evolution of your software architecture, backed by traceable evidence instead of guesswork.
             </p>
 
             <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
               <motion.a
                 href="#console"
-                className="rounded-none bg-[var(--at-fill)] px-8 py-4 text-center text-xs font-bold uppercase tracking-widest text-[var(--at-on-fill)] transition-colors hover:bg-[var(--at-fill-hover)]"
+                className="rounded-full bg-[var(--at-fill)] px-8 py-4 text-center text-xs font-bold uppercase tracking-widest text-[var(--at-on-fill)] transition-colors hover:bg-[var(--at-fill-hover)]"
                 style={{ fontFamily: fontFamily.mono }}
                 whileHover={{
                   boxShadow:
-                    "0 0 45px rgba(255, 176, 58, 0.25), inset 0 0 20px rgba(255, 176, 58, 0.1)",
+                    "0 0 45px rgba(214, 228, 255, 0.45), inset 0 0 20px rgba(255, 255, 255, 0.25)",
                 }}
                 initial={{
-                  boxShadow: "0 0 30px rgba(0, 240, 255, 0.15), inset 0 0 15px rgba(0, 240, 255, 0.05)",
+                  boxShadow: "0 0 30px rgba(214, 228, 255, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.15)",
                 }}
               >
                 Run Analysis
               </motion.a>
               <a
                 href="#architecture"
-                className="rounded-none border border-[var(--at-line)] bg-[var(--at-panel)]/40 px-8 py-4 text-center text-xs font-light uppercase tracking-widest text-slate-300 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400"
+                className="rounded-full border border-[var(--at-line)] bg-[var(--at-panel)]/40 px-8 py-4 text-center text-xs font-light uppercase tracking-widest text-slate-300 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Explore Pipeline
@@ -429,21 +428,21 @@ export default function HomePage() {
               <h2 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
                 From Git History to Knowledge Graph
               </h2>
-              <p className="leading-relaxed text-slate-400 font-light">
+              <p className="leading-relaxed text-[var(--at-muted)] font-light">
                 ArchTime parses source code with an Abstract Syntax Tree and combines it with Git metadata &mdash; commits, authors, timestamps, diffs &mdash; to build a knowledge graph of your system across versions.
               </p>
               <div className="grid grid-cols-2 gap-4 pt-4">
                 <div className="border-l-2 border-[var(--at-accent)] pl-4">
-                  <div className="text-xl font-bold text-white" style={{ fontFamily: fontFamily.mono }}>
+                  <div className="text-xl font-bold text-white">
                     AST
                   </div>
-                  <div className="text-xs uppercase tracking-wider text-slate-500">Structural Parsing</div>
+                  <div className="text-xs uppercase tracking-wider text-[var(--at-muted)]">Structural Parsing</div>
                 </div>
                 <div className="border-l-2 border-[var(--at-warn)] pl-4">
-                  <div className="text-xl font-bold text-white" style={{ fontFamily: fontFamily.mono }}>
+                  <div className="text-xl font-bold text-white">
                     Git History
                   </div>
-                  <div className="text-xs uppercase tracking-wider text-slate-500">Evidence Source</div>
+                  <div className="text-xs uppercase tracking-wider text-[var(--at-muted)]">Evidence Source</div>
                 </div>
               </div>
             </div>
@@ -451,25 +450,25 @@ export default function HomePage() {
             <div className="grid gap-6 sm:grid-cols-2 lg:col-span-7">
               <IsometricCard
                 icon="ph:graph-light"
-                iconColor="#3b82f6"
+                iconColor="#9db3dc"
                 title="Knowledge Graph"
                 description="Represents modules, packages, classes and their dependencies across every version of the system."
               />
               <IsometricCard
                 icon="ph:git-diff-light"
-                iconColor="#ffb03a"
+                iconColor="#d3def3"
                 title="Architectural Diff"
                 description="Detects module boundary changes, splits, merges and dependency direction shifts between versions."
               />
               <IsometricCard
                 icon="ph:brain-light"
-                iconColor="#94a3b8"
+                iconColor="#b4c0ce"
                 title="Evidence-Based Reasoning"
                 description="A local LLM turns diffs, commit messages and code changes into a readable narrative of what changed."
               />
               <IsometricCard
                 icon="ph:shield-check-light"
-                iconColor="#00f0ff"
+                iconColor="#eaf1ff"
                 title="FACT / INFERENCE / UNKNOWN"
                 description="Every AI statement is labeled by evidence strength, reducing hallucination and keeping claims traceable."
               />
@@ -497,11 +496,11 @@ export default function HomePage() {
                   <span className="h-2.5 w-2.5 rounded-full bg-red-500/40" />
                   <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/40" />
                   <span className="h-2.5 w-2.5 rounded-full bg-green-500/40" />
-                  <span className="ml-2 text-xs text-slate-500" style={{ fontFamily: fontFamily.mono }}>
+                  <span className="ml-2 text-xs text-[var(--at-muted)]" style={{ fontFamily: fontFamily.mono }}>
                     archtime_pipeline.sh
                   </span>
                 </div>
-                <span className="text-[10px] text-slate-500" style={{ fontFamily: fontFamily.mono }}>
+                <span className="text-[10px] text-[var(--at-muted)]" style={{ fontFamily: fontFamily.mono }}>
                   TTY // 1
                 </span>
               </div>
@@ -514,7 +513,7 @@ export default function HomePage() {
                   <span className="text-[var(--at-link)]">archtime@repo:~$</span>
                   <span className="text-slate-300">analyze --repo=./target-service --since=v1.0.0</span>
                 </div>
-                <div className="space-y-1 text-slate-500">
+                <div className="space-y-1 text-[var(--at-muted)]">
                   <div>[ OK ] Mining Git history and building commit graph...</div>
                   <div>[ OK ] Parsing AST for module and dependency structure...</div>
                   <div>[ OK ] Comparing architecture snapshots (graph edit distance)...</div>
@@ -546,7 +545,7 @@ export default function HomePage() {
               </span>
               <h2 className="text-4xl font-bold tracking-tight text-white">Architectural Change Types</h2>
             </div>
-            <p className="max-w-xs text-sm font-light text-slate-400">
+            <p className="max-w-xs text-sm font-light text-[var(--at-muted)]">
               ArchTime classifies structural changes detected between architecture snapshots.
             </p>
           </div>
@@ -558,19 +557,19 @@ export default function HomePage() {
                   <div className="flex h-12 w-12 items-center justify-center border border-[var(--at-accent)]/20 bg-[var(--at-accent)]/10 text-xl text-[var(--at-link)]">
                     <Icon icon="ph:cube-light" />
                   </div>
-                  <span className="text-xs text-slate-500" style={{ fontFamily: fontFamily.mono }}>
+                  <span className="text-xs text-[var(--at-muted)]" style={{ fontFamily: fontFamily.mono }}>
                     01 / CHANGE
                   </span>
                 </div>
                 <h3 className="mb-2 text-xl font-bold text-white transition-colors group-hover:text-[var(--at-link)]">
                   Module Split / Merge
                 </h3>
-                <p className="text-sm leading-relaxed text-slate-400 font-light">
+                <p className="text-sm leading-relaxed text-[var(--at-muted)] font-light">
                   Detects when a module or service is divided into multiple parts, or when separate modules are consolidated.
                 </p>
               </div>
               <div
-                className="text-[11px] uppercase tracking-widest text-slate-500"
+                className="text-[11px] uppercase tracking-widest text-[var(--at-muted)]"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Status: Graph Diff Verified
@@ -583,19 +582,19 @@ export default function HomePage() {
                   <div className="flex h-12 w-12 items-center justify-center border border-[var(--at-warn)]/20 bg-[var(--at-warn)]/10 text-xl text-[var(--at-warn)]">
                     <Icon icon="ph:sliders-horizontal-light" />
                   </div>
-                  <span className="text-xs text-slate-500" style={{ fontFamily: fontFamily.mono }}>
+                  <span className="text-xs text-[var(--at-muted)]" style={{ fontFamily: fontFamily.mono }}>
                     02 / CHANGE
                   </span>
                 </div>
                 <h3 className="mb-2 text-xl font-bold text-white transition-colors group-hover:text-[var(--at-warn)]">
                   Dependency Shift
                 </h3>
-                <p className="text-sm leading-relaxed text-slate-400 font-light">
+                <p className="text-sm leading-relaxed text-[var(--at-muted)] font-light">
                   Flags new, removed, or reversed dependency relationships between packages and classes.
                 </p>
               </div>
               <div
-                className="text-[11px] uppercase tracking-widest text-slate-500"
+                className="text-[11px] uppercase tracking-widest text-[var(--at-muted)]"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Status: Direction Tracked
@@ -608,19 +607,19 @@ export default function HomePage() {
                   <div className="flex h-12 w-12 items-center justify-center border border-[var(--at-glow)]/20 bg-[var(--at-glow)]/10 text-xl text-[var(--at-glow)]">
                     <Icon icon="ph:command-light" />
                   </div>
-                  <span className="text-xs text-slate-500" style={{ fontFamily: fontFamily.mono }}>
+                  <span className="text-xs text-[var(--at-muted)]" style={{ fontFamily: fontFamily.mono }}>
                     03 / CHANGE
                   </span>
                 </div>
                 <h3 className="mb-2 text-xl font-bold text-white transition-colors group-hover:text-[var(--at-glow)]">
                   Package Restructure
                 </h3>
-                <p className="text-sm leading-relaxed text-slate-400 font-light">
+                <p className="text-sm leading-relaxed text-[var(--at-muted)] font-light">
                   Identifies package reorganizations and module boundary changes across commits.
                 </p>
               </div>
               <div
-                className="text-[11px] uppercase tracking-widest text-slate-500"
+                className="text-[11px] uppercase tracking-widest text-[var(--at-muted)]"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 Status: Boundary Mapped
@@ -637,24 +636,24 @@ export default function HomePage() {
                 className="relative z-10 space-y-4 border border-[var(--at-line)] bg-[var(--at-page)] p-8 text-xs"
                 style={{ fontFamily: fontFamily.mono }}
               >
-                <div className="flex justify-between border-b border-[var(--at-line)]/40 pb-3 text-slate-500">
+                <div className="flex justify-between border-b border-[var(--at-line)]/40 pb-3 text-[var(--at-muted)]">
                   <span>EVIDENCE RECORD</span>
                   <span>COMMIT 4af21c9</span>
                 </div>
                 <div className="flex justify-between border-b border-[var(--at-line)]/40 pb-2">
-                  <span className="text-slate-400">Author</span>
+                  <span className="text-[var(--at-muted)]">Author</span>
                   <span className="text-white">j.tran@example.com</span>
                 </div>
                 <div className="flex justify-between border-b border-[var(--at-line)]/40 pb-2">
-                  <span className="text-slate-400">Files Changed</span>
+                  <span className="text-[var(--at-muted)]">Files Changed</span>
                   <span className="text-white">14 modified, 3 added</span>
                 </div>
                 <div className="flex justify-between border-b border-[var(--at-line)]/40 pb-2">
-                  <span className="text-slate-400">Claim Type</span>
+                  <span className="text-[var(--at-muted)]">Claim Type</span>
                   <span className="text-white">FACT</span>
                 </div>
                 <div className="flex justify-between pb-1">
-                  <span className="text-slate-400">Confidence</span>
+                  <span className="text-[var(--at-muted)]">Confidence</span>
                   <span className="text-[var(--at-warn)]">Evidence Coverage 92%</span>
                 </div>
               </div>
@@ -670,13 +669,13 @@ export default function HomePage() {
               <h2 className="text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl">
                 Every explanation traces back to a commit.
               </h2>
-              <p className="leading-relaxed text-slate-400 font-light">
+              <p className="leading-relaxed text-[var(--at-muted)] font-light">
                 AI never invents a reason. If a change lacks enough evidence, ArchTime marks it as UNKNOWN instead of guessing &mdash; keeping every narrative verifiable against real Git history.
               </p>
               <div className="pt-2">
                 <button
                   onClick={() => notifyComingSoon("Evidence trail view")}
-                  className="bg-white px-8 py-4 text-xs font-bold uppercase tracking-widest text-[#080b0e] transition-colors hover:bg-[#f59e0b]"
+                  className="rounded-full bg-[var(--at-fill)] px-8 py-4 text-xs font-bold uppercase tracking-widest text-[var(--at-on-fill)] shadow-[0_0_18px_rgba(214,228,255,0.35)] transition-colors hover:bg-[var(--at-fill-hover)]"
                   style={{ fontFamily: fontFamily.mono }}
                 >
                   View Evidence Trail
@@ -693,7 +692,7 @@ export default function HomePage() {
             <h2 className="text-3xl font-bold tracking-tight text-white sm:text-5xl">
               Follow the ArchTime Build Log
             </h2>
-            <p className="mx-auto max-w-xl text-sm font-light leading-relaxed text-slate-400 sm:text-base">
+            <p className="mx-auto max-w-xl text-sm font-light leading-relaxed text-[var(--at-muted)] sm:text-base">
               Get updates on new evaluation benchmarks, pipeline releases and Java/Spring Boot repository support.
             </p>
             <form
@@ -710,7 +709,7 @@ export default function HomePage() {
                 value={subscribeEmail}
                 onChange={(e) => setSubscribeEmail(e.target.value)}
                 placeholder="you@domain.com"
-                className="w-full border border-[var(--at-line)] bg-[var(--at-panel-2)] px-5 py-4 text-xs text-white placeholder:text-slate-600 focus:border-[var(--at-accent)] focus:outline-none transition-colors"
+                className="w-full border border-[var(--at-line)] bg-[var(--at-panel-2)] px-5 py-4 text-xs text-white placeholder:text-[var(--at-muted)] focus:border-[var(--at-accent)] focus:outline-none transition-colors"
                 style={{ fontFamily: fontFamily.mono }}
               />
               <button
@@ -728,7 +727,7 @@ export default function HomePage() {
           <div className="mx-auto mb-16 grid max-w-7xl items-start gap-16 lg:grid-cols-12">
             <div className="space-y-6 lg:col-span-5">
               <Logo />
-              <p className="max-w-sm text-sm font-light leading-relaxed text-slate-500">
+              <p className="max-w-sm text-sm font-light leading-relaxed text-[var(--at-muted)]">
                 Evidence-based software architecture evolution reconstruction, built on Git history and AST analysis.
               </p>
             </div>
@@ -741,7 +740,7 @@ export default function HomePage() {
                 >
                   Pipeline
                 </h4>
-                <ul className="space-y-4 text-xs" style={{ fontFamily: fontFamily.mono }}>
+                <ul className="space-y-4 text-xs">
                   <li><a href="#architecture" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">Repository Mining</a></li>
                   <li><a href="#console" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">Evolution Analysis</a></li>
                   <li><a href="#hardware" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">Evidence-Based Reasoning</a></li>
@@ -755,7 +754,7 @@ export default function HomePage() {
                 >
                   Scope
                 </h4>
-                <ul className="space-y-4 text-xs text-slate-500" style={{ fontFamily: fontFamily.mono }}>
+                <ul className="space-y-4 text-xs text-[var(--at-muted)]">
                   <li>Java / Spring Boot</li>
                   <li>Git History Analysis</li>
                   <li>Knowledge Graph</li>
@@ -769,7 +768,7 @@ export default function HomePage() {
                 >
                   Project
                 </h4>
-                <div className="flex gap-4 text-xl text-slate-600" aria-label="Links coming soon">
+                <div className="flex gap-4 text-xl text-[var(--at-muted)]" aria-label="Links coming soon">
                   <span className="cursor-not-allowed opacity-60" aria-disabled="true" title="Coming soon">
                     <Icon icon="ph:github-logo-light" />
                   </span>
@@ -785,7 +784,7 @@ export default function HomePage() {
           </div>
 
           <div
-            className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-[var(--at-line)]/40 pt-8 text-[10px] uppercase tracking-widest text-slate-500 sm:flex-row"
+            className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-[var(--at-line)]/40 pt-8 text-[10px] uppercase tracking-widest text-[var(--at-muted)] sm:flex-row"
             style={{ fontFamily: fontFamily.mono }}
           >
             <p>&copy; 2026 ArchTime. Capstone Project.</p>
