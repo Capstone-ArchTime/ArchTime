@@ -1,7 +1,7 @@
 import { readTokens } from '@/auth/session';
 import { getWorkspaces, mayHaveSnapshots, type Workspace } from '@/features/workspace-summary';
 import { Link, useLocation } from 'react-router-dom';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   GitCommit,
@@ -16,6 +16,9 @@ import {
 import { API_BASE_URL } from '@/auth/session';
 import { App } from 'antd';
 import ComponentMatchPanel from '@/components/compare/ComponentMatchPanel';
+import CompareDiagram, { GROUP_HEIGHT, GROUP_WIDTH } from '@/components/compare/CompareDiagram';
+import { OTHER, buildCompareGraph } from '@/features/compare-graph';
+import { layoutGraph } from '@/features/architecture/layout';
 import { getComponentMatch } from '@/features/component-matching';
 import type { ComponentMatchResult } from '@/features/component-matching';
 
@@ -114,93 +117,18 @@ const Compare: React.FC = () => {
   const getBaseSnapshot = () => snapshots.find(s => s.id === baseId);
   const getTargetSnapshot = () => snapshots.find(s => s.id === targetId);
 
-  const renderGraph = (snapshot: any, isTarget: boolean = false) => {
-    if (!snapshot || !snapshot.nodes || snapshot.nodes.length === 0) {
-      return (
-        <g>
-          <text x="250" y="200" fill="#5f636b" fontSize="14" textAnchor="middle" fontFamily="sans-serif">
-            No architecture data
-          </text>
-          <text x="250" y="220" fill="#5f636b" fontSize="12" textAnchor="middle" fontFamily="sans-serif">
-            (This revision has no recorded modules)
-          </text>
-        </g>
-      );
-    }
-    return (
-      <g>
-        {/* Edges */}
-        <g fill="none" strokeWidth="2" opacity="0.6">
-          {snapshot.edges.map((edge: any, i: number) => {
-             const srcIdx = snapshot.nodes.findIndex((n: any) => n.id === edge.source);
-             const tgtIdx = snapshot.nodes.findIndex((n: any) => n.id === edge.target);
-             if (srcIdx === -1 || tgtIdx === -1) return null;
-             const angleSrc = (srcIdx / snapshot.nodes.length) * Math.PI * 2;
-             const cxSrc = 250 + Math.cos(angleSrc) * 120;
-             const cySrc = 180 + Math.sin(angleSrc) * 120;
-             const angleTgt = (tgtIdx / snapshot.nodes.length) * Math.PI * 2;
-             const cxTgt = 250 + Math.cos(angleTgt) * 120;
-             const cyTgt = 180 + Math.sin(angleTgt) * 120;
+  // Both revisions grouped by folder and laid out together, so a folder sits in the same place on both sides.
+  const graph = useMemo(() => (compareData ? buildCompareGraph(compareData.baseSnapshot, compareData.targetSnapshot) : null), [compareData]);
+  const graphLayout = useMemo(() => (graph ? layoutGraph(graph.groups.map(g => ({ id: g.id, width: GROUP_WIDTH, height: GROUP_HEIGHT })), graph.links.map(l => ({ id: l.id, source: l.source, target: l.target })), { nodeGap: 22, layerGap: 70 }) : null), [graph]);
 
-             // Color coding for target graph
-             let strokeColor = "#3b82f6"; // default cyan
-             let strokeWidth = 2;
-             if (isTarget && compareData?.diff) {
-               const isAdded = compareData.diff.edgesAdded.find((e: any) => e.source === edge.source && e.target === edge.target);
-               if (isAdded) {
-                 strokeColor = "#22c55e"; // green for added
-                 strokeWidth = 3;
-               }
-             }
-
-             return (
-               <path 
-                 key={i} 
-                 d={`M ${cxSrc} ${cySrc} L ${cxTgt} ${cyTgt}`} 
-                 stroke={strokeColor} 
-                 strokeWidth={strokeWidth}
-                 strokeDasharray={edge.type === 'imports' ? '4 4' : 'none'}
-               />
-             );
-          })}
-        </g>
-        {/* Nodes */}
-        <g>
-          {snapshot.nodes.map((node: any, idx: number) => {
-             const angle = (idx / snapshot.nodes.length) * Math.PI * 2;
-             const cx = 250 + Math.cos(angle) * 120;
-             const cy = 180 + Math.sin(angle) * 120;
-
-             // Color coding
-             let borderColor = "#3b82f6";
-             let fillColor = "#3b82f6";
-             if (isTarget && compareData?.diff) {
-               const isAdded = compareData.diff.nodesAdded.find((n: any) => n.id === node.id);
-               if (isAdded) {
-                 borderColor = "#22c55e";
-                 fillColor = "#22c55e";
-               }
-             } else if (!isTarget && compareData?.diff) {
-               const isRemoved = compareData.diff.nodesRemoved.find((n: any) => n.id === node.id);
-               if (isRemoved) {
-                 borderColor = "#ef4444";
-                 fillColor = "#ef4444";
-               }
-             }
-
-             return (
-               <g key={node.id} transform={`translate(${cx - 70}, ${cy - 20})`}>
-                  <rect width="140" height="40" rx="4" fill="#161d24" stroke={borderColor} strokeWidth="2" opacity="0.8" />
-                  <circle cx="20" cy="20" r="4" fill={fillColor} />
-                  <text x="35" y="24" fill="#f4f4f6" fontSize="10" fontFamily="monospace" fontWeight="bold">
-                    {node.name.length > 13 ? node.name.substring(0,13) + '...' : node.name}
-                  </text>
-               </g>
-             );
-          })}
-        </g>
-      </g>
-    );
+  const drawing = (side: 'base' | 'target', label: string) => {
+    if (!graph || !graphLayout) return <div className="flex h-full items-center justify-center text-sm text-[var(--at-muted)]">Choose two revisions and press Compare.</div>;
+    const files = side === 'base' ? graph.totals.baseFiles : graph.totals.targetFiles;
+    if (!files) return <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
+      <p className="text-sm text-[var(--at-muted)]">No architecture data</p>
+      <p className="text-xs text-[var(--at-muted)]">This revision has no recorded files.</p>
+    </div>;
+    return <CompareDiagram graph={graph} layout={graphLayout} side={side} label={label} />;
   };
 
   return (
@@ -374,11 +302,11 @@ const Compare: React.FC = () => {
         )}
 
         {/* SIDE-BY-SIDE GRAPH CONTAINER */}
-        <div className="flex flex-col lg:flex-row gap-6 shrink-0 min-h-[450px]">
+        <div className="flex flex-col 2xl:flex-row gap-6 shrink-0">
           
           {/* LEFT: BEFORE GRAPH */}
-          <div className="flex-1 flex flex-col bg-[var(--at-page)] border border-[var(--at-line)] overflow-hidden shadow-2xl relative">
-            <div className="p-4 border-b border-[var(--at-line)] bg-[var(--at-page)] flex items-center justify-between z-10">
+          <div className="flex-1 flex flex-col bg-[var(--at-panel)] border border-[var(--at-line)] overflow-hidden shadow-2xl relative">
+            <div className="p-4 border-b border-[var(--at-line)] flex items-center justify-between z-10">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-[#5f636b]"></div>
                 <span className="text-xs font-bold text-[var(--at-text)] tracking-wide uppercase">Before</span>
@@ -387,21 +315,14 @@ const Compare: React.FC = () => {
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>{getBaseSnapshot()?.version || getBaseSnapshot()?.hash.substring(0, 7) || 'Select Base'}</div>
             </div>
             
-            <div className="relative w-full h-[360px]">
-               <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#F5F7FA 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
-               <svg viewBox="0 0 500 400" className="w-full h-full absolute inset-0" preserveAspectRatio="xMidYMid meet">
-                 {compareData ? renderGraph(compareData.baseSnapshot, false) : (
-                   <g fill="none" strokeWidth="2" opacity="0.2">
-                     <path d="M 250 150 L 250 250" stroke="#94a3b8" />
-                   </g>
-                 )}
-               </svg>
+            <div className="relative w-full h-[420px] p-3">
+              {drawing('base', 'Before')}
             </div>
           </div>
 
           {/* RIGHT: AFTER GRAPH */}
-          <div className="flex-1 flex flex-col bg-[var(--at-page)] border border-[var(--at-line)] overflow-hidden shadow-2xl relative">
-            <div className="p-4 border-b border-[var(--at-line)] bg-[var(--at-page)] flex items-center justify-between z-10">
+          <div className="flex-1 flex flex-col bg-[var(--at-panel)] border border-[var(--at-line)] overflow-hidden shadow-2xl relative">
+            <div className="p-4 border-b border-[var(--at-line)] flex items-center justify-between z-10">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-[var(--at-accent)] animate-pulse motion-reduce:animate-none shadow-[0_0_8px_#3b82f6]"></div>
                 <span className="text-xs font-bold text-[var(--at-text)] tracking-wide uppercase">After</span>
@@ -410,22 +331,19 @@ const Compare: React.FC = () => {
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>{getTargetSnapshot()?.version || getTargetSnapshot()?.hash.substring(0, 7) || 'Select Target'}</div>
             </div>
             
-            <div className="relative w-full h-[360px]">
-               <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#F5F7FA 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
-               <svg viewBox="0 0 500 440" className="w-full h-full absolute inset-0" preserveAspectRatio="xMidYMid meet">
-                 {compareData ? renderGraph(compareData.targetSnapshot, true) : (
-                   <g fill="none" strokeWidth="2" opacity="0.2">
-                     <path d="M 250 150 L 250 250" stroke="#94a3b8" />
-                   </g>
-                 )}
-               </svg>
+            <div className="relative w-full h-[420px] p-3">
+              {drawing('target', 'After')}
             </div>
           </div>
           
         </div>
 
         {/* CHANGE LEGEND */}
-        <div className="flex items-center justify-center gap-6 py-2">
+        {graph && <p className="text-center text-xs text-[var(--at-muted)]">
+          Files grouped by folder{graph.depth > 1 ? ` (${graph.depth} levels deep)` : ''}; arrows are imports between folders, thicker for more imports.
+          {graph.folded > 0 ? ` The ${graph.folded} smallest folders share the "${OTHER}" box.` : ''} Dashed outlines are folders that exist only in the other revision.
+        </p>}
+        <div className="flex flex-wrap items-center justify-center gap-6 py-2">
           <div className="flex items-center gap-2">
              <div className="w-2.5 h-2.5 bg-[#22c55e] shadow-[0_0_5px_#22c55e]"></div>
              <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider"
@@ -437,9 +355,14 @@ const Compare: React.FC = () => {
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Removed</span>
           </div>
           <div className="flex items-center gap-2">
-             <div className="w-2.5 h-2.5 bg-[var(--at-accent)] shadow-[0_0_5px_#3b82f6]"></div>
+             <div className="w-2.5 h-2.5 bg-[var(--at-muted)]"></div>
              <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Unchanged</span>
+          </div>
+          <div className="flex items-center gap-2">
+             <div className="w-2.5 h-2.5 bg-[var(--at-warn)]"></div>
+             <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider"
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Changed</span>
           </div>
         </div>
 
