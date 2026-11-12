@@ -217,7 +217,7 @@ html[data-theme="frost"] [class~="bg-[var(--at-fill)]"] {
   border-radius: 999px;
   box-shadow: 0 0 16px rgb(214 228 255 / 0.32), inset 0 -1px 0 rgb(24 33 44 / 0.12);
 }
-/* The landing page uses the warm accent for its highlights; in frost they turn ice blue, as on the reference. */
+/* The landing and sign-in pages use the warm accent for their highlights; in frost they turn ice blue, as on the reference. */
 html[data-theme="frost"] .at-home { --at-warn: #c9d7f2; }
 html[data-theme="frost"] .ant-btn-primary { border-radius: 999px; }
 html[data-theme="frost"] :is(button, a)[class*="bg-[var(--at-accent)]/"] { border-radius: 999px; }

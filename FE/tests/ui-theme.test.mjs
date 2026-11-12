@@ -8,19 +8,16 @@ test('the developer-analyst workspace wears the frost look', () => {
   }
 });
 
-test('the landing page wears the frost look for everyone, signed in or not', () => {
+test('the public pages (landing, sign-in, sign-up and their follow-ups) wear the frost look for everyone', () => {
+  const publicPaths = ['/', '', '/login', '/register', '/verify-email', '/forgot-password', '/reset-password', '/invitations/accept', '/auth/github/callback', '/login/'];
   for (const role of [undefined, 'developer-analyst', 'system-administrator']) {
-    assert.equal(themeFor(role, '/'), 'frost', String(role));
-    assert.equal(themeFor(role, ''), 'frost', String(role));
+    for (const path of publicPaths) assert.equal(themeFor(role, path), 'frost', `${String(role)} ${path}`);
   }
 });
 
-test('administrators, signed-out visitors and the other public pages keep the default look', () => {
+test("the administrators' console keeps the default look", () => {
   assert.equal(themeFor('system-administrator', '/system-administrator'), 'default');
+  assert.equal(themeFor('system-administrator', '/system-administrator/users'), 'default');
   assert.equal(themeFor('system-administrator', '/profile'), 'default');
-  assert.equal(themeFor(undefined, '/dashboard'), 'default');
-  assert.equal(themeFor(undefined, '/login'), 'default');
-  for (const path of ['/login', '/register', '/verify-email', '/forgot-password', '/reset-password', '/invitations/accept', '/auth/github/callback', '/login/']) {
-    assert.equal(themeFor('developer-analyst', path), 'default', path);
-  }
+  assert.equal(themeFor(undefined, '/dashboard'), 'default', 'a guarded page before the session is known');
 });
