@@ -1,309 +1,310 @@
 ---
-version: alpha
-name: ArchTime-design-system
-description: "Dark, evidence-driven developer-tool aesthetic for ArchTime — a Git-history architecture analysis platform. Near-black canvas with a four-step surface ladder, Inter for UI text, JetBrains Mono for code/data/evidence, and a single chromatic accent reserved for primary actions and key data points. Depth comes from surface contrast and hairline borders, never drop shadows. Product screenshots and evidence panels (diffs, dependency graphs, commit timelines) are the visual protagonist of every section — this is a tool for people who read logs, not a marketing site with atmosphere."
-inspired_by: [linear, raycast, clickhouse, vercel]
-
+name: ArchTime
+description: "Frosted-glass observatory for reading how software architecture evolves: misty slate, translucent glass panels with a light edge and a soft glow, ice-blue text, pearl pill buttons, Montserrat."
 colors:
-  primary: "#3b82f6"
-  primary-hover: "#60a5fa"
-  primary-active: "#2563eb"
-  on-primary: "#ffffff"
-  accent-warn: "#f59e0b"
-  accent-success: "#22c55e"
-  accent-error: "#ef4444"
-  ink: "#f4f4f6"
-  body: "#c9c9cc"
-  muted: "#8a8f98"
-  muted-soft: "#5f636b"
-  canvas: "#08090a"
-  surface-1: "#111213"
-  surface-2: "#161718"
-  surface-3: "#1c1d1f"
-  hairline: "#242527"
-  hairline-strong: "#34363a"
-  on-dark: "#ffffff"
-  inverse-canvas: "#ffffff"
-  inverse-ink: "#0a0a0a"
-
+  slate-haze: "#2a3138"
+  misty-slate: "#1b2228"
+  slate-deep: "#151b21"
+  night-veil: "rgb(14 19 24 / 0.5)"
+  night-veil-dense: "rgb(14 19 24 / 0.78)"
+  sidebar-veil: "rgb(12 17 22 / 0.6)"
+  glass: "rgb(214 225 240 / 0.07)"
+  glass-raised: "rgb(214 225 240 / 0.11)"
+  frost-line: "rgb(220 230 245 / 0.17)"
+  frost-edge: "rgb(225 234 248 / 0.26)"
+  surface-container: "#222a32"
+  surface-elevated: "#27303a"
+  control-border: "#4a5662"
+  snow-ink: "#eef2f8"
+  mist-text: "#b4c0ce"
+  ice-link: "#d3def3"
+  ice-white: "#ffffff"
+  periwinkle: "#9db3dc"
+  pearl: "#e4eaf5"
+  pearl-pressed: "#cdd8ea"
+  on-pearl: "#18212c"
+  starlight: "#eaf1ff"
+  honey: "#f0c27e"
+  status-success: "#4ade80"
+  status-error: "#f87171"
 typography:
-  display-xl:
-    fontFamily: Inter, system-ui, sans-serif
-    fontSize: 64px
-    fontWeight: 600
+  display:
+    fontFamily: "Montserrat, system-ui, sans-serif"
+    fontSize: "clamp(3rem, 6vw, 4.5rem)"
+    fontWeight: 700
     lineHeight: 1.1
-    letterSpacing: -2px
-  display-lg:
-    fontFamily: Inter, system-ui, sans-serif
-    fontSize: 44px
-    fontWeight: 600
-    lineHeight: 1.15
-    letterSpacing: -1.2px
-  display-md:
-    fontFamily: Inter, system-ui, sans-serif
-    fontSize: 30px
-    fontWeight: 600
+    letterSpacing: "-0.01em"
+  headline:
+    fontFamily: "Montserrat, system-ui, sans-serif"
+    fontSize: "30px"
+    fontWeight: 700
     lineHeight: 1.2
-    letterSpacing: -0.6px
-  heading:
-    fontFamily: Inter, system-ui, sans-serif
-    fontSize: 20px
-    fontWeight: 600
+    letterSpacing: "-0.01em"
+  title:
+    fontFamily: "Montserrat, system-ui, sans-serif"
+    fontSize: "20px"
+    fontWeight: 700
     lineHeight: 1.3
-    letterSpacing: -0.2px
-  body-lg:
-    fontFamily: Inter, system-ui, sans-serif
-    fontSize: 17px
-    fontWeight: 400
-    lineHeight: 1.55
-    letterSpacing: 0
   body:
-    fontFamily: Inter, system-ui, sans-serif
-    fontSize: 15px
+    fontFamily: "Montserrat, system-ui, sans-serif"
+    fontSize: "14px"
     fontWeight: 400
-    lineHeight: 1.55
-    letterSpacing: 0
-  body-sm:
-    fontFamily: Inter, system-ui, sans-serif
-    fontSize: 13px
-    fontWeight: 400
-    lineHeight: 1.5
-    letterSpacing: 0
-  caption:
-    fontFamily: Inter, system-ui, sans-serif
-    fontSize: 12px
-    fontWeight: 500
-    lineHeight: 1.4
-    letterSpacing: 0.3px
-  eyebrow:
-    fontFamily: Inter, system-ui, sans-serif
-    fontSize: 12px
+    lineHeight: 1.6
+    letterSpacing: "0.005em"
+  label:
+    fontFamily: "Montserrat, system-ui, sans-serif"
+    fontSize: "11px"
     fontWeight: 600
     lineHeight: 1.3
-    letterSpacing: 1.2px
-    textTransform: uppercase
-  button:
-    fontFamily: Inter, system-ui, sans-serif
-    fontSize: 14px
-    fontWeight: 500
-    lineHeight: 1.2
-    letterSpacing: 0
-  code:
-    fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, monospace"
-    fontSize: 13px
-    fontWeight: 400
-    lineHeight: 1.55
-    letterSpacing: 0
-  code-sm:
-    fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, monospace"
-    fontSize: 12px
+    letterSpacing: "0.14em"
+  mono:
+    fontFamily: "JetBrains Mono, ui-monospace, Menlo, monospace"
+    fontSize: "12px"
     fontWeight: 400
     lineHeight: 1.5
-    letterSpacing: 0
-
+  script:
+    fontFamily: "Great Vibes, cursive"
+    fontSize: "1.35em"
+    fontWeight: 400
+    lineHeight: 1
 rounded:
-  xs: 4px
-  sm: 6px
-  md: 8px
-  lg: 12px
-  xl: 16px
-  pill: 9999px
-  full: 9999px
-
+  sm: "6px"
+  control: "10px"
+  node: "12px"
+  glass: "14px"
+  pill: "999px"
 spacing:
-  xxs: 4px
-  xs: 8px
-  sm: 12px
-  md: 16px
-  lg: 24px
-  xl: 32px
-  xxl: 48px
-  section: 96px
-
+  xs: "8px"
+  sm: "12px"
+  md: "16px"
+  panel: "20px"
+  lg: "24px"
+  page: "36px"
 components:
-  top-nav:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    typography: "{typography.body-sm}"
-    height: 56px
-    borderColor: "{colors.hairline}"
   button-primary:
-    backgroundColor: "{colors.primary}"
-    textColor: "{colors.on-primary}"
-    typography: "{typography.button}"
-    rounded: "{rounded.md}"
-    padding: 8px 16px
-  button-primary-hover:
-    backgroundColor: "{colors.primary-hover}"
-    textColor: "{colors.on-primary}"
-    rounded: "{rounded.md}"
-  button-secondary:
-    backgroundColor: "{colors.surface-1}"
-    textColor: "{colors.ink}"
-    typography: "{typography.button}"
-    rounded: "{rounded.md}"
-    padding: 8px 16px
-    borderColor: "{colors.hairline}"
-  evidence-card:
-    backgroundColor: "{colors.surface-1}"
-    textColor: "{colors.ink}"
-    typography: "{typography.body}"
-    rounded: "{rounded.lg}"
-    padding: 24px
-    borderColor: "{colors.hairline}"
-  code-panel:
-    backgroundColor: "{colors.surface-2}"
-    textColor: "{colors.ink}"
-    typography: "{typography.code}"
-    rounded: "{rounded.md}"
-    padding: 16px
-    borderColor: "{colors.hairline}"
-  screenshot-frame:
-    backgroundColor: "{colors.surface-1}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.xl}"
-    padding: 0
-    borderColor: "{colors.hairline}"
-  stat-callout:
-    backgroundColor: transparent
-    textColor: "{colors.primary}"
-    typography: "{typography.display-md}"
-  badge-pill:
-    backgroundColor: "{colors.surface-2}"
-    textColor: "{colors.muted}"
-    typography: "{typography.caption}"
+    backgroundColor: "{colors.pearl}"
+    textColor: "{colors.on-pearl}"
+    typography: "{typography.label}"
     rounded: "{rounded.pill}"
-    padding: 2px 10px
-  text-input:
-    backgroundColor: "{colors.surface-1}"
-    textColor: "{colors.ink}"
+    padding: "10px 20px"
+  button-primary-hover:
+    backgroundColor: "{colors.ice-white}"
+    textColor: "{colors.on-pearl}"
+    rounded: "{rounded.pill}"
+  button-primary-active:
+    backgroundColor: "{colors.pearl-pressed}"
+    textColor: "{colors.on-pearl}"
+    rounded: "{rounded.pill}"
+  button-secondary:
+    backgroundColor: "{colors.glass}"
+    textColor: "{colors.snow-ink}"
     typography: "{typography.body}"
-    rounded: "{rounded.md}"
-    padding: 8px 12px
-    borderColor: "{colors.hairline}"
-  cta-band:
-    backgroundColor: "{colors.surface-1}"
-    textColor: "{colors.ink}"
-    typography: "{typography.heading}"
-    rounded: "{rounded.lg}"
-    padding: 48px
-  footer:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.muted}"
-    typography: "{typography.body-sm}"
-    padding: 64px 32px
-    borderColor: "{colors.hairline}"
+    rounded: "{rounded.pill}"
+    padding: "8px 16px"
+  glass-panel:
+    backgroundColor: "{colors.glass}"
+    textColor: "{colors.snow-ink}"
+    typography: "{typography.body}"
+    rounded: "{rounded.glass}"
+    padding: "{spacing.panel}"
+  glass-panel-raised:
+    backgroundColor: "{colors.glass-raised}"
+    textColor: "{colors.snow-ink}"
+    rounded: "{rounded.glass}"
+    padding: "{spacing.panel}"
+  text-input:
+    backgroundColor: "{colors.glass}"
+    textColor: "{colors.snow-ink}"
+    typography: "{typography.body}"
+    rounded: "{rounded.glass}"
+    padding: "10px 14px"
+    height: "44px"
+  nav-item:
+    backgroundColor: "transparent"
+    textColor: "{colors.mist-text}"
+    typography: "{typography.body}"
+    rounded: "{rounded.control}"
+    padding: "12px 12px"
+  nav-item-active:
+    backgroundColor: "{colors.glass-raised}"
+    textColor: "{colors.snow-ink}"
+    rounded: "{rounded.control}"
+  section-label:
+    backgroundColor: "transparent"
+    textColor: "{colors.mist-text}"
+    typography: "{typography.label}"
+  diagram-node:
+    backgroundColor: "{colors.surface-elevated}"
+    textColor: "{colors.snow-ink}"
+    typography: "{typography.title}"
+    rounded: "{rounded.node}"
+    width: "200px"
+    height: "62px"
 ---
+
+# Design System: ArchTime
 
 ## Overview
 
-ArchTime is a tool for reconstructing how software architecture evolved from Git history — its audience reads diffs, dependency graphs, and commit timelines all day. The design system reflects that: a near-black canvas (`{colors.canvas}` #08090a) carries a three-step surface ladder for elevation, Inter handles all UI text, and JetBrains Mono renders every piece of evidence (commit hashes, file paths, code diffs, architecture-diff output). There is exactly one chromatic accent (`{colors.primary}` — blue #3b82f6), reserved for primary CTAs, active nav state, links, and the numbers in stat callouts. Semantic colors (warn/success/error) exist only for pipeline status indicators, never as decoration.
+**Creative North Star: "The Frosted Observatory"**
 
-Depth is built from the surface ladder and 1px hairline borders — never drop shadows. This keeps the interface feeling like an inspection tool rather than a marketing site: flat, precise, evidence-first.
+ArchTime is where a team watches its architecture change over time, so the interface is an observatory at night seen through frosted glass. The floor is a misty slate gradient with a few faint four-point stars and two thin hanging light lines in the top right corner. Everything you work with floats above it as translucent glass: panels that let the mist show through, edged with a thin light line and a soft cold glow. The light in the room is ice blue and white, never warm and never neon.
 
-**Key principles pulled from the reference systems:**
-- **Surface ladder over shadows** (from Linear, Raycast, ClickHouse): `{colors.canvas}` → `{colors.surface-1}` → `{colors.surface-2}` → `{colors.surface-3}`, each with 1px `{colors.hairline}` borders.
-- **One scarce accent color** (from Linear's lavender, ClickHouse's yellow, Cursor's orange): `{colors.primary}` blue appears only on primary CTAs, active states, and stat numbers — never as a background fill for large surfaces.
-- **Product evidence as the protagonist** (from Linear, Raycast): every section should lead with a real screenshot, code diff, or graph visualization inside a `{component.screenshot-frame}` or `{component.code-panel}` — not abstract illustration.
-- **Monospace for anything factual** (from ClickHouse, Sentry, Cursor): commit hashes, file paths, diff output, and pipeline stage labels render in `{typography.code}`. Prose stays in Inter.
-- **Negative tracking on display type** (universal across all seven references): headlines get -0.6px to -2px letter-spacing; body stays at 0.
+The look belongs to the people who use the product: every page a signed-in user (the developer-analyst role) sees, and every public page (landing, sign-in, sign-up, email verification, password reset, invitations). The administrators' console keeps the earlier flat near-black look; it reads the same colour variables with their original defaults (see Colors). Density stays that of a working tool: tables, graphs, file lists and diffs are the content, and the glass is the frame around them, not decoration on top of them.
+
+**Key Characteristics:**
+
+- Misty slate background with sparse sparkles, always behind translucent glass panels.
+- Ice-blue and white light; the one strong fill is a pearl-white pill with dark text.
+- Montserrat for everything people read, small labels in spaced-out capitals, monospace only for hashes, paths and code.
+- Soft cold glow instead of hard shadows; rounded, pill-shaped controls.
+- Text at least 7:1 against the panels it sits on.
 
 ## Colors
 
-### Brand & Accent
-- **Primary** (`{colors.primary}` — #3b82f6): the only chromatic accent. Primary CTA fill, active nav indicator, links, stat-callout numbers.
-- **Primary Hover** (`{colors.primary-hover}` — #60a5fa) / **Primary Active** (`{colors.primary-active}` — #2563eb): interaction states.
+A cold, nearly monochrome palette: slate for the floor, white-tinted glass for surfaces, ice blue for links and accents, pearl for the one strong action.
 
-### Surface
-- **Canvas** (`{colors.canvas}` — #08090a): page floor.
-- **Surface 1/2/3**: successive elevation steps for cards, code panels, and nested panels.
-- **Hairline** (`{colors.hairline}` — #242527) / **Hairline Strong** (`{colors.hairline-strong}` — #34363a): the only depth cue — 1px borders on every card and divider.
+### Primary
 
-### Text
-- **Ink** (`{colors.ink}` — #f4f4f6): headings, emphasized body.
-- **Body** (`{colors.body}` — #c9c9cc): default running text.
-- **Muted** (`{colors.muted}` — #8a8f98) / **Muted Soft** (`{colors.muted-soft}` — #5f636b): captions, disabled, footer text.
+- **Pearl** (`pearl`): the fill of the main action on a screen (primary buttons, "Create report", "Sign in"), always with **On-Pearl** text (`on-pearl`) on it; hover lightens to **Ice White** (`ice-white`), press dims to **Pearl Pressed** (`pearl-pressed`).
+- **Periwinkle** (`periwinkle`): the accent for non-text marks: icons, focus rings, borders of selected things, the edge of diagram nodes, tints behind chips.
 
-### Semantic (pipeline status only)
-- **Warn** (`{colors.accent-warn}` — #f59e0b), **Success** (`{colors.accent-success}` — #22c55e), **Error** (`{colors.accent-error}` — #ef4444): reserved for analysis-pipeline status badges (e.g. "Analysis running", "Evidence verified", "Parse failed"). Never used decoratively.
+### Secondary
+
+- **Ice Link** (`ice-link`): links and highlighted words on dark surfaces (nav item of the current group, "Changed in commits" hashes, help shortcuts); hover goes to **Ice White**.
+- **Starlight** (`starlight`): glows and points of light: sparkles, pulsing status dots, the glow around pearl buttons.
+
+### Tertiary
+
+- **Honey** (`honey`): the only warm colour, and only for "changed" or "needs attention": changed folders on Compare, outdated learning steps, warnings. It never decorates.
+- **Success** (`status-success`) and **Error** (`status-error`): added / removed / failed states only.
+
+### Neutral
+
+- **Misty Slate** (`misty-slate`), **Slate Haze** (`slate-haze`) and **Slate Deep** (`slate-deep`): the page floor, painted as a fixed gradient behind everything.
+- **Glass** (`glass`) and **Glass Raised** (`glass-raised`): panels and nested panels; translucent so the floor shows through.
+- **Night Veil** (`night-veil`), **Night Veil Dense** (`night-veil-dense`) and **Sidebar Veil** (`sidebar-veil`): darker translucent layers for page wells, the workspace header and the sidebar.
+- **Frost Line** (`frost-line`): dividers and default borders; **Frost Edge** (`frost-edge`): the brighter edge of glass panels.
+- **Surface Container** (`surface-container`), **Surface Elevated** (`surface-elevated`), **Control Border** (`control-border`): solid surfaces for antd controls, modals, dropdowns and diagram nodes, where translucency would make text hard to read.
+- **Snow Ink** (`snow-ink`): headings and body text. **Mist Text** (`mist-text`): secondary text, captions, labels.
+
+### Named Rules
+
+**The Ice, Not Neon Rule.** No saturated blue, cyan or amber on these pages. Accents are pale ice; the strongest colour on a screen is the pearl button.
+
+**The Variables Only Rule.** Pages paint with the `--at-*` CSS variables (`--at-page`, `--at-panel`, `--at-panel-2`, `--at-line`, `--at-text`, `--at-muted`, `--at-link`, `--at-accent`, `--at-fill`, `--at-on-fill`, `--at-warn`, `--at-glow`), never with literal hex. The variables' defaults are the old console colours and `html[data-theme="frost"]` turns them into this palette, so one class serves both looks.
+
+**The Seven-to-One Rule.** Any text must keep at least 7:1 against the surface it sits on. Mist Text is the dimmest colour allowed for words; darker greys are for disabled controls and placeholders only.
 
 ## Typography
 
-**Inter** for all UI text (display, body, buttons, nav). **JetBrains Mono** for everything factual: code diffs, commit hashes, file paths, CLI output.
+**Display Font:** Montserrat (with system-ui)
+**Body Font:** Montserrat (with system-ui)
+**Label/Mono Font:** JetBrains Mono for hashes, paths and code; Great Vibes as a rare handwritten accent
 
-| Token | Size | Weight | Tracking | Use |
-|---|---|---|---|---|
-| `{typography.display-xl}` | 64px | 600 | -2px | Hero headline |
-| `{typography.display-lg}` | 44px | 600 | -1.2px | Section openers |
-| `{typography.display-md}` | 30px | 600 | -0.6px | Sub-section heads, stat numbers |
-| `{typography.heading}` | 20px | 600 | -0.2px | Card titles |
-| `{typography.body-lg}` | 17px | 400 | 0 | Lead paragraphs |
-| `{typography.body}` | 15px | 400 | 0 | Default body |
-| `{typography.body-sm}` | 13px | 400 | 0 | Secondary copy, table cells |
-| `{typography.caption}` | 12px | 500 | 0.3px | Badges, metadata |
-| `{typography.eyebrow}` | 12px | 600 | 1.2px, uppercase | Section labels |
-| `{typography.button}` | 14px | 500 | 0 | Button labels |
-| `{typography.code}` | 13px | 400 | 0 | Diff output, commit hashes, file paths |
-| `{typography.code-sm}` | 12px | 400 | 0 | Inline code, table code cells |
+**Character:** One geometric face for everything people read, firm in headings and calm in body text; small capitals with wide spacing give labels the look of instrument markings.
+
+### Hierarchy
+
+- **Display** (700, clamp(3rem, 6vw, 4.5rem), 1.1): landing and sign-in hero lines only. Can carry a white-to-ice gradient on its last words.
+- **Headline** (700, 30px, 1.2): page titles ("Repository Workspaces", "My profile").
+- **Title** (700, 20px, 1.3): card and section titles, diagram node names (14px inside diagrams).
+- **Body** (400, 14px, 1.6): running text, table cells, descriptions; keep paragraphs under about 75 characters wide.
+- **Label** (600, 11px, 0.14em, uppercase): section labels and stat captions ("COMMITS FOUND", "CHANGED IN COMMITS").
+- **Mono** (400, 12px): commit hashes, file paths, code, terminal lines.
+- **Script** (400, 1.35em of its line): one or two words of flourish, such as the user's name in the dashboard greeting.
+
+### Named Rules
+
+**The One Face Rule.** Montserrat for everything readable. Monospace only where the text is literally code, a hash or a path; upper-case labels written in monospace are drawn in Montserrat automatically.
+
+**The Two-Word Script Rule.** The handwritten Great Vibes face appears at most once per screen, on one or two words, never on anything a person must read to act.
 
 ## Layout
 
-- **Base unit**: 4px. Scale: `{spacing.xxs}` 4 · `{spacing.xs}` 8 · `{spacing.sm}` 12 · `{spacing.md}` 16 · `{spacing.lg}` 24 · `{spacing.xl}` 32 · `{spacing.xxl}` 48 · `{spacing.section}` 96px.
-- **Max content width**: ~1280px.
-- **Card grids**: 3-up desktop → 2-up tablet → 1-up mobile.
-- Section rhythm: `{spacing.section}` (96px) between major bands; card interiors at `{spacing.lg}`–`{spacing.xl}` (24–32px).
+The signed-in workspace is a fixed frame: a 256px sidebar (hidden behind a menu button below 1024px), a 64px header, and a single scrolling content area padded 16px, 24px from 640px and 36px from 1280px. Content sits in a centred column up to 1400px wide with 24px between sections. The page itself never scrolls; only the content area does, so nothing may be positioned outside it.
 
-## Elevation
+Cards line up in 2 to 4 column grids that fall back to one column on phones. The Architecture Map is full-bleed with a 40px header and side panels that become drawers below 1100px; it has a full-screen mode with no header at all. The Compare page stacks its Before and After drawings until 1536px, then puts them side by side. Sign-in and sign-up split the screen 40/60 (form / illustration) from 768px and become one column below.
 
-No drop shadows anywhere. Depth = surface-ladder step + 1px hairline border.
+## Elevation & Depth
 
-| Level | Treatment | Use |
-|---|---|---|
-| 0 | Flat, no border | Canvas, hero text |
-| 1 | `{colors.surface-1}` + `{colors.hairline}` | Default cards, evidence cards |
-| 2 | `{colors.surface-2}` + `{colors.hairline}` | Code panels, nested content |
-| 3 | `{colors.surface-3}` | Dropdowns, sub-nav |
+Depth comes from translucency and light, not from darkness. A panel is lighter than the floor because it is white-tinted glass, it has a brighter top edge, and it glows faintly; it does not cast a hard shadow.
+
+### Shadow Vocabulary
+
+- **Glass panel** (`box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 12px 32px -14px rgb(0 0 0 / 0.5), 0 0 24px -10px rgb(205 222 255 / 0.22)`): every card and panel.
+- **Pearl glow** (`box-shadow: 0 0 16px rgb(214 228 255 / 0.32), inset 0 -1px 0 rgb(24 33 44 / 0.12)`): primary pill buttons.
+- **Overlay** (`box-shadow: 0 0 28px -8px rgb(205 222 255 / 0.25), 0 20px 50px -20px rgb(0 0 0 / 0.6)` with a 1px Frost Edge border): modals, drawers, dropdowns, popovers.
+- **Heading halo** (`text-shadow: 0 0 22px rgb(220 232 255 / 0.22)`): page headings.
+- **Frosted chrome** (`backdrop-filter: blur(14px)`): the sidebar and the workspace header only.
+
+### Named Rules
+
+**The Glow, Not Drop Rule.** Elevation is a cold glow and a light edge. A dark offset shadow is allowed only as the soft, wide ambient layer above, never as a crisp drop shadow.
 
 ## Shapes
 
-| Token | Value | Use |
-|---|---|---|
-| `{rounded.xs}` | 4px | Badges |
-| `{rounded.sm}` | 6px | Inline tags |
-| `{rounded.md}` | 8px | Buttons, inputs |
-| `{rounded.lg}` | 12px | Cards |
-| `{rounded.xl}` | 16px | Screenshot/graph frames |
-| `{rounded.pill}` | 9999px | Status pills |
+Everything is gently rounded. Glass panels and inputs use soft corners (14px); antd controls such as selects and small buttons use 10px; diagram nodes 12px. Every solid action button is a full pill (999px), and so are tinted chip-like buttons and status tags. Square corners belong to the old console look only.
 
 ## Components
 
-**`button-primary`** — Background `{colors.primary}`, text white, `{rounded.md}`, padding 8px 16px. The only filled-blue element per viewport should stay scarce — one primary CTA per fold.
+### Buttons
 
-**`evidence-card`** — Default content card. Background `{colors.surface-1}`, 1px hairline, `{rounded.lg}`, padding 24px. Used for pipeline-stage cards (Repository Mining, Evolution Analysis, Knowledge Graph, etc.).
+- **Shape:** full pill (999px).
+- **Primary:** Pearl fill with On-Pearl text, label typography in capitals or title case, padding 10px 20px, Pearl glow.
+- **Hover / Focus:** hover turns Ice White; keyboard focus shows a 2px Periwinkle outline 3px away.
+- **Secondary:** Glass fill, Snow Ink text, Frost Edge border; hover brightens the glass and the border to Ice Link.
+- **Danger:** outlined in Error with Error text (for example "Sign out of all devices").
 
-**`code-panel`** — Background `{colors.surface-2}`, `{typography.code}`, `{rounded.md}`, padding 16px. Renders commit diffs, CLI output, JSON evidence.
+### Chips
 
-**`screenshot-frame`** — Background `{colors.surface-1}`, `{rounded.xl}`, no padding (content fills edge-to-edge). Frames actual product screenshots (dependency graph view, timeline view, diff view) — the visual protagonist of the homepage.
+- **Style:** small pill with a faint tint of their colour behind same-colour text: Success for added, Error for removed, Honey for changed, Periwinkle for neutral tags (antd blue tags render in Ice Link).
+- **State:** status chips are read-only; filter chips use the selected Glass Raised fill.
 
-**`stat-callout`** — Transparent background, text `{colors.primary}`, `{typography.display-md}`. Used for credibility numbers (repos analyzed, commits processed).
+### Cards / Containers
 
-**`badge-pill`** — Background `{colors.surface-2}`, text muted, `{rounded.pill}`, padding 2px 10px. Pipeline stage tags.
+- **Corner Style:** soft (14px).
+- **Background:** Glass, or Glass Raised for a panel inside a panel.
+- **Shadow Strategy:** Glass panel glow (see Elevation & Depth).
+- **Border:** 1px Frost Edge.
+- **Internal Padding:** 20px; stat cards 24px.
+
+### Inputs / Fields
+
+- **Style:** Glass fill, 1px Frost Line border, soft corners (14px), 44px tall on sign-in forms.
+- **Focus:** border turns Periwinkle; antd fields show their own focus ring in the same colour.
+- **Error / Disabled:** red-tinted border with the message in Error-coloured text directly under the field; never a pop-up toast for a field problem.
+
+### Navigation
+
+- **Sidebar:** Sidebar Veil with frosted blur; items in Mist Text with an icon, hover brightens the glass; the current page is a Glass Raised rounded item with Snow Ink text and a Frost Edge border. Groups (Analyze, Maintain) fold and unfold.
+- **Header:** 64px, Frost Line bottom border, page name with its group label above it, "Find a page" search and the account avatar (pearl circle with the person's initials).
+- **Mobile:** the sidebar becomes a drawer from a menu button.
+
+### Diagram Nodes (signature)
+
+Architecture and Compare drawings use rounded nodes (12px) on Surface Elevated with a coloured left mark or dot by role, Snow Ink names and Mist Text details. On Compare a node's edge says what happened to its folder: Success added, Error removed, Honey changed, Frost Line unchanged, dashed when the folder exists only in the other revision. Selected nodes get an Ice White edge and glow; nodes are buttons that open their files.
+
+### Sparkle Field (signature)
+
+The background carries three four-point stars and two thin hanging light lines at fixed positions, part of the page floor, never interactive and never animated.
 
 ## Do's and Don'ts
 
-### Do
-- Keep `{colors.primary}` blue scarce — one solid-fill primary CTA per viewport.
-- Lead every homepage section with a real product screenshot or evidence panel inside `{component.screenshot-frame}`.
-- Render commit hashes, file paths, and diff output in `{typography.code}` (JetBrains Mono) — never in Inter.
-- Build all elevation from the surface ladder + hairline border. No shadows.
-- Apply negative letter-spacing on every display size.
+### Do:
 
-### Don't
-- Don't introduce a second chromatic accent — semantic colors are for pipeline status only, never decoration.
-- Don't add drop shadows or glow effects.
-- Don't use pill radius on cards — reserve `{rounded.pill}` for badges/status only.
-- Don't set body copy in JetBrains Mono — mono is for factual/evidence content only.
+- **Do** paint with the `--at-*` variables so the same component works in the frost look and the console look.
+- **Do** keep one Pearl pill as the main action of an area, with dark On-Pearl text.
+- **Do** put content on Glass panels with the soft 14px corners, the Frost Edge border and the glass glow.
+- **Do** use Honey only for "changed / needs attention", Success and Error only for added/removed/failed.
+- **Do** keep text at 7:1 or better; use Mist Text for secondary text.
+- **Do** write labels in spaced-out capitals and keep monospace for hashes, paths and code.
 
-## Sources
+### Don't:
 
-Synthesized from `getdesign` analyses of linear.app, vercel.com, cursor.com, warp.dev, raycast.com, sentry.io, and clickhouse.com (fetched via `npx getdesign@latest add <brand>`, archived under `.design-refs/`). This is an original token system for ArchTime, not a copy of any single source — customize freely as the product evolves.
+- **Don't** use saturated blue, cyan or amber (the old `#3b82f6`, `#00f0ff`, `#ffb03a` accents) on frost pages.
+- **Don't** put white text on a light fill or dark text on a saturated blue fill.
+- **Don't** use dark greys such as `#5f636b` or `#64748b` for words.
+- **Don't** use square corners on buttons, cards or inputs in the frost look.
+- **Don't** add hard, crisp drop shadows; depth is glow and translucency.
+- **Don't** use the script face for more than one or two words per screen.

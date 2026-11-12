@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-12T13:00:00+07:00",
+  "title": "Design System: ArchTime",
+  "extensions": {
+    "colorMeta": {
+      "misty-slate": { "role": "neutral", "displayName": "Misty Slate", "canonical": "#1b2228", "tonalRamp": ["#0d1114", "#151b21", "#1b2228", "#2a3138", "#3c454e", "#56616c", "#7d8996", "#b4c0ce"] },
+      "glass": { "role": "neutral", "displayName": "Glass", "canonical": "rgb(214 225 240 / 0.07)", "tonalRamp": ["rgb(214 225 240 / 0.03)", "rgb(214 225 240 / 0.05)", "rgb(214 225 240 / 0.07)", "rgb(214 225 240 / 0.09)", "rgb(214 225 240 / 0.11)", "rgb(214 225 240 / 0.14)", "rgb(214 225 240 / 0.18)", "rgb(214 225 240 / 0.24)"] },
+      "glass-raised": { "role": "neutral", "displayName": "Glass Raised", "canonical": "rgb(214 225 240 / 0.11)" },
+      "frost-line": { "role": "neutral", "displayName": "Frost Line", "canonical": "rgb(220 230 245 / 0.17)" },
+      "frost-edge": { "role": "neutral", "displayName": "Frost Edge", "canonical": "rgb(225 234 248 / 0.26)" },
+      "snow-ink": { "role": "neutral", "displayName": "Snow Ink", "canonical": "#eef2f8" },
+      "mist-text": { "role": "neutral", "displayName": "Mist Text", "canonical": "#b4c0ce" },
+      "pearl": { "role": "primary", "displayName": "Pearl", "canonical": "#e4eaf5", "tonalRamp": ["#1b2433", "#2f3b52", "#4a5a78", "#6f80a0", "#9aa8c4", "#c4cee2", "#e4eaf5", "#ffffff"] },
+      "on-pearl": { "role": "primary", "displayName": "On-Pearl", "canonical": "#18212c" },
+      "periwinkle": { "role": "primary", "displayName": "Periwinkle", "canonical": "#9db3dc", "tonalRamp": ["#1f2a3f", "#30405f", "#465a82", "#6379a5", "#8199c7", "#9db3dc", "#c3d1ea", "#e6ecf7"] },
+      "ice-link": { "role": "secondary", "displayName": "Ice Link", "canonical": "#d3def3" },
+      "starlight": { "role": "secondary", "displayName": "Starlight", "canonical": "#eaf1ff" },
+      "honey": { "role": "tertiary", "displayName": "Honey", "canonical": "#f0c27e", "tonalRamp": ["#3d2a0c", "#5e4216", "#7f5b22", "#a37733", "#c79749", "#f0c27e", "#f6d8a8", "#fbeed6"] },
+      "status-success": { "role": "tertiary", "displayName": "Success", "canonical": "#4ade80" },
+      "status-error": { "role": "tertiary", "displayName": "Error", "canonical": "#f87171" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Landing and sign-in hero lines only." },
+      "headline": { "displayName": "Headline", "purpose": "Page titles." },
+      "title": { "displayName": "Title", "purpose": "Card and section titles, diagram node names." },
+      "body": { "displayName": "Body", "purpose": "Running text, table cells, descriptions." },
+      "label": { "displayName": "Label", "purpose": "Section labels and stat captions in spaced-out capitals." },
+      "mono": { "displayName": "Mono", "purpose": "Commit hashes, file paths, code and terminal lines only." },
+      "script": { "displayName": "Script", "purpose": "One or two words of flourish, at most once per screen." }
+    },
+    "shadows": [
+      { "name": "glass-panel", "value": "inset 0 1px 0 rgb(255 255 255 / 0.07), 0 12px 32px -14px rgb(0 0 0 / 0.5), 0 0 24px -10px rgb(205 222 255 / 0.22)", "purpose": "Every card and panel." },
+      { "name": "pearl-glow", "value": "0 0 16px rgb(214 228 255 / 0.32), inset 0 -1px 0 rgb(24 33 44 / 0.12)", "purpose": "Primary pill buttons." },
+      { "name": "overlay", "value": "0 0 28px -8px rgb(205 222 255 / 0.25), 0 20px 50px -20px rgb(0 0 0 / 0.6)", "purpose": "Modals, drawers, dropdowns and popovers, with a 1px Frost Edge border." },
+      { "name": "heading-halo", "value": "text-shadow: 0 0 22px rgb(220 232 255 / 0.22)", "purpose": "Page headings." },
+      { "name": "frosted-chrome", "value": "backdrop-filter: blur(14px)", "purpose": "Sidebar and workspace header." }
+    ],
+    "motion": [
+      { "name": "color-transition", "value": "color, background-color 150ms ease", "purpose": "Hover and focus colour changes; all motion is cut to near zero when the person prefers reduced motion." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "architecture-drawers", "value": "1100px" },
+      { "name": "xl", "value": "1280px" },
+      { "name": "2xl", "value": "1536px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one main action of an area: a pearl pill with dark text and a cold glow.",
+      "html": "<button class=\"ds-btn-primary\">Create report</button>",
+      "css": ".ds-btn-primary { background: #e4eaf5; color: #18212c; border: none; border-radius: 999px; padding: 10px 20px; font: 600 12px/1.2 Montserrat, system-ui, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; box-shadow: 0 0 16px rgb(214 228 255 / 0.32), inset 0 -1px 0 rgb(24 33 44 / 0.12); cursor: pointer; transition: background 150ms ease; } .ds-btn-primary:hover { background: #ffffff; } .ds-btn-primary:active { background: #cdd8ea; } .ds-btn-primary:focus-visible { outline: 2px solid #9db3dc; outline-offset: 3px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Glass pill for every other action.",
+      "html": "<button class=\"ds-btn-secondary\">Open workspaces</button>",
+      "css": ".ds-btn-secondary { background: rgb(214 225 240 / 0.06); color: #eef2f8; border: 1px solid rgb(220 230 245 / 0.32); border-radius: 999px; padding: 8px 16px; font: 500 14px/1.2 Montserrat, system-ui, sans-serif; cursor: pointer; transition: background 150ms ease, border-color 150ms ease; } .ds-btn-secondary:hover { background: rgb(214 225 240 / 0.12); border-color: #d3def3; color: #ffffff; } .ds-btn-secondary:focus-visible { outline: 2px solid #9db3dc; outline-offset: 3px; }"
+    },
+    {
+      "name": "Glass Panel",
+      "kind": "card",
+      "refersTo": "glass-panel",
+      "description": "Translucent card with a light edge and a soft glow; the container for all content.",
+      "html": "<section class=\"ds-glass\"><p class=\"ds-glass-label\">Commits found</p><p class=\"ds-glass-value\">116</p><p class=\"ds-glass-note\">Across scanned repositories</p></section>",
+      "css": ".ds-glass { background: rgb(214 225 240 / 0.07); border: 1px solid rgb(225 234 248 / 0.26); border-radius: 14px; padding: 20px; color: #eef2f8; font-family: Montserrat, system-ui, sans-serif; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 12px 32px -14px rgb(0 0 0 / 0.5), 0 0 24px -10px rgb(205 222 255 / 0.22); } .ds-glass-label { margin: 0 0 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #b4c0ce; } .ds-glass-value { margin: 0; font-size: 30px; font-weight: 700; } .ds-glass-note { margin: 4px 0 0; font-size: 12px; color: #b4c0ce; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "text-input",
+      "description": "Glass field with soft corners; the problem is written under it, never in a pop-up.",
+      "html": "<label class=\"ds-field\"><span>Email address</span><input class=\"ds-input\" placeholder=\"developer@archtime.io\"></label>",
+      "css": ".ds-field { display: grid; gap: 6px; font: 600 11px/1.3 Montserrat, system-ui, sans-serif; letter-spacing: 0.14em; text-transform: uppercase; color: #b4c0ce; } .ds-input { height: 44px; padding: 10px 14px; background: rgb(214 225 240 / 0.07); border: 1px solid rgb(220 230 245 / 0.17); border-radius: 14px; color: #eef2f8; font: 400 14px Montserrat, system-ui, sans-serif; letter-spacing: 0; text-transform: none; } .ds-input::placeholder { color: #b4c0ce; } .ds-input:focus-visible { outline: none; border-color: #9db3dc; }"
+    },
+    {
+      "name": "Sidebar Navigation",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Frosted sidebar; the current page is a raised glass item.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-item ds-nav-item--active\" href=\"#\">Dashboard</a><a class=\"ds-nav-item\" href=\"#\">Workspaces</a><a class=\"ds-nav-item\" href=\"#\">Learning</a></nav>",
+      "css": ".ds-nav { display: grid; gap: 4px; width: 232px; padding: 12px; background: rgb(12 17 22 / 0.6); backdrop-filter: blur(14px); border-right: 1px solid rgb(220 230 245 / 0.17); font: 400 14px Montserrat, system-ui, sans-serif; } .ds-nav-item { padding: 12px; border-radius: 10px; border: 1px solid transparent; color: #b4c0ce; text-decoration: none; } .ds-nav-item:hover { background: rgb(214 225 240 / 0.07); color: #ffffff; } .ds-nav-item--active { background: rgb(214 225 240 / 0.11); border-color: rgb(225 234 248 / 0.26); color: #eef2f8; } .ds-nav-item:focus-visible { outline: 2px solid #9db3dc; outline-offset: 2px; }"
+    },
+    {
+      "name": "Status Chips",
+      "kind": "chip",
+      "refersTo": "section-label",
+      "description": "Read-only status pills: added, removed, changed, neutral.",
+      "html": "<span class=\"ds-chip ds-chip--added\">Added</span> <span class=\"ds-chip ds-chip--removed\">Removed</span> <span class=\"ds-chip ds-chip--changed\">Changed</span> <span class=\"ds-chip\">INFERENCE</span>",
+      "css": ".ds-chip { display: inline-block; padding: 2px 10px; border-radius: 999px; font: 600 11px/1.6 Montserrat, system-ui, sans-serif; color: #d3def3; background: rgb(157 179 220 / 0.14); border: 1px solid rgb(157 179 220 / 0.3); } .ds-chip--added { color: #4ade80; background: rgb(74 222 128 / 0.12); border-color: rgb(74 222 128 / 0.3); } .ds-chip--removed { color: #f87171; background: rgb(248 113 113 / 0.12); border-color: rgb(248 113 113 / 0.3); } .ds-chip--changed { color: #f0c27e; background: rgb(240 194 126 / 0.12); border-color: rgb(240 194 126 / 0.3); }"
+    },
+    {
+      "name": "Diagram Node",
+      "kind": "custom",
+      "refersTo": "diagram-node",
+      "description": "A folder or component in the architecture and Compare drawings; its edge tells what happened to it and it opens its files.",
+      "html": "<button class=\"ds-node ds-node--added\"><span class=\"ds-node-dot\"></span><span><strong>lib/restore</strong><small>14 files · +14 −0</small></span></button>",
+      "css": ".ds-node { display: inline-flex; align-items: center; gap: 10px; width: 200px; height: 62px; padding: 0 14px; background: #27303a; border: 1px solid rgb(220 230 245 / 0.32); border-radius: 12px; color: #eef2f8; font-family: Montserrat, system-ui, sans-serif; text-align: left; cursor: pointer; } .ds-node strong { display: block; font-size: 14px; font-weight: 600; } .ds-node small { display: block; font-size: 12px; color: #b4c0ce; } .ds-node-dot { width: 8px; height: 8px; border-radius: 50%; background: #b4c0ce; flex: none; } .ds-node--added { border: 2px solid #4ade80; } .ds-node--added .ds-node-dot { background: #4ade80; } .ds-node:hover { filter: brightness(1.25); } .ds-node:focus-visible { outline: none; border-color: #ffffff; box-shadow: 0 0 8px rgb(214 228 255 / 0.45); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Frosted Observatory",
+    "overview": "ArchTime is where a team watches its architecture change over time, so the interface is an observatory at night seen through frosted glass. The floor is a misty slate gradient with a few faint four-point stars and two thin hanging light lines in the top right corner. Everything you work with floats above it as translucent glass: panels that let the mist show through, edged with a thin light line and a soft cold glow. The light in the room is ice blue and white, never warm and never neon.\n\nThe look belongs to the people who use the product: every page a signed-in user (the developer-analyst role) sees, and every public page (landing, sign-in, sign-up, email verification, password reset, invitations). The administrators' console keeps the earlier flat near-black look; it reads the same colour variables with their original defaults (see Colors). Density stays that of a working tool: tables, graphs, file lists and diffs are the content, and the glass is the frame around them, not decoration on top of them.",
+    "keyCharacteristics": [
+      "Misty slate background with sparse sparkles, always behind translucent glass panels.",
+      "Ice-blue and white light; the one strong fill is a pearl-white pill with dark text.",
+      "Montserrat for everything people read, small labels in spaced-out capitals, monospace only for hashes, paths and code.",
+      "Soft cold glow instead of hard shadows; rounded, pill-shaped controls.",
+      "Text at least 7:1 against the panels it sits on."
+    ],
+    "rules": [
+      { "name": "The Ice, Not Neon Rule", "body": "No saturated blue, cyan or amber on these pages. Accents are pale ice; the strongest colour on a screen is the pearl button.", "section": "colors" },
+      { "name": "The Variables Only Rule", "body": "Pages paint with the `--at-*` CSS variables (`--at-page`, `--at-panel`, `--at-panel-2`, `--at-line`, `--at-text`, `--at-muted`, `--at-link`, `--at-accent`, `--at-fill`, `--at-on-fill`, `--at-warn`, `--at-glow`), never with literal hex. The variables' defaults are the old console colours and `html[data-theme=\"frost\"]` turns them into this palette, so one class serves both looks.", "section": "colors" },
+      { "name": "The Seven-to-One Rule", "body": "Any text must keep at least 7:1 against the surface it sits on. Mist Text is the dimmest colour allowed for words; darker greys are for disabled controls and placeholders only.", "section": "colors" },
+      { "name": "The One Face Rule", "body": "Montserrat for everything readable. Monospace only where the text is literally code, a hash or a path; upper-case labels written in monospace are drawn in Montserrat automatically.", "section": "typography" },
+      { "name": "The Two-Word Script Rule", "body": "The handwritten Great Vibes face appears at most once per screen, on one or two words, never on anything a person must read to act.", "section": "typography" },
+      { "name": "The Glow, Not Drop Rule", "body": "Elevation is a cold glow and a light edge. A dark offset shadow is allowed only as the soft, wide ambient layer above, never as a crisp drop shadow.", "section": "elevation" }
+    ],
+    "dos": [
+      "**Do** paint with the `--at-*` variables so the same component works in the frost look and the console look.",
+      "**Do** keep one Pearl pill as the main action of an area, with dark On-Pearl text.",
+      "**Do** put content on Glass panels with the soft 14px corners, the Frost Edge border and the glass glow.",
+      "**Do** use Honey only for \"changed / needs attention\", Success and Error only for added/removed/failed.",
+      "**Do** keep text at 7:1 or better; use Mist Text for secondary text.",
+      "**Do** write labels in spaced-out capitals and keep monospace for hashes, paths and code."
+    ],
+    "donts": [
+      "**Don't** use saturated blue, cyan or amber (the old `#3b82f6`, `#00f0ff`, `#ffb03a` accents) on frost pages.",
+      "**Don't** put white text on a light fill or dark text on a saturated blue fill.",
+      "**Don't** use dark greys such as `#5f636b` or `#64748b` for words.",
+      "**Don't** use square corners on buttons, cards or inputs in the frost look.",
+      "**Don't** add hard, crisp drop shadows; depth is glow and translucency.",
+      "**Don't** use the script face for more than one or two words per screen."
+    ]
+  }
+}
