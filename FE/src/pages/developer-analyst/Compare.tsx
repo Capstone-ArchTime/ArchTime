@@ -17,7 +17,8 @@ import { API_BASE_URL } from '@/auth/session';
 import { App } from 'antd';
 import ComponentMatchPanel from '@/components/compare/ComponentMatchPanel';
 import CompareDiagram, { GROUP_HEIGHT, GROUP_WIDTH } from '@/components/compare/CompareDiagram';
-import { OTHER, buildCompareGraph } from '@/features/compare-graph';
+import CompareFilesDrawer from '@/components/compare/CompareFilesDrawer';
+import { OTHER, buildCompareGraph, compareFiles } from '@/features/compare-graph';
 import { layoutGraph } from '@/features/architecture/layout';
 import { getComponentMatch } from '@/features/component-matching';
 import type { ComponentMatchResult } from '@/features/component-matching';
@@ -121,6 +122,16 @@ const Compare: React.FC = () => {
   const graph = useMemo(() => (compareData ? buildCompareGraph(compareData.baseSnapshot, compareData.targetSnapshot) : null), [compareData]);
   const graphLayout = useMemo(() => (graph ? layoutGraph(graph.groups.map(g => ({ id: g.id, width: GROUP_WIDTH, height: GROUP_HEIGHT })), graph.links.map(l => ({ id: l.id, source: l.source, target: l.target })), { nodeGap: 22, layerGap: 70 }) : null), [graph]);
 
+  // Clicking a folder box lists its files; a file shows its imports before and after.
+  const files = useMemo(() => (compareData && graph ? compareFiles(compareData.baseSnapshot, compareData.targetSnapshot, graph.fileGroup) : new Map()), [compareData, graph]);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const [openFile, setOpenFile] = useState<string | null>(null);
+  const openFolder = (group: string) => { setOpenGroup(group); setOpenFile(null); };
+  const showFile = (path: string | null) => {
+    if (path) { const f = files.get(path); if (f) setOpenGroup(f.group); }
+    setOpenFile(path);
+  };
+
   const drawing = (side: 'base' | 'target', label: string) => {
     if (!graph || !graphLayout) return <div className="flex h-full items-center justify-center text-sm text-[var(--at-muted)]">Choose two revisions and press Compare.</div>;
     const files = side === 'base' ? graph.totals.baseFiles : graph.totals.targetFiles;
@@ -128,7 +139,7 @@ const Compare: React.FC = () => {
       <p className="text-sm text-[var(--at-muted)]">No architecture data</p>
       <p className="text-xs text-[var(--at-muted)]">This revision has no recorded files.</p>
     </div>;
-    return <CompareDiagram graph={graph} layout={graphLayout} side={side} label={label} />;
+    return <CompareDiagram graph={graph} layout={graphLayout} side={side} label={label} selected={openGroup} onOpen={openFolder} />;
   };
 
   return (
@@ -339,8 +350,9 @@ const Compare: React.FC = () => {
         </div>
 
         {/* CHANGE LEGEND */}
+        <CompareFilesDrawer group={openGroup} file={openFile} files={files} onFile={showFile} onClose={() => { setOpenGroup(null); setOpenFile(null); }} />
         {graph && <p className="text-center text-xs text-[var(--at-muted)]">
-          Files grouped by folder{graph.depth > 1 ? ` (${graph.depth} levels deep)` : ''}; arrows are imports between folders, thicker for more imports.
+          Click a folder to see its files. Files grouped by folder{graph.depth > 1 ? ` (${graph.depth} levels deep)` : ''}; arrows are imports between folders, thicker for more imports.
           {graph.folded > 0 ? ` The ${graph.folded} smallest folders share the "${OTHER}" box.` : ''} Dashed outlines are folders that exist only in the other revision.
         </p>}
         <div className="flex flex-wrap items-center justify-center gap-6 py-2">

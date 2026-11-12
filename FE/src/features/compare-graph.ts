@@ -22,6 +22,8 @@ export type CompareGraph = {
   /** Folders folded into "Other folders" to keep the drawing readable. */
   folded: number;
   totals: { baseFiles: number; targetFiles: number };
+  /** The folder box each file is drawn in. */
+  fileGroup: Record<string, string>;
 };
 
 export const OTHER = '(other folders)';
@@ -123,7 +125,10 @@ export function buildCompareGraph(base: RawSnapshot, target: RawSnapshot, maxGro
     status: (g.inBase === 0 ? 'added' : g.inTarget === 0 ? 'removed' : g.added || g.removed || touched.has(g.id) ? 'changed' : 'same') as GroupStatus,
   })).sort((a, b) => (a.id === OTHER ? 1 : b.id === OTHER ? -1 : a.id.localeCompare(b.id)));
 
-  return { depth, groups: groupList, links: linkList, folded: Math.max(0, ranked.length - kept.size), totals: { baseFiles: baseFiles.length, targetFiles: targetFiles.length } };
+  return {
+    depth, groups: groupList, links: linkList, folded: Math.max(0, ranked.length - kept.size), totals: { baseFiles: baseFiles.length, targetFiles: targetFiles.length },
+    fileGroup: Object.fromEntries(all.map(f => [f, groupOf(f)])),
+  };
 }
 
 /** "src/web/controllers" shown as "…/web/controllers" when it does not fit. */
@@ -135,4 +140,60 @@ export function shortLabel(label: string, max = 22): string {
     if (tail.length <= max) return tail;
   }
   return `…${label.slice(-(max - 1))}`;
+}
+
+export type FileStatus = 'added' | 'removed' | 'changed' | 'same';
+export type FileLink = { path: string; status: 'added' | 'removed' | 'same' };
+export type CompareFile = {
+  path: string; group: string; type: string; status: FileStatus;
+  inBase: boolean; inTarget: boolean;
+  /** Files this one imports, and files that import it, across both revisions. */
+  imports: FileLink[]; importedBy: FileLink[];
+};
+
+const linkStatus = (inBase: boolean, inTarget: boolean): FileLink['status'] => (inBase && inTarget ? 'same' : inTarget ? 'added' : 'removed');
+const ORDER: Record<FileStatus, number> = { added: 0, removed: 1, changed: 2, same: 3 };
+/** Paths in reading order: m2.js before m10.js. */
+const byPath = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true });
+
+/**
+ * Every file of both revisions with what happened to it: added, removed, its imports changed, or unchanged (as far as
+ * the mined imports tell: a file whose code changed without touching its imports reads as unchanged), plus which
+ * files it imports and which import it, each marked added, removed or kept.
+ */
+export function compareFiles(base: RawSnapshot, target: RawSnapshot, fileGroup: Record<string, string>): Map<string, CompareFile> {
+  const types = new Map<string, string>();
+  for (const s of [base, target]) for (const n of s?.nodes ?? []) {
+    const node = n as { id?: unknown; type?: unknown };
+    if (typeof node?.id === 'string' && typeof node.type === 'string') types.set(node.id, node.type);
+  }
+  const inBase = new Set(filesOf(base)), inTarget = new Set(filesOf(target));
+  const pairs = (edges: [string, string][]) => new Set(edges.map(([a, b]) => `${a}\u0000${b}`));
+  const baseEdges = pairs(fileEdges(base)), targetEdges = pairs(fileEdges(target));
+  const out = new Map<string, Set<string>>(), into = new Map<string, Set<string>>();
+  for (const key of new Set([...baseEdges, ...targetEdges])) {
+    const [a, b] = key.split('\u0000');
+    if (!out.has(a)) out.set(a, new Set());
+    if (!into.has(b)) into.set(b, new Set());
+    out.get(a)!.add(b); into.get(b)!.add(a);
+  }
+  const links = (others: Set<string> | undefined, key: (other: string) => string): FileLink[] =>
+    [...(others ?? [])].map(other => ({ path: other, status: linkStatus(baseEdges.has(key(other)), targetEdges.has(key(other))) }))
+      .sort((x, y) => (x.status === y.status ? byPath(x.path, y.path) : x.status === 'same' ? 1 : y.status === 'same' ? -1 : x.status.localeCompare(y.status)));
+  const result = new Map<string, CompareFile>();
+  for (const path of [...new Set([...inBase, ...inTarget])].sort()) {
+    const imports = links(out.get(path), other => `${path}\u0000${other}`);
+    const importedBy = links(into.get(path), other => `${other}\u0000${path}`);
+    const b = inBase.has(path), t = inTarget.has(path);
+    const status: FileStatus = !b ? 'added' : !t ? 'removed' : imports.some(l => l.status !== 'same') ? 'changed' : 'same';
+    result.set(path, { path, group: fileGroup[path] ?? OTHER, type: types.get(path) ?? '', status, inBase: b, inTarget: t, imports, importedBy });
+  }
+  return result;
+}
+
+/** The files of one folder box: changed ones first, then by path; `query` keeps the paths that contain it. */
+export function filesOfGroup(files: Map<string, CompareFile>, group: string, query = ''): CompareFile[] {
+  const q = query.trim().toLowerCase();
+  return [...files.values()].filter(f => f.group === group && (!q || f.path.toLowerCase().includes(q)))
+    .sort((a, b) => ORDER[a.status] - ORDER[b.status] || byPath(a.path, b.path));
 }

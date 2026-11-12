@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { OTHER, buildCompareGraph, chooseDepth, fileEdges, folderOf, resolveImport, shortLabel } from '../src/features/compare-graph.ts';
+import { OTHER, buildCompareGraph, chooseDepth, compareFiles, fileEdges, filesOfGroup, folderOf, resolveImport, shortLabel } from '../src/features/compare-graph.ts';
 
 const snap = (files, edges = []) => ({ nodes: files.map(id => ({ id, name: id.split('/').pop(), type: 'ts' })), edges: edges.map(([source, target]) => ({ source, target, type: 'imports' })) });
 
@@ -64,6 +64,38 @@ test('missing or broken revisions give an empty drawing, not an error', () => {
     assert.deepEqual(g.groups, []);
     assert.deepEqual(g.links, []);
   }
+});
+
+test('each file says what happened to it and to its imports, both ways', () => {
+  const base = snap(['src/web/api.ts', 'src/orders/order.ts', 'src/old/legacy.ts'],
+    [['src/web/api.ts', 'src/orders/order'], ['src/orders/order.ts', 'src/old/legacy']]);
+  const target = snap(['src/web/api.ts', 'src/orders/order.ts', 'src/orders/cart.ts'],
+    [['src/web/api.ts', 'src/orders/order'], ['src/web/api.ts', 'src/orders/cart']]);
+  const g = buildCompareGraph(base, target);
+  assert.equal(g.fileGroup['src/orders/cart.ts'], 'src/orders');
+  const files = compareFiles(base, target, g.fileGroup);
+  const api = files.get('src/web/api.ts');
+  assert.equal(api.status, 'changed', 'it now also imports the cart');
+  assert.deepEqual(api.imports, [{ path: 'src/orders/cart.ts', status: 'added' }, { path: 'src/orders/order.ts', status: 'same' }], 'changes first');
+  assert.deepEqual(files.get('src/orders/order.ts').imports, [{ path: 'src/old/legacy.ts', status: 'removed' }]);
+  assert.deepEqual(files.get('src/orders/order.ts').importedBy, [{ path: 'src/web/api.ts', status: 'same' }]);
+  assert.equal(files.get('src/orders/order.ts').status, 'changed');
+  assert.deepEqual([files.get('src/orders/cart.ts').status, files.get('src/orders/cart.ts').inBase, files.get('src/orders/cart.ts').inTarget], ['added', false, true]);
+  assert.equal(files.get('src/old/legacy.ts').status, 'removed');
+  assert.equal(files.get('src/orders/cart.ts').type, 'ts');
+});
+
+test('a folder lists its files, changes first, and can be searched', () => {
+  const base = snap(['lib/a.js', 'lib/b.js', 'lib/z.js'], [['lib/a.js', 'lib/b']]);
+  const target = snap(['lib/a.js', 'lib/b.js', 'lib/c.js'], [['lib/a.js', 'lib/b'], ['lib/b.js', 'lib/c']]);
+  const g = buildCompareGraph(base, target);
+  const files = compareFiles(base, target, g.fileGroup);
+  assert.deepEqual(filesOfGroup(files, 'lib').map(f => `${f.path}:${f.status}`), ['lib/c.js:added', 'lib/z.js:removed', 'lib/b.js:changed', 'lib/a.js:same']);
+  assert.deepEqual(filesOfGroup(files, 'lib', ' B.JS ').map(f => f.path), ['lib/b.js']);
+  assert.deepEqual(filesOfGroup(files, 'nope'), []);
+  const many = snap(['x/m10.js', 'x/m2.js', 'x/m1.js']);
+  const manyFiles = compareFiles(many, many, buildCompareGraph(many, many).fileGroup);
+  assert.deepEqual(filesOfGroup(manyFiles, 'x').map(f => f.path), ['x/m1.js', 'x/m2.js', 'x/m10.js'], 'numbers in reading order');
 });
 
 test('long folder names keep their end', () => {

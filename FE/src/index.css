@@ -229,6 +229,11 @@ html[data-theme="frost"] ::selection { background: rgb(212 224 245 / 0.35); colo
 /* A handwritten accent, like the "New Subscriber" flourish of the reference: for one or two words, never for reading. */
 html[data-theme="frost"] .at-script { font-family: "Great Vibes", cursive; font-weight: 400; font-size: 1.35em; letter-spacing: 0; text-transform: none; text-shadow: 0 0 18px rgb(230 238 255 / 0.45); }
 
+/* Folder boxes of the Compare drawing: a lighter box on hover, an outline on keyboard focus. */
+.compare-node { outline: none; }
+.compare-node:hover > rect { filter: brightness(1.25); }
+.compare-node:focus-visible > rect { stroke: var(--at-link-hover) !important; stroke-width: 3; }
+
 /* A consistent keyboard focus indicator, including controls using outline-none. */
 :where(a, button, input, textarea, select, [role="button"]):focus-visible {
   outline: 2px solid var(--at-accent);
