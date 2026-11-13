@@ -21,14 +21,17 @@ export interface UpdateAdminSettingsInput {
 
 export class UpdateAdminSettingsUseCase {
   async execute(input: UpdateAdminSettingsInput): Promise<Record<string, unknown>> {
-    if (input.maxConcurrentJobs !== undefined && input.maxConcurrentJobs <= 0) {
-      throw new BadRequestError("maxConcurrentJobs must be a positive integer.");
+    // Checked here so a wrong value is a 400 that names the field, not a database cast error (500).
+    for (const field of ["maxConcurrentJobs", "maxRepoSizeMb", "miningTimeoutMinutes"] as const) {
+      const value: unknown = input[field];
+      if (value !== undefined && !(Number.isInteger(value) && (value as number) > 0)) {
+        throw new BadRequestError(`${field} must be a positive integer.`);
+      }
     }
-    if (input.maxRepoSizeMb !== undefined && input.maxRepoSizeMb <= 0) {
-      throw new BadRequestError("maxRepoSizeMb must be a positive integer.");
-    }
-    if (input.miningTimeoutMinutes !== undefined && input.miningTimeoutMinutes <= 0) {
-      throw new BadRequestError("miningTimeoutMinutes must be a positive integer.");
+    for (const field of ["maintenanceMode", "allowPublicRegistration"] as const) {
+      if (input[field] !== undefined && typeof input[field] !== "boolean") {
+        throw new BadRequestError(`${field} must be true or false.`);
+      }
     }
     if (
       input.defaultLlmProvider !== undefined &&
