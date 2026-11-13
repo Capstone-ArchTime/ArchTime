@@ -12,6 +12,13 @@ import { ArchitectureReferenceModel } from "../database/models/ArchitectureRefer
 import { ApprovalRequestModel } from "../database/models/ApprovalRequestModel.js";
 import { ProjectReportModel } from "../database/models/ProjectReportModel.js";
 import { ProjectInvitationModel } from "../database/models/ProjectInvitationModel.js";
+import { seal, unseal } from "../llm/secrets.js";
+
+/** The stored form of a repository token: AES-256-GCM, without the last four characters seal() also returns. */
+function sealToken(plain: string) {
+  const { last4: _last4, ...secret } = seal(plain);
+  return secret;
+}
 
 export class MongoProjectRepository implements IProjectRepository {
   private toEntity(doc: Record<string, unknown>): IProject {
@@ -21,7 +28,7 @@ export class MongoProjectRepository implements IProjectRepository {
       description: doc.description as string | undefined,
       repoUrl: doc.repoUrl as string,
       visibility: doc.visibility as RepoVisibility,
-      // The repository token is deliberately left out: entities reach API responses. Mining reads it from the model.
+      // The repository token is deliberately left out: entities reach API responses. Mining reads it with resolveToken.
       status: doc.status as ProjectStatus,
       history: doc.history as IProject["history"],
       userId: String(doc.userId),
@@ -49,8 +56,37 @@ export class MongoProjectRepository implements IProjectRepository {
   }
 
   async create(data: Omit<IProject, "id" | "createdAt" | "updatedAt">): Promise<IProject> {
-    const doc = await ProjectModel.create(data);
+    // The token is encrypted before it reaches the database; the plain text is never stored.
+    const { token, ...rest } = data;
+    const doc = await ProjectModel.create({ ...rest, ...(token ? { tokenSecret: sealToken(token) } : {}) });
     return this.toEntity(doc.toObject() as unknown as Record<string, unknown>);
+  }
+
+  /** The decrypted personal token of a project, for cloning only; undefined when it has none. */
+  async resolveToken(projectId: string): Promise<string | undefined> {
+    if (!mongoose.isValidObjectId(projectId)) return undefined;
+    const doc = await ProjectModel.findById(projectId).select("+tokenSecret +token").lean();
+    if (doc?.tokenSecret?.ciphertext) return unseal(doc.tokenSecret);
+    // Saved before RF-17 and not yet encrypted by encryptLegacyTokens.
+    return doc?.token || undefined;
+  }
+
+  /**
+   * Encrypts the plain-text tokens saved before RF-17 and removes the plain text. Run at start-up and by
+   * scripts/encrypt-project-tokens.ts; a project already encrypted is left alone, so running it again changes nothing.
+   */
+  static async encryptLegacyTokens(): Promise<number> {
+    const docs = await ProjectModel.find({ token: { $exists: true } }).select("+token").lean();
+    let encrypted = 0;
+    for (const doc of docs) {
+      const update = doc.token
+        ? { $set: { tokenSecret: sealToken(doc.token) }, $unset: { token: 1 } }
+        : { $unset: { token: 1 } };
+      // Matched on the token read, so a token changed in the meantime is not overwritten with the old one.
+      const result = await ProjectModel.updateOne({ _id: doc._id, token: doc.token }, update);
+      if (doc.token && result.modifiedCount) encrypted++;
+    }
+    return encrypted;
   }
 
   async findById(id: string): Promise<IProject | null> {

@@ -1,7 +1,10 @@
 import mongoose, { type Document, type Model, Schema } from "mongoose";
 import { ProjectStatus, RepoVisibility, type IProject } from "../../../domain/entities/Project.js";
+import type { SealedSecret } from "../../llm/secrets.js";
 
-export interface IProjectDocument extends Omit<IProject, "id">, Document {}
+export interface IProjectDocument extends Omit<IProject, "id">, Document {
+  tokenSecret?: Omit<SealedSecret, "last4">;
+}
 
 const ProjectSchema = new Schema<IProjectDocument>(
   {
@@ -13,7 +16,14 @@ const ProjectSchema = new Schema<IProjectDocument>(
       enum: Object.values(RepoVisibility),
       required: true,
     },
-    token: { type: String }, // In MVP, stored directly. In prod, this should be encrypted.
+    // Personal access token of a private repository, AES-256-GCM (see infrastructure/llm/secrets.ts). Never selected
+    // unless asked for; only MongoProjectRepository.resolveToken reads it, to clone.
+    tokenSecret: {
+      type: new Schema({ ciphertext: String, iv: String, tag: String }, { _id: false }),
+      select: false,
+    },
+    // Plain-text token saved before RF-17. Read only to encrypt it (MongoProjectRepository.encryptLegacyTokens).
+    token: { type: String, select: false },
     status: {
       type: String,
       enum: Object.values(ProjectStatus),
@@ -43,6 +53,7 @@ const ProjectSchema = new Schema<IProjectDocument>(
         delete ret._id;
         delete ret.__v;
         delete ret.token;
+        delete ret.tokenSecret;
       },
     },
   },

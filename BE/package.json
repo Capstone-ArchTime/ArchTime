@@ -12,6 +12,7 @@
     "rq1": "tsx scripts/rq1.ts",
     "extractor-eval": "tsx scripts/extractor-eval.ts",
     "seed:test": "tsx scripts/seed-test-accounts.ts",
+    "migrate:project-tokens": "tsx scripts/encrypt-project-tokens.ts",
     "test": "node --import tsx --import ./tests/setup-env.mjs --test tests/*.test.mjs"
   },
   "dependencies": {
