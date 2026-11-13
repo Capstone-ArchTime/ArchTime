@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Button, Empty, Input, Select, Spin, Table, Tag } from 'antd';
 import FeaturePage from '@/components/FeaturePage';
+import { tablePanel } from './admin-ui';
 import { getAdminAuditLogs } from '@/features/admin-api';
 import type { AdminAuditLog } from '@/features/admin-api';
+import { AUDIT_TYPES } from '@/features/admin-audit';
+
+const typeLabel = (type: string) => type.replace('_', ' ');
 
 export default function AuditLog() {
   const [logs, setLogs] = useState<AdminAuditLog[]>([]);
@@ -64,9 +68,9 @@ export default function AuditLog() {
           className="min-w-44"
           value={type}
           onChange={setType}
-          options={['all', 'invitation', 'role_change', 'security', 'configuration', 'login', 'logout'].map(value => ({
+          options={['all', ...AUDIT_TYPES].map(value => ({
             value,
-            label: value === 'all' ? 'All events' : value.replace('_', ' '),
+            label: value === 'all' ? 'All events' : typeLabel(value),
           }))}
         />
         <label className="text-xs text-[var(--at-muted)]">
@@ -91,39 +95,41 @@ export default function AuditLog() {
           <p className="mt-3 text-[var(--at-muted)]">Loading audit logs...</p>
         </div>
       ) : (
-        <Table
-          rowKey="id"
-          dataSource={logs}
-          loading={loading}
-          scroll={{ x: 700 }}
-          pagination={{ pageSize: 10, showSizeChanger: true, pageSizeOptions: [10, 20, 50] }}
-          locale={{
-            emptyText: <Empty description={logs.length === 0 ? 'No audit events recorded.' : 'No matching events'} />,
-          }}
-          columns={[
-            {
-              title: 'Time',
-              dataIndex: 'timestamp',
-              render: at => new Date(at).toLocaleString(),
-              width: 180,
-            },
-            {
-              title: 'Event',
-              dataIndex: 'type',
-              render: t => <Tag>{t}</Tag>,
-              width: 140,
-            },
-            {
-              title: 'Actor',
-              dataIndex: 'actor',
-              width: 150,
-            },
-            {
-              title: 'Description',
-              dataIndex: 'description',
-            },
-          ]}
-        />
+        <div className={tablePanel}>
+          <Table
+            rowKey="id"
+            dataSource={logs}
+            loading={loading}
+            scroll={{ x: 700 }}
+            pagination={{ pageSize: 10, showSizeChanger: true, pageSizeOptions: [10, 20, 50] }}
+            locale={{
+              emptyText: <Empty description={query.trim() || type !== 'all' || from || to ? 'No matching events' : 'No audit events recorded.'} />,
+            }}
+            columns={[
+              {
+                title: 'Time',
+                dataIndex: 'timestamp',
+                render: (at: string) => (at && !Number.isNaN(Date.parse(at)) ? new Date(at).toLocaleString() : '—'),
+                width: 180,
+              },
+              {
+                title: 'Event',
+                dataIndex: 'type',
+                render: (t: string, log: AdminAuditLog) => <Tag title={log.action}>{typeLabel(t)}</Tag>,
+                width: 140,
+              },
+              {
+                title: 'Actor',
+                dataIndex: 'actor',
+                width: 150,
+              },
+              {
+                title: 'Description',
+                dataIndex: 'description',
+              },
+            ]}
+          />
+        </div>
       )}
     </FeaturePage>
   );
