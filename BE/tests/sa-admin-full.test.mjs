@@ -195,6 +195,20 @@ test("UpdateAdminSettingsUseCase: validates positive numbers", async () => {
   );
 });
 
+test("UpdateAdminSettingsUseCase: a value of the wrong type is a 400 naming the field, not a database error", async () => {
+  const useCase = new UpdateAdminSettingsUseCase();
+  for (const [field, value] of [
+    ["maxRepoSizeMb", "abc"], ["maxRepoSizeMb", 1.5], ["maxConcurrentJobs", "4"], ["miningTimeoutMinutes", null],
+    ["maintenanceMode", "yes"], ["allowPublicRegistration", 1],
+  ]) {
+    await assert.rejects(
+      useCase.execute({ [field]: value, adminUserId: "admin-1" }),
+      (err) => err instanceof AppError && err.statusCode === 400 && err.message.startsWith(field),
+      `${field} = ${JSON.stringify(value)}`,
+    );
+  }
+});
+
 test("UpdateAdminSettingsUseCase: updates valid configuration and logs audit event", async () => {
   const originalFindOne = SystemSettingsModel.findOne;
   const originalAuditLog = AuditService.log;
