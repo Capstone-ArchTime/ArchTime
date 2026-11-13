@@ -1,0 +1,74 @@
+# Runs the back end and front end checks on every push to Develop or main and on every pull request.
+# A pull request is merged only when both jobs are green (BM04 RF-27, BM02 SR-18).
+name: CI
+
+on:
+  push:
+    branches: [Develop, main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch or pull request cancels the run it replaces.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Back end (type-check, build, test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: BE
+    services:
+      # The tests do not connect to a database today. tests/setup-env.mjs points MONGODB_URI at
+      # 127.0.0.1:27017/archtime-test, so a test that does connect finds this MongoDB 8 instead of failing on the network.
+      mongodb:
+        image: mongo:8
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: BE/package-lock.json
+      - run: npm ci
+      - name: Type-check
+        run: npx tsc -p tsconfig.json --noEmit
+      - name: Build
+        run: npm run build
+      - name: Test
+        run: npm test
+
+  frontend:
+    name: Front end (lint, type-check, build, test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: FE
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: FE/package-lock.json
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Type-check
+        run: npx tsc -b
+      - name: Build
+        run: npx vite build
+      - name: Test
+        run: npm test
