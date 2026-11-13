@@ -15,7 +15,7 @@ import { deadlineFrom, rememberOtpDeadline } from '@/features/otp-countdown';
 
 
 const fontFamily = {
-  sans: '"Space Grotesk", sans-serif',
+  sans: '"Montserrat", system-ui, sans-serif',
   mono: '"JetBrains Mono", monospace',
 };
 
@@ -142,12 +142,12 @@ const AuthPage: React.FC = () => {
 
   return (
     <div
-      className="min-h-dvh bg-[#080b0e] text-slate-200 flex flex-col md:flex-row selection:bg-[#f59e0b] selection:text-[#080b0e]"
+      className="min-h-dvh at-home bg-[var(--at-page)] text-[var(--at-text)] flex flex-col md:flex-row selection:bg-[#d3def3] selection:text-[#18212c]"
       style={{ fontFamily: fontFamily.sans }}
     >
 
       {/* Left Panel - Authentication */}
-      <div className="w-full md:w-[40%] flex flex-col relative z-10 bg-[#080b0e] border-b md:border-b-0 md:border-r border-[#242527] shadow-2xl min-h-dvh">
+      <div className="w-full md:w-[40%] flex flex-col relative z-10 bg-[var(--at-page)] border-b md:border-b-0 md:border-r border-[var(--at-line)] shadow-2xl min-h-dvh">
 
         <div className="flex-1 flex flex-col p-6 lg:p-10 xl:px-12 xl:py-8 max-w-xl w-full mx-auto justify-between">
 
@@ -155,17 +155,17 @@ const AuthPage: React.FC = () => {
           <Logo tagline="Architecture Evolution Observatory" className="mb-8 shrink-0" />
 
           {/* Mobile-only compact value prop (Right Panel's content is md:flex only) */}
-          <div className="md:hidden mb-8 shrink-0 border border-[#242527] bg-[#11161b]/60 p-4">
+          <div className="md:hidden mb-8 shrink-0 border border-[var(--at-line)] bg-[var(--at-panel)]/60 p-4">
             <p className="text-lg font-bold tracking-tight text-white leading-snug">
               Understand how your architecture{" "}
               <span
-                className="bg-gradient-to-r from-[#3b82f6] via-[#ffb03a] to-[#f59e0b] bg-clip-text text-transparent"
+                className="bg-gradient-to-r from-[#ffffff] via-[#d3def3] to-[#9db3dc] bg-clip-text text-transparent"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 evolves.
               </span>
             </p>
-            <p className="mt-1.5 text-xs text-slate-400 font-light leading-relaxed">
+            <p className="mt-1.5 text-xs text-[var(--at-muted)] font-light leading-relaxed">
               Reconstruct architectural changes from Git history and dependency graphs, backed by concrete repository evidence.
             </p>
           </div>
@@ -185,7 +185,7 @@ const AuthPage: React.FC = () => {
                   <h2 className="text-3xl font-bold tracking-tight text-white mb-2">
                     {isRegister ? 'Create your ArchTime account' : 'Welcome back'}
                   </h2>
-                  <p className="text-slate-400 text-sm font-light">
+                  <p className="text-[var(--at-muted)] text-sm font-light">
                     {isRegister
                       ? 'Start reconstructing and understanding your architecture history.'
                       : 'Trace how your software architecture evolves.'}
@@ -200,7 +200,7 @@ const AuthPage: React.FC = () => {
 
                   {isRegister && (
                     <div className="space-y-1.5">
-                      <label htmlFor="auth-name" className="text-[11px] text-slate-400 uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>Full name</label>
+                      <label htmlFor="auth-name" className="text-[11px] text-[var(--at-muted)] uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>Full name</label>
                       <div className="relative group">
                         <input
                           id="auth-name"
@@ -213,11 +213,11 @@ const AuthPage: React.FC = () => {
                           placeholder="Jane Doe"
                           aria-invalid={!!fieldErrors.name}
                           aria-describedby={fieldErrors.name ? 'auth-name-error' : undefined}
-                          className={`w-full h-11 bg-[#11161b] border pl-10 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none transition-colors disabled:opacity-50 ${
-                            fieldErrors.name ? 'border-red-500/60 focus:border-red-500' : 'border-[#242527] focus:border-[#3b82f6]'
+                          className={`w-full h-11 bg-[var(--at-panel)] border pl-10 pr-4 text-sm text-white placeholder:text-[var(--at-muted)] focus:outline-none transition-colors disabled:opacity-50 ${
+                            fieldErrors.name ? 'border-red-500/60 focus:border-red-500' : 'border-[var(--at-line)] focus:border-[var(--at-accent)]'
                           }`}
                         />
-                        <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#93c5fd] transition-colors" />
+                        <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--at-muted)] group-focus-within:text-[var(--at-link)] transition-colors" />
                       </div>
                       {fieldErrors.name && (
                         <p id="auth-name-error" role="alert" className="text-xs text-red-400">{fieldErrors.name}</p>
@@ -226,7 +226,7 @@ const AuthPage: React.FC = () => {
                   )}
 
                   <div className="space-y-1.5">
-                    <label htmlFor="auth-email" className="text-[11px] text-slate-400 uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>{isRegister ? 'Email address' : 'Username or Email'}</label>
+                    <label htmlFor="auth-email" className="text-[11px] text-[var(--at-muted)] uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>{isRegister ? 'Email address' : 'Username or Email'}</label>
                     <div className="relative group">
                       <input
                         id="auth-email"
@@ -240,11 +240,11 @@ const AuthPage: React.FC = () => {
                         placeholder={isRegister ? "developer@archtime.io" : "username or email"}
                         aria-invalid={!!fieldErrors.email}
                         aria-describedby={fieldErrors.email ? 'auth-email-error' : undefined}
-                        className={`w-full h-11 bg-[#11161b] border pl-10 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none transition-colors disabled:opacity-50 ${
-                          fieldErrors.email ? 'border-red-500/60 focus:border-red-500' : 'border-[#242527] focus:border-[#3b82f6]'
+                        className={`w-full h-11 bg-[var(--at-panel)] border pl-10 pr-4 text-sm text-white placeholder:text-[var(--at-muted)] focus:outline-none transition-colors disabled:opacity-50 ${
+                          fieldErrors.email ? 'border-red-500/60 focus:border-red-500' : 'border-[var(--at-line)] focus:border-[var(--at-accent)]'
                         }`}
                       />
-                      <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#93c5fd] transition-colors" />
+                      <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--at-muted)] group-focus-within:text-[var(--at-link)] transition-colors" />
                     </div>
                     {fieldErrors.email && (
                       <p id="auth-email-error" role="alert" className="text-xs text-red-400">{fieldErrors.email}</p>
@@ -253,7 +253,7 @@ const AuthPage: React.FC = () => {
 
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <label htmlFor="auth-password" className="text-[11px] text-slate-400 uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>Password</label>
+                      <label htmlFor="auth-password" className="text-[11px] text-[var(--at-muted)] uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>Password</label>
                     </div>
                     <div className="relative group">
                       <input
@@ -268,16 +268,16 @@ const AuthPage: React.FC = () => {
                         aria-invalid={!!fieldErrors.password}
                         aria-describedby={[fieldErrors.password && 'auth-password-error', isRegister && 'auth-password-rules'].filter(Boolean).join(' ') || undefined}
                         data-ms-reveal="false"
-                        className={`w-full h-11 bg-[#11161b] border pl-10 pr-10 text-sm text-white placeholder:text-slate-600 focus:outline-none transition-colors tracking-wide disabled:opacity-50 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-textfield-decoration-container]:hidden [&::-webkit-credentials-auto-fill-button]:hidden [&::-webkit-contacts-auto-fill-button]:hidden ${
-                          fieldErrors.password ? 'border-red-500/60 focus:border-red-500' : 'border-[#242527] focus:border-[#3b82f6]'
+                        className={`w-full h-11 bg-[var(--at-panel)] border pl-10 pr-10 text-sm text-white placeholder:text-[var(--at-muted)] focus:outline-none transition-colors tracking-wide disabled:opacity-50 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-textfield-decoration-container]:hidden [&::-webkit-credentials-auto-fill-button]:hidden [&::-webkit-contacts-auto-fill-button]:hidden ${
+                          fieldErrors.password ? 'border-red-500/60 focus:border-red-500' : 'border-[var(--at-line)] focus:border-[var(--at-accent)]'
                         }`}
                       />
-                      <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#93c5fd] transition-colors" />
+                      <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--at-muted)] group-focus-within:text-[var(--at-link)] transition-colors" />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         aria-label={showPassword ? "Hide password" : "Show password"}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors focus:outline-none focus-visible:text-[#93c5fd]"
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--at-muted)] hover:text-slate-300 transition-colors focus:outline-none focus-visible:text-[var(--at-link)]"
                       >
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
@@ -292,7 +292,7 @@ const AuthPage: React.FC = () => {
 
                   {isRegister && (
                     <div className="space-y-1.5">
-                      <label htmlFor="auth-confirm-password" className="text-[11px] text-slate-400 uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>Confirm password</label>
+                      <label htmlFor="auth-confirm-password" className="text-[11px] text-[var(--at-muted)] uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>Confirm password</label>
                       <div className="relative group">
                         <input
                           id="auth-confirm-password"
@@ -305,11 +305,11 @@ const AuthPage: React.FC = () => {
                           placeholder="••••••••"
                           aria-invalid={!!fieldErrors.confirmPassword}
                           aria-describedby={fieldErrors.confirmPassword ? 'auth-confirm-password-error' : undefined}
-                          className={`w-full h-11 bg-[#11161b] border pl-10 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none transition-colors tracking-wide disabled:opacity-50 ${
-                            fieldErrors.confirmPassword ? 'border-red-500/60 focus:border-red-500' : 'border-[#242527] focus:border-[#3b82f6]'
+                          className={`w-full h-11 bg-[var(--at-panel)] border pl-10 pr-4 text-sm text-white placeholder:text-[var(--at-muted)] focus:outline-none transition-colors tracking-wide disabled:opacity-50 ${
+                            fieldErrors.confirmPassword ? 'border-red-500/60 focus:border-red-500' : 'border-[var(--at-line)] focus:border-[var(--at-accent)]'
                           }`}
                         />
-                        <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#93c5fd] transition-colors" />
+                        <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--at-muted)] group-focus-within:text-[var(--at-link)] transition-colors" />
                       </div>
                       {fieldErrors.confirmPassword && (
                         <p id="auth-confirm-password-error" role="alert" className="text-xs text-red-400">{fieldErrors.confirmPassword}</p>
@@ -322,10 +322,10 @@ const AuthPage: React.FC = () => {
                       <input
                         type="checkbox"
                         id="remember" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)}
-                        className="w-3.5 h-3.5 border-[#242527] bg-[#11161b] text-[#93c5fd] focus:ring-[#3b82f6] focus:ring-offset-0 focus:ring-offset-[#080b0e] cursor-pointer"
+                        className="w-3.5 h-3.5 border-[var(--at-line)] bg-[var(--at-panel)] text-[var(--at-link)] focus:ring-[var(--at-accent)] focus:ring-offset-0 focus:ring-offset-[var(--at-page)] cursor-pointer"
                       />
-                      <label htmlFor="remember" className="text-sm text-slate-400 cursor-pointer select-none">Remember me</label>
-                      <Link to="/forgot-password" className="ml-auto text-sm text-[#93c5fd] hover:underline">Forgot password?</Link>
+                      <label htmlFor="remember" className="text-sm text-[var(--at-muted)] cursor-pointer select-none">Remember me</label>
+                      <Link to="/forgot-password" className="ml-auto text-sm text-[var(--at-link)] hover:underline">Forgot password?</Link>
                     </div>
                   )}
 
@@ -336,7 +336,7 @@ const AuthPage: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full h-11 bg-[#1d4ed8] hover:bg-[#1e40af] text-white font-bold uppercase tracking-widest text-xs mt-6 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed focus:outline-none"
+                    className="w-full h-11 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] font-bold uppercase tracking-widest text-xs mt-6 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed focus:outline-none"
                     style={{ fontFamily: fontFamily.mono }}
                   >
                     {isLoading ? (
@@ -346,12 +346,12 @@ const AuthPage: React.FC = () => {
                     )}
                   </button>
                 </form>
-                {!isRegister && <Link to="/verify-email" state={{ email: email.trim(), from: location.state?.from }} className="block mt-4 text-center text-xs text-[#93c5fd]">Have a verification code? Activate your account</Link>}
+                {!isRegister && <Link to="/verify-email" state={{ email: email.trim(), from: location.state?.from }} className="block mt-4 text-center text-xs text-[var(--at-link)]">Have a verification code? Activate your account</Link>}
 
                 <div className="flex items-center gap-4 my-6 opacity-70">
-                  <div className="h-[1px] flex-1 bg-[#242527]"></div>
-                  <span className="text-xs text-slate-500 uppercase tracking-widest" style={{ fontFamily: fontFamily.mono }}>or</span>
-                  <div className="h-[1px] flex-1 bg-[#242527]"></div>
+                  <div className="h-[1px] flex-1 bg-[var(--at-line)]"></div>
+                  <span className="text-xs text-[var(--at-muted)] uppercase tracking-widest" style={{ fontFamily: fontFamily.mono }}>or</span>
+                  <div className="h-[1px] flex-1 bg-[var(--at-line)]"></div>
                 </div>
 
                 <button
@@ -363,25 +363,25 @@ const AuthPage: React.FC = () => {
                     } catch { message.error('Browser storage is unavailable. Enable it to sign in.'); }
                   }}
                   disabled={isLoading}
-                  className="w-full h-11 flex items-center justify-center gap-3 px-4 bg-[#11161b] hover:bg-[#161d24] border border-[#242527] transition-colors text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:border-[#3b82f6]"
+                  className="w-full h-11 flex items-center justify-center gap-3 px-4 bg-[var(--at-panel)] hover:bg-[var(--at-panel-2)] border border-[var(--at-line)] transition-colors text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:border-[var(--at-accent)]"
                 >
                   <Icon icon="mdi:github" width="18" height="18" />
                   Continue with GitHub
                 </button>
 
                 {/* Account Toggle */}
-                <div className="mt-8 text-center text-sm text-slate-500">
+                <div className="mt-8 text-center text-sm text-[var(--at-muted)]">
                   {isRegister ? (
                     <>
                       Already have an account?{' '}
-                      <Link to="/login" onClick={clearErrors} className="text-[#93c5fd] hover:text-[#00f0ff] transition-colors font-medium">
+                      <Link to="/login" onClick={clearErrors} className="text-[var(--at-link)] hover:text-[var(--at-glow)] transition-colors font-medium">
                         Sign in &rarr;
                       </Link>
                     </>
                   ) : (
                     <>
                       Don't have an account?{' '}
-                      <Link to="/register" onClick={clearErrors} className="text-[#93c5fd] hover:text-[#00f0ff] transition-colors font-medium">
+                      <Link to="/register" onClick={clearErrors} className="text-[var(--at-link)] hover:text-[var(--at-glow)] transition-colors font-medium">
                         Create account &rarr;
                       </Link>
                     </>
@@ -392,9 +392,9 @@ const AuthPage: React.FC = () => {
           </div>
 
           {/* Footer (SOC-2) */}
-          <div className="flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 shrink-0 mt-auto pt-6" style={{ fontFamily: fontFamily.mono }}>
+          <div className="flex flex-col sm:flex-row items-center justify-between text-[11px] text-[var(--at-muted)] shrink-0 mt-auto pt-6" style={{ fontFamily: fontFamily.mono }}>
             <div className="flex items-center gap-2 mb-4 sm:mb-0">
-              <Lock size={12} className="text-[#93c5fd]" />
+              <Lock size={12} className="text-[var(--at-link)]" />
               <span>SOC-2 & Git AST Grounded</span>
             </div>
             <div className="flex gap-4" aria-label="Coming soon">
@@ -419,63 +419,63 @@ const AuthPage: React.FC = () => {
           
           {/* Header Content */}
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#11161b]/80 border border-[#242527] backdrop-blur-sm mb-8">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00f0ff]"></div>
-              <span className="text-[10px] text-[#93c5fd] tracking-wider font-semibold" style={{ fontFamily: fontFamily.mono }}>ARCHTIME OBSERVATORY</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[var(--at-panel)]/80 border border-[var(--at-line)] backdrop-blur-sm mb-8">
+              <div className="w-1.5 h-1.5 rounded-full bg-[var(--at-glow)]"></div>
+              <span className="text-[10px] text-[var(--at-link)] tracking-wider font-semibold" style={{ fontFamily: fontFamily.mono }}>ARCHTIME OBSERVATORY</span>
             </div>
 
             <h2 className="text-4xl lg:text-5xl font-bold tracking-tight text-white mb-4 leading-[1.1]">
               Understand how your<br />architecture{" "}
               <span
-                className="bg-gradient-to-r from-[#3b82f6] via-[#ffb03a] to-[#f59e0b] bg-clip-text text-transparent"
+                className="bg-gradient-to-r from-[#ffffff] via-[#d3def3] to-[#9db3dc] bg-clip-text text-transparent"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 evolves.
               </span>
             </h2>
-            <p className="text-slate-400 text-base leading-relaxed max-w-xl font-light">
+            <p className="text-[var(--at-muted)] text-base leading-relaxed max-w-xl font-light">
               Reconstruct architectural changes from Git history, dependency graphs and concrete repository evidence.
             </p>
           </div>
 
           {/* Architectural Visualization */}
           <div className="flex-1 my-4 relative flex flex-col w-full min-h-0">
-            <div className="w-full h-full relative border border-[#242527] bg-[#080b0e] overflow-hidden flex flex-col p-6 shadow-2xl">
+            <div className="w-full h-full relative border border-[var(--at-line)] bg-[var(--at-page)] overflow-hidden flex flex-col p-6 shadow-2xl">
 
               {/* Top Header of Diagram */}
               <div className="flex justify-between items-center z-20 mb-8" style={{ fontFamily: fontFamily.mono }}>
                 <div className="flex items-center gap-2">
-                  <div className="text-[#93c5fd] flex items-center">
+                  <div className="text-[var(--at-link)] flex items-center">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                   </div>
-                  <span className="text-sm text-slate-500 font-medium tracking-widest">REVISION RANGE:</span>
+                  <span className="text-sm text-[var(--at-muted)] font-medium tracking-widest">REVISION RANGE:</span>
                   <span className="text-sm text-white font-bold">rev-8e41..HEAD</span>
                 </div>
                 <div className="flex items-center gap-4">
-                  <div className="px-3 py-1.5 bg-[#3b82f6]/10 border border-[#3b82f6]/20 text-[#93c5fd] text-xs font-bold">
+                  <div className="px-3 py-1.5 bg-[var(--at-accent)]/10 border border-[var(--at-accent)]/20 text-[var(--at-link)] text-xs font-bold">
                     Java AST Analyzed
                   </div>
-                  <span className="text-sm text-slate-500">4 Architectural Eras</span>
+                  <span className="text-sm text-[var(--at-muted)]">4 Architectural Eras</span>
                 </div>
               </div>
 
               {/* Eras Header */}
               <div className="grid grid-cols-4 w-full mb-6 z-20 px-4" style={{ fontFamily: fontFamily.mono }}>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#5f636b]"></div>
-                  <span className="text-xs text-slate-500">01 Monolith</span>
+                  <div className="w-2 h-2 rounded-full bg-[#7d8996]"></div>
+                  <span className="text-xs text-[var(--at-muted)]">01 Monolith</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#ffb03a]"></div>
-                  <span className="text-xs text-slate-500">02 Modular Core</span>
+                  <div className="w-2 h-2 rounded-full bg-[var(--at-warn)]"></div>
+                  <span className="text-xs text-[var(--at-muted)]">02 Modular Core</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#3b82f6] opacity-50"></div>
-                  <span className="text-xs text-slate-500">03 Service Extract</span>
+                  <div className="w-2 h-2 rounded-full bg-[var(--at-accent)] opacity-50"></div>
+                  <span className="text-xs text-[var(--at-muted)]">03 Service Extract</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#00f0ff] shadow-[0_0_8px_#00f0ff]"></div>
-                  <span className="text-xs text-[#00f0ff] font-bold">04 Distributed</span>
+                  <div className="w-2 h-2 rounded-full bg-[var(--at-glow)] shadow-[0_0_8px_#eaf1ff]"></div>
+                  <span className="text-xs text-[var(--at-glow)] font-bold">04 Distributed</span>
                 </div>
               </div>
 
@@ -486,8 +486,8 @@ const AuthPage: React.FC = () => {
                 <svg viewBox="0 0 1000 400" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
                   <defs>
                     <linearGradient id="grad-cyan" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#ffb03a" stopOpacity="0.5" />
-                      <stop offset="100%" stopColor="#00f0ff" />
+                      <stop offset="0%" stopColor="#c9d7f2" stopOpacity="0.5" />
+                      <stop offset="100%" stopColor="#eaf1ff" />
                     </linearGradient>
                     <filter id="glow-line" x="-20%" y="-20%" width="140%" height="140%">
                       <feGaussianBlur stdDeviation="3" result="blur" />
@@ -504,7 +504,7 @@ const AuthPage: React.FC = () => {
                   </defs>
 
                   {/* Grid Lines */}
-                  <g stroke="#242527" strokeWidth="1" strokeDasharray="4 4" opacity="0.4">
+                  <g stroke="#4a5662" strokeWidth="1" strokeDasharray="4 4" opacity="0.4">
                     <line x1="225" y1="0" x2="225" y2="400" />
                     <line x1="475" y1="0" x2="475" y2="400" />
                     <line x1="725" y1="0" x2="725" y2="400" />
@@ -513,18 +513,18 @@ const AuthPage: React.FC = () => {
                   {/* Connection Lines (Bezier Curves) */}
                   <g fill="none" strokeWidth="2">
                     {/* Monolith to Modular */}
-                    <path d="M 150 200 C 220 200, 220 121, 300 121" stroke="#242527" />
-                    <path d="M 150 200 C 220 200, 220 281, 300 281" stroke="#242527" />
-                    <path d="M 150 200 L 300 200" stroke="#242527" strokeDasharray="4 4" opacity="0.5" />
+                    <path d="M 150 200 C 220 200, 220 121, 300 121" stroke="#4a5662" />
+                    <path d="M 150 200 C 220 200, 220 281, 300 281" stroke="#4a5662" />
+                    <path d="M 150 200 L 300 200" stroke="#4a5662" strokeDasharray="4 4" opacity="0.5" />
 
                     {/* Modular to Extract */}
-                    <path d="M 420 121 C 480 121, 490 101, 550 101" stroke="#ffb03a" opacity="0.6" />
-                    <path d="M 420 121 C 480 121, 490 201, 550 201" stroke="#ffb03a" opacity="0.6" />
-                    <path d="M 420 281 C 480 281, 490 201, 550 201" stroke="#ffb03a" opacity="0.6" />
-                    <path d="M 420 281 C 480 281, 490 301, 550 301" stroke="#ffb03a" opacity="0.6" />
+                    <path d="M 420 121 C 480 121, 490 101, 550 101" stroke="#c9d7f2" opacity="0.6" />
+                    <path d="M 420 121 C 480 121, 490 201, 550 201" stroke="#c9d7f2" opacity="0.6" />
+                    <path d="M 420 281 C 480 281, 490 201, 550 201" stroke="#c9d7f2" opacity="0.6" />
+                    <path d="M 420 281 C 480 281, 490 301, 550 301" stroke="#c9d7f2" opacity="0.6" />
 
                     {/* Dotted cross connection */}
-                    <path d="M 420 121 L 550 201" stroke="#3b82f6" strokeDasharray="4 4" opacity="0.8" />
+                    <path d="M 420 121 L 550 201" stroke="#9db3dc" strokeDasharray="4 4" opacity="0.8" />
 
                     {/* Extract to Distributed */}
                     <path d="M 680 101 C 740 101, 740 71, 800 71" stroke="url(#grad-cyan)" filter="url(#glow-line)" opacity="0.9" />
@@ -533,95 +533,95 @@ const AuthPage: React.FC = () => {
                     <path d="M 680 201 C 740 201, 740 71, 800 71" stroke="url(#grad-cyan)" filter="url(#glow-line)" opacity="0.4" />
 
                     <path d="M 680 301 C 740 301, 740 251, 800 251" stroke="url(#grad-cyan)" filter="url(#glow-line)" opacity="0.9" />
-                    <path d="M 680 301 C 740 301, 740 331, 800 331" stroke="#ffb03a" opacity="0.6" />
+                    <path d="M 680 301 C 740 301, 740 331, 800 331" stroke="#c9d7f2" opacity="0.6" />
 
                     {/* End lines on far right (Connections to dots) */}
-                    <path d="M 940 71 C 960 71, 960 111, 980 111" stroke="#00f0ff" filter="url(#glow-line)" opacity="0.6" />
-                    <path d="M 940 151 C 960 151, 960 111, 980 111" stroke="#00f0ff" filter="url(#glow-line)" opacity="0.6" />
+                    <path d="M 940 71 C 960 71, 960 111, 980 111" stroke="#eaf1ff" filter="url(#glow-line)" opacity="0.6" />
+                    <path d="M 940 151 C 960 151, 960 111, 980 111" stroke="#eaf1ff" filter="url(#glow-line)" opacity="0.6" />
 
-                    <path d="M 940 251 C 960 251, 960 291, 980 291" stroke="#00f0ff" filter="url(#glow-line)" opacity="0.6" />
-                    <path d="M 940 331 C 960 331, 960 291, 980 291" stroke="#ffb03a" opacity="0.6" />
+                    <path d="M 940 251 C 960 251, 960 291, 980 291" stroke="#eaf1ff" filter="url(#glow-line)" opacity="0.6" />
+                    <path d="M 940 331 C 960 331, 960 291, 980 291" stroke="#c9d7f2" opacity="0.6" />
 
-                    <circle cx="980" cy="111" r="6" fill="#080b0e" stroke="#00f0ff" strokeWidth="2" />
-                    <circle cx="980" cy="111" r="2" fill="#00f0ff" filter="url(#glow-dot)" />
-                    <circle cx="980" cy="291" r="6" fill="#080b0e" stroke="#ffb03a" strokeWidth="2" />
-                    <circle cx="980" cy="291" r="2" fill="#ffb03a" />
+                    <circle cx="980" cy="111" r="6" fill="#1f272e" stroke="#eaf1ff" strokeWidth="2" />
+                    <circle cx="980" cy="111" r="2" fill="#eaf1ff" filter="url(#glow-dot)" />
+                    <circle cx="980" cy="291" r="6" fill="#1f272e" stroke="#c9d7f2" strokeWidth="2" />
+                    <circle cx="980" cy="291" r="2" fill="#c9d7f2" />
                   </g>
 
                   {/* Floating Badges (AST, Commit) */}
                   <g transform="translate(550, 20)">
-                    <rect x="0" y="0" width="130" height="24" fill="#3b82f6" fillOpacity="0.05" stroke="#3b82f6" strokeOpacity="0.3" />
-                    <circle cx="12" cy="12" r="3.5" fill="#3b82f6" />
+                    <rect x="0" y="0" width="130" height="24" fill="#9db3dc" fillOpacity="0.05" stroke="#9db3dc" strokeOpacity="0.3" />
+                    <circle cx="12" cy="12" r="3.5" fill="#9db3dc" />
                     <text x="22" y="16" fill="#93c5fd" fontSize="10" fontFamily="monospace">AST Dependency Graph</text>
                   </g>
                   <g transform="translate(810, 20)">
-                    <rect x="0" y="0" width="120" height="24" fill="#11161b" stroke="#242527" />
-                    <circle cx="12" cy="12" r="3.5" fill="#ffb03a" />
-                    <text x="22" y="16" fill="#94a3b8" fontSize="10" fontFamily="monospace">commit #4f82a9d</text>
+                    <rect x="0" y="0" width="120" height="24" fill="#252e36" stroke="#4a5662" />
+                    <circle cx="12" cy="12" r="3.5" fill="#c9d7f2" />
+                    <text x="22" y="16" fill="#b4c0ce" fontSize="10" fontFamily="monospace">commit #4f82a9d</text>
                   </g>
 
                   {/* Nodes */}
 
                   {/* Monolith */}
                   <g transform="translate(40, 175)">
-                    <rect width="110" height="50" fill="#080b0e" stroke="#242527" strokeWidth="1.5" />
-                    <text x="55" y="20" fill="#5f636b" fontSize="10" fontFamily="monospace" textAnchor="middle">v1.0-mono</text>
-                    <circle cx="55" cy="30" r="3.5" fill="#5f636b" />
-                    <text x="55" y="44" fill="#94a3b8" fontSize="11" fontFamily="monospace" fontWeight="bold" textAnchor="middle">app-core</text>
+                    <rect width="110" height="50" fill="#1f272e" stroke="#4a5662" strokeWidth="1.5" />
+                    <text x="55" y="20" fill="#7d8996" fontSize="10" fontFamily="monospace" textAnchor="middle">v1.0-mono</text>
+                    <circle cx="55" cy="30" r="3.5" fill="#7d8996" />
+                    <text x="55" y="44" fill="#b4c0ce" fontSize="11" fontFamily="monospace" fontWeight="bold" textAnchor="middle">app-core</text>
                   </g>
 
                   {/* Modular */}
                   <g transform="translate(300, 105)">
-                    <rect width="120" height="32" fill="#080b0e" stroke="#242527" strokeWidth="1.5" />
-                    <circle cx="15" cy="16" r="4" fill="#ffb03a" />
-                    <text x="28" y="20" fill="#94a3b8" fontSize="11" fontFamily="monospace" fontWeight="bold">domain-lib</text>
+                    <rect width="120" height="32" fill="#1f272e" stroke="#4a5662" strokeWidth="1.5" />
+                    <circle cx="15" cy="16" r="4" fill="#c9d7f2" />
+                    <text x="28" y="20" fill="#b4c0ce" fontSize="11" fontFamily="monospace" fontWeight="bold">domain-lib</text>
                   </g>
                   <g transform="translate(300, 265)">
-                    <rect width="120" height="32" fill="#080b0e" stroke="#242527" strokeWidth="1.5" />
-                    <circle cx="15" cy="16" r="4" fill="#5f636b" />
-                    <text x="28" y="20" fill="#94a3b8" fontSize="11" fontFamily="monospace" fontWeight="bold">persistence</text>
+                    <rect width="120" height="32" fill="#1f272e" stroke="#4a5662" strokeWidth="1.5" />
+                    <circle cx="15" cy="16" r="4" fill="#7d8996" />
+                    <text x="28" y="20" fill="#b4c0ce" fontSize="11" fontFamily="monospace" fontWeight="bold">persistence</text>
                   </g>
 
                   {/* Extract */}
                   <g transform="translate(550, 85)">
-                    <rect width="130" height="32" fill="#080b0e" stroke="#ffb03a" strokeOpacity="0.4" strokeWidth="1.5" />
-                    <circle cx="15" cy="16" r="4" fill="#3b82f6" />
-                    <text x="28" y="20" fill="#f4f4f6" fontSize="11" fontFamily="monospace" fontWeight="bold">auth-service</text>
+                    <rect width="130" height="32" fill="#1f272e" stroke="#c9d7f2" strokeOpacity="0.4" strokeWidth="1.5" />
+                    <circle cx="15" cy="16" r="4" fill="#9db3dc" />
+                    <text x="28" y="20" fill="#eef2f8" fontSize="11" fontFamily="monospace" fontWeight="bold">auth-service</text>
                   </g>
                   <g transform="translate(550, 185)">
-                    <rect width="130" height="32" fill="#080b0e" stroke="#ffb03a" strokeOpacity="0.4" strokeWidth="1.5" />
-                    <circle cx="15" cy="16" r="4" fill="#ffb03a" />
-                    <text x="28" y="20" fill="#f4f4f6" fontSize="11" fontFamily="monospace" fontWeight="bold">gateway-api</text>
+                    <rect width="130" height="32" fill="#1f272e" stroke="#c9d7f2" strokeOpacity="0.4" strokeWidth="1.5" />
+                    <circle cx="15" cy="16" r="4" fill="#c9d7f2" />
+                    <text x="28" y="20" fill="#eef2f8" fontSize="11" fontFamily="monospace" fontWeight="bold">gateway-api</text>
                   </g>
                   <g transform="translate(550, 285)">
-                    <rect width="130" height="32" fill="#080b0e" stroke="#242527" strokeWidth="1.5" />
-                    <circle cx="15" cy="16" r="4" fill="#5f636b" />
-                    <text x="28" y="20" fill="#94a3b8" fontSize="11" fontFamily="monospace" fontWeight="bold">data-store</text>
+                    <rect width="130" height="32" fill="#1f272e" stroke="#4a5662" strokeWidth="1.5" />
+                    <circle cx="15" cy="16" r="4" fill="#7d8996" />
+                    <text x="28" y="20" fill="#b4c0ce" fontSize="11" fontFamily="monospace" fontWeight="bold">data-store</text>
                   </g>
 
                   {/* Distributed (Glowing) */}
                   <g transform="translate(800, 55)">
-                    <rect width="140" height="32" fill="#080b0e" stroke="#00f0ff" strokeWidth="1.5" filter="url(#glow-box)" opacity="0.5" />
-                    <rect width="140" height="32" fill="#080b0e" stroke="#00f0ff" strokeWidth="1.5" />
-                    <circle cx="15" cy="16" r="4" fill="#00f0ff" filter="url(#glow-dot)" />
-                    <text x="28" y="20" fill="#00f0ff" fontSize="11" fontFamily="monospace" fontWeight="bold">order-service</text>
+                    <rect width="140" height="32" fill="#1f272e" stroke="#eaf1ff" strokeWidth="1.5" filter="url(#glow-box)" opacity="0.5" />
+                    <rect width="140" height="32" fill="#1f272e" stroke="#eaf1ff" strokeWidth="1.5" />
+                    <circle cx="15" cy="16" r="4" fill="#eaf1ff" filter="url(#glow-dot)" />
+                    <text x="28" y="20" fill="#eaf1ff" fontSize="11" fontFamily="monospace" fontWeight="bold">order-service</text>
                   </g>
                   <g transform="translate(800, 135)">
-                    <rect width="140" height="32" fill="#080b0e" stroke="#00f0ff" strokeWidth="1.5" filter="url(#glow-box)" opacity="0.5" />
-                    <rect width="140" height="32" fill="#080b0e" stroke="#00f0ff" strokeWidth="1.5" />
-                    <circle cx="15" cy="16" r="4" fill="#00f0ff" filter="url(#glow-dot)" />
-                    <text x="28" y="20" fill="#00f0ff" fontSize="11" fontFamily="monospace" fontWeight="bold">payment-service</text>
+                    <rect width="140" height="32" fill="#1f272e" stroke="#eaf1ff" strokeWidth="1.5" filter="url(#glow-box)" opacity="0.5" />
+                    <rect width="140" height="32" fill="#1f272e" stroke="#eaf1ff" strokeWidth="1.5" />
+                    <circle cx="15" cy="16" r="4" fill="#eaf1ff" filter="url(#glow-dot)" />
+                    <text x="28" y="20" fill="#eaf1ff" fontSize="11" fontFamily="monospace" fontWeight="bold">payment-service</text>
                   </g>
                   <g transform="translate(800, 235)">
-                    <rect width="140" height="32" fill="#080b0e" stroke="#00f0ff" strokeWidth="1.5" filter="url(#glow-box)" opacity="0.5" />
-                    <rect width="140" height="32" fill="#080b0e" stroke="#00f0ff" strokeWidth="1.5" />
-                    <circle cx="15" cy="16" r="4" fill="#00f0ff" filter="url(#glow-dot)" />
-                    <text x="28" y="20" fill="#00f0ff" fontSize="11" fontFamily="monospace" fontWeight="bold">inventory-service</text>
+                    <rect width="140" height="32" fill="#1f272e" stroke="#eaf1ff" strokeWidth="1.5" filter="url(#glow-box)" opacity="0.5" />
+                    <rect width="140" height="32" fill="#1f272e" stroke="#eaf1ff" strokeWidth="1.5" />
+                    <circle cx="15" cy="16" r="4" fill="#eaf1ff" filter="url(#glow-dot)" />
+                    <text x="28" y="20" fill="#eaf1ff" fontSize="11" fontFamily="monospace" fontWeight="bold">inventory-service</text>
                   </g>
                   <g transform="translate(800, 315)">
-                    <rect width="140" height="32" fill="#080b0e" stroke="#242527" strokeWidth="1.5" />
-                    <circle cx="15" cy="16" r="4" fill="#5f636b" />
-                    <text x="28" y="20" fill="#94a3b8" fontSize="11" fontFamily="monospace" fontWeight="bold">event-bus</text>
+                    <rect width="140" height="32" fill="#1f272e" stroke="#4a5662" strokeWidth="1.5" />
+                    <circle cx="15" cy="16" r="4" fill="#7d8996" />
+                    <text x="28" y="20" fill="#b4c0ce" fontSize="11" fontFamily="monospace" fontWeight="bold">event-bus</text>
                   </g>
 
                 </svg>
@@ -629,10 +629,10 @@ const AuthPage: React.FC = () => {
 
               {/* Bottom Info Bar */}
               <div className="flex items-center gap-4 mt-6 z-20" style={{ fontFamily: fontFamily.mono }}>
-                <div className="px-4 py-2 bg-[#11161b] border border-[#242527] text-sm text-slate-400">
+                <div className="px-4 py-2 bg-[var(--at-panel)] border border-[var(--at-line)] text-sm text-[var(--at-muted)]">
                   Delta: +18 modular edges
                 </div>
-                <div className="px-4 py-2 bg-[#3b82f6]/20 border border-[#3b82f6]/30 text-sm text-[#93c5fd] font-bold">
+                <div className="px-4 py-2 bg-[var(--at-accent)]/20 border border-[var(--at-accent)]/30 text-sm text-[var(--at-link)] font-bold">
                   architecture change detected
                 </div>
               </div>
@@ -640,21 +640,21 @@ const AuthPage: React.FC = () => {
           </div>
 
           {/* Feature Indicators */}
-          <div className="grid grid-cols-3 gap-6 shrink-0 border-t border-[#242527] pt-6">
+          <div className="grid grid-cols-3 gap-6 shrink-0 border-t border-[var(--at-line)] pt-6">
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-[#93c5fd] font-semibold" style={{ fontFamily: fontFamily.mono }}>01</span>
+              <span className="text-xs text-[var(--at-link)] font-semibold" style={{ fontFamily: fontFamily.mono }}>01</span>
               <h4 className="text-white text-sm font-medium">Repository Mining</h4>
-              <p className="text-slate-400 text-xs leading-relaxed font-light">Deep commit mining and structural analysis.</p>
+              <p className="text-[var(--at-muted)] text-xs leading-relaxed font-light">Deep commit mining and structural analysis.</p>
             </div>
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-[#ffb03a] font-semibold" style={{ fontFamily: fontFamily.mono }}>02</span>
+              <span className="text-xs text-[var(--at-warn)] font-semibold" style={{ fontFamily: fontFamily.mono }}>02</span>
               <h4 className="text-white text-sm font-medium">Architecture Evolution</h4>
-              <p className="text-slate-400 text-xs leading-relaxed font-light">Automated visual dependency reconstruction.</p>
+              <p className="text-[var(--at-muted)] text-xs leading-relaxed font-light">Automated visual dependency reconstruction.</p>
             </div>
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-[#00f0ff] font-semibold" style={{ fontFamily: fontFamily.mono }}>03</span>
+              <span className="text-xs text-[var(--at-glow)] font-semibold" style={{ fontFamily: fontFamily.mono }}>03</span>
               <h4 className="text-white text-sm font-medium">Evidence-Based AI</h4>
-              <p className="text-slate-400 text-xs leading-relaxed font-light">Grounded architectural explanations linked to PRs.</p>
+              <p className="text-[var(--at-muted)] text-xs leading-relaxed font-light">Grounded architectural explanations linked to PRs.</p>
             </div>
           </div>
 
@@ -666,13 +666,13 @@ const AuthPage: React.FC = () => {
           width: 8px;
         }
         ::-webkit-scrollbar-track {
-          background: #080b0e;
+          background: #1f272e;
         }
         ::-webkit-scrollbar-thumb {
-          background: #242527;
+          background: #4a5662;
         }
         ::-webkit-scrollbar-thumb:hover {
-          background: #5f636b;
+          background: #7d8996;
         }
         input[type="password"]::-ms-reveal,
         input[type="password"]::-ms-clear,

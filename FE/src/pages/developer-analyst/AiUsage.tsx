@@ -10,7 +10,7 @@ import type { LlmRun, PageMeta, RunTotals } from '@/features/llm-api';
 import { hasQuality, resultLabel, runKindNote } from '@/features/llm-run-view';
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return <div className={featurePanel}><p className="text-xs uppercase tracking-wider text-[#94a3b8]">{label}</p><p className="mt-2 text-2xl font-semibold font-mono">{value}</p>{hint && <p className="mt-1 text-xs text-[#94a3b8]">{hint}</p>}</div>;
+  return <div className={featurePanel}><p className="text-xs uppercase tracking-wider text-[var(--at-muted)]">{label}</p><p className="mt-2 text-2xl font-semibold font-mono">{value}</p>{hint && <p className="mt-1 text-xs text-[var(--at-muted)]">{hint}</p>}</div>;
 }
 
 /** Every time the user asked an AI model something, to draw an architecture or to ask a question in AI Insights: which model, tokens in/out/total, time, cost and outcome. */
@@ -41,8 +41,8 @@ export default function AiUsage() {
 
   const columns: ColumnsType<LlmRun> = [
     { title: 'When', dataIndex: 'createdAt', render: (v: string) => new Date(v).toLocaleString() },
-    { title: 'Workspace', render: (_, r) => r.project.name ? <Link to={`/architecture#project=${encodeURIComponent(r.project.id)}${r.snapshotId ? `&snapshot=${encodeURIComponent(r.snapshotId)}` : ''}`}>{r.project.name}</Link> : <span className="text-[#94a3b8]">Deleted workspace</span> },
-    { title: 'Model', render: (_, r) => <span><span className="font-medium">{r.model}</span><span className="block text-[11px] text-[#94a3b8]">{r.provider}{runKindNote(r.mode) ? ` · ${runKindNote(r.mode)}` : ''}</span></span> },
+    { title: 'Workspace', render: (_, r) => r.project.name ? <Link to={`/architecture#project=${encodeURIComponent(r.project.id)}${r.snapshotId ? `&snapshot=${encodeURIComponent(r.snapshotId)}` : ''}`}>{r.project.name}</Link> : <span className="text-[var(--at-muted)]">Deleted workspace</span> },
+    { title: 'Model', render: (_, r) => <span><span className="font-medium">{r.model}</span><span className="block text-[11px] text-[var(--at-muted)]">{r.provider}{runKindNote(r.mode) ? ` · ${runKindNote(r.mode)}` : ''}</span></span> },
     { title: 'Input tokens', align: 'right', render: (_, r) => <span className="font-mono">{formatTokens(r.usage.inputTokens)}</span> },
     { title: 'Output tokens', align: 'right', render: (_, r) => <span className="font-mono">{formatTokens(r.usage.outputTokens)}</span> },
     { title: 'Total tokens', align: 'right', render: (_, r) => <Tooltip title={r.usage.estimated ? 'The provider did not report usage; estimated from text length.' : undefined}><span className="font-mono font-semibold">{formatTokens(r.usage.totalTokens)}{r.usage.estimated ? '*' : ''}</span></Tooltip> },
@@ -71,7 +71,7 @@ export default function AiUsage() {
         <Table<LlmRun> rowKey="id" size="small" loading={loading} columns={columns} dataSource={result?.runs ?? []} scroll={{ x: 1100 }}
           expandable={{ expandedRowRender: r => <div className="text-xs space-y-1">
             {r.attempts.map(a => <p key={a.n}>Attempt {a.n}: {a.ok ? (r.mode === 'chat' ? 'answered' : 'accepted') : a.errorKind === 'other' ? 'failed (not a provider error)' : a.errorKind ? `provider error (${a.errorKind})` : `rejected (${a.issueCodes.join(', ') || 'no answer'})`} · {formatTokens(a.inputTokens)} in / {formatTokens(a.outputTokens)} out · {formatMs(a.latencyMs)}</p>)}
-            {r.fallbackReason && <p className="text-[#94a3b8]">{r.fallbackReason}</p>}
+            {r.fallbackReason && <p className="text-[var(--at-muted)]">{r.fallbackReason}</p>}
           </div> }}
           pagination={{ current: result?.meta.page ?? page, pageSize: 20, total: result?.meta.total ?? 0, onChange: setPage, showSizeChanger: false }} />}
     </div>

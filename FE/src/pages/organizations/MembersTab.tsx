@@ -93,7 +93,7 @@ export default function MembersTab({ organization, userId, onCountChange, onLeft
     <div className="space-y-4">
       {owner && (
         <div className={featurePanel}>
-          <h3 className="mb-3 flex items-center gap-2 font-semibold"><UserPlus size={16} className="text-[#93c5fd]" />Add a member</h3>
+          <h3 className="mb-3 flex items-center gap-2 font-semibold"><UserPlus size={16} className="text-[var(--at-link)]" />Add a member</h3>
           <Form form={form} layout="inline" onFinish={add} initialValues={{ role: 'member' }} className="flex flex-wrap gap-y-2">
             <Form.Item name="email" className="min-w-64 flex-1" rules={[{ validator: (_, v) => { const p = checkEmail(v ?? ''); return p ? Promise.reject(new Error(p)) : Promise.resolve(); } }]}>
               <Input type="email" placeholder="Email of their ArchTime account" aria-label="Email of the person to add" />
@@ -101,20 +101,20 @@ export default function MembersTab({ organization, userId, onCountChange, onLeft
             <Form.Item name="role"><Select options={ROLE_OPTIONS} aria-label="Role" className="w-32" /></Form.Item>
             <Form.Item><Button type="primary" htmlType="submit" loading={adding}>Add</Button></Form.Item>
           </Form>
-          <p className="mt-2 text-xs text-[#94a3b8]">The person needs an ArchTime account first. Members see only the workspaces they are given a role in; owners maintain every workspace of the organization.</p>
+          <p className="mt-2 text-xs text-[var(--at-muted)]">The person needs an ArchTime account first. Members see only the workspaces they are given a role in; owners maintain every workspace of the organization.</p>
         </div>
       )}
 
       {!members.length ? <div className={featurePanel}><Empty description="No members." /></div> : (
-        <ul className={`${featurePanel} divide-y divide-[#242527]`} aria-label="Members">
+        <ul className={`${featurePanel} divide-y divide-[var(--at-line)]`} aria-label="Members">
           {members.map(m => {
             const self = m.userId === userId;
             const can = memberActions(members, m, { userId, role: organization.myRole });
             return (
               <li key={m.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                 <div className="min-w-0">
-                  <p className="font-medium break-words">{m.name}{self && <span className="ml-2 text-xs text-[#94a3b8]">(you)</span>}</p>
-                  <p className="text-xs text-[#94a3b8] break-all">{m.email}</p>
+                  <p className="font-medium break-words">{m.name}{self && <span className="ml-2 text-xs text-[var(--at-muted)]">(you)</span>}</p>
+                  <p className="text-xs text-[var(--at-muted)] break-all">{m.email}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {can.changeRole ? (

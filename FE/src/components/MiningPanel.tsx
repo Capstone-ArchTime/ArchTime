@@ -99,13 +99,13 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
         <Tag color={fullyMined ? 'green' : overview.mined.count ? 'gold' : 'default'}>{overview.project.status}</Tag>
         {hasHistory
           ? <span><b>{overview.mined.count}</b> of <b>{overview.history!.totalCommits}</b> commits mined{overview.remaining ? ` · ${overview.remaining} remaining` : ''}</span>
-          : <span className="text-[#94a3b8]">The repository has not been scanned yet.</span>}
+          : <span className="text-[var(--at-muted)]">The repository has not been scanned yet.</span>}
       </div>
 
-      {active && <div className="border border-[#242527] p-4 space-y-2" role="status">
-        <div className="flex justify-between text-sm"><span>{active.kind === 'scan' ? 'Scanning repository' : 'Mining'}</span><span className="text-[#94a3b8]">{active.status}</span></div>
+      {active && <div className="border border-[var(--at-line)] p-4 space-y-2" role="status">
+        <div className="flex justify-between text-sm"><span>{active.kind === 'scan' ? 'Scanning repository' : 'Mining'}</span><span className="text-[var(--at-muted)]">{active.status}</span></div>
         <Progress percent={active.progress} status="active" />
-        <p className="text-xs text-[#94a3b8]">{active.kind === 'mine' ? `${describeBatchProgress(active)} · ` : ''}{active.stage}{active.failedCommits ? ` · ${active.failedCommits} unreadable` : ''}</p>
+        <p className="text-xs text-[var(--at-muted)]">{active.kind === 'mine' ? `${describeBatchProgress(active)} · ` : ''}{active.stage}{active.failedCommits ? ` · ${active.failedCommits} unreadable` : ''}</p>
         <Button danger size="small" loading={busy} onClick={() => run(() => cancelMiningJob(active.id), 'Stopping — finished batches are kept.')}>Stop after current commit</Button>
       </div>}
 
@@ -115,22 +115,22 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
           description={overview.lastJob.error ?? `${overview.lastJob.processed} of ${overview.lastJob.total} commits were analyzed and kept.`} />}
 
       {!hasHistory && !active && <div><Button type="primary" loading={busy} onClick={() => run(() => startScan(project.id), 'Scan started.')}>Scan repository</Button>
-        <p className="text-xs text-[#94a3b8] mt-2">Clones the repository and reads its commit history so you can choose what to mine. No source analysis happens yet.</p></div>}
+        <p className="text-xs text-[var(--at-muted)] mt-2">Clones the repository and reads its commit history so you can choose what to mine. No source analysis happens yet.</p></div>}
 
       {hasHistory && <>
         <section aria-label="Commit history by month">
-          <div className="flex justify-between text-xs text-[#94a3b8] mb-2"><span>Commits per month · click a month to select it</span><span><i className="inline-block w-2 h-2 bg-[#3b82f6] mr-1" />mined <i className="inline-block w-2 h-2 bg-[#2a3441] ml-3 mr-1" />not mined</span></div>
+          <div className="flex justify-between text-xs text-[var(--at-muted)] mb-2"><span>Commits per month · click a month to select it</span><span><i className="inline-block w-2 h-2 bg-[var(--at-accent)] mr-1" />mined <i className="inline-block w-2 h-2 bg-[#2a3441] ml-3 mr-1" />not mined</span></div>
           <div className="flex items-end gap-[3px] h-24 overflow-x-auto pb-1 pt-1">
             {rows.map(r => {
               const selected = range && r.month === range.since.slice(0, 7) && r.month === range.until.slice(0, 7);
               return <button key={r.month} type="button" disabled={!!active} aria-pressed={!!selected} aria-label={`${r.month}: ${r.mined} of ${r.total} commits mined`}
                 title={`${r.month} · ${r.mined}/${r.total} mined`} onClick={() => setRange(monthBounds(r.month))}
-                className={`relative flex-1 min-w-[10px] bg-[#2a3441] disabled:opacity-60 ${selected ? 'outline outline-2 outline-[#ffb03a]' : ''}`} style={{ height: `${Math.max(6, (r.total / peak) * 100)}%` }}>
-                <span className="absolute bottom-0 left-0 right-0 bg-[#3b82f6]" style={{ height: `${r.total ? (r.mined / r.total) * 100 : 0}%` }} />
+                className={`relative flex-1 min-w-[10px] bg-[#2a3441] disabled:opacity-60 ${selected ? 'outline outline-2 outline-[var(--at-warn)]' : ''}`} style={{ height: `${Math.max(6, (r.total / peak) * 100)}%` }}>
+                <span className="absolute bottom-0 left-0 right-0 bg-[var(--at-accent)]" style={{ height: `${r.total ? (r.mined / r.total) * 100 : 0}%` }} />
               </button>;
             })}
           </div>
-          <div className="flex justify-between text-[10px] text-[#94a3b8] mt-1"><span>{rows[0]?.month}</span><span>{rows.at(-1)?.month}</span></div>
+          <div className="flex justify-between text-[10px] text-[var(--at-muted)] mt-1"><span>{rows[0]?.month}</span><span>{rows.at(-1)?.month}</span></div>
         </section>
 
         <section className="space-y-3" aria-label="Choose what to mine">
@@ -155,7 +155,7 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
                     <span className="flex items-center gap-2">
                       <span className={`w-2 h-2 rounded-full ${m.provider === 'anthropic' ? 'bg-purple-500' : m.provider === 'gemini' ? 'bg-sky-500' : 'bg-green-500'}`} />
                       {m.model}
-                      {m.isDefault && <span className="text-xs text-[#94a3b8]">(default)</span>}
+                      {m.isDefault && <span className="text-xs text-[var(--at-muted)]">(default)</span>}
                     </span>
                   ),
                 }))}
@@ -163,7 +163,7 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
               />
             </div>
           </div>
-          {range && <p className="text-xs text-[#94a3b8]" role="status">
+          {range && <p className="text-xs text-[var(--at-muted)]" role="status">
             {range.since} → {range.until}: {estimateError ?? (estimate ? `${estimate.inRange} commits, ${estimate.alreadyMined} already mined, ${estimate.toMine} to mine in ${estimate.batchCount} batch${estimate.batchCount === 1 ? '' : 'es'}` : 'Counting…')}
           </p>}
           <div className="flex flex-wrap gap-3">
@@ -178,7 +178,7 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
             </Tooltip>
             <Button disabled={!!active} loading={busy} onClick={() => run(() => startScan(project.id), 'Fetching new commits.')}>Check for new commits</Button>
           </div>
-          <p className="text-xs text-[#94a3b8]">Commits are analyzed in batches and saved after each one, so you can stop at any time and continue later. Each snapshot is compared with the previous mined snapshot, so mining non-adjacent ranges shows larger changes at the gaps.</p>
+          <p className="text-xs text-[var(--at-muted)]">Commits are analyzed in batches and saved after each one, so you can stop at any time and continue later. Each snapshot is compared with the previous mined snapshot, so mining non-adjacent ranges shows larger changes at the gaps.</p>
         </section>
       </>}
     </div>}

@@ -7,7 +7,7 @@ const TONE: Record<IssueSeverity | 'hint', { bar: string; text: string; label: s
   high: { bar: '#ef4444', text: 'text-[#fca5a5]', label: 'High', chip: 'border-[#ef4444]/60 bg-[#7f1d1d]/40 text-[#fca5a5]' },
   medium: { bar: '#f59e0b', text: 'text-[#fcd34d]', label: 'Medium', chip: 'border-[#f59e0b]/60 bg-[#78350f]/40 text-[#fcd34d]' },
   low: { bar: '#64748b', text: 'text-slate-300', label: 'Low', chip: 'border-[#64748b]/70 bg-[#1e293b]/60 text-slate-300' },
-  hint: { bar: '#3b82f6', text: 'text-[#93c5fd]', label: 'Tip', chip: '' },
+  hint: { bar: '#3b82f6', text: 'text-[var(--at-link)]', label: 'Tip', chip: '' },
 };
 
 const breakdown = (s: IssueSummary) => (['high', 'medium', 'low'] as const).filter(k => s.bySeverity[k]).map(k => `${s.bySeverity[k]} ${TONE[k].label.toLowerCase()}`).join(', ');
@@ -32,7 +32,7 @@ const ACTION_LABEL: Record<IssueAction, (issue: Issue) => string> = {
 function Card({ issue, active, onShow, onAction }: { issue: Issue; active: boolean; onShow: (issue: Issue) => void; onAction?: (action: IssueAction) => void }) {
   const tone = TONE[issue.kind === 'hint' ? 'hint' : issue.severity];
   const showable = issue.components.length > 0 || issue.edges.length > 0;
-  return <li data-issue={issue.id} data-severity={issue.kind === 'hint' ? 'hint' : issue.severity} className={`flex overflow-hidden rounded border bg-[#11161b] ${active ? 'border-[#3b82f6]' : 'border-[#242527]'}`}>
+  return <li data-issue={issue.id} data-severity={issue.kind === 'hint' ? 'hint' : issue.severity} className={`flex overflow-hidden rounded border bg-[var(--at-panel)] ${active ? 'border-[var(--at-accent)]' : 'border-[var(--at-line)]'}`}>
     <span aria-hidden className="w-1 shrink-0" style={{ background: tone.bar }} />
     <div className="min-w-0 flex-1 space-y-1.5 p-2.5 text-xs">
       <p className="flex items-start gap-2">
@@ -40,10 +40,10 @@ function Card({ issue, active, onShow, onAction }: { issue: Issue; active: boole
         <span className="text-[13px] font-semibold leading-snug text-slate-100">{issue.title}</span>
       </p>
       <p className="leading-relaxed text-slate-300">{issue.explanation}</p>
-      <p className="leading-relaxed text-slate-300"><span className="font-semibold text-[#93c5fd]">What to do: </span>{issue.suggestion}</p>
+      <p className="leading-relaxed text-slate-300"><span className="font-semibold text-[var(--at-link)]">What to do: </span>{issue.suggestion}</p>
       {(showable || (issue.action && onAction)) && <div className="flex flex-wrap gap-2 pt-1">
-        {showable && <button type="button" onClick={() => onShow(issue)} className="h-7 border border-[#3b82f6]/50 px-2.5 text-[11px] font-bold text-[#93c5fd] hover:bg-[#3b82f6]/10 hover:text-[#bfdbfe]">Show in diagram</button>}
-        {issue.action && onAction && <button type="button" onClick={() => onAction(issue.action!)} className="h-7 bg-[#1d4ed8] px-2.5 text-[11px] font-bold text-white hover:bg-[#1e40af]">{ACTION_LABEL[issue.action](issue)}</button>}
+        {showable && <button type="button" onClick={() => onShow(issue)} className="h-7 border border-[var(--at-accent)]/50 px-2.5 text-[11px] font-bold text-[var(--at-link)] hover:bg-[var(--at-accent)]/10 hover:text-[var(--at-link-hover)]">Show in diagram</button>}
+        {issue.action && onAction && <button type="button" onClick={() => onAction(issue.action!)} className="h-7 bg-[var(--at-fill)] px-2.5 text-[11px] font-bold text-[var(--at-on-fill)] hover:bg-[var(--at-fill-hover)]">{ACTION_LABEL[issue.action](issue)}</button>}
       </div>}
     </div>
   </li>;

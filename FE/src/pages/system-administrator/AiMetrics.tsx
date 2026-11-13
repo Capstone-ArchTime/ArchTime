@@ -23,7 +23,7 @@ function runsHint(t: UsageReport['totals'] | undefined): string | undefined {
 }
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return <div className={featurePanel}><p className="text-xs uppercase tracking-wider text-[#94a3b8]">{label}</p><p className="mt-2 text-2xl font-semibold font-mono">{value}</p>{hint && <p className="mt-1 text-xs text-[#94a3b8]">{hint}</p>}</div>;
+  return <div className={featurePanel}><p className="text-xs uppercase tracking-wider text-[var(--at-muted)]">{label}</p><p className="mt-2 text-2xl font-semibold font-mono">{value}</p>{hint && <p className="mt-1 text-xs text-[var(--at-muted)]">{hint}</p>}</div>;
 }
 
 /** One bar per day, zero days included so gaps read as gaps. Hover shows the day's numbers; the table below holds the same data. */
@@ -38,22 +38,22 @@ function TokensByDay({ rows, days }: { rows: UsageRow[]; days: number }) {
   const max = Math.max(1, ...series.map(s => s.row?.totalTokens ?? 0));
   if (!rows.length) return <Empty description="No AI runs in this period" />;
   return <figure aria-label="Tokens used per day">
-    <div className="flex items-baseline justify-between text-xs text-[#94a3b8] mb-2"><span>Tokens per day</span><span className="font-mono">peak {formatCompactTokens(max)}</span></div>
-    <div className="relative h-40 border-b border-[#242527]">
-      <div className="absolute inset-x-0 top-0 border-t border-dashed border-[#242527]" aria-hidden />
+    <div className="flex items-baseline justify-between text-xs text-[var(--at-muted)] mb-2"><span>Tokens per day</span><span className="font-mono">peak {formatCompactTokens(max)}</span></div>
+    <div className="relative h-40 border-b border-[var(--at-line)]">
+      <div className="absolute inset-x-0 top-0 border-t border-dashed border-[var(--at-line)]" aria-hidden />
       <div className="absolute inset-0 flex items-end gap-[2px]">
         {series.map(s => {
           const total = s.row?.totalTokens ?? 0;
           return <Tooltip key={s.day} title={<div className="text-xs"><p className="font-medium">{new Date(s.day).toLocaleDateString()}</p>
             {s.row ? <><p>{formatTokens(s.row.inputTokens)} in · {formatTokens(s.row.outputTokens)} out</p><p>{formatTokens(s.row.runs)} runs · {formatCost(s.row.cost)}</p></> : <p>No runs</p>}</div>}>
             <div className="group flex h-full flex-1 items-end" role="img" aria-label={`${s.day}: ${formatTokens(total)} tokens`}>
-              <div className="w-full rounded-t-[4px] bg-[#3b82f6] group-hover:bg-[#60a5fa]" style={{ height: total ? `${Math.max(2, (total / max) * 100)}%` : 0 }} />
+              <div className="w-full rounded-t-[4px] bg-[var(--at-accent)] group-hover:bg-[#60a5fa]" style={{ height: total ? `${Math.max(2, (total / max) * 100)}%` : 0 }} />
             </div>
           </Tooltip>;
         })}
       </div>
     </div>
-    <div className="flex justify-between text-[11px] text-[#94a3b8] mt-1 font-mono"><span>{series[0].day}</span><span>{series[series.length - 1].day}</span></div>
+    <div className="flex justify-between text-[11px] text-[var(--at-muted)] mt-1 font-mono"><span>{series[0].day}</span><span>{series[series.length - 1].day}</span></div>
   </figure>;
 }
 
@@ -65,14 +65,14 @@ const leaderboardColumns: ColumnsType<LeaderboardRow> = [
   { title: '#', width: 40, render: (_, __, i) => i + 1 },
   { title: 'Model', render: (_, r) => <div>
     <div className="flex flex-wrap items-center gap-1"><span className="font-medium">{r.displayName}</span>{r.recommended && <Tag color="gold" icon={<Star size={10} className="inline -mt-0.5 mr-0.5" />}>Recommended</Tag>}{!r.enabled && <Tag>off</Tag>}{r.health !== 'unknown' && r.health !== 'up' && <Tag color={healthColor[r.health]}>{r.health}</Tag>}</div>
-    <p className="text-[11px] text-[#94a3b8] font-mono">{r.provider} · {r.model}</p>
+    <p className="text-[11px] text-[var(--at-muted)] font-mono">{r.provider} · {r.model}</p>
   </div> },
-  { title: <Tooltip title="100 × weighted sum of the five parts on the right">Score</Tooltip>, render: (_, r) => r.stats.n ? <Tooltip title={r.reasons.length ? `Not recommended: ${r.reasons.join('; ')}` : r.confident ? undefined : 'Fewer than 5 runs: pulled towards the average'}><div><ScoreBar value={r.score} />{!r.confident && <span className="text-[10px] text-[#94a3b8]">few runs</span>}</div></Tooltip> : <span className="text-[#94a3b8]">no runs</span> },
+  { title: <Tooltip title="100 × weighted sum of the five parts on the right">Score</Tooltip>, render: (_, r) => r.stats.n ? <Tooltip title={r.reasons.length ? `Not recommended: ${r.reasons.join('; ')}` : r.confident ? undefined : 'Fewer than 5 runs: pulled towards the average'}><div><ScoreBar value={r.score} />{!r.confident && <span className="text-[10px] text-[var(--at-muted)]">few runs</span>}</div></Tooltip> : <span className="text-[var(--at-muted)]">no runs</span> },
   { title: <Tooltip title="Mean quality of the answers: verified, valid view, cohesion kept, roles found, few attempts">Quality</Tooltip>, align: 'right', render: (_, r) => r.stats.n ? formatPercent(r.components.quality) : '–' },
   { title: <Tooltip title="Accepted runs: share of component names the file paths support (the rest are invented or vague)">Grounded</Tooltip>, align: 'right', render: (_, r) => (typeof r.stats.groundingMean === 'number' ? formatPercent(r.stats.groundingMean) : '–') },
   { title: <Tooltip title="Accepted runs: adjusted Rand index against the workspace's reference architecture (100% = same grouping); only workspaces with a reference">Matches ref.</Tooltip>, align: 'right', render: (_, r) => (typeof r.stats.agreementMean === 'number' ? formatPercent(Math.max(0, r.stats.agreementMean)) : '–') },
   { title: <Tooltip title="Success rate, first-try rate, provider errors and latency spread">Stability</Tooltip>, align: 'right', render: (_, r) => r.stats.n ? <Tooltip title={`${formatPercent(r.stats.successRate)} success · ${formatPercent(r.stats.firstPassRate)} first try · ${formatPercent(r.stats.providerErrorRate)} provider errors`}>{formatPercent(r.components.stability)}</Tooltip> : '–' },
-  { title: <Tooltip title="Accepted runs: median time per 100 files sent (p95 of whole runs in brackets)">Latency / 100 files</Tooltip>, align: 'right', render: (_, r) => r.stats.accepted ? <span className="text-xs">{formatMs(r.stats.latencyPer100)} <span className="text-[#94a3b8]">({formatMs(r.stats.latencyP95Ms)})</span></span> : '–' },
+  { title: <Tooltip title="Accepted runs: median time per 100 files sent (p95 of whole runs in brackets)">Latency / 100 files</Tooltip>, align: 'right', render: (_, r) => r.stats.accepted ? <span className="text-xs">{formatMs(r.stats.latencyPer100)} <span className="text-[var(--at-muted)]">({formatMs(r.stats.latencyP95Ms)})</span></span> : '–' },
   { title: <Tooltip title="Total cost divided by accepted runs">Cost / success</Tooltip>, align: 'right', render: (_, r) => !r.stats.n ? '–' : !r.stats.accepted ? <span className="text-red-400">no success</span> : formatCost(r.stats.costPerSuccess) },
   { title: <Tooltip title="Accepted runs: median tokens per 100 files sent">Tokens / 100 files</Tooltip>, align: 'right', render: (_, r) => r.stats.accepted ? formatCompactTokens(r.stats.tokensPer100) : '–' },
   { title: 'Runs', align: 'right', render: (_, r) => r.stats.n },
@@ -80,7 +80,7 @@ const leaderboardColumns: ColumnsType<LeaderboardRow> = [
 
 function Weights({ board }: { board: Leaderboard }) {
   const w = board.weights;
-  return <p className="text-xs text-[#94a3b8]">Score = 100 × ({w.quality.toFixed(2)}·Quality + {w.stability.toFixed(2)}·Stability + {w.latency.toFixed(2)}·Latency + {w.cost.toFixed(2)}·Cost + {w.tokens.toFixed(2)}·Tokens).
+  return <p className="text-xs text-[var(--at-muted)]">Score = 100 × ({w.quality.toFixed(2)}·Quality + {w.stability.toFixed(2)}·Stability + {w.latency.toFixed(2)}·Latency + {w.cost.toFixed(2)}·Cost + {w.tokens.toFixed(2)}·Tokens).
     Latency, cost and tokens are relative to the best model (1 = best). Models need at least 3 runs and 50% success to be recommended (benchmarks: 1 run). Questions asked in AI Insights are included in the runs, tokens and cost figures but not in success, speed or scores.</p>;
 }
 
@@ -118,7 +118,7 @@ function BenchmarkPanel({ models }: { models: AdminModel[] }) {
   }
 
   return <div className="space-y-4">
-    <p className="text-sm text-[#94a3b8]">Everyday usage compares models on different repositories. A benchmark asks each chosen model to draw the <b>same snapshot</b>, one after another, for a fair comparison. The workspace's own architecture is not changed; the runs count towards the scores.</p>
+    <p className="text-sm text-[var(--at-muted)]">Everyday usage compares models on different repositories. A benchmark asks each chosen model to draw the <b>same snapshot</b>, one after another, for a fair comparison. The workspace's own architecture is not changed; the runs count towards the scores.</p>
     <div className="flex flex-wrap items-end gap-2">
       <Select className="min-w-56" placeholder="Workspace" aria-label="Benchmark workspace" value={projectId} showSearch optionFilterProp="label" onChange={(v: string) => { setProjectId(v); setSnapshotId(targets.find(t => t.id === v)?.snapshots[0]?.id); }} options={targets.map(t => ({ value: t.id, label: t.name }))} />
       <Select className="min-w-72" placeholder="Snapshot" aria-label="Benchmark snapshot" value={snapshotId} onChange={setSnapshotId} disabled={!project}
@@ -234,9 +234,9 @@ export default function AiMetrics() {
     <div className={featurePanel}>
       <Tabs items={[
         { key: 'model', label: 'Usage by model', children: <Table<UsageRow> rowKey={r => JSON.stringify(r.key)} size="small" pagination={false} dataSource={byModel?.rows ?? []} scroll={{ x: 900 }}
-          columns={usageColumns({ title: 'Model', render: (_, r) => { const k = r.key as { model?: string; provider?: string; modelId?: string | null }; return <span>{k?.model}<span className="block text-[11px] text-[#94a3b8]">{k?.provider}{k?.modelId ? '' : ' · server config'}</span></span>; } })} /> },
+          columns={usageColumns({ title: 'Model', render: (_, r) => { const k = r.key as { model?: string; provider?: string; modelId?: string | null }; return <span>{k?.model}<span className="block text-[11px] text-[var(--at-muted)]">{k?.provider}{k?.modelId ? '' : ' · server config'}</span></span>; } })} /> },
         { key: 'user', label: 'Usage by user', children: <Table<UsageRow> rowKey={r => String(r.key)} size="small" pagination={{ pageSize: 10 }} dataSource={byUser?.rows ?? []} scroll={{ x: 900 }}
-          columns={usageColumns({ title: 'User', render: (_, r) => <span>{r.user?.name ?? r.user?.id}<span className="block text-[11px] text-[#94a3b8]">{r.user?.email}</span></span> })} /> },
+          columns={usageColumns({ title: 'User', render: (_, r) => <span>{r.user?.name ?? r.user?.id}<span className="block text-[11px] text-[var(--at-muted)]">{r.user?.email}</span></span> })} /> },
         { key: 'day', label: 'Usage by day', children: <Table<UsageRow> rowKey={r => String(r.key)} size="small" pagination={{ pageSize: 10 }} dataSource={[...(daily?.rows ?? [])].reverse()} scroll={{ x: 900 }}
           columns={usageColumns({ title: 'Day', render: (_, r) => String(r.key) })} /> },
         { key: 'benchmark', label: 'Benchmark', children: <BenchmarkPanel models={models} /> },

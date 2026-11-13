@@ -90,7 +90,7 @@ export default function Organizations() {
       locale={{ emptyText: <Empty description={search ? 'No organization matches this name' : 'No organizations yet'} /> }}
       onRow={org => ({ onClick: () => setOpen(org.id), className: 'cursor-pointer' })}
       columns={[
-        { title: 'Organization', render: (_, o) => <div><p className="font-medium">{o.name}</p>{o.description && <p className="text-xs text-[#94a3b8] line-clamp-1">{o.description}</p>}</div> },
+        { title: 'Organization', render: (_, o) => <div><p className="font-medium">{o.name}</p>{o.description && <p className="text-xs text-[var(--at-muted)] line-clamp-1">{o.description}</p>}</div> },
         { title: 'Owners', render: (_, o) => o.owners.length ? o.owners.map(personLabel).join(', ') : <Tag color="red">No owner</Tag> },
         { title: 'Members', dataIndex: 'memberCount', align: 'right' },
         { title: 'Workspaces', dataIndex: 'projectCount', align: 'right' },

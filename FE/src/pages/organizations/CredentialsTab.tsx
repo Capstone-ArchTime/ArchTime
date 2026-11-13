@@ -85,17 +85,17 @@ export default function CredentialsTab({ organization }: { organization: Organiz
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-2xl text-sm text-[#94a3b8]">Tokens the organization's workspaces clone private repositories with, so nobody has to use a personal token. Only owners see this list.</p>
+        <p className="max-w-2xl text-sm text-[var(--at-muted)]">Tokens the organization's workspaces clone private repositories with, so nobody has to use a personal token. Only owners see this list.</p>
         <Button type="primary" icon={<Plus size={14} />} onClick={() => setCreating(true)}>Add credential</Button>
       </div>
 
       {!credentials.length ? <div className={featurePanel}><Empty description="No credentials yet. Add one to clone the organization's private repositories." /></div> : (
-        <ul className={`${featurePanel} divide-y divide-[#242527]`} aria-label="Credentials">
+        <ul className={`${featurePanel} divide-y divide-[var(--at-line)]`} aria-label="Credentials">
           {credentials.map(c => (
             <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
               <div className="min-w-0">
-                <p className="flex items-center gap-2 font-medium break-words"><KeyRound size={14} className="text-[#93c5fd] shrink-0" />{c.name} <Tag>{providerLabel(c.provider)}</Tag></p>
-                <p className="text-xs text-[#94a3b8]">
+                <p className="flex items-center gap-2 font-medium break-words"><KeyRound size={14} className="text-[var(--at-link)] shrink-0" />{c.name} <Tag>{providerLabel(c.provider)}</Tag></p>
+                <p className="text-xs text-[var(--at-muted)]">
                   <span className="font-mono">••••{c.last4}</span>
                   {` · used by ${c.usedBy} ${c.usedBy === 1 ? 'workspace' : 'workspaces'}`}
                   {c.rotatedAt && ` · token replaced ${when(c.rotatedAt)}`}

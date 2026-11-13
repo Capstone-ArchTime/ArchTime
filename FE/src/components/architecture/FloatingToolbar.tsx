@@ -10,7 +10,7 @@ type Option = { value: string; label: string };
 function Tool({ label, shortcut, active, disabled, onClick, children }: { label: string; shortcut?: string; active?: boolean; disabled?: boolean; onClick?: () => void; children: ReactNode }) {
   return <Tooltip title={shortcut ? <span>{label} <kbd className="ml-1 rounded bg-white/10 px-1 font-mono text-[10px]">{shortcut}</kbd></span> : label} placement="top">
     <button type="button" aria-label={label} aria-pressed={active} disabled={disabled} onClick={onClick}
-      className={`h-8 min-w-8 shrink-0 px-1.5 flex items-center justify-center rounded-md text-[#cbd5e1] transition-colors hover:bg-white/10 hover:text-white disabled:opacity-35 disabled:hover:bg-transparent ${active ? 'bg-[#3b82f6]/15 text-[#93c5fd]' : ''}`}>
+      className={`h-8 min-w-8 shrink-0 px-1.5 flex items-center justify-center rounded-md text-[#cbd5e1] transition-colors hover:bg-white/10 hover:text-white disabled:opacity-35 disabled:hover:bg-transparent ${active ? 'bg-[var(--at-accent)]/15 text-[var(--at-link)]' : ''}`}>
       {children}
     </button>
   </Tooltip>;
@@ -57,7 +57,7 @@ export default function FloatingToolbar({ searchRef, ...p }: {
   const exports = [{ key: 'svg', label: 'SVG image' }, { key: 'png', label: 'PNG image' }, { key: 'html', label: 'Standalone HTML' }, { key: 'json', label: 'Data (JSON)' }];
   return (
     <div data-overlay role="toolbar" aria-label="Diagram tools"
-      className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex max-w-[calc(100%-1.5rem)] items-center gap-0.5 overflow-x-auto rounded-xl border border-[#2a3441] bg-[#11161b]/95 px-2 py-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur">
+      className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex max-w-[calc(100%-1.5rem)] items-center gap-0.5 overflow-x-auto rounded-xl border border-[#2a3441] bg-[var(--at-panel)]/95 px-2 py-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur">
       <Select ref={searchRef as never} showSearch allowClear size="small" variant="borderless" placeholder="Find…  /" aria-label="Find a node" className="w-32 shrink-0"
         optionFilterProp="label" options={p.options} value={p.focus} onChange={id => p.onFind(id ?? undefined)} />
       {p.focus && <Dropdown trigger={['click']} placement="top" menu={{
@@ -65,7 +65,7 @@ export default function FloatingToolbar({ searchRef, ...p }: {
         items: [{ key: 'direct', label: 'Direct neighbours' }, { key: 'upstream', label: 'Used by (everything that depends on it)' }, { key: 'downstream', label: 'Depends on (everything it needs)' }],
         onClick: ({ key }) => p.onReach(key as 'direct' | 'upstream' | 'downstream'),
       }}>
-        <button type="button" aria-label="Dependency reach" className="flex h-8 shrink-0 items-center gap-1 rounded-md px-2 text-xs text-[#93c5fd] hover:bg-white/10">
+        <button type="button" aria-label="Dependency reach" className="flex h-8 shrink-0 items-center gap-1 rounded-md px-2 text-xs text-[var(--at-link)] hover:bg-white/10">
           {p.reach === 'upstream' ? 'Used by' : p.reach === 'downstream' ? 'Depends on' : 'Direct'} <ChevronDown size={12} />
         </button>
       </Dropdown>}
@@ -73,7 +73,7 @@ export default function FloatingToolbar({ searchRef, ...p }: {
         <div className="flex flex-col gap-2 w-60">
           <Select aria-label="Route from" allowClear showSearch optionFilterProp="label" placeholder="From" options={p.options} value={p.route?.[0] || undefined} onChange={id => p.onRouteFrom(id ?? undefined)} />
           <Select aria-label="Route to" allowClear showSearch optionFilterProp="label" placeholder="To" options={p.options} value={p.route?.[1] || undefined} onChange={id => p.onRouteTo(id ?? undefined)} />
-          <p className="text-xs text-[#94a3b8]">Highlights how the first depends on the second.</p>
+          <p className="text-xs text-[var(--at-muted)]">Highlights how the first depends on the second.</p>
         </div>}>
         <span><Tool label="Route between two nodes" active={routeSet}><Route size={16} /></Tool></span>
       </Popover>

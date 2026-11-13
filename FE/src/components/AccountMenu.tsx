@@ -22,7 +22,7 @@ export default function AccountMenu({ onNavigate }: { onNavigate: () => void }) 
                   type="button"
                   aria-label={`Open account menu for ${user.name}`}
                   title={user.name}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1d4ed8] text-sm font-semibold text-white transition-colors hover:bg-[#1e40af] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#3b82f6]"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--at-fill)] text-sm font-semibold text-[var(--at-on-fill)] transition-colors hover:bg-[var(--at-fill-hover)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--at-accent)]"
                 >
                   <span aria-hidden="true">{initials(user.name)}</span>
                 </button>

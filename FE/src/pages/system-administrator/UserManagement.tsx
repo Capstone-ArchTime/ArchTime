@@ -154,7 +154,7 @@ export default function UserManagement() {
       </div>
 
       {loading && !users.length ? (
-        <div className="p-12 text-center"><Spin /><p className="mt-3 text-[#94a3b8]">Loading users...</p></div>
+        <div className="p-12 text-center"><Spin /><p className="mt-3 text-[var(--at-muted)]">Loading users...</p></div>
       ) : (
         <Table
           rowKey="id"
@@ -170,7 +170,7 @@ export default function UserManagement() {
               render: (_, u: AdminUser) => (
                 <div>
                   {u.name}
-                  <p className="text-xs text-[#94a3b8]">{u.email}</p>
+                  <p className="text-xs text-[var(--at-muted)]">{u.email}</p>
                 </div>
               ),
             },
@@ -192,7 +192,7 @@ export default function UserManagement() {
             {
               title: 'Actions',
               // No role change or suspension for the signed-in administrator: either could lock them out.
-              render: (_, u: AdminUser) => u.id === me ? <span className="text-xs text-[#94a3b8]">This is you</span> : (
+              render: (_, u: AdminUser) => u.id === me ? <span className="text-xs text-[var(--at-muted)]">This is you</span> : (
                 <div className="flex gap-2">
                   <Button onClick={() => open(u)}>Edit role</Button>
                   {u.status !== 'invited' && (

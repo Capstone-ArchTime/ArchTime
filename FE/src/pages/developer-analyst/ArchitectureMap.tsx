@@ -11,15 +11,15 @@ import type { ProjectSummary } from '@/features/project-data';
 const SAMPLE_IDS = new Set(FIXTURES.map(f => f.id));
 
 function Card({ to, title, subtitle, icon, sample }: { to: string; title: string; subtitle: string; icon: React.ReactNode; sample?: boolean }) {
-  return <Link to={to} className="group flex flex-col overflow-hidden rounded-lg border border-[#242527] bg-[#11161b] transition-colors hover:border-[#3b82f6]/60 focus-visible:outline-2 focus-visible:outline-[#3b82f6]">
-    <div className="relative flex h-36 items-center justify-center border-b border-[#242527] bg-[#080b0e]"
+  return <Link to={to} className="group flex flex-col overflow-hidden rounded-lg border border-[var(--at-line)] bg-[var(--at-panel)] transition-colors hover:border-[var(--at-accent)]/60 focus-visible:outline-2 focus-visible:outline-[var(--at-accent)]">
+    <div className="relative flex h-36 items-center justify-center border-b border-[var(--at-line)] bg-[var(--at-page)]"
       style={{ backgroundImage: 'radial-gradient(circle, #1c2530 1px, transparent 1px)', backgroundSize: '16px 16px' }}>
-      <div className="text-[#93c5fd] opacity-70 transition-opacity group-hover:opacity-100">{icon}</div>
-      {sample && <span className="absolute left-2 top-2 rounded border border-[#3b82f6]/30 bg-[#3b82f6]/10 px-1.5 py-0.5 text-[10px] text-[#93c5fd]">Sample</span>}
+      <div className="text-[var(--at-link)] opacity-70 transition-opacity group-hover:opacity-100">{icon}</div>
+      {sample && <span className="absolute left-2 top-2 rounded border border-[var(--at-accent)]/30 bg-[var(--at-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--at-link)]">Sample</span>}
     </div>
     <div className="px-3 py-2.5">
       <p className="truncate text-sm font-medium group-hover:text-white">{title}</p>
-      <p className="truncate text-xs text-[#94a3b8]">{subtitle}</p>
+      <p className="truncate text-xs text-[var(--at-muted)]">{subtitle}</p>
     </div>
   </Link>;
 }
@@ -49,17 +49,17 @@ export default function ArchitectureMap() {
   return (
     <DashboardLayout>
       <div className="mx-auto max-w-[1400px] space-y-6">
-        <header className="flex flex-wrap items-end justify-between gap-4 border-b border-[#242527] pb-5">
+        <header className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--at-line)] pb-5">
           <div>
             <h2 className="mb-1 text-3xl font-bold tracking-tight">Architecture Map</h2>
-            <p className="max-w-2xl text-sm text-[#94a3b8]">Open a repository to explore its architecture in a full-screen workspace: layers on the left, the diagram in the middle, details on the right.</p>
+            <p className="max-w-2xl text-sm text-[var(--at-muted)]">Open a repository to explore its architecture in a full-screen workspace: layers on the left, the diagram in the middle, details on the right.</p>
           </div>
-          <Input allowClear prefix={<Search size={14} className="text-[#94a3b8]" />} placeholder="Search workspaces" aria-label="Search workspaces" className="!w-64" value={query} onChange={e => setQuery(e.target.value)} />
+          <Input allowClear prefix={<Search size={14} className="text-[var(--at-muted)]" />} placeholder="Search workspaces" aria-label="Search workspaces" className="!w-64" value={query} onChange={e => setQuery(e.target.value)} />
         </header>
         {error && <Alert type="error" showIcon title={error} />}
 
         <section aria-label="Your workspaces" className="space-y-3">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-[#94a3b8]">Your workspaces</h3>
+          <h3 className="text-xs font-medium uppercase tracking-wider text-[var(--at-muted)]">Your workspaces</h3>
           {projects === null ? <div className="p-10 text-center"><Spin /></div>
             : shown.length ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {shown.map(p => <Card key={p.id} to={`/workspace/${encodeURIComponent(p.id)}`} title={p.name} subtitle="Open architecture" icon={<FolderGit2 size={40} />} />)}
@@ -68,7 +68,7 @@ export default function ArchitectureMap() {
         </section>
 
         <section aria-label="Samples" className="space-y-3">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-[#94a3b8]">Samples</h3>
+          <h3 className="text-xs font-medium uppercase tracking-wider text-[var(--at-muted)]">Samples</h3>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {FIXTURES.map(f => <Card key={f.id} sample to={`/workspace/sample/${f.id}`} title={f.label.split(':')[0]} subtitle={f.label.split(':').slice(1).join(':').trim()} icon={<Boxes size={40} />} />)}
           </div>

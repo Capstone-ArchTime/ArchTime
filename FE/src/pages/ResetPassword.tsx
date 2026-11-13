@@ -48,12 +48,12 @@ export default function ResetPassword() {
       if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Please try again.');
     } finally { if (!controller.signal.aborted) setBusy(false); }
   }
-  const inputClass = 'w-full rounded border border-[#242527] bg-[#11161b] p-3 text-white';
-  return <main className="min-h-dvh bg-[#080b0e] text-slate-200 flex items-center justify-center p-6">
+  const inputClass = 'w-full rounded border border-[var(--at-line)] bg-[var(--at-panel)] p-3 text-white';
+  return <main className="min-h-dvh bg-[var(--at-page)] text-slate-200 flex items-center justify-center p-6">
     <section className="w-full max-w-md space-y-6">
       <Logo />
       <h1 className="text-2xl font-bold">{done ? 'Password updated' : 'Reset your password'}</h1>
-      {notice && <p role="status" className="text-[#93c5fd]">{notice}</p>}
+      {notice && <p role="status" className="text-[var(--at-link)]">{notice}</p>}
       {error && <p role="alert" className="text-red-400">{error}</p>}
       {!done && <form onSubmit={submit} noValidate className="space-y-4">
         <label className="block">Email address<input className={inputClass} type="email" autoComplete="email" maxLength={254} value={email} disabled={sent || busy} onChange={e => setEmail(e.target.value)} /></label>
@@ -64,10 +64,10 @@ export default function ResetPassword() {
           <PasswordRequirements id="reset-password-rules" password={password} /></div>
           <label className="block">Confirm new password<input className={inputClass} type="password" autoComplete="off" value={confirmPassword} disabled={busy} onChange={e => setConfirmPassword(e.target.value)} /></label>
         </>}
-        <button disabled={busy} className="w-full rounded bg-[#1d4ed8] hover:bg-[#1e40af] p-3 font-bold text-white disabled:opacity-50">{busy ? 'Please wait...' : sent ? 'Update password' : 'Send reset code'}</button>
-        {sent && <button type="button" disabled={busy} className="text-sm text-[#93c5fd]" onClick={() => { setSent(false); setToken(''); setError(''); setNotice(''); }}>Use another email or request a new code</button>}
+        <button disabled={busy} className="w-full rounded bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] p-3 font-bold text-[var(--at-on-fill)] disabled:opacity-50">{busy ? 'Please wait...' : sent ? 'Update password' : 'Send reset code'}</button>
+        {sent && <button type="button" disabled={busy} className="text-sm text-[var(--at-link)]" onClick={() => { setSent(false); setToken(''); setError(''); setNotice(''); }}>Use another email or request a new code</button>}
       </form>}
-      <Link className="block text-[#93c5fd] hover:underline" to="/login">Back to sign in</Link>
+      <Link className="block text-[var(--at-link)] hover:underline" to="/login">Back to sign in</Link>
     </section>
   </main>;
 }

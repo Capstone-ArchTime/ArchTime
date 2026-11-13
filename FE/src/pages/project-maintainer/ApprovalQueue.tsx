@@ -124,14 +124,14 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
     <DashboardLayout>
       <div className="max-w-[1100px] mx-auto space-y-8">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#f4f4f6] mb-2">Approval Queue</h2>
-          <p className="text-[#94a3b8] text-sm max-w-xl leading-relaxed">
+          <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)] mb-2">Approval Queue</h2>
+          <p className="text-[var(--at-muted)] text-sm max-w-xl leading-relaxed">
             Review architectural changes proposed across the workspaces you maintain
             {pendingCount > 0 && (
-              <> &mdash; <span className="text-[#ffb03a] font-semibold">{pendingCount} awaiting your review</span></>
+              <> &mdash; <span className="text-[var(--at-warn)] font-semibold">{pendingCount} awaiting your review</span></>
             )}.
           </p>
-          <div className="h-[1px] w-full bg-gradient-to-r from-[#242527] to-transparent mt-8"></div>
+          <div className="h-[1px] w-full bg-gradient-to-r from-[var(--at-line)] to-transparent mt-8"></div>
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
@@ -152,15 +152,15 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
         {error && <p className="text-red-400">{error}</p>}
 
         <div className="flex items-center gap-2 flex-wrap">
-          <Filter size={14} className="text-[#94a3b8] mr-1" />
+          <Filter size={14} className="text-[var(--at-muted)] mr-1" />
           {filterOptions.map(opt => (
             <button
               key={opt.key}
               onClick={() => setActiveFilter(opt.key)}
               className={`h-8 px-3 text-[10px] font-bold uppercase tracking-widest border transition-colors ${
                 activeFilter === opt.key
-                  ? 'bg-[#3b82f6]/10 border-[#3b82f6]/40 text-[#93c5fd]'
-                  : 'bg-[#161d24] border-[#242527] text-[#94a3b8] hover:text-[#f4f4f6]'
+                  ? 'bg-[var(--at-accent)]/10 border-[var(--at-accent)]/40 text-[var(--at-link)]'
+                  : 'bg-[var(--at-panel-2)] border-[var(--at-line)] text-[var(--at-muted)] hover:text-[var(--at-text)]'
               }`}
               style={{ fontFamily: fontFamily.mono }}
             >
@@ -170,7 +170,7 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
         </div>
 
         {loading && !approvals.length ? (
-          <div className="p-12 text-center"><Spin /><p className="mt-3 text-[#94a3b8]">Loading approvals...</p></div>
+          <div className="p-12 text-center"><Spin /><p className="mt-3 text-[var(--at-muted)]">Loading approvals...</p></div>
         ) : filtered.length === 0 ? (
           <Empty description="No proposals match this filter" />
         ) : (
@@ -179,7 +179,7 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
               const meta = statusMeta[item.status];
               const StatusIcon = meta.icon;
               return (
-                <div key={item.id} className="bg-[#11161b] border border-[#242527] p-5">
+                <div key={item.id} className="bg-[var(--at-panel)] border border-[var(--at-line)] p-5">
                   <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-2">
@@ -190,12 +190,12 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
                           <StatusIcon size={11} />
                           {meta.label}
                         </span>
-                        <span className="text-[10px] text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>
+                        <span className="text-[10px] text-[var(--at-muted)]" style={{ fontFamily: fontFamily.mono }}>
                           {new Date(item.requestedAt).toLocaleDateString()}
                         </span>
                       </div>
-                      <h4 className="text-[#f4f4f6] font-bold text-sm mb-2">{item.title}</h4>
-                      <div className="flex items-center gap-2 text-xs text-[#94a3b8]" style={{ fontFamily: fontFamily.mono }}>
+                      <h4 className="text-[var(--at-text)] font-bold text-sm mb-2">{item.title}</h4>
+                      <div className="flex items-center gap-2 text-xs text-[var(--at-muted)]" style={{ fontFamily: fontFamily.mono }}>
                         <GitCommit size={12} />
                         <span>{item.project}</span>
                         <span>&middot;</span>
@@ -229,7 +229,7 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
                     </div>
                   </div>
                   {item.reviewedAt && (
-                    <p className="text-xs text-[#94a3b8] pt-3 border-t border-[#242527]">
+                    <p className="text-xs text-[var(--at-muted)] pt-3 border-t border-[var(--at-line)]">
                       {item.reviewedBy} · {new Date(item.reviewedAt).toLocaleString()}
                       {item.reason && ` · ${item.reason}`}
                     </p>
@@ -253,7 +253,7 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
               <p className="whitespace-pre-wrap break-words">{viewing.description}</p>
               <p>Requested by {viewing.requestedBy} on {new Date(viewing.requestedAt).toLocaleString()}</p>
               {viewing.reviewedAt && (
-                <p className="text-sm text-[#94a3b8]">
+                <p className="text-sm text-[var(--at-muted)]">
                   Reviewed by {viewing.reviewedBy} on {new Date(viewing.reviewedAt).toLocaleString()}
                   {viewing.reason && <><br />Reason: {viewing.reason}</>}
                 </p>

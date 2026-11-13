@@ -131,9 +131,112 @@
   }
 }
 
+/*
+ * The app's palette as variables (used by the bg-[var(--at-…)], text-[var(--at-…)] classes). The defaults are the
+ * original colours; a theme on <html data-theme="…"> overrides them. See features/ui-theme.ts.
+ */
+:root {
+  --at-page: #080b0e;
+  --at-sidebar: #0c1015;
+  --at-chrome: #0d1116;
+  --at-panel: #11161b;
+  --at-panel-2: #161d24;
+  --at-line: #242527;
+  --at-text: #f4f4f6;
+  --at-muted: #94a3b8;
+  --at-link: #93c5fd;
+  --at-link-hover: #bfdbfe;
+  --at-accent: #3b82f6;
+  --at-fill: #1d4ed8;
+  --at-fill-hover: #1e40af;
+  --at-on-fill: #ffffff;
+  --at-warn: #ffb03a;
+  --at-glow: #00f0ff;
+}
+
+/*
+ * Frost: the developer-analyst workspace. A misty slate background with a few sparkles, frosted-glass panels with a
+ * thin light edge and a soft glow, ice-blue text, light pill buttons with dark text, Montserrat. Panels are translucent
+ * so the background shows through; every text colour keeps at least 7:1 against the panels.
+ */
+html[data-theme="frost"] {
+  --at-page: rgb(14 19 24 / 0.5);
+  --at-sidebar: rgb(12 17 22 / 0.6);
+  --at-chrome: rgb(14 19 24 / 0.78);
+  --at-panel: rgb(214 225 240 / 0.07);
+  --at-panel-2: rgb(214 225 240 / 0.11);
+  --at-line: rgb(220 230 245 / 0.17);
+  --at-text: #eef2f8;
+  --at-muted: #b4c0ce;
+  --at-link: #d3def3;
+  --at-link-hover: #ffffff;
+  --at-accent: #9db3dc;
+  --at-fill: #e4eaf5;
+  --at-fill-hover: #ffffff;
+  --at-on-fill: #18212c;
+  --at-warn: #f0c27e;
+  --at-glow: #eaf1ff;
+  background-color: #1b2228;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C13 8 16 11 24 12C16 13 13 16 12 24C11 16 8 13 0 12C8 11 11 8 12 0Z' fill='%23f2f6ff' fill-opacity='0.55'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C13 8 16 11 24 12C16 13 13 16 12 24C11 16 8 13 0 12C8 11 11 8 12 0Z' fill='%23f2f6ff' fill-opacity='0.35'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C13 8 16 11 24 12C16 13 13 16 12 24C11 16 8 13 0 12C8 11 11 8 12 0Z' fill='%23f2f6ff' fill-opacity='0.3'/%3E%3C/svg%3E"),
+    linear-gradient(to bottom, rgb(240 245 255 / 0.28), rgb(240 245 255 / 0)),
+    linear-gradient(to bottom, rgb(240 245 255 / 0.22), rgb(240 245 255 / 0)),
+    radial-gradient(900px 520px at 12% 8%, rgb(120 140 160 / 0.32), transparent 65%),
+    radial-gradient(760px 480px at 88% 22%, rgb(96 118 140 / 0.3), transparent 62%),
+    radial-gradient(1000px 640px at 70% 100%, rgb(70 92 112 / 0.38), transparent 60%),
+    linear-gradient(160deg, #2a3138 0%, #1b2228 45%, #151b21 100%);
+  background-size: 22px 22px, 14px 14px, 16px 16px, 1px 160px, 1px 110px, auto, auto, auto, auto;
+  background-position: right 7% top 34%, right 15% bottom 26%, left 3% bottom 14%, right 4% top 0, right 6.5% top 0, 0 0, 0 0, 0 0, 0 0;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+html[data-theme="frost"] body {
+  background: transparent;
+  color: var(--at-text);
+  font-family: "Montserrat", system-ui, sans-serif;
+  letter-spacing: 0.005em;
+}
+html[data-theme="frost"] :is(h1, h2) { letter-spacing: -0.01em; text-shadow: 0 0 22px rgb(220 232 255 / 0.22); }
+/* Small upper-case labels: spaced-out Montserrat, as on the reference; hashes and code keep the monospace face. */
+html[data-theme="frost"] .uppercase:is(.font-mono, [style*="JetBrains Mono"]) {
+  font-family: "Montserrat", system-ui, sans-serif !important;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+/* Frosted-glass panels: rounded, a light edge and a soft glow. */
+html[data-theme="frost"] :is([class~="bg-[var(--at-panel)]"], [class~="bg-[var(--at-panel-2)]"]) {
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 12px 32px -14px rgb(0 0 0 / 0.5), 0 0 24px -10px rgb(205 222 255 / 0.22);
+}
+html[data-theme="frost"] :is([class~="bg-[var(--at-panel)]"], [class~="bg-[var(--at-panel-2)]"])[class~="border"] { border-color: rgb(225 234 248 / 0.26); }
+html[data-theme="frost"] :is(aside, header)[class~="bg-[var(--at-sidebar)]"], html[data-theme="frost"] [class~="bg-[var(--at-chrome)]"] { backdrop-filter: blur(14px); }
+/* Solid buttons become light pills with dark text and a glow. */
+html[data-theme="frost"] [class~="bg-[var(--at-fill)]"] {
+  border-radius: 999px;
+  box-shadow: 0 0 16px rgb(214 228 255 / 0.32), inset 0 -1px 0 rgb(24 33 44 / 0.12);
+}
+/* The landing and sign-in pages use the warm accent for their highlights; in frost they turn ice blue, as on the reference. */
+html[data-theme="frost"] .at-home { --at-warn: #c9d7f2; }
+html[data-theme="frost"] .ant-btn-primary { border-radius: 999px; }
+html[data-theme="frost"] :is(button, a)[class*="bg-[var(--at-accent)]/"] { border-radius: 999px; }
+html[data-theme="frost"] :is(.ant-modal-content, .ant-drawer-content, .ant-dropdown-menu, .ant-select-dropdown, .ant-popover-inner) {
+  border: 1px solid rgb(225 234 248 / 0.22);
+  box-shadow: 0 0 28px -8px rgb(205 222 255 / 0.25), 0 20px 50px -20px rgb(0 0 0 / 0.6);
+}
+html[data-theme="frost"] ::selection { background: rgb(212 224 245 / 0.35); color: #ffffff; }
+/* A handwritten accent, like the "New Subscriber" flourish of the reference: for one or two words, never for reading. */
+html[data-theme="frost"] .at-script { font-family: "Great Vibes", cursive; font-weight: 400; font-size: 1.35em; letter-spacing: 0; text-transform: none; text-shadow: 0 0 18px rgb(230 238 255 / 0.45); }
+
+/* Folder boxes of the Compare drawing: a lighter box on hover, an outline on keyboard focus. */
+.compare-node { outline: none; }
+.compare-node:hover > rect { filter: brightness(1.25); }
+.compare-node:focus-visible > rect { stroke: var(--at-link-hover) !important; stroke-width: 3; }
+
 /* A consistent keyboard focus indicator, including controls using outline-none. */
 :where(a, button, input, textarea, select, [role="button"]):focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid var(--at-accent);
   outline-offset: 3px;
 }
 

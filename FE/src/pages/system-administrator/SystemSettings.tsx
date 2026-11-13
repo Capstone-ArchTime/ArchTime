@@ -75,7 +75,7 @@ export default function SystemSettings() {
           <span>GitHub <Tag>Not verified</Tag></span>
           <span>GitLab <Tag>Not connected</Tag></span>
         </div>
-        <p className="text-sm text-[#94a3b8] mt-4">
+        <p className="text-sm text-[var(--at-muted)] mt-4">
           Provider connections and credential rotation require the administration API.
         </p>
       </section>
@@ -85,7 +85,7 @@ export default function SystemSettings() {
         {loading ? (
           <div className="p-8 text-center">
             <Spin />
-            <p className="mt-3 text-[#94a3b8]">Loading settings...</p>
+            <p className="mt-3 text-[var(--at-muted)]">Loading settings...</p>
           </div>
         ) : (
           <Form
@@ -120,7 +120,7 @@ export default function SystemSettings() {
           </Form>
         )}
         {settings?.updatedAt && (
-          <p className="text-xs text-[#94a3b8] mt-4">
+          <p className="text-xs text-[var(--at-muted)] mt-4">
             Last updated: {new Date(settings.updatedAt).toLocaleString()}
             {settings.updatedBy && ` by ${settings.updatedBy}`}
           </p>
