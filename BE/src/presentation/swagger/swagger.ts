@@ -704,7 +704,7 @@ const options: swaggerJsdoc.Options = {
               enum: ["architecture_summary", "rules_compliance", "evolution_history", "full_audit"],
             },
             generatedBy: { type: "string" },
-            status: { type: "string", enum: ["ready", "generating", "failed"] },
+            status: { type: "string", enum: ["ready"] },
             summary: { type: "string" },
             data: { type: "object" },
             createdAt: { type: "string", format: "date-time" },
