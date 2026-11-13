@@ -5,11 +5,14 @@ import open from "open";
 import { MiningService } from "./infrastructure/services/MiningService.js";
 import { LlmModelRegistry } from "./infrastructure/llm/registry.js";
 import { MongoUserRepository } from "./infrastructure/repositories/MongoUserRepository.js";
+import { MongoProjectRepository } from "./infrastructure/repositories/MongoProjectRepository.js";
 
 async function start(): Promise<void> {
   await connectDb();
   const migrated = await MongoUserRepository.migrateLegacyRoles();
   if (migrated) console.log(`Moved ${migrated} account(s) from the retired project-maintainer system role to user`);
+  const encrypted = await MongoProjectRepository.encryptLegacyTokens();
+  if (encrypted) console.log(`Encrypted the repository token of ${encrypted} workspace(s) saved in plain text`);
   await MiningService.recoverInterruptedJobs();
   await LlmModelRegistry.seedFromEnv();
   const url = `http://localhost:${env.port}`;

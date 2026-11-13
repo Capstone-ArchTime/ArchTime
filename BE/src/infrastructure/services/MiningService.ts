@@ -27,6 +27,7 @@ import {
 import { runArchitectureJob } from './ArchitectureJob.js';
 import { firstParentBase, type ParentIndex } from '../../domain/mining/baseline.js';
 import { MongoOrganizationCredentialRepository } from '../repositories/MongoOrganizationCredentialRepository.js';
+import { MongoProjectRepository } from '../repositories/MongoProjectRepository.js';
 import { allowLocalRepos, validateRepoUrl } from '../../domain/mining/repoUrl.js';
 import { ConflictError, NotFoundError } from '../../shared/errors/AppError.js';
 import { edgeKey, extractDependencies, type Graph, type GraphEdge, type GraphNode } from './DependencyExtractor.js';
@@ -60,6 +61,7 @@ export class MiningService {
   private static readonly running = new Set<string>();
   private static readonly cancelled = new Set<string>();
   private static readonly credentials = new MongoOrganizationCredentialRepository();
+  private static readonly projects = new MongoProjectRepository();
   /**
    * Called after a fetch (scan) or mine finished, or was cancelled with commits kept: the conformance check and its
    * e-mail (RF-29). Set by the container; it never holds up or fails the job, its errors are only logged.
@@ -423,7 +425,7 @@ export class MiningService {
       if (!token) throw new Error('The organization credential for this workspace was deleted. Ask an organization owner to attach another one.');
       return token;
     }
-    return project.visibility === 'private' && project.token ? project.token : undefined;
+    return project.visibility === 'private' ? this.projects.resolveToken(String(project._id ?? project.id)) : undefined;
   }
 
   private static async ensureRepo(project: any, token: string | undefined, report: (stage: string, progress: number) => Promise<void>): Promise<SimpleGit> {

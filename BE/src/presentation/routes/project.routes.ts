@@ -66,7 +66,7 @@ export function createProjectRouter(
    *                 example: public
    *               token:
    *                 type: string
-   *                 description: GitHub personal access token (chỉ cần nếu repo private). Chỉ ghi, không bao giờ được trả về.
+   *                 description: GitHub personal access token (chỉ cần nếu repo private). Chỉ ghi, không bao giờ được trả về; lưu dạng mã hoá AES-256-GCM.
    *               organizationId:
    *                 type: string
    *                 description: Tạo project trong tổ chức này (người gọi phải là Organization Owner). Bỏ trống = không gian cá nhân.

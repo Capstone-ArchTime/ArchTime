@@ -16,6 +16,7 @@
     "reference-check": "tsx scripts/reference-check.ts",
     "jira-preview": "tsx scripts/jira-preview.ts",
     "seed:test": "tsx scripts/seed-test-accounts.ts",
+    "migrate:project-tokens": "tsx scripts/encrypt-project-tokens.ts",
     "test": "node --import tsx --import ./tests/setup-env.mjs --test tests/*.test.mjs",
     "db:init": "tsx scripts/db-init.ts",
     "seed:demo": "tsx scripts/db-init.ts && tsx scripts/seed-test-accounts.ts",
