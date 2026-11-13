@@ -39,15 +39,17 @@ export interface AdminAuditLogsResponse {
   };
 }
 
+/** The limits the System Settings page edits, named as the server stores them (GET/PUT /admin/settings). */
 export interface AdminSettings {
   maxConcurrentJobs: number;
-  maxRepoSizeGb: number;
+  maxRepoSizeMb: number;
   updatedAt?: string;
   updatedBy?: string;
 }
 
+/** The server wraps the settings: `{ data: { settings } }`. */
 export interface AdminSettingsResponse {
-  data: AdminSettings;
+  data: { settings: AdminSettings };
 }
 
 export interface AdminMetrics {

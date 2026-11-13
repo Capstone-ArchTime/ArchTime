@@ -22,8 +22,8 @@ export default function SystemSettings() {
     setLoading(true);
     getAdminSettings(controller.signal)
       .then(res => {
-        setSettings(res.data);
-        form.setFieldsValue(res.data);
+        setSettings(res.data.settings);
+        form.setFieldsValue(res.data.settings);
         setError(null);
         setDirty(false);
       })
@@ -36,12 +36,12 @@ export default function SystemSettings() {
     return () => controller.abort();
   }, [revision, form]);
 
-  async function handleSubmit(values: { maxConcurrentJobs: number; maxRepoSizeGb: number }) {
+  async function handleSubmit(values: { maxConcurrentJobs: number; maxRepoSizeMb: number }) {
     setSaving(true);
     try {
       const res = await updateAdminSettings(values);
-      setSettings(res.data);
-      form.setFieldsValue(res.data);
+      setSettings(res.data.settings);
+      form.setFieldsValue(res.data.settings);
       setDirty(false);
       message.success('Settings saved.');
     } catch (e) {
@@ -103,11 +103,11 @@ export default function SystemSettings() {
               <InputNumber min={1} max={16} precision={0} className="w-full max-w-xs" />
             </Form.Item>
             <Form.Item
-              name="maxRepoSizeGb"
-              label="Max repository size (GB)"
-              rules={[{ required: true, type: 'integer', min: 1, max: 50 }]}
+              name="maxRepoSizeMb"
+              label="Max repository size (MB)"
+              rules={[{ required: true, type: 'integer', min: 1, max: 51200 }]}
             >
-              <InputNumber min={1} max={50} precision={0} className="w-full max-w-xs" />
+              <InputNumber min={1} max={51200} precision={0} className="w-full max-w-xs" />
             </Form.Item>
             <div className="flex gap-3">
               <Button type="primary" htmlType="submit" loading={saving} disabled={!dirty}>
