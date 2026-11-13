@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, Button, Spin, Tag } from 'antd';
 import FeaturePage, { featurePanel } from '@/components/FeaturePage';
+import { nestedPanel, pillLink, sectionTitle, statCard, statLabel } from './admin-ui';
 import { apiRequest } from '@/api/client';
 import { getAdminMetrics, getServicesStatus, getAdminUsers, getAdminAuditLogs, getAIModelsHealth } from '@/features/admin-api';
 import type { AdminMetrics, ServiceStatus, AdminUser, AdminAuditLog, AIModelUsage } from '@/features/admin-api';
@@ -103,8 +104,8 @@ export default function Dashboard() {
       }
     >
       <section className={featurePanel}>
-        <h3 className="font-semibold mb-3">
-          API health{' '}
+        <h3 className={`${sectionTitle} mb-3 flex flex-wrap items-center gap-2`}>
+          API health
           <Tag color={health ? 'green' : healthError ? 'red' : 'default'}>
             {healthLoading ? 'Checking' : health ? 'Responding' : 'Unavailable'}
           </Tag>
@@ -119,7 +120,7 @@ export default function Dashboard() {
 
       {/* Panels with no data from the server are left out instead of showing empty tiles. */}
       {(servicesLoading || services.length > 0) && <section className={featurePanel}>
-        <h3 className="font-semibold mb-3">Services Status</h3>
+        <h3 className={`${sectionTitle} mb-3`}>Services status</h3>
         {servicesLoading ? (
           <Spin size="small" />
         ) : (
@@ -133,11 +134,11 @@ export default function Dashboard() {
         )}
       </section>}
 
-      {metricTiles.length > 0 && <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {metricTiles.length > 0 && <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {metricTiles.map(({ label, value, unit }) => (
-          <div key={label} className={featurePanel}>
-            <p className="text-xs text-[var(--at-muted)]">{label}</p>
-            <p className="text-3xl my-3">{metricsLoading ? <Spin size="small" /> : `${value}${unit}`}</p>
+          <div key={label} className={statCard}>
+            <p className={statLabel}>{label}</p>
+            <p className="text-3xl font-bold mt-3">{metricsLoading ? <Spin size="small" /> : `${value}${unit}`}</p>
           </div>
         ))}
       </section>}
@@ -152,7 +153,7 @@ export default function Dashboard() {
           <Link
             key={path}
             to={`/system-administrator/${path}`}
-            className="border border-[var(--at-line)] px-4 py-3 text-sm text-[var(--at-link)] hover:border-[var(--at-accent)]"
+            className={pillLink}
           >
             {label} →
           </Link>
@@ -160,9 +161,9 @@ export default function Dashboard() {
       </div>
 
       <section className={featurePanel}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold">AI Model Health</h3>
-          <Link to="/system-administrator/ai-metrics" className="text-xs text-[var(--at-link)]">Usage & metrics →</Link>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 mb-4">
+          <h3 className={sectionTitle}>AI model health</h3>
+          <Link to="/system-administrator/ai-metrics" className="text-sm text-[var(--at-link)] hover:text-[var(--at-link-hover)]">Usage & metrics →</Link>
         </div>
         {aiLoading ? (
           <Spin size="small" />
@@ -172,25 +173,25 @@ export default function Dashboard() {
           <p className="text-sm text-[var(--at-muted)]">No AI model is configured. <Link to="/system-administrator/ai-models" className="text-[var(--at-link)]">Add one under AI Models</Link>.</p>
         ) : (
           <>
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="bg-[var(--at-panel)] border border-[var(--at-line)] p-4">
-                <p className="text-xs text-[var(--at-muted)]">Total Cost (This Month)</p>
-                <p className="text-2xl font-bold text-[var(--at-link)] mt-1">${aiTotalCost.toFixed(aiTotalCost > 0 && aiTotalCost < 1 ? 4 : 2)}</p>
+            <div className="grid gap-4 mb-6 sm:grid-cols-3">
+              <div className={nestedPanel}>
+                <p className={statLabel}>Total Cost (This Month)</p>
+                <p className="text-2xl font-bold text-[var(--at-link)] mt-2">${aiTotalCost.toFixed(aiTotalCost > 0 && aiTotalCost < 1 ? 4 : 2)}</p>
               </div>
-              <div className="bg-[var(--at-panel)] border border-[var(--at-line)] p-4">
-                <p className="text-xs text-[var(--at-muted)]">Total Tokens Used</p>
-                <p className="text-2xl font-bold mt-1">{(aiTotalTokens / 1000000).toFixed(2)}M</p>
+              <div className={nestedPanel}>
+                <p className={statLabel}>Total Tokens Used</p>
+                <p className="text-2xl font-bold mt-2">{(aiTotalTokens / 1000000).toFixed(2)}M</p>
               </div>
-              <div className="bg-[var(--at-panel)] border border-[var(--at-line)] p-4">
-                <p className="text-xs text-[var(--at-muted)]">Default Model</p>
-                <p className="text-lg font-semibold mt-1 text-[var(--at-link)]">{aiDefaultModel || '–'}</p>
+              <div className={nestedPanel}>
+                <p className={statLabel}>Default Model</p>
+                <p className="text-lg font-semibold mt-2 text-[var(--at-link)] break-words">{aiDefaultModel || '–'}</p>
               </div>
             </div>
             <div className="space-y-3">
               {aiModels.map(m => (
-                <div key={m.id ?? m.model} className="flex items-center justify-between p-3 bg-[var(--at-panel)] border border-[var(--at-line)]">
+                <div key={m.id ?? m.model} className={`${nestedPanel} flex flex-wrap items-center justify-between gap-3`}>
                   <div className="flex items-center gap-3">
-                    <Tag color={m.provider === 'anthropic' ? 'purple' : m.provider === 'gemini' ? 'blue' : 'green'}>{m.provider}</Tag>
+                    <Tag>{m.provider}</Tag>
                     <div>
                       <p className="font-medium">{m.model}</p>
                       <p className="text-xs text-[var(--at-muted)]">
@@ -219,21 +220,28 @@ export default function Dashboard() {
       </section>
 
       <section className={featurePanel}>
-        <h3 className="font-semibold mb-4">User Overview</h3>
+        <h3 className={`${sectionTitle} mb-4`}>User overview</h3>
         {usersLoading ? (
           <Spin size="small" />
         ) : (
-          <div className="flex flex-wrap gap-4 text-sm">
-            <span>{users.length} total accounts</span>
-            <span>{users.filter(u => u.status === 'active').length} active</span>
-            <span>{users.filter(u => u.status === 'invited').length} pending invitations</span>
-            <span>{users.filter(u => u.status === 'suspended').length} suspended</span>
-          </div>
+          <dl className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+            {[
+              ['Total accounts', users.length],
+              ['Active', users.filter(u => u.status === 'active').length],
+              ['Pending invitations', users.filter(u => u.status === 'invited').length],
+              ['Suspended', users.filter(u => u.status === 'suspended').length],
+            ].map(([label, count]) => (
+              <div key={label} className={nestedPanel}>
+                <dt className={statLabel}>{label}</dt>
+                <dd className="text-2xl font-bold mt-2">{count}</dd>
+              </div>
+            ))}
+          </dl>
         )}
       </section>
 
       <section className={featurePanel}>
-        <h3 className="font-semibold mb-4">Recent Activity</h3>
+        <h3 className={`${sectionTitle} mb-4`}>Recent activity</h3>
         {logsLoading ? (
           <Spin size="small" />
         ) : recentLogs.length ? (
@@ -250,7 +258,7 @@ export default function Dashboard() {
         ) : (
           <p className="text-sm text-[var(--at-muted)]">No recent activity.</p>
         )}
-        <Link to="/system-administrator/audit-log" className="text-sm text-[var(--at-link)] mt-4 inline-block">
+        <Link to="/system-administrator/audit-log" className="text-sm text-[var(--at-link)] hover:text-[var(--at-link-hover)] mt-4 inline-block">
           View all activity →
         </Link>
       </section>

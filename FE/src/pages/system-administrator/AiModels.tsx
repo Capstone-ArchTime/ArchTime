@@ -5,6 +5,7 @@ import { Activity, Pencil, Plus, Search, Star, Trash2 } from 'lucide-react';
 import FindModelsModal from './FindModelsModal';
 import type { FindModelsStart } from './FindModelsModal';
 import FeaturePage, { featurePanel } from '@/components/FeaturePage';
+import { statLabel, tablePanel } from './admin-ui';
 import {
   createAdminModel, deleteAdminModel, formatCost, formatMs, formatTokens, getAdminModels, healthColor, setDefaultAdminModel, testAdminModel,
   testAllAdminModels, updateAdminModel, updateLlmSettings,
@@ -126,14 +127,14 @@ export default function AiModels() {
 
   const columns: ColumnsType<AdminModel> = [
     { title: 'Model', render: (_, m) => <div>
-      <div className="flex flex-wrap items-center gap-1"><span className="font-medium">{m.displayName}</span>{m.isDefault && <Tag color="gold" icon={<Star size={10} className="inline -mt-0.5 mr-0.5" />}>Default</Tag>}</div>
+      <div className="flex flex-wrap items-center gap-1"><span className="font-medium">{m.displayName}</span>{m.isDefault && <Tag color="blue" icon={<Star size={10} className="inline -mt-0.5 mr-0.5" />}>Default</Tag>}</div>
       <p className="text-[11px] text-[var(--at-muted)] font-mono">{m.provider} · {m.model}</p>
-      <p className="text-[11px] text-[var(--at-muted)]">{m.host || 'no host'} · <Tag className="!text-[10px]" color={m.external ? 'blue' : 'green'}>{m.external ? 'External' : 'Local'}</Tag>{m.hasApiKey ? `key …${m.apiKeyLast4}` : 'no key'}</p>
+      <p className="text-[11px] text-[var(--at-muted)]">{m.host || 'no host'} · <Tag className="!text-[10px]">{m.external ? 'External' : 'Local'}</Tag>{m.hasApiKey ? `key …${m.apiKeyLast4}` : 'no key'}</p>
     </div> },
     { title: 'Health', render: (_, m) => <Tooltip title={m.health?.lastError ?? (m.health?.checkedAt ? `Checked ${new Date(m.health.checkedAt).toLocaleString()}` : 'Not checked yet')}>
       <Tag color={healthColor[m.health?.status ?? 'unknown']}>{m.health?.status ?? 'unknown'}</Tag>{m.health?.latencyMs !== undefined && <span className="text-xs text-[var(--at-muted)]">{formatMs(m.health.latencyMs)}</span>}
     </Tooltip> },
-    { title: 'Price / 1M tokens', render: (_, m) => <span className="text-xs font-mono">in {formatCost(m.pricing?.inputPerMTok)} · out {formatCost(m.pricing?.outputPerMTok)}{m.pricing?.cacheReadPerMTok !== undefined ? ` · cache ${formatCost(m.pricing.cacheReadPerMTok)}` : ''}</span> },
+    { title: 'Price / 1M tokens', render: (_, m) => <span className="text-xs">in {formatCost(m.pricing?.inputPerMTok)} · out {formatCost(m.pricing?.outputPerMTok)}{m.pricing?.cacheReadPerMTok !== undefined ? ` · cache ${formatCost(m.pricing.cacheReadPerMTok)}` : ''}</span> },
     { title: 'Last 30 days', render: (_, m) => <span className="text-xs">{formatTokens(m.usage30d.runs)} runs · {formatTokens(m.usage30d.totalTokens)} tokens · {formatCost(m.usage30d.cost)}</span> },
     { title: 'On', render: (_, m) => <Switch size="small" checked={m.enabled} loading={busy === m.id} aria-label={`Turn ${m.displayName} ${m.enabled ? 'off' : 'on'}`} onChange={on => void act(m.id, () => updateAdminModel(m.id, { enabled: on }), on ? 'Model turned on.' : 'Model turned off.')} /> },
     { title: 'Users can pick', render: (_, m) => <Switch size="small" checked={m.visibleToUsers} disabled={!m.enabled} aria-label={`Offer ${m.displayName} to users`} onChange={on => void act(m.id, () => updateAdminModel(m.id, { visibleToUsers: on }), 'Saved.')} /> },
@@ -161,9 +162,9 @@ export default function AiModels() {
     {list && <div className={`${featurePanel} flex flex-wrap items-center gap-3`}>
       <Switch checked={list.allowUserModelChoice} aria-label="Let users choose the model"
         onChange={on => void act('settings', () => updateLlmSettings({ allowUserModelChoice: on }), on ? 'Users can now choose a model.' : 'Users now always get the default model.')} />
-      <div><p className="text-sm font-medium">Let users choose the model</p><p className="text-xs text-[var(--at-muted)]">When off, every request uses the default model.</p></div>
+      <div><p className="text-base font-bold">Let users choose the model</p><p className="text-xs text-[var(--at-muted)]">When off, every request uses the default model.</p></div>
     </div>}
-    <div className={featurePanel}>
+    <div className={tablePanel}>
       <Table<AdminModel> rowKey="id" size="small" loading={loading} columns={columns} dataSource={list?.models ?? []} pagination={false} scroll={{ x: 1100 }} />
     </div>
 
@@ -184,13 +185,13 @@ export default function AiModels() {
           <Form.Item name="apiKey" label="API key" extra={editing?.hasApiKey ? `Stored key ends in …${editing.apiKeyLast4}. Leave blank to keep it.` : provider === 'openai-compatible' ? 'Optional for self-hosted servers.' : undefined}
             rules={[{ required: !editing && provider !== 'openai-compatible', min: 8 }]}><Input.Password autoComplete="new-password" placeholder={editing?.hasApiKey ? '••••••••' : ''} /></Form.Item>
         </div>
-        <p className="text-sm font-medium mt-2 mb-2">Price (USD per 1 million tokens; 0 for self-hosted)</p>
+        <p className={`${statLabel} mt-2 mb-3`}>Price (USD per 1 million tokens; 0 for self-hosted)</p>
         <div className="grid gap-x-4 sm:grid-cols-3">
           <Form.Item name="inputPerMTok" label="Input"><InputNumber min={0} step={0.1} className="!w-full" /></Form.Item>
           <Form.Item name="outputPerMTok" label="Output"><InputNumber min={0} step={0.1} className="!w-full" /></Form.Item>
           <Form.Item name="cacheReadPerMTok" label="Cached input"><InputNumber min={0} step={0.01} className="!w-full" placeholder="= input" /></Form.Item>
         </div>
-        <p className="text-sm font-medium mt-2 mb-2">Request options</p>
+        <p className={`${statLabel} mt-2 mb-3`}>Request options</p>
         <div className="grid gap-x-4 sm:grid-cols-3">
           {provider === 'anthropic' && <Form.Item name="effort" label="Effort"><Select allowClear placeholder="medium" options={['low', 'medium', 'high'].map(v => ({ value: v, label: v }))} /></Form.Item>}
           <Form.Item name="maxTokens" label="Max output tokens"><InputNumber min={256} max={64000} step={1000} className="!w-full" /></Form.Item>

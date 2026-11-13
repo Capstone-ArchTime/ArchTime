@@ -15,9 +15,13 @@ test('the public pages (landing, sign-in, sign-up and their follow-ups) wear the
   }
 });
 
-test("the administrators' console keeps the default look", () => {
-  assert.equal(themeFor('system-administrator', '/system-administrator'), 'default');
-  assert.equal(themeFor('system-administrator', '/system-administrator/users'), 'default');
-  assert.equal(themeFor('system-administrator', '/profile'), 'default');
-  assert.equal(themeFor(undefined, '/dashboard'), 'default', 'a guarded page before the session is known');
+test("the administrators' console wears the frost look too", () => {
+  for (const path of ['/system-administrator', '/system-administrator/users', '/system-administrator/ai-metrics', '/profile']) {
+    assert.equal(themeFor('system-administrator', path), 'frost', path);
+  }
+});
+
+test('a guarded page before the session is known keeps the default look', () => {
+  assert.equal(themeFor(undefined, '/dashboard'), 'default');
+  assert.equal(themeFor(undefined, '/system-administrator'), 'default');
 });

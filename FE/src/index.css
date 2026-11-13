@@ -225,6 +225,13 @@ html[data-theme="frost"] :is(.ant-modal-content, .ant-drawer-content, .ant-dropd
   border: 1px solid rgb(225 234 248 / 0.22);
   box-shadow: 0 0 28px -8px rgb(205 222 255 / 0.25), 0 20px 50px -20px rgb(0 0 0 / 0.6);
 }
+/* Chips (DESIGN.md): small pills, a faint tint of their colour behind same-colour text. Success for added/healthy,
+   Error for removed/failed, Honey for changed/needs attention, ice tones for neutral tags; never saturated hues. */
+html[data-theme="frost"] .ant-tag { border-radius: 999px; padding-inline: 10px; background: rgb(214 225 240 / 0.08); border-color: rgb(220 230 245 / 0.22); color: #eef2f8; }
+html[data-theme="frost"] :is(.ant-tag-green, .ant-tag-success) { background: rgb(74 222 128 / 0.12); border-color: rgb(74 222 128 / 0.38); color: #4ade80; }
+html[data-theme="frost"] :is(.ant-tag-red, .ant-tag-error) { background: rgb(248 113 113 / 0.12); border-color: rgb(248 113 113 / 0.4); color: #f87171; }
+html[data-theme="frost"] :is(.ant-tag-gold, .ant-tag-orange, .ant-tag-warning) { background: rgb(240 194 126 / 0.12); border-color: rgb(240 194 126 / 0.4); color: #f0c27e; }
+html[data-theme="frost"] :is(.ant-tag-blue, .ant-tag-processing, .ant-tag-geekblue, .ant-tag-cyan, .ant-tag-purple) { background: rgb(157 179 220 / 0.14); border-color: rgb(157 179 220 / 0.4); color: #d3def3; }
 html[data-theme="frost"] ::selection { background: rgb(212 224 245 / 0.35); color: #ffffff; }
 /* A handwritten accent, like the "New Subscriber" flourish of the reference: for one or two words, never for reading. */
 html[data-theme="frost"] .at-script { font-family: "Great Vibes", cursive; font-weight: 400; font-size: 1.35em; letter-spacing: 0; text-transform: none; text-shadow: 0 0 18px rgb(230 238 255 / 0.45); }

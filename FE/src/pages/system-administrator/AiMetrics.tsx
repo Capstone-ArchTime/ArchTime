@@ -9,6 +9,7 @@ import {
 } from '@/features/llm-api';
 import type { AdminModel, BenchmarkDetail, BenchmarkSummary, BenchmarkTarget, Leaderboard, LeaderboardRow, ScorePreset, UsageReport, UsageRow } from '@/features/llm-api';
 import { drawingStats } from '@/features/llm-run-view';
+import { sectionTitle, statCard, statLabel } from './admin-ui';
 
 const RANGES = [{ value: 7, label: '7 days' }, { value: 30, label: '30 days' }, { value: 90, label: '90 days' }];
 const PRESETS: { value: ScorePreset; label: string }[] = [{ value: 'balanced', label: 'Balanced' }, { value: 'quality', label: 'Quality first' }, { value: 'budget', label: 'Budget' }];
@@ -23,7 +24,7 @@ function runsHint(t: UsageReport['totals'] | undefined): string | undefined {
 }
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return <div className={featurePanel}><p className="text-xs uppercase tracking-wider text-[var(--at-muted)]">{label}</p><p className="mt-2 text-2xl font-semibold font-mono">{value}</p>{hint && <p className="mt-1 text-xs text-[var(--at-muted)]">{hint}</p>}</div>;
+  return <div className={statCard}><p className={statLabel}>{label}</p><p className="mt-3 text-2xl font-bold">{value}</p>{hint && <p className="mt-1 text-xs text-[var(--at-muted)]">{hint}</p>}</div>;
 }
 
 /** One bar per day, zero days included so gaps read as gaps. Hover shows the day's numbers; the table below holds the same data. */
@@ -38,7 +39,7 @@ function TokensByDay({ rows, days }: { rows: UsageRow[]; days: number }) {
   const max = Math.max(1, ...series.map(s => s.row?.totalTokens ?? 0));
   if (!rows.length) return <Empty description="No AI runs in this period" />;
   return <figure aria-label="Tokens used per day">
-    <div className="flex items-baseline justify-between text-xs text-[var(--at-muted)] mb-2"><span>Tokens per day</span><span className="font-mono">peak {formatCompactTokens(max)}</span></div>
+    <div className="flex items-baseline justify-between text-xs text-[var(--at-muted)] mb-2"><span className={statLabel}>Tokens per day</span><span>peak {formatCompactTokens(max)}</span></div>
     <div className="relative h-40 border-b border-[var(--at-line)]">
       <div className="absolute inset-x-0 top-0 border-t border-dashed border-[var(--at-line)]" aria-hidden />
       <div className="absolute inset-0 flex items-end gap-[2px]">
@@ -47,24 +48,24 @@ function TokensByDay({ rows, days }: { rows: UsageRow[]; days: number }) {
           return <Tooltip key={s.day} title={<div className="text-xs"><p className="font-medium">{new Date(s.day).toLocaleDateString()}</p>
             {s.row ? <><p>{formatTokens(s.row.inputTokens)} in · {formatTokens(s.row.outputTokens)} out</p><p>{formatTokens(s.row.runs)} runs · {formatCost(s.row.cost)}</p></> : <p>No runs</p>}</div>}>
             <div className="group flex h-full flex-1 items-end" role="img" aria-label={`${s.day}: ${formatTokens(total)} tokens`}>
-              <div className="w-full rounded-t-[4px] bg-[var(--at-accent)] group-hover:bg-[#60a5fa]" style={{ height: total ? `${Math.max(2, (total / max) * 100)}%` : 0 }} />
+              <div className="w-full rounded-t-[4px] bg-[var(--at-accent)] group-hover:bg-[var(--at-link-hover)]" style={{ height: total ? `${Math.max(2, (total / max) * 100)}%` : 0 }} />
             </div>
           </Tooltip>;
         })}
       </div>
     </div>
-    <div className="flex justify-between text-[11px] text-[var(--at-muted)] mt-1 font-mono"><span>{series[0].day}</span><span>{series[series.length - 1].day}</span></div>
+    <div className="flex justify-between text-[11px] text-[var(--at-muted)] mt-1"><span>{series[0].day}</span><span>{series[series.length - 1].day}</span></div>
   </figure>;
 }
 
 function ScoreBar({ value }: { value: number }) {
-  return <div className="flex items-center gap-2 min-w-32"><Progress percent={value} showInfo={false} size="small" strokeColor="#3b82f6" className="!m-0 flex-1" /><span className="font-mono text-sm w-10 text-right">{value.toFixed(1)}</span></div>;
+  return <div className="flex items-center gap-2 min-w-32"><Progress percent={value} showInfo={false} size="small" strokeColor="var(--at-accent)" className="!m-0 flex-1" /><span className="text-sm w-10 text-right">{value.toFixed(1)}</span></div>;
 }
 
 const leaderboardColumns: ColumnsType<LeaderboardRow> = [
   { title: '#', width: 40, render: (_, __, i) => i + 1 },
   { title: 'Model', render: (_, r) => <div>
-    <div className="flex flex-wrap items-center gap-1"><span className="font-medium">{r.displayName}</span>{r.recommended && <Tag color="gold" icon={<Star size={10} className="inline -mt-0.5 mr-0.5" />}>Recommended</Tag>}{!r.enabled && <Tag>off</Tag>}{r.health !== 'unknown' && r.health !== 'up' && <Tag color={healthColor[r.health]}>{r.health}</Tag>}</div>
+    <div className="flex flex-wrap items-center gap-1"><span className="font-medium">{r.displayName}</span>{r.recommended && <Tag color="blue" icon={<Star size={10} className="inline -mt-0.5 mr-0.5" />}>Recommended</Tag>}{!r.enabled && <Tag>off</Tag>}{r.health !== 'unknown' && r.health !== 'up' && <Tag color={healthColor[r.health]}>{r.health}</Tag>}</div>
     <p className="text-[11px] text-[var(--at-muted)] font-mono">{r.provider} · {r.model}</p>
   </div> },
   { title: <Tooltip title="100 × weighted sum of the five parts on the right">Score</Tooltip>, render: (_, r) => r.stats.n ? <Tooltip title={r.reasons.length ? `Not recommended: ${r.reasons.join('; ')}` : r.confident ? undefined : 'Fewer than 5 runs: pulled towards the average'}><div><ScoreBar value={r.score} />{!r.confident && <span className="text-[10px] text-[var(--at-muted)]">few runs</span>}</div></Tooltip> : <span className="text-[var(--at-muted)]">no runs</span> },
@@ -136,8 +137,8 @@ function BenchmarkPanel({ models }: { models: AdminModel[] }) {
         { title: 'Runs', dataIndex: 'runs', align: 'right' },
         { title: '', align: 'right', render: (_, b) => <Button size="small" onClick={() => void show(b.id)}>Results</Button> },
       ]} />
-    {open && <div className={`${featurePanel} space-y-3`}>
-      <div className="flex justify-between"><h4 className="font-semibold">Benchmark results</h4><Button size="small" onClick={() => setOpen(null)}>Close</Button></div>
+    {open && <div className="border border-[var(--at-line)] bg-[var(--at-panel-2)] p-5 space-y-3">
+      <div className="flex justify-between"><h4 className="text-base font-bold">Benchmark results</h4><Button size="small" onClick={() => setOpen(null)}>Close</Button></div>
       <Table<LeaderboardRow> rowKey="id" size="small" pagination={false} dataSource={open.leaderboard.rows} columns={leaderboardColumns} scroll={{ x: 900 }} />
       <Table rowKey="id" size="small" pagination={false} dataSource={open.runs} scroll={{ x: 900 }}
         columns={[
@@ -218,7 +219,7 @@ export default function AiMetrics() {
 
     <div className={`${featurePanel} space-y-3`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-lg font-semibold">Model comparison</h3>
+        <h3 className={sectionTitle}>Model comparison</h3>
         <Space wrap>
           <Select aria-label="Repository size" value={mode} onChange={setMode} options={[{ value: 'all', label: 'All sizes' }, { value: 'refine', label: 'Small repos (regrouped)' }, { value: 'name-only', label: 'Large repos (names only)' }]} />
           <Select aria-label="Run source" value={purpose} onChange={setPurpose} options={[{ value: 'all', label: 'All runs' }, { value: 'user', label: 'User runs' }, { value: 'benchmark', label: 'Benchmarks' }]} />
