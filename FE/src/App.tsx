@@ -32,6 +32,7 @@ const ProjectMaintainerReports = lazy(() => import("@/pages/project-maintainer/R
 const ComponentDiagram = lazy(() => import("@/pages/project-maintainer/ComponentDiagram"));
 const ArchitectureRules = lazy(() => import("@/pages/project-maintainer/ArchitectureRules"));
 const ConformanceFindings = lazy(() => import("@/pages/project-maintainer/ConformanceFindings"));
+const AgentAccess = lazy(() => import("@/pages/project-maintainer/AgentAccess"));
 const DesignDecisions = lazy(() => import("@/pages/project-maintainer/DesignDecisions"));
 const SystemAdministratorDashboard = lazy(() => import("@/pages/system-administrator/Dashboard"));
 const SystemSettings = lazy(() => import("@/pages/system-administrator/SystemSettings"));
@@ -113,6 +114,7 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path="/project-maintainer/component-diagram" element={<ComponentDiagram />} />
       <Route path="/project-maintainer/architecture-rules" element={<ArchitectureRules />} />
       <Route path="/project-maintainer/conformance" element={<ConformanceFindings />} />
+      <Route path="/project-maintainer/agent-access" element={<AgentAccess />} />
       <Route path="/project-maintainer/design-decisions" element={<DesignDecisions />} />
       <Route path="/system-administrator" element={<SystemAdministratorDashboard />} />
       <Route path="/system-administrator/users" element={<UserManagement />} />

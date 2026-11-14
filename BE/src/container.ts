@@ -342,6 +342,10 @@ import { CheckConformanceUseCase, DecideFindingUseCase, ExplainFindingUseCase, L
 import { FindingNotifier, conformanceAfterMining } from "./application/use-cases/conformance/FindingNotifier.js";
 import { mongoConformanceDirectory } from "./infrastructure/services/ConformanceDirectory.js";
 import { MiningService } from "./infrastructure/services/MiningService.js";
+import { AgentContextUseCases, AgentTokenUseCases } from "./application/use-cases/agent/AgentUseCases.js";
+import { MongoAgentTokenRepository } from "./infrastructure/repositories/MongoAgentTokenRepository.js";
+import { AgentController } from "./presentation/controllers/AgentController.js";
+import { AuditService } from "./infrastructure/services/AuditService.js";
 import { MongoConformanceRepository, mongoConformanceSnapshots } from "./infrastructure/repositories/MongoConformanceRepository.js";
 import { ConformanceController } from "./presentation/controllers/ConformanceController.js";
 import { LlmModelRegistry } from "./infrastructure/llm/registry.js";
@@ -380,6 +384,12 @@ export const findingNotifier = new FindingNotifier(
   env.corsOrigin.split(",")[0].trim(),
 );
 MiningService.onHistoryChanged = conformanceAfterMining(checkConformanceUseCase, findingNotifier);
+
+// ── Agent access (RF-09, UC-42 – UC-44) ──
+export const agentController = new AgentController(
+  new AgentTokenUseCases(new MongoAgentTokenRepository(), projectRepository, entry => AuditService.log({ ...entry, targetType: "project" })),
+  new AgentContextUseCases(workspaceRepository, projectRepository, env.publicApiUrl),
+);
 export const adminLlmController = new AdminLlmController(new AdminLlmUseCases());
 
 export const adminControllersConfig: AdminControllersConfig = {
