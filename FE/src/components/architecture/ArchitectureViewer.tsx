@@ -30,6 +30,8 @@ import { COMPONENT_ROLES } from '@/features/architecture/types';
 import type { ArchitectureView, ComponentRole } from '@/features/architecture/types';
 import type { SnapshotSummary } from '@/features/architecture/api';
 import { useCommitImpacts } from '@/features/useCommitImpacts';
+import { EVOLUTION_MARK } from '@/features/architecture/evolution';
+import type { EvolutionMark, HistoryEntry } from '@/features/architecture/evolution';
 
 const isTyping = (target: EventTarget | null) => target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 /** What "Show in diagram" highlights when an issue involves several components; valid only for the URL it was made at. */
@@ -41,12 +43,16 @@ interface Pin { at: string; id: string; title: string; nodes: Set<string>; edges
  * `base` carries that choice so it is kept in the URL together with the viewer state. Panel rules (which are open at
  * which width, full screen, what is remembered) live in features/architecture/panels.ts.
  */
-export default function ArchitectureViewer({ view, base, hash, commit, overview, snapshots, snapshotId, onSnapshot, focusMode, onFocusMode, issueContext, onIssueAction, exportInfo, projectId, mappingVersion }: {
+export default function ArchitectureViewer({ view, base, hash, commit, overview, snapshots, snapshotId, onSnapshot, focusMode, onFocusMode, issueContext, onIssueAction, exportInfo, projectId, mappingVersion, marks, historyFor }: {
   view: ArchitectureView;
   base: ViewerState;
   hash: string;
   commit: (state: ViewerState, push?: boolean) => void;
   /** Shown in the properties panel when nothing is selected: quality, AI results… */
+  /** How each component came about since the previous snapshot (features/architecture/evolution.ts); drawn on the cards. */
+  marks?: Record<string, EvolutionMark>;
+  /** The names a component had in earlier snapshots, shown when it is selected. */
+  historyFor?: (componentId: string) => HistoryEntry[];
   overview?: ReactNode;
   snapshots?: SnapshotSummary[];
   snapshotId?: string;
@@ -204,6 +210,8 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
   }
 
   const options = scene.nodes.map(n => ({ value: n.id, label: n.title }));
+  const markKinds = [...new Set(Object.values(marks ?? {}).map(m => m.kind))];
+  const history = scene.mode === 'components' && state.focus && historyFor ? historyFor(state.focus) : [];
   const roleOptions = COMPONENT_ROLES.filter(r => view.components.some(c => c.role === r)).map(r => ({ value: r, label: ROLE_LABEL[r] }));
   const panel = 'rounded-lg border border-[#2a3441] bg-[var(--at-panel)]/95 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur';
 
@@ -224,7 +232,7 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
 
     <ArchitectureDiagram className="h-full min-w-0 flex-1" apiRef={viewport}
       gridColor={themeName === 'light' ? '#dbe2ea' : frost ? '#323c45' : '#1c2530'} scene={scene} layout={layout} theme={theme} title={caption.title} highlight={highlight}
-      selectedNode={state.focus} selectedEdge={state.edge} hoverEdge={hoverEdge} showWeights={weights}
+      selectedNode={state.focus} selectedEdge={state.edge} hoverEdge={hoverEdge} showWeights={weights} marks={scene.mode === 'components' ? marks : undefined}
       onNodeClick={focusNode} onNodeOpen={openDetail} onEdgeClick={selectEdge} onEdgeHover={setHoverEdge}
       overlay={vp => <>
         {/* Room is kept for the button at the top right (Exit full screen, Issues / Details), so on a phone the group wraps instead of sliding under it. */}
@@ -240,6 +248,7 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
               {roleOptions.map(r => <li key={r.value} className="flex items-center gap-2"><span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: theme.role[r.value as ComponentRole] }} />{r.label}</li>)}
               <li className="flex items-center gap-2"><span className="inline-block w-5 border-t-2" style={{ borderColor: theme.cycle }} />circular dependency</li>
               <li className="flex items-center gap-2"><span className="inline-block w-5 border-t-2 border-dashed" style={{ borderColor: theme.edge }} />points upward</li>
+              {scene.mode === 'components' && markKinds.map(kind => <li key={kind} className="flex items-center gap-2"><span className="rounded-full border px-1 font-mono text-[9px] font-bold" style={{ borderColor: EVOLUTION_MARK[kind].color, color: EVOLUTION_MARK[kind].color }}>{EVOLUTION_MARK[kind].label}</span>{EVOLUTION_MARK[kind].help}</li>)}
             </ul>}
           </div>
         </div>
@@ -297,6 +306,17 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
         {!hasSelection && <IssuesPanel issues={issues} summary={summary} verified={verified} activeId={activePin?.id} inner={scene.mode !== 'components'} onShow={showIssue} onAction={onIssueAction} />}
         <Inspector view={view} scene={scene} theme={theme} selectedNode={state.focus} selectedEdge={state.edge} highlight={highlight} onSelectNode={focusNode} onSelectEdge={selectEdge} onOpen={openDetail}
           commits={projectId && snapshotId ? { projectId, state: commitImpacts, onRetry: commitImpacts.retry } : undefined} />
+        {state.focus && marks?.[state.focus] && <p className="text-xs text-[var(--at-muted)]"><span className="mr-1.5 rounded-full border px-1.5 font-mono text-[9px] font-bold" style={{ borderColor: marks[state.focus].color, color: marks[state.focus].color }}>{marks[state.focus].label}</span>
+          {EVOLUTION_MARK[marks[state.focus].kind].help}{marks[state.focus].from.length ? `: ${marks[state.focus].from.join(', ')}` : ''}.</p>}
+        {history.length > 1 && <section aria-label="Earlier names">
+          <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-[var(--at-muted)]">Through the snapshots</h3>
+          <ol className="space-y-1 text-xs">{history.map(h => <li key={h.snapshotId} className="flex items-baseline gap-2">
+            <button type="button" disabled={!onSnapshot || h.snapshotId === snapshotId} onClick={() => onSnapshot?.(h.snapshotId)} className="shrink-0 font-mono text-[var(--at-link)] hover:text-[var(--at-link-hover)] disabled:cursor-default disabled:text-[var(--at-muted)]" aria-label={`Open snapshot ${h.snapshot?.hash ?? h.snapshotId}`}>{h.snapshot?.hash.slice(0, 7) ?? '?'}</button>
+            <span className="min-w-0 truncate text-slate-200">{h.name}</span>
+            {h.snapshot?.date && <span className="ml-auto shrink-0 text-[var(--at-muted)]">{new Date(h.snapshot.date).toLocaleDateString()}</span>}
+          </li>)}</ol>
+          <p className="mt-1 text-[11px] leading-snug text-[var(--at-muted)]">Matched through the files it holds, snapshot by snapshot. A new grouping of the same files is not counted as a change.</p>
+        </section>}
         {!hasSelection && overview}
       </div>
     </aside>}

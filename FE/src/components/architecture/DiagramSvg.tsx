@@ -25,12 +25,14 @@ export interface DiagramSvgProps {
   onNodeOpen?: (id: string) => void;
   onEdgeClick?: (id: string) => void;
   onEdgeHover?: (id: string | undefined) => void;
+  /** Evolution marks per component id (NEW, SPLIT, ...), drawn at the card's top right; components without one are unmarked. */
+  marks?: Record<string, { label: string; color: string; from: string[] }>;
 }
 
 const truncate = (text: string, max: number) => (text.length > max ? `${text.slice(0, Math.max(1, max - 1))}…` : text);
 const edgeWidth = (weight: number) => 1.25 + Math.min(weight, 12) * 0.25;
 
-export default function DiagramSvg({ scene, layout, theme, title, caption, highlight, selectedNode, selectedEdge, hoverEdge, showWeights, interactive = true, idPrefix = 'arch', svgRef, onNodeClick, onNodeOpen, onEdgeClick, onEdgeHover }: DiagramSvgProps) {
+export default function DiagramSvg({ scene, layout, theme, title, caption, highlight, selectedNode, selectedEdge, hoverEdge, showWeights, interactive = true, idPrefix = 'arch', svgRef, onNodeClick, onNodeOpen, onEdgeClick, onEdgeHover, marks }: DiagramSvgProps) {
   const nodeById = new Map(scene.nodes.map(n => [n.id, n]));
   const sceneEdge = new Map(scene.edges.map(e => [e.id, e]));
   const dimNode = (id: string) => !!highlight?.nodes && !highlight.nodes.has(id);
@@ -98,20 +100,36 @@ export default function DiagramSvg({ scene, layout, theme, title, caption, highl
           if (!node) return null;
           const dim = dimNode(p.id);
           const selected = p.id === selectedNode;
+          const mark = node.kind === 'component' ? marks?.[p.id] : undefined;
           return (
             <g key={p.id} transform={`translate(${p.x},${p.y})`} data-node={p.id} opacity={dim ? 0.35 : 1}
               {...(interactive ? {
-                role: 'button', tabIndex: 0, 'aria-label': node.aria, 'aria-pressed': selected,
+                role: 'button', tabIndex: 0, 'aria-label': mark ? `${node.aria} ${markText(mark)}` : node.aria, 'aria-pressed': selected,
                 style: { cursor: 'pointer', outline: 'none' },
                 onClick: () => onNodeClick?.(p.id), onDoubleClick: () => onNodeOpen?.(p.id), onKeyDown: (event: KeyboardEvent) => onNodeKey(event, p.id),
               } : {})}>
               <NodeCard node={node} width={p.width} height={p.height} theme={theme} selected={selected} />
+              {mark && <MarkBadge mark={mark} width={p.width} theme={theme} />}
             </g>
           );
         })}
       </g>
       </g>
     </svg>
+  );
+}
+
+const markText = (mark: { label: string; from: string[] }) => `${mark.label.charAt(0)}${mark.label.slice(1).toLowerCase()} since the previous snapshot${mark.from.length ? ` (from ${mark.from.join(', ')})` : ''}.`;
+
+/** A small pill above the card's top-right corner, so it never covers the name. */
+function MarkBadge({ mark, width, theme }: { mark: { label: string; color: string; from: string[] }; width: number; theme: DiagramTheme }) {
+  const w = mark.label.length * 6.4 + 12;
+  return (
+    <g transform={`translate(${width - w - 8},-8)`} aria-hidden="true">
+      <title>{markText(mark)}</title>
+      <rect width={w} height={16} rx={8} fill={theme.card} stroke={mark.color} />
+      <text x={w / 2} y={11.5} textAnchor="middle" fontSize={9} fontWeight={700} letterSpacing={0.6} fontFamily={theme.mono} fill={mark.color}>{mark.label}</text>
+    </g>
   );
 }
 
