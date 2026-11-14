@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Alert, App, Button, Input, Progress, Skeleton, Tag } from 'antd';
+import { Alert, App, Button, Input, Progress, Skeleton, Tag, Tooltip } from 'antd';
 import { Building2, CalendarDays, FolderKanban, GraduationCap, KeyRound, Sparkles } from 'lucide-react';
 import { Icon } from '@iconify/react';
 import FeaturePage, { featurePanel } from '@/components/FeaturePage';
@@ -16,6 +16,7 @@ import { formatCost, formatTokens, getMyRuns } from '@/features/llm-api';
 import { ORGANIZATION_ROLE_LABELS, summarizeLearning } from '@/features/my-work';
 import { getMyPaths } from '@/features/onboarding-api';
 import { listOrganizations } from '@/features/organizations-api';
+import { githubLinkResult, startGitHubLink, unlinkGitHub } from '@/features/github-link';
 import { changePassword, countProjects, setPassword, signOutEverywhere, updateProfile } from '@/features/profile-api';
 import {
   USERNAME_HINT, accountTypeLabel, buildProfilePatch, checkName, checkPasswordForm, checkUsername,
@@ -88,10 +89,10 @@ function PasswordField({ id, text, autoComplete, value, error, rules, onChange }
   </div>;
 }
 
-function SignInMethod({ icon, name, on, onText, offText }: { icon: ReactNode; name: string; on: boolean; onText: string; offText: string }) {
-  return <div className="flex items-center justify-between gap-3 px-3 py-2">
+function SignInMethod({ icon, name, on, onText, offText, action }: { icon: ReactNode; name: string; on: boolean; onText: string; offText: string; action?: ReactNode }) {
+  return <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2">
     <dt className="flex items-center gap-2 text-sm">{icon}{name}</dt>
-    <dd><Tag color={on ? 'green' : undefined}>{on ? onText : offText}</Tag></dd>
+    <dd className="flex items-center gap-2"><Tag color={on ? 'green' : undefined}>{on ? onText : offText}</Tag>{action}</dd>
   </div>;
 }
 
@@ -126,6 +127,17 @@ export default function Profile() {
 
   const patch = user ? buildProfilePatch({ name: user.name, username: user.username }, form) : null;
   useUnsavedChanges(!!patch);
+
+  const [githubBusy, setGithubBusy] = useState(false);
+  // Back from GitHub after linking (UC-35): say how it went once, then drop it from the address. The page was loaded
+  // afresh, so the session check already brought the new sign-in methods.
+  useEffect(() => {
+    const result = githubLinkResult(window.location.hash);
+    if (!result) return;
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    if (result.ok) message.success(result.text); else message.error(result.text);
+  }, [message]);
+
   if (!user) return null;
 
   const role = user.role;
@@ -135,6 +147,28 @@ export default function Profile() {
 
   /** Ends this session here and goes to sign-in, which can say why (the page itself may be gone by the time anything is read). */
   const leave = (notice?: string) => { if (notice) setSignInNotice(notice); signOut(); navigate('/login', { replace: true }); };
+
+  async function linkGitHub() {
+    setGithubBusy(true);
+    try { await startGitHubLink(); } // leaves the page for GitHub
+    catch (cause) { message.error(cause instanceof Error ? cause.message : 'Could not start linking GitHub.'); setGithubBusy(false); }
+  }
+  function confirmUnlinkGitHub() {
+    modal.confirm({
+      title: 'Unlink GitHub?', content: 'You will sign in with your email and password only. You can link GitHub again at any time.',
+      okText: 'Unlink', okButtonProps: { danger: true },
+      onOk: async () => {
+        setGithubBusy(true);
+        try {
+          const now = await unlinkGitHub();
+          updateUser({ signInMethods: now ?? { password: true, github: false } });
+          message.success('GitHub is unlinked.');
+        } catch (cause) {
+          message.error(cause instanceof Error ? cause.message : 'Could not unlink GitHub.');
+        } finally { setGithubBusy(false); }
+      },
+    });
+  }
 
   async function saveProfile(event: FormEvent) {
     event.preventDefault();
@@ -333,7 +367,12 @@ export default function Profile() {
           <h4 id="methods-heading" className="text-sm font-semibold">How you sign in</h4>
           <dl aria-labelledby="methods-heading" className="divide-y divide-[var(--at-line)] rounded border border-[var(--at-line)]">
             <SignInMethod icon={<KeyRound size={16} className={iconClass} aria-hidden="true" />} name="Email and password" on={methods.password} onText="Set" offText="Not set" />
-            <SignInMethod icon={<Icon icon="mdi:github" width="16" height="16" className={iconClass} aria-hidden="true" />} name="GitHub" on={methods.github} onText="Linked" offText="Not linked" />
+            <SignInMethod icon={<Icon icon="mdi:github" width="16" height="16" className={iconClass} aria-hidden="true" />} name="GitHub" on={methods.github} onText="Linked" offText="Not linked"
+              action={methods.github
+                ? <Tooltip title={methods.password ? undefined : 'GitHub is the only way you sign in. Set a password below first.'}>
+                  <Button size="small" disabled={!methods.password} loading={githubBusy} onClick={() => confirmUnlinkGitHub()}>Unlink</Button>
+                </Tooltip>
+                : <Button size="small" loading={githubBusy} onClick={() => void linkGitHub()}>Link GitHub</Button>} />
           </dl>
         </div>}
 

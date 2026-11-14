@@ -37,6 +37,8 @@ import { createProjectTransferRouter } from "./presentation/routes/projectTransf
 import { createGitHubRouter } from './presentation/routes/github.routes.js';
 import { GitHubIdentityService } from './infrastructure/services/GitHubIdentityService.js';
 import { GitHubLoginUseCase } from './application/use-cases/GitHubLoginUseCase.js';
+import { GitHubLinkUseCase } from './application/use-cases/GitHubLinkUseCase.js';
+import { AuditService } from './infrastructure/services/AuditService.js';
 import { MongoUserRepository } from './infrastructure/repositories/MongoUserRepository.js';
 import { createAuthenticateMiddleware } from "./presentation/middlewares/authenticate.js";
 import { createInvitationRouter } from "./presentation/routes/invitation.routes.js";
@@ -56,7 +58,8 @@ setupSwagger(app);
 
 // ── Routes ──
 app.use("/api/health", healthRouter);
-app.use('/api/auth/github', createGitHubRouter(env, new GitHubIdentityService(env.githubClientId, env.githubClientSecret, env.githubCallbackUrl), new GitHubLoginUseCase(), new MongoUserRepository(), jwtTokenService));
+app.use('/api/auth/github', createGitHubRouter(env, new GitHubIdentityService(env.githubClientId, env.githubClientSecret, env.githubCallbackUrl), new GitHubLoginUseCase(), new MongoUserRepository(), jwtTokenService,
+  new GitHubLinkUseCase(new MongoUserRepository(), entry => AuditService.log({ ...entry, targetType: 'user', targetId: entry.userId }))));
 app.use("/api/auth", createAuthRouter(authController, jwtTokenService, rateLimiter));
 app.use("/api/projects", createProjectChatRouter(projectChatController, jwtTokenService, projectRoleMiddleware));
 app.use("/api/projects", createConformanceRouter(conformanceController, jwtTokenService, projectRoleMiddleware));
