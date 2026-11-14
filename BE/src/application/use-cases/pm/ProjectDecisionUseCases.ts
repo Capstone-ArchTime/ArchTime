@@ -32,6 +32,15 @@ export function parseDecisionOrigin(value: unknown): DecisionOrigin | undefined 
   return value as DecisionOrigin;
 }
 
+const DECISION_STATUSES: readonly IWorkspaceDecision["status"][] = ["Proposed", "Accepted", "Deprecated"];
+
+/** SM-07: an ADR is Proposed, Accepted or Deprecated, spelled exactly so; anything else is the caller's mistake (400). */
+function parseDecisionStatus(value: unknown): IWorkspaceDecision["status"] | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  if (DECISION_STATUSES.includes(value as IWorkspaceDecision["status"])) return value as IWorkspaceDecision["status"];
+  throw new BadRequestError(`status must be one of: ${DECISION_STATUSES.join(", ")}.`, "VALIDATION_ERROR");
+}
+
 /**
  * Checks what an ADR cites: each source must exist in this project (a mined commit, a snapshot, change evidence or an
  * approval request). Stores the canonical reference and what the source said at the time.
@@ -176,6 +185,7 @@ export class CreateProjectDecisionUseCase {
       throw new BadRequestError("ADR title, context, and decision are required.");
     }
     const origin = parseDecisionOrigin(input.origin) ?? "recorded";
+    const status = parseDecisionStatus(input.status) ?? "Proposed";
     const sources = input.sources === undefined ? [] : await resolveDecisionSources(this.sourceVerifier, input.projectId, input.sources);
 
     let ws = await this.workspaceRepository.findByProjectId(input.projectId);
@@ -193,7 +203,6 @@ export class CreateProjectDecisionUseCase {
     const maxNum = currentDecisions.reduce((max, d) => Math.max(max, d.number ?? 0), 0);
 
     const now = new Date();
-    const status = input.status ?? "Proposed";
     const newDecision: IWorkspaceDecision = {
       id: `adr-${randomUUID().slice(0, 8)}`,
       number: maxNum + 1,
@@ -267,11 +276,11 @@ export class UpdateProjectDecisionUseCase {
 
     const existing = withProvenance(ws.decisions[index]);
     const origin = parseDecisionOrigin(input.origin) ?? existing.origin;
+    const status = parseDecisionStatus(input.status) ?? existing.status;
     const sources = input.sources === undefined
       ? existing.sources
       : await resolveDecisionSources(this.sourceVerifier, input.projectId, input.sources);
     const now = new Date();
-    const status = input.status ?? existing.status;
     const updated: IWorkspaceDecision = {
       ...existing,
       title: input.title?.trim() ?? existing.title,
