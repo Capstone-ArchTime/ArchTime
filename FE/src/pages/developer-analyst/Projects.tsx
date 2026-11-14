@@ -1,6 +1,5 @@
-import { readTokens } from '@/auth/session';
+import { apiRequest } from '@/api/client';
 import React, { useState, useCallback, useEffect } from 'react';
-import { API_BASE_URL } from '@/auth/session';
 import { App } from 'antd';
 import { motion, AnimatePresence } from 'motion/react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -94,24 +93,17 @@ const Projects: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/projects`, {
+      const data = await apiRequest<{ data: { project: { id: string; name?: string } } }>('/projects', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${readTokens().accessToken}`
-        },
-        body: JSON.stringify(built.body)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(built.body),
       });
-      
-      if (response.ok) {
-        const data = await response.json();
+      {
         const projectId = data.data.project.id;
-        
+
         // Only read the commit history here; the user chooses what to mine (a date range or everything).
-        await fetch(`${API_BASE_URL}/projects/${projectId}/scan`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${readTokens().accessToken}` }
-        });
+        // A failed scan is not fatal: Manage mining offers it again.
+        await apiRequest(`/projects/${projectId}/scan`, { method: 'POST' }).catch(() => undefined);
 
         message.success('Repository registered. Choose which part of its history to mine.');
         setMiningProject({ id: projectId, name: data.data.project.name ?? projectName });
@@ -124,12 +116,9 @@ const Projects: React.FC = () => {
         setRepoUrl('');
         chooseSpace('');
         setAccess('credential');
-      } else {
-        const err = await response.json().catch(() => ({}));
-        message.error(err.error?.message || err.message || 'Failed to register repository');
       }
     } catch (error) {
-      message.error('Network error. Please try again.');
+      message.error(error instanceof Error ? error.message : 'Failed to register repository');
     } finally {
       setIsSubmitting(false);
     }
@@ -137,22 +126,12 @@ const Projects: React.FC = () => {
 
   const handleDeleteProject = async (id: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${readTokens().accessToken}`
-        }
-      });
-      if (response.ok) {
-        message.success('Workspace deleted successfully');
-        setProjectsList(prev => prev?.filter(p => p.id !== id) ?? prev);
-        fetchProjects();
-      } else {
-        const err = await response.json().catch(() => ({}));
-        message.error(err.message || 'Failed to delete workspace');
-      }
+      await apiRequest(`/projects/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      message.success('Workspace deleted successfully');
+      setProjectsList(prev => prev?.filter(p => p.id !== id) ?? prev);
+      fetchProjects();
     } catch (error) {
-      message.error('Network error. Please try again.');
+      message.error(error instanceof Error ? error.message : 'Failed to delete workspace');
     }
   };
 

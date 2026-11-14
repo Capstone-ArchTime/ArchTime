@@ -1,4 +1,4 @@
-import { readTokens } from '@/auth/session';
+import { apiRequest } from '@/api/client';
 import { getWorkspaces, mayHaveSnapshots, type Workspace } from '@/features/workspace-summary';
 import { Link, useLocation } from 'react-router-dom';
 import React, { useState, useEffect, useMemo } from 'react';
@@ -13,7 +13,6 @@ import {
   FolderKanban
 } from 'lucide-react';
 
-import { API_BASE_URL } from '@/auth/session';
 import { App } from 'antd';
 import ComponentMatchPanel from '@/components/compare/ComponentMatchPanel';
 import CompareDiagram, { GROUP_HEIGHT, GROUP_WIDTH } from '@/components/compare/CompareDiagram';
@@ -52,10 +51,8 @@ const Compare: React.FC = () => {
     if (!selectedProjectId) return;
     const fetchSnapshots = async () => {
       try {
-        const token = readTokens().accessToken;
-        const res = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}/snapshots`, { headers: { Authorization: `Bearer ${token}` } });
-        if (res.ok) {
-          const data = await res.json();
+        const data = await apiRequest<{ data?: { snapshots?: any[] } }>(`/projects/${selectedProjectId}/snapshots`);
+        {
           const sList = data.data?.snapshots || [];
           setSnapshots(sList);
           if (sList.length >= 2) {
@@ -86,18 +83,10 @@ const Compare: React.FC = () => {
     setLoading(true);
     loadMatch(selectedProjectId, baseId, targetId);
     try {
-      const token = readTokens().accessToken;
-      const res = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}/snapshots/compare?baseId=${baseId}&targetId=${targetId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCompareData(data.data);
-      } else {
-        message.error('Failed to compare revisions.');
-      }
+      const data = await apiRequest<{ data?: unknown }>(`/projects/${selectedProjectId}/snapshots/compare?baseId=${encodeURIComponent(baseId)}&targetId=${encodeURIComponent(targetId)}`);
+      setCompareData(data.data);
     } catch (e) {
-      message.error('Network error. Please try again.');
+      message.error(e instanceof Error ? e.message : 'Failed to compare revisions.');
     } finally {
       setLoading(false);
     }

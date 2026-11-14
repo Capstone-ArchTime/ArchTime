@@ -1,4 +1,4 @@
-import { readTokens } from '@/auth/session';
+import { apiRequest } from '@/api/client';
 import { getWorkspaces, mayHaveSnapshots, type Workspace } from '@/features/workspace-summary';
 import { Link as RouterLink } from 'react-router-dom';
 import React, { useState, useCallback, useEffect } from 'react';
@@ -21,7 +21,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationBar from '@/components/PaginationBar';
-import { API_BASE_URL } from '@/auth/session';
 import { Modal } from 'antd';
 import { getArchitecture } from '@/features/architecture/api';
 import { ROLE_LABEL } from '@/features/architecture/scene';
@@ -197,10 +196,8 @@ const Evidence: React.FC = () => {
     const fetchEvidences = async () => {
       setLoading(true);
       try {
-        const token = readTokens().accessToken;
-        const res = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}/evidences?limit=100`, { headers: { Authorization: `Bearer ${token}` } });
-        if (res.ok) {
-          const data = await res.json();
+        const data = await apiRequest<{ data?: { evidences?: any[] } }>(`/projects/${selectedProjectId}/evidences?limit=100`);
+        {
           const eList = data.data?.evidences || [];
           
           // formatting dates for UI
@@ -211,8 +208,6 @@ const Evidence: React.FC = () => {
             diffBefore: e.diffBefore || '// No diff recorded',
           }));
           setEvidenceData(formatted);
-        } else {
-           setEvidenceData([]);
         }
       } catch (e) {
         console.error(e);

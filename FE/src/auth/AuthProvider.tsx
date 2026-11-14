@@ -4,6 +4,7 @@ import { AuthContext } from './auth-context';
 import type { AuthUser } from './permissions';
 import { clearTokens, readTokens, saveTokens, tokenStorage, InvalidSessionError, verifySession } from './session';
 import type { Tokens } from './session';
+import { onSessionEnded } from '../api/client';
 
 export default function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -32,6 +33,13 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       return verified.user;
     } finally { if (active.current === controller) signingIn.current = false; }
   }
+
+  // A page's request found the session cannot be renewed any more: sign out now rather than at the next check.
+  useEffect(() => onSessionEnded(() => {
+    if (signingIn.current) return;
+    active.current?.abort();
+    try { clearTokens(); } finally { setUser(null); setError(null); setLoading(false); }
+  }), []);
 
   useEffect(() => {
     let running: AbortController | null = null;
