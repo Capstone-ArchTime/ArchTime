@@ -38,6 +38,7 @@ export class GetProjectWorkspaceUseCase {
         confirmedAt: null,
         confirmedBy: null,
         confirmedRevision: null,
+        baselineCommit: null,
         confirmedByName: null,
       },
       rules: [],

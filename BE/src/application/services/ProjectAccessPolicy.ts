@@ -1,5 +1,5 @@
 import type { IProject } from "../../domain/entities/Project.js";
-import { RepoVisibility } from "../../domain/entities/Project.js";
+import { RepoVisibility, viewerAccessOf } from "../../domain/entities/Project.js";
 import { UserRole } from "../../domain/entities/User.js";
 import { MemberStatus, ProjectMemberRole } from "../../domain/entities/ProjectMember.js";
 import { OrganizationRole } from "../../domain/entities/Organization.js";
@@ -49,7 +49,7 @@ export interface AccessUser { userId: string; role: UserRole | string }
  * 3. Organization Owner: maintainer rights on every project of the organization, and may delete them.
  * 4. Project Owner: everything.
  * 5. Project Maintainer: read, write, admin. Project Member: read.
- * 6. Public personal projects: read for any signed-in user (viewer).
+ * 6. Public personal projects: read for any signed-in user (viewer), unless the owner turned viewing off (BR-17).
  */
 export class ProjectAccessPolicy {
   constructor(
@@ -82,7 +82,7 @@ export class ProjectAccessPolicy {
         : { role: "developer-analyst", actions: READER, memberRole: member.role };
     }
 
-    if (!project.organizationId && project.visibility === RepoVisibility.PUBLIC) {
+    if (!project.organizationId && project.visibility === RepoVisibility.PUBLIC && viewerAccessOf(project).publicRead) {
       return { role: "viewer", actions: READER };
     }
     return { role: null, actions: NOTHING };

@@ -21,7 +21,7 @@ export class ProjectChatController {
   public chat = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId } = this.scope(req);
-      sendSuccess(res, await this.useCase.execute({ project: req.project!, userId, messages: req.body?.messages, conversationId: req.body?.conversationId }));
+      sendSuccess(res, await this.useCase.execute({ project: req.project!, userId, messages: req.body?.messages, conversationId: req.body?.conversationId, viewer: req.projectAccess?.role === "viewer" }));
     } catch (error) {
       next(error);
     }
