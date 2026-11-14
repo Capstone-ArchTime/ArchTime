@@ -11,11 +11,12 @@ import { ForbiddenError, NotFoundError } from "../../shared/errors/AppError.js";
 /**
  * metadata – name, status, mining progress; what a platform operator may see of any project
  * read     – history, snapshots, evidence, maps, ADRs, the mentor
+ * propose  – ask the maintainers for an architecture change (an approval request); members, not viewers
  * write    – maintainer work: scan, mine, cluster, refine, ADRs, rules, diagram
  * admin    – manage the project's members, invitations and approvals
  * owner    – delete the project
  */
-export type ProjectAction = "metadata" | "read" | "write" | "admin" | "owner";
+export type ProjectAction = "metadata" | "read" | "propose" | "write" | "admin" | "owner";
 
 export type ProjectAccessRole =
   | "owner"
@@ -33,8 +34,10 @@ export interface ProjectAccess {
 }
 
 const set = (...a: ProjectAction[]): ReadonlySet<ProjectAction> => new Set(a);
-const EVERYTHING = set("metadata", "read", "write", "admin", "owner");
-const MAINTAINER = set("metadata", "read", "write", "admin");
+const EVERYTHING = set("metadata", "read", "propose", "write", "admin", "owner");
+const MAINTAINER = set("metadata", "read", "propose", "write", "admin");
+/** A project member: reads, and proposes changes that a maintainer approves or rejects (WF-04, DS-04a). */
+const MEMBER = set("metadata", "read", "propose");
 const READER = set("metadata", "read");
 const NOTHING = set();
 
@@ -48,7 +51,7 @@ export interface AccessUser { userId: string; role: UserRole | string }
  *    project ownership included.
  * 3. Organization Owner: maintainer rights on every project of the organization, and may delete them.
  * 4. Project Owner: everything.
- * 5. Project Maintainer: read, write, admin. Project Member: read.
+ * 5. Project Maintainer: read, propose, write, admin. Project Member: read, propose.
  * 6. Public personal projects: read for any signed-in user (viewer), unless the owner turned viewing off (BR-17).
  */
 export class ProjectAccessPolicy {
@@ -79,7 +82,7 @@ export class ProjectAccessPolicy {
     if (member && member.status === MemberStatus.ACTIVE) {
       return member.role === ProjectMemberRole.MAINTAINER
         ? { role: "project-maintainer", actions: MAINTAINER, memberRole: member.role }
-        : { role: "developer-analyst", actions: READER, memberRole: member.role };
+        : { role: "developer-analyst", actions: MEMBER, memberRole: member.role };
     }
 
     if (!project.organizationId && project.visibility === RepoVisibility.PUBLIC && viewerAccessOf(project).publicRead) {
@@ -132,5 +135,6 @@ export function deniedMessage(access: ProjectAccess, action: ProjectAction): str
       : "Forbidden: System Administrators cannot read the content of an organization's workspace.";
   }
   if (action === "owner") return "Forbidden: only the workspace owner or an owner of its organization can delete it.";
+  if (action === "propose") return "Forbidden: only members of this workspace can propose a change.";
   return "Forbidden: only project maintainers can perform this action.";
 }
