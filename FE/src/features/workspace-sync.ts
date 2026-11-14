@@ -1,7 +1,8 @@
 import { apiRequest, ApiError } from '../api/client.ts';
 import { canonicalStatus } from './canonical-map.ts';
 
-export type Component = { id: string; name: string; kind: string; description: string };
+/** `pathPrefix`: the repository folder the component owns, e.g. "src/auth/"; "" when none. */
+export type Component = { id: string; name: string; kind: string; description: string; pathPrefix: string };
 export type Dependency = { id: string; source: string; target: string; label: string };
 /**
  * `confirmedAt` is the one confirmation field the page sends back: a new time asks the server to confirm. Who confirmed
@@ -19,6 +20,18 @@ export function emptyWorkspace(): Workspace {
 
 export const isServerProjectId = (value: string) => /^[0-9a-f]{24}$/i.test(value);
 
+/** The prefix as the server stores it (BE domain/architecture/pathPrefix.ts): forward slashes, no leading ./ or /, one trailing /. */
+export function normalizePathPrefix(value: string | undefined): string {
+  const segments = (value ?? '').trim().replace(/\\/g, '/').split('/').filter(s => s !== '' && s !== '.');
+  return segments.length ? `${segments.join('/')}/` : '';
+}
+
+/** The component that already owns `prefix`, other than `exceptId`; the server refuses two components with one prefix. */
+export function pathPrefixOwner(components: readonly Component[], prefix: string, exceptId?: string): Component | undefined {
+  const wanted = normalizePathPrefix(prefix);
+  return wanted ? components.find(c => c.id !== exceptId && normalizePathPrefix(c.pathPrefix) === wanted) : undefined;
+}
+
 const text = (value: unknown) => (typeof value === 'string' ? value : '');
 const date = (value: unknown) => (typeof value === 'string' ? value : value instanceof Date ? value.toISOString() : '');
 
@@ -30,7 +43,7 @@ export function fromServer(ws: any): Workspace {
   const revision = Number(ws?.revision ?? ws?.diagram?.revision ?? 1);
   return {
     diagram: {
-      components: (ws?.diagram?.components ?? []).map((c: any) => ({ id: text(c.id), name: text(c.name), kind: text(c.kind), description: text(c.description) })),
+      components: (ws?.diagram?.components ?? []).map((c: any) => ({ id: text(c.id), name: text(c.name), kind: text(c.kind), description: text(c.description), pathPrefix: text(c.pathPrefix) })),
       dependencies: (ws?.diagram?.dependencies ?? []).map((d: any) => ({ id: text(d.id), source: text(d.source), target: text(d.target), label: text(d.label) })),
       revision: Number.isInteger(revision) && revision > 0 ? revision : 1,
       confirmedAt: date(ws?.diagram?.confirmedAt) || null,
@@ -62,4 +75,6 @@ export async function saveServerWorkspace(projectId: string, expectedRevision: n
   return fromServer(res.data.workspace);
 }
 
-export const isRevisionConflict = (error: unknown) => error instanceof ApiError && (error.status === 409 || error.code === 'CONFLICT');
+export const isRevisionConflict = (error: unknown) => error instanceof ApiError && !isDiagramLocked(error) && (error.status === 409 || error.code === 'CONFLICT');
+/** The server refused to change a confirmed diagram: it has to be unconfirmed first, or changed through an approval. */
+export const isDiagramLocked = (error: unknown) => error instanceof ApiError && error.code === 'DIAGRAM_LOCKED';

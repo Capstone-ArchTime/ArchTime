@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { emptyWorkspace, fetchServerWorkspace, fromServer, isRevisionConflict, isServerProjectId, saveServerWorkspace } from '../src/features/workspace-sync.ts';
+import { emptyWorkspace, fetchServerWorkspace, fromServer, isDiagramLocked, isRevisionConflict, isServerProjectId, normalizePathPrefix, pathPrefixOwner, saveServerWorkspace } from '../src/features/workspace-sync.ts';
 import { mockGlobal } from './mock-global.mjs';
 Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, writable: true, value: undefined });
 Object.defineProperty(globalThis, 'localStorage', { configurable: true, writable: true, value: undefined });
@@ -22,7 +22,7 @@ const serverWorkspace = {
 test('server workspaces use the revision the server checks and a stable field order', () => {
   const ws = fromServer(serverWorkspace);
   assert.equal(ws.diagram.revision, 4);
-  assert.equal(JSON.stringify(ws.diagram.components[0]), JSON.stringify({ id: 'web', name: 'Web', kind: 'UI', description: 'UI' }));
+  assert.equal(JSON.stringify(ws.diagram.components[0]), JSON.stringify({ id: 'web', name: 'Web', kind: 'UI', description: 'UI', pathPrefix: '' }));
   assert.equal(ws.diagram.confirmedAt, '2026-10-01T00:00:00.000Z');
   assert.deepEqual(ws.decisions[0].componentIds, []);
   assert.equal(ws.decisions[0].origin, 'reconstructed');
@@ -85,4 +85,24 @@ test('lists the server leaves out become empty lists, never undefined', () => {
   assert.deepEqual(ws.rules, []);
   assert.deepEqual(ws.decisions, []);
   assert.equal(ws.diagram.revision, 3);
+});
+
+test('a path prefix is compared the way the server stores it, and one folder has one owner', () => {
+  assert.equal(normalizePathPrefix(' ./src\\auth '), 'src/auth/');
+  assert.equal(normalizePathPrefix('/src//auth/'), 'src/auth/');
+  assert.equal(normalizePathPrefix(''), '');
+  const components = [
+    { id: 'a', name: 'Auth', kind: 'Service', description: '', pathPrefix: 'src/auth/' },
+    { id: 'b', name: 'App', kind: 'Service', description: '', pathPrefix: '' },
+  ];
+  assert.equal(pathPrefixOwner(components, './src/auth')?.name, 'Auth');
+  assert.equal(pathPrefixOwner(components, 'src/auth/', 'a'), undefined, 'a component keeps its own prefix');
+  assert.equal(pathPrefixOwner(components, 'src/'), undefined, 'a parent folder is a different prefix');
+  assert.equal(pathPrefixOwner(components, ''), undefined, 'no prefix clashes with nothing');
+});
+
+test('editing a confirmed diagram is reported as locked, not as a revision conflict', async t => {
+  signedIn(t);
+  t.mock.method(globalThis, 'fetch', async () => Response.json({ success: false, error: { code: 'DIAGRAM_LOCKED', message: 'The confirmed diagram is locked.' } }, { status: 409 }));
+  await assert.rejects(saveServerWorkspace('p1', 4, fromServer(serverWorkspace)), error => isDiagramLocked(error) && !isRevisionConflict(error));
 });
