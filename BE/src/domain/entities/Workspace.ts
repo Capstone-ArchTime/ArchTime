@@ -3,6 +3,8 @@ export interface IWorkspaceComponent {
   name: string;
   kind: string;
   description: string;
+  /** The repository folder the component owns, e.g. "src/auth/"; "" or absent when none (domain/architecture/pathPrefix.ts). */
+  pathPrefix?: string;
 }
 
 export interface IWorkspaceDependency {

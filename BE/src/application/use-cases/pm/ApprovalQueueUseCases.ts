@@ -13,6 +13,7 @@ import type { IWorkspaceRepository } from "../../../domain/interfaces/IWorkspace
 import type { IWorkspaceDiagram } from "../../../domain/entities/Workspace.js";
 import type { LatestCommitLookup } from "../../../domain/interfaces/ILatestCommit.js";
 import { settleConfirmation } from "../../../domain/architecture/canonical.js";
+import { checkPathPrefixes } from "../../../domain/architecture/pathPrefix.js";
 
 /**
  * An architecture change request may carry the diagram it proposes (`data.diagram`: components and dependencies) and the
@@ -25,7 +26,9 @@ function proposedDiagram(data: unknown): Pick<IWorkspaceDiagram, "components" | 
   if (!Array.isArray(d.components) || !Array.isArray(d.dependencies)) {
     throw new BadRequestError("The proposed diagram needs components and dependencies arrays.", "VALIDATION_ERROR");
   }
-  return { components: d.components as IWorkspaceDiagram["components"], dependencies: d.dependencies as IWorkspaceDiagram["dependencies"] };
+  const prefixes = checkPathPrefixes(d.components as IWorkspaceDiagram["components"]);
+  if (prefixes.problem) throw new BadRequestError(prefixes.problem, "VALIDATION_ERROR");
+  return { components: prefixes.components, dependencies: d.dependencies as IWorkspaceDiagram["dependencies"] };
 }
 
 export interface FilterApprovalsInput {

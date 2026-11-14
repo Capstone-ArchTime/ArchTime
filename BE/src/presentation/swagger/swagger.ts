@@ -347,6 +347,7 @@ const options: swaggerJsdoc.Options = {
             name: { type: "string", example: "Web Application" },
             kind: { type: "string", example: "UI" },
             description: { type: "string", example: "User-facing application interface" },
+            pathPrefix: { type: "string", example: "src/web/", description: "Repository folder the component owns. Normalized to forward slashes with a trailing \"/\"; two components may not have the same prefix (400)." },
           },
         },
         WorkspaceDependency: {

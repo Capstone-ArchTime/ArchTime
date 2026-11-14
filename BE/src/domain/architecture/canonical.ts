@@ -3,6 +3,7 @@
 // and a confirmation only holds while the diagram's content is the one that was confirmed. Pure, so unit-testable.
 
 import type { IWorkspaceDiagram } from "../entities/Workspace.js";
+import { normalizePathPrefix } from "./pathPrefix.js";
 
 export interface DiagramConfirmation {
   confirmedAt: Date | null;
@@ -20,10 +21,10 @@ export const UNCONFIRMED: DiagramConfirmation = { confirmedAt: null, confirmedBy
 
 type DiagramContent = Pick<IWorkspaceDiagram, "components" | "dependencies">;
 
-/** The diagram's content in a fixed order: components and dependencies, without positions in the arrays. */
+/** The diagram's content in a fixed order: components (with their path prefixes) and dependencies, without positions in the arrays. */
 export function diagramContentKey(diagram: DiagramContent | null | undefined): string {
   const components = (diagram?.components ?? [])
-    .map(c => [String(c.id), String(c.name ?? ""), String(c.kind ?? ""), String(c.description ?? "")])
+    .map(c => [String(c.id), String(c.name ?? ""), String(c.kind ?? ""), String(c.description ?? ""), normalizePathPrefix(c.pathPrefix)])
     .sort((a, b) => a[0].localeCompare(b[0]));
   const dependencies = (diagram?.dependencies ?? [])
     .map(d => [String(d.source), String(d.target), String(d.label ?? "")])

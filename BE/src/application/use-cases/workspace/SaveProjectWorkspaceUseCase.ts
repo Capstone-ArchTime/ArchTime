@@ -13,6 +13,7 @@ import {
   NotFoundError,
 } from "../../../shared/errors/AppError.js";
 import { requestedConfirmation, settleConfirmation } from "../../../domain/architecture/canonical.js";
+import { checkPathPrefixes } from "../../../domain/architecture/pathPrefix.js";
 import type { LatestCommitLookup } from "../../../domain/interfaces/ILatestCommit.js";
 
 export interface SaveWorkspaceRequest {
@@ -72,8 +73,8 @@ export class SaveProjectWorkspaceUseCase {
   ) {}
 
   async execute(req: SaveWorkspaceRequest): Promise<IWorkspace> {
-    const { projectId, expectedRevision, diagram, rules, decisions, userId } =
-      req;
+    const { projectId, expectedRevision, rules, decisions, userId } = req;
+    let { diagram } = req;
 
     if (!projectId) {
       throw new BadRequestError("Workspace ID is required.", "VALIDATION_ERROR");
@@ -85,6 +86,10 @@ export class SaveProjectWorkspaceUseCase {
         "VALIDATION_ERROR",
       );
     }
+
+    const prefixes = checkPathPrefixes(diagram.components);
+    if (prefixes.problem) throw new BadRequestError(prefixes.problem, "VALIDATION_ERROR");
+    diagram = { ...diagram, components: prefixes.components };
 
     const project = await this.projectRepository.findById(projectId);
     if (!project) {

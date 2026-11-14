@@ -3,6 +3,7 @@ import type { IProjectRepository } from "../../../domain/interfaces/IProjectRepo
 import type { IWorkspaceDiagram } from "../../../domain/entities/Workspace.js";
 import { BadRequestError, NotFoundError } from "../../../shared/errors/AppError.js";
 import { settleConfirmation } from "../../../domain/architecture/canonical.js";
+import { checkPathPrefixes } from "../../../domain/architecture/pathPrefix.js";
 import type { LatestCommitLookup } from "../../../domain/interfaces/ILatestCommit.js";
 
 export interface SaveDiagramInput {
@@ -19,11 +20,15 @@ export class SaveProjectDiagramUseCase {
   ) {}
 
   async execute(input: SaveDiagramInput): Promise<{ diagram: IWorkspaceDiagram; revision: number }> {
-    const { projectId, expectedRevision, diagram, userId } = input;
+    const { projectId, expectedRevision, userId } = input;
+    let { diagram } = input;
 
     if (!diagram || !Array.isArray(diagram.components) || !Array.isArray(diagram.dependencies)) {
       throw new BadRequestError("Invalid diagram: components and dependencies are required.");
     }
+    const prefixes = checkPathPrefixes(diagram.components);
+    if (prefixes.problem) throw new BadRequestError(prefixes.problem, "VALIDATION_ERROR");
+    diagram = { ...diagram, components: prefixes.components };
 
     const project = await this.projectRepository.findById(projectId);
     if (!project) {

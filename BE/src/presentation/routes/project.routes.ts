@@ -1113,6 +1113,8 @@ export function createProjectRouter(
      *     responses:
      *       200:
      *         description: Lưu sơ đồ thành công
+     *       400:
+     *         description: Hai component có cùng path prefix, hoặc prefix ra ngoài repository
      */
     router.get("/:id/diagram", checkRole("read"), pmController.getDiagram);
     router.put("/:id/diagram", checkRole("write"), pmController.saveDiagram);

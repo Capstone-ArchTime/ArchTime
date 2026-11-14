@@ -11,6 +11,7 @@ const ComponentSchema = new Schema(
     name: { type: String, required: true },
     kind: { type: String, default: "Service" },
     description: { type: String, default: "" },
+    pathPrefix: { type: String, default: "" },
   },
   { _id: false },
 );
