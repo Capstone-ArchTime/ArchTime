@@ -39,6 +39,17 @@ export class MongoProjectRepository implements IProjectRepository {
     return doc ? this.toEntity(doc as Record<string, unknown>) : null;
   }
 
+  async moveToOrganization(id: string, ownerId: string, organizationId: string): Promise<IProject | null> {
+    if (!mongoose.isValidObjectId(id)) return null;
+    // One conditional write: only while the project is still personal and still the caller's.
+    const doc = await ProjectModel.findOneAndUpdate(
+      { _id: id, userId: ownerId, $or: [{ organizationId: null }, { organizationId: { $exists: false } }, { organizationId: "" }] },
+      { $set: { organizationId } },
+      { new: true },
+    ).lean();
+    return doc ? this.toEntity(doc as Record<string, unknown>) : null;
+  }
+
   async findByOrganizationId(organizationId: string): Promise<IProject[]> {
     const docs = await ProjectModel.find({ organizationId }).lean();
     return docs.map(doc => this.toEntity(doc as Record<string, unknown>));

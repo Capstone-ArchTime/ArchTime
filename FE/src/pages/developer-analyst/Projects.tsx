@@ -13,6 +13,7 @@ import {
   FolderGit2,
   Loader2,
   Trash2,
+  Building2,
   Eye
 } from 'lucide-react';
 import { Icon } from '@iconify/react';
@@ -21,6 +22,7 @@ import { usePagination } from '@/hooks/usePagination';
 import PaginationBar from '@/components/PaginationBar';
 import MiningPanel from '@/components/MiningPanel';
 import ViewerSettingsModal from '@/components/ViewerSettingsModal';
+import TransferProjectModal from '@/components/TransferProjectModal';
 import { Link } from 'react-router-dom';
 import { byRecent, getWorkspaces, hasMinedHistory, nextStep, STATUS_LABELS, type Workspace } from '@/features/workspace-summary';
 import { buildRegistration, listCredentials, listOrganizations, workspaceSpaces } from '@/features/organizations-api';
@@ -31,6 +33,7 @@ const Projects: React.FC = () => {
   const closeModal = useCallback(() => setIsModalOpen(false), []);
   const [miningProject, setMiningProject] = useState<{ id: string; name: string } | null>(null);
   const [viewerProject, setViewerProject] = useState<{ id: string; name: string } | null>(null);
+  const [transferProject, setTransferProject] = useState<{ id: string; name: string } | null>(null);
   const modalRef = useFocusTrap(isModalOpen, closeModal);
   const { message } = App.useApp();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -233,6 +236,16 @@ const Projects: React.FC = () => {
                             <Eye size={16} />
                           </button>
                         )}
+                        {project.role === 'owner' && project.personal && (
+                          <button
+                            onClick={() => setTransferProject({ id: project.id, name: project.name })}
+                            className={`text-[var(--at-muted)] hover:text-[var(--at-link)] transition-colors p-1 ${project.personalPublic ? '' : 'ml-auto'}`}
+                            title="Move into an organization"
+                            aria-label={`Move ${project.name} into an organization`}
+                          >
+                            <Building2 size={16} />
+                          </button>
+                        )}
                         {project.role === 'owner' && (
                           <button
                             onClick={() => handleDeleteProject(project.id)}
@@ -304,6 +317,7 @@ const Projects: React.FC = () => {
 
       {miningProject && <MiningPanel project={miningProject} open onClose={() => setMiningProject(null)} onChanged={fetchProjects} />}
       {viewerProject && <ViewerSettingsModal project={viewerProject} onClose={() => setViewerProject(null)} />}
+      {transferProject && <TransferProjectModal project={transferProject} onClose={() => setTransferProject(null)} onMoved={() => { setTransferProject(null); fetchProjects(); }} />}
 
       {/* NEW PROJECT MODAL OVERLAY */}
       <AnimatePresence>
