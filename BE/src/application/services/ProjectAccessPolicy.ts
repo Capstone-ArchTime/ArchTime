@@ -94,10 +94,13 @@ export class ProjectAccessPolicy {
     return project ? { project, access: await this.evaluate(project, user) } : null;
   }
 
-  /** Throws 404 when the project does not exist and 403 when the action is not allowed. */
+  /**
+   * Throws 404 when the project does not exist or the caller has no access to it at all (N-05: a foreign workspace looks
+   * the same as a missing one), and 403 when the caller has access but not for this action.
+   */
   async require(projectId: string, user: AccessUser, action: ProjectAction): Promise<{ project: IProject; access: ProjectAccess }> {
     const found = await this.accessTo(projectId, user);
-    if (!found) throw new NotFoundError("Workspace not found.");
+    if (!found || !found.access.actions.has("metadata")) throw new NotFoundError("Workspace not found.");
     if (!found.access.actions.has(action)) throw new ForbiddenError(deniedMessage(found.access, action));
     return found;
   }

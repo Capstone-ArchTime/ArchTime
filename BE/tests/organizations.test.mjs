@@ -209,7 +209,7 @@ test("Organization: removing a member also removes them from every project of th
   assert.equal(result.removedProjectMemberships, 1);
   assert.ok(w.projectMembers.some((m) => m.id === "pm-dev-2"), "memberships outside the organization are kept");
   const { error } = await run(w.checkRole("read"), as("dev"), project.id);
-  assert.equal(error?.statusCode, 403);
+  assert.equal(error?.statusCode, 404, "N-05: the organization's project is now foreign to them");
 });
 
 test("Organization: removing a member withdraws their pending invitations to its projects only", async () => {
@@ -295,7 +295,7 @@ test("Organization: a removed member's open session loses access to the organiza
   // Same token, no new sign-in: access is decided on every request.
   for (const action of ["metadata", "read", "write"]) {
     const { error } = await run(w.checkRole(action), as("dev"), project.id);
-    assert.equal(error?.statusCode, 403, `${action} after removal`);
+    assert.equal(error?.statusCode, 404, `${action} after removal`);
   }
 });
 
@@ -390,7 +390,7 @@ test("Delete permission: the project owner may delete; maintainers, members and 
   assert.equal((await run(owner, as("owner"), p.id)).error, undefined);
   assert.equal((await run(owner, as("dev"), p.id)).error?.statusCode, 403, "maintainer");
   assert.equal((await run(owner, as("admin", UserRole.SYSTEM_ADMINISTRATOR), p.id)).error?.statusCode, 403, "admin");
-  assert.equal((await run(owner, as("other"), p.id)).error?.statusCode, 403, "stranger");
+  assert.equal((await run(owner, as("other"), p.id)).error?.statusCode, 404, "stranger");
 
   assert.equal((await run(w.checkRole("admin"), as("dev"), p.id)).error, undefined, "maintainers still manage members");
   assert.equal((await run(w.checkRole("write"), as("admin", UserRole.SYSTEM_ADMINISTRATOR), p.id)).error, undefined, "admins still operate everything else");
@@ -406,12 +406,12 @@ test("Organization projects: org owners act as maintainer and may delete; non-me
   assert.equal(asOrgOwner.error, undefined);
   assert.equal(asOrgOwner.req.projectMemberRole, ProjectMemberRole.MAINTAINER);
   assert.equal((await run(w.checkRole("owner"), as("dev"), p.id)).error, undefined, "the project owner, still in the organization");
-  assert.equal((await run(w.checkRole("read"), as("other"), p.id)).error?.statusCode, 403, "public does not leak outside the organization");
+  assert.equal((await run(w.checkRole("read"), as("other"), p.id)).error?.statusCode, 404, "public does not leak outside the organization");
 
   // The project's creator leaves the organization: they lose the project too.
   const devMembership = w.orgMembers.find((m) => m.userId === "dev");
   await w.orgUC.removeMember({ organizationId: org.id, userId: "dev", memberId: devMembership.id });
-  assert.equal((await run(w.checkRole("read"), as("dev"), p.id)).error?.statusCode, 403);
+  assert.equal((await run(w.checkRole("read"), as("dev"), p.id)).error?.statusCode, 404);
 });
 
 test("Personal public projects stay readable by any signed-in viewer", async () => {

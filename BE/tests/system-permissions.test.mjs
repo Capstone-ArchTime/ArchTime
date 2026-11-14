@@ -196,7 +196,7 @@ test("S05 A removed member loses every project of the organization at once, with
   const frank = w.orgMembers.find((m) => m.userId === "frank");
   assert.equal(await status("DELETE", `/organizations/acme/members/${frank.id}`, "alice"), 200);
   for (const [method, path] of [["GET", "/projects/acme-web"], ["GET", "/projects/acme-web/snapshots"], ["POST", "/projects/acme-web/diagram/confirm"], ["GET", "/projects/acme-api/snapshots"]]) {
-    assert.equal(await status(method, path, token), 403, `${method} ${path}`);
+    assert.equal(await status(method, path, token), 404, `${method} ${path} (N-05: foreign now)`);
   }
   assert.equal(await status("GET", "/organizations/acme", token), 404);
   assert.equal(await status("GET", "/projects/frank-own/snapshots", token), 200, "their own personal project");
@@ -207,9 +207,10 @@ test("S06 A member of one organization cannot reach another organization or its 
   const { status } = await start(t);
   assert.equal(await status("GET", "/organizations/beta", "bob"), 404, "not even its existence");
   assert.equal(await status("GET", "/organizations/beta/members", "bob"), 404);
-  assert.equal(await status("GET", "/projects/beta-core", "bob"), 403);
-  assert.equal(await status("GET", "/projects/beta-core/snapshots", "alice"), 403, "owning one organization gives nothing in another");
-  assert.equal(await status("GET", "/projects/acme-api/snapshots", "dora"), 403, "a public organization project is still members only");
+  // N-05: a project of another organization answers 404, as if it did not exist.
+  assert.equal(await status("GET", "/projects/beta-core", "bob"), 404);
+  assert.equal(await status("GET", "/projects/beta-core/snapshots", "alice"), 404, "owning one organization gives nothing in another");
+  assert.equal(await status("GET", "/projects/acme-api/snapshots", "dora"), 404, "a public organization project is still members only");
 });
 
 test("S07 Project Owner manages the project: members, invitations, approvals, deletion", async (t) => {
@@ -227,7 +228,7 @@ test("S08 Maintainer (Mentor) manages knowledge: diagram, decisions, rules, lear
     ["POST", "/projects/acme-api/onboarding-paths"], ["POST", "/projects/acme-api/onboarding-paths/p1/assignments"], ["GET", "/projects/acme-api/onboarding-paths/p1/assignments"],
   ]) assert.equal(await status(method, path, "bob"), 200, `${method} ${path}`);
   assert.equal(await status("DELETE", "/projects/acme-api", "bob"), 403);
-  assert.equal(await status("POST", "/projects/acme-web/diagram/confirm", "bob"), 403, "only in the project they maintain");
+  assert.equal(await status("POST", "/projects/acme-web/diagram/confirm", "bob"), 404, "only in the project they maintain; another project of the organization is foreign to them");
 });
 
 test("S09 Newcomer (Member) learns and reads; cannot change knowledge or see others' progress", async (t) => {
@@ -248,8 +249,8 @@ test("S10 Viewer reads public personal projects only, and never writes", async (
   assert.equal(await status("GET", "/projects/eve-public/snapshots", "gina"), 200);
   assert.equal(await status("POST", "/projects/eve-public/diagram/confirm", "gina"), 403);
   assert.equal(await status("POST", "/projects/eve-public/onboarding-paths/p1/steps/s1/complete", "gina"), 200, "reading includes following a path they were given");
-  assert.equal(await status("GET", "/projects/eve-private/snapshots", "gina"), 403);
-  assert.equal(await status("GET", "/projects/acme-api/snapshots", "gina"), 403, "organization projects are never public");
+  assert.equal(await status("GET", "/projects/eve-private/snapshots", "gina"), 404);
+  assert.equal(await status("GET", "/projects/acme-api/snapshots", "gina"), 404, "organization projects are never public");
 });
 
 test("S11 Nobody but a System Administrator calls the admin API, and authentication is enforced", async (t) => {

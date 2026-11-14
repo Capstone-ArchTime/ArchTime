@@ -100,7 +100,8 @@ test("owners and maintainers write paths, members and outsiders cannot", async t
   for (const who of ["alice", "invited", "outsider"]) {
     for (const [method, path, body] of attempts) {
       const { status } = await call(who, method, path, body);
-      assert.equal(status, 403, `${who}: ${method} ${path.replace(PROJECT, "<project>")} should be refused`);
+      // A member is refused (403); someone with no access at all is told the workspace does not exist (N-05).
+      assert.equal(status, who === "alice" ? 403 : 404, `${who}: ${method} ${path.replace(PROJECT, "<project>")} should be refused`);
     }
   }
   // A viewer of a public project can read it but still cannot write learning paths there.
@@ -114,7 +115,7 @@ test("a member cannot see how far their colleagues have got, only the mentors ca
   const path = await published();
   assert.equal((await call("alice", "GET", `${paths}/${path.id}/assignments`)).status, 403);
   assert.equal((await call("bob", "GET", `${paths}/${path.id}/assignments`)).status, 403);
-  assert.equal((await call("outsider", "GET", `${paths}/${path.id}/assignments`)).status, 403);
+  assert.equal((await call("outsider", "GET", `${paths}/${path.id}/assignments`)).status, 404);
 
   const done = await call("alice", "POST", `${paths}/${path.id}/steps/${path.steps[0].id}/complete`);
   assert.equal(done.status, 200);
@@ -177,8 +178,8 @@ test("someone who was not given the path gets nothing, even as a member of the p
 
   // Ids that are not ids are not found, and are not errors of ours.
   assert.equal((await call("alice", "GET", `${paths}/not-an-id/mine`)).status, 404);
-  assert.equal((await call("outsider", "GET", `${paths}/${path.id}/mine`)).status, 403);
-  assert.equal((await call("invited", "GET", `${paths}/${path.id}/mine`)).status, 403);
+  assert.equal((await call("outsider", "GET", `${paths}/${path.id}/mine`)).status, 404);
+  assert.equal((await call("invited", "GET", `${paths}/${path.id}/mine`)).status, 404, "an invitation not yet accepted gives no access at all");
   assert.equal((await call("outsider", "GET", "/onboarding/me")).body.data.paths.length, 0);
 });
 

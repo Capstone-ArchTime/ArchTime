@@ -50,6 +50,11 @@ export function createProjectRoleMiddleware(
         }
 
         const access = await policy.evaluate(project, req.user);
+        // N-05: a workspace the caller has nothing to do with answers as if it did not exist, so its id leaks nothing.
+        if (!access.actions.has("metadata")) {
+          next(new NotFoundError("Workspace not found."));
+          return;
+        }
         if (!access.actions.has(action)) {
           next(new ForbiddenError(deniedMessage(access, action)));
           return;

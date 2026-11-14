@@ -328,7 +328,7 @@ test('over HTTP both endpoints need a signed-in reader of the project', async t 
   const paths = [`/${PROJECT}/evidences/${E(3)}/impact`, `/${PROJECT}/architecture/impact?snapshotId=${S(5)}`];
   for (const path of paths) {
     assert.equal((await call(undefined, path)).status, 401, `${path} without a token`);
-    assert.equal((await call('outsider', path)).status, 403, `${path} for someone with no access to the private project`);
+    assert.equal((await call('outsider', path)).status, 404, `${path} for someone with no access to the private project (N-05: as if it did not exist)`);
   }
   for (const who of ['owner', 'reader']) {
     const evidence = await call(who, paths[0]);
