@@ -228,6 +228,7 @@ export const projectController = new ProjectController(
 import { MongoWorkspaceRepository } from "./infrastructure/repositories/MongoWorkspaceRepository.js";
 import { GetProjectWorkspaceUseCase } from "./application/use-cases/workspace/GetProjectWorkspaceUseCase.js";
 import { SaveProjectWorkspaceUseCase } from "./application/use-cases/workspace/SaveProjectWorkspaceUseCase.js";
+import { SetComponentPathsUseCase } from "./application/use-cases/workspace/SetComponentPathsUseCase.js";
 import { latestMinedCommit } from "./infrastructure/services/latestCommit.js";
 import { WorkspaceController } from "./presentation/controllers/WorkspaceController.js";
 
@@ -247,6 +248,7 @@ const saveProjectWorkspaceUseCase = new SaveProjectWorkspaceUseCase(
 export const workspaceController = new WorkspaceController(
   getProjectWorkspaceUseCase,
   saveProjectWorkspaceUseCase,
+  new SetComponentPathsUseCase(workspaceRepository, projectRepository),
 );
 
 export const memberController = new MemberController(

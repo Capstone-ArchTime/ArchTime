@@ -14,6 +14,7 @@ import {
 } from "../../../shared/errors/AppError.js";
 import { requestedConfirmation, settleConfirmation } from "../../../domain/architecture/canonical.js";
 import type { LatestCommitLookup } from "../../../domain/interfaces/ILatestCommit.js";
+import { settleComponentPaths } from "./SetComponentPathsUseCase.js";
 
 export interface SaveWorkspaceRequest {
   projectId: string;
@@ -92,6 +93,8 @@ export class SaveProjectWorkspaceUseCase {
     }
 
     const current = await this.workspaceRepository.findByProjectId(projectId);
+    // Path prefixes are checked (BR-27, MSG24) before anything else is decided; components sent without them keep theirs.
+    const components = settleComponentPaths(diagram.components, current?.diagram?.components);
 
     // The confirmation is decided here, never copied from the request: see domain/architecture/canonical.ts.
     const request = requestedConfirmation(current?.diagram, diagram);
@@ -111,7 +114,7 @@ export class SaveProjectWorkspaceUseCase {
         {
           projectId,
           revision: baseRevision ?? 1,
-          diagram: { components: diagram.components, dependencies: diagram.dependencies, revision: diagram.revision, ...confirmation },
+          diagram: { components, dependencies: diagram.dependencies, revision: diagram.revision, ...confirmation },
           rules: rules ?? [],
           decisions: keepProvenance(decisions ?? [], current?.decisions ?? [], userId),
           updatedBy: userId,
