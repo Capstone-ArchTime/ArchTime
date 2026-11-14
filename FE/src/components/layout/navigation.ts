@@ -1,5 +1,5 @@
 import type { ElementType } from 'react';
-import { LayoutDashboard, FolderKanban, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, Users2, SlidersHorizontal, ScrollText, Activity, Boxes, Cpu, Gauge, Coins, GraduationCap, UserRound, ChartNetwork, Briefcase, Building2 } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, Users2, SlidersHorizontal, ScrollText, Activity, Boxes, Cpu, Gauge, Coins, GraduationCap, UserRound, ChartNetwork, Briefcase, Building2, ScanSearch } from 'lucide-react';
 import type { Role } from '@/auth/permissions';
 
 export type NavItem = { path: string; label: string; icon: ElementType };
@@ -21,6 +21,7 @@ export const maintainNavItems: readonly NavItem[] = [
   { path: '/project-maintainer/team', label: 'Team', icon: Users },
   { path: '/project-maintainer/component-diagram', label: 'Component Diagram', icon: Network },
   { path: '/project-maintainer/architecture-rules', label: 'Architecture Rules', icon: ShieldCheck },
+  { path: '/project-maintainer/conformance', label: 'Conformance Findings', icon: ScanSearch },
   { path: '/project-maintainer/design-decisions', label: 'Design Decisions', icon: BookOpen },
 ];
 

@@ -19,6 +19,7 @@ import {
   projectMaintainerController,
   llmController,
   projectChatController,
+  conformanceController,
   organizationController,
   onboardingController,
   rateLimiter,
@@ -28,6 +29,7 @@ import { createRevisionRouter } from "./presentation/routes/revision.routes.js";
 import { createLearningRouter, createOnboardingRouter } from "./presentation/routes/onboarding.routes.js";
 import { createLlmRouter } from "./presentation/routes/llm.routes.js";
 import { createProjectChatRouter } from "./presentation/routes/projectChat.routes.js";
+import { createConformanceRouter } from "./presentation/routes/conformance.routes.js";
 import { createGitHubRouter } from './presentation/routes/github.routes.js';
 import { GitHubIdentityService } from './infrastructure/services/GitHubIdentityService.js';
 import { GitHubLoginUseCase } from './application/use-cases/GitHubLoginUseCase.js';
@@ -53,6 +55,7 @@ app.use("/api/health", healthRouter);
 app.use('/api/auth/github', createGitHubRouter(env, new GitHubIdentityService(env.githubClientId, env.githubClientSecret, env.githubCallbackUrl), new GitHubLoginUseCase(), new MongoUserRepository(), jwtTokenService));
 app.use("/api/auth", createAuthRouter(authController, jwtTokenService, rateLimiter));
 app.use("/api/projects", createProjectChatRouter(projectChatController, jwtTokenService, projectRoleMiddleware));
+app.use("/api/projects", createConformanceRouter(conformanceController, jwtTokenService, projectRoleMiddleware));
 app.use("/api/projects", createRevisionRouter(jwtTokenService, projectRoleMiddleware));
 app.use("/api/projects", createOnboardingRouter(onboardingController, jwtTokenService, projectRoleMiddleware));
 app.use("/api/onboarding", createLearningRouter(onboardingController, jwtTokenService));
