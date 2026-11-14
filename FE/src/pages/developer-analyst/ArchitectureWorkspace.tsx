@@ -10,7 +10,10 @@ import QualityPanel from '@/components/architecture/QualityPanel';
 import AccountMenu from '@/components/AccountMenu';
 import MiningPanel from '@/components/MiningPanel';
 import { FIXTURES, getFixture } from '@/features/architecture/fixtures';
+import { getLineage } from '@/features/architecture/api';
 import type { RefineReceipt } from '@/features/architecture/api';
+import { EVOLUTION_MARK, evolutionAt, historyOf } from '@/features/architecture/evolution';
+import type { Evolution, LineagePayload } from '@/features/architecture/evolution';
 import type { ExportMeta } from '@/features/architecture/export-file';
 import type { IssueAction } from '@/features/architecture/issues';
 import { parseHash } from '@/features/architecture/url-state';
@@ -36,6 +39,26 @@ function ReceiptSummary({ receipt }: { receipt: RefineReceipt }) {
         <p>No usable AI answer; the grouping by dependencies is shown. Verifier codes per attempt:</p>
         <ol className="mt-1 list-decimal pl-4">{receipt.attempts.map(a => <li key={a.n}>{a.issues.slice(0, 2).map(i => i.code).join(', ') || 'ok'}</li>)}</ol>
       </div>}
+  </section>;
+}
+
+/** What changed in the components since the previous snapshot that has them; the names focus the component on the map. */
+function EvolutionSummary({ evolution, onFocus }: { evolution: Evolution; onFocus: (componentId: string) => void }) {
+  const { previous, items } = evolution;
+  return <section className="space-y-2 text-xs" aria-label="Evolution">
+    <h3 className={sectionTitle}>Evolution</h3>
+    {!previous && <p className="text-[var(--at-muted)]">The first snapshot with components: nothing earlier to compare with.</p>}
+    {previous && <p className="text-[var(--at-muted)]">Since <code>{previous.hash.slice(0, 7)}</code>{previous.date ? ` (${new Date(previous.date).toLocaleDateString()})` : ''}{items.length ? '' : ': no component was added, split, merged, renamed or removed.'}</p>}
+    {items.length > 0 && <ul className="space-y-1">{items.map((item, i) => {
+      const mark = item.kind === 'kept' || item.kind === 'removed' ? null : EVOLUTION_MARK[item.kind];
+      return <li key={i} className="flex items-start gap-2">
+        <span className="mt-0.5 shrink-0 rounded-full border px-1 font-mono text-[9px] font-bold" style={mark ? { borderColor: mark.color, color: mark.color } : undefined}>{mark?.label ?? 'GONE'}</span>
+        {item.componentIds.length
+          ? <button type="button" className="text-left text-slate-200 hover:text-white hover:underline" onClick={() => onFocus(item.componentIds[0])}>{item.text}</button>
+          : <span className="text-[var(--at-muted)]">{item.text}</span>}
+      </li>;
+    })}</ul>}
+    {previous && <p className="text-[11px] leading-snug text-[var(--at-muted)]">Matched through the files each component holds. A split or merge needs files added, deleted or moved, as in Compare.</p>}
   </section>;
 }
 
@@ -70,6 +93,17 @@ export default function ArchitectureWorkspace() {
     return () => controller.abort();
   }, []);
 
+  // The lineage covers every snapshot with components; it changes when a grouping is made or redone.
+  const [lineage, setLineage] = useState<{ projectId: string; data: LineagePayload } | null>(null);
+  const mappingVersion = arch.payload?.mapping?.createdAt;
+  useEffect(() => {
+    if (!projectId) return;
+    const controller = new AbortController();
+    getLineage(projectId, controller.signal).then(data => setLineage({ projectId, data })).catch(() => { /* the marks are optional; the map stays usable */ });
+    return () => controller.abort();
+  }, [projectId, mappingVersion]);
+  const lineageData = lineage && lineage.projectId === projectId ? lineage.data : null;
+
   const project = projects.find(p => p.id === projectId);
   const title = sample ? sample.label.split(':')[0] : project?.name ?? 'Workspace';
   useEffect(() => { document.title = `${title} · Architecture · ArchTime`; }, [title]);
@@ -78,6 +112,8 @@ export default function ArchitectureWorkspace() {
   const payload = arch.payload;
   const view = sample?.view ?? (payload?.status === 'ready' ? payload.view : null);
   const busy = !!arch.refining || arch.generating;
+  const viewedSnapshot = snapshotParam ?? payload?.snapshot?.id;
+  const evolution = useMemo(() => (payload?.status === 'ready' ? evolutionAt(lineageData, viewedSnapshot) : null), [payload?.status, lineageData, viewedSnapshot]);
   // Full screen hides this header too, so it only counts while there is a drawing to leave it from.
   const fullScreen = useFocusMode();
   const focusMode = fullScreen.focus && !!view;
@@ -129,6 +165,7 @@ export default function ArchitectureWorkspace() {
           : 'Grouped by dependency clustering and named from folder names.'}</p>
       </details>
     </section>
+    {evolution && <EvolutionSummary evolution={evolution} onFocus={id => commit({ ...base, focus: id })} />}
     {payload.quality && <section className="space-y-2"><h3 className={sectionTitle}>Quality</h3>
       <QualityPanel projectId={projectId} quality={payload.quality} view={payload.view} onSaved={arch.reload} canEdit={canMaintain} openEditorRef={openReference} /></section>}
     {payload.mapping?.receipt && <ReceiptSummary receipt={payload.mapping.receipt} />}
@@ -173,6 +210,7 @@ export default function ArchitectureWorkspace() {
         {view && <ArchitectureViewer view={view} base={base} hash={hash} commit={commit} overview={overview}
           focusMode={focusMode} onFocusMode={fullScreen.set} issueContext={issueContext} onIssueAction={onIssueAction} exportInfo={exportInfo}
           projectId={projectId} mappingVersion={payload?.mapping?.createdAt}
+          marks={evolution?.marks} historyFor={id => historyOf(lineageData, viewedSnapshot, id)}
           {...(projectId ? { snapshots: arch.snapshots, snapshotId: snapshotParam ?? payload?.snapshot?.id, onSnapshot: (id: string) => commit({ project: projectId, snapshot: id }, true) } : {})} />}
 
         {/* No drawing for this snapshot (yet): keep the snapshot list, like a design file's pages, so another can be opened. */}
