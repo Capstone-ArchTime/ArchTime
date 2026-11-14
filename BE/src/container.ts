@@ -338,7 +338,10 @@ import { AdminLlmController, LlmController } from "./presentation/controllers/Ll
 
 export const llmController = new LlmController(new UserLlmUseCases(projectAccessPolicy));
 import { ProjectChatUseCase } from "./application/use-cases/llm/ProjectChatUseCase.js";
-import { CheckConformanceUseCase, DecideFindingUseCase, ExplainFindingUseCase, ListConformanceUseCase } from "./application/use-cases/conformance/ConformanceUseCases.js";
+import { CheckConformanceUseCase, DecideFindingUseCase, ExplainFindingUseCase, ListConformanceUseCase, UnreadFindingsUseCase } from "./application/use-cases/conformance/ConformanceUseCases.js";
+import { FindingNotifier, conformanceAfterMining } from "./application/use-cases/conformance/FindingNotifier.js";
+import { mongoConformanceDirectory } from "./infrastructure/services/ConformanceDirectory.js";
+import { MiningService } from "./infrastructure/services/MiningService.js";
 import { MongoConformanceRepository, mongoConformanceSnapshots } from "./infrastructure/repositories/MongoConformanceRepository.js";
 import { ConformanceController } from "./presentation/controllers/ConformanceController.js";
 import { LlmModelRegistry } from "./infrastructure/llm/registry.js";
@@ -367,7 +370,16 @@ export const conformanceController = new ConformanceController(
   new ListConformanceUseCase(workspaceRepository, conformanceRepository),
   new DecideFindingUseCase(conformanceRepository),
   new ExplainFindingUseCase(conformanceRepository, workspaceRepository, explainModel),
+  new UnreadFindingsUseCase(projectAccessPolicy, conformanceRepository),
 );
+// After every fetch or mine: check, then e-mail what is new (RF-29, BR-34). The link opens the first allowed origin.
+export const findingNotifier = new FindingNotifier(
+  conformanceRepository,
+  mongoConformanceDirectory,
+  (to, mail) => emailService.sendNotification(to, mail),
+  env.corsOrigin.split(",")[0].trim(),
+);
+MiningService.onHistoryChanged = conformanceAfterMining(checkConformanceUseCase, findingNotifier);
 export const adminLlmController = new AdminLlmController(new AdminLlmUseCases());
 
 export const adminControllersConfig: AdminControllersConfig = {

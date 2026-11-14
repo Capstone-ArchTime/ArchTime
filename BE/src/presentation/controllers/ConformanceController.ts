@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import type {
-  CheckConformanceUseCase, DecideFindingUseCase, ExplainFindingUseCase, ListConformanceUseCase,
+  CheckConformanceUseCase, DecideFindingUseCase, ExplainFindingUseCase, ListConformanceUseCase, UnreadFindingsUseCase,
 } from "../../application/use-cases/conformance/ConformanceUseCases.js";
 import { ForbiddenError, UnauthorizedError } from "../../shared/errors/AppError.js";
 import { sendSuccess } from "../../shared/utils/apiResponse.js";
@@ -13,7 +13,26 @@ export class ConformanceController {
     private readonly list: ListConformanceUseCase,
     private readonly decide: DecideFindingUseCase,
     private readonly explain: ExplainFindingUseCase,
+    private readonly unreadFindings?: UnreadFindingsUseCase,
   ) {}
+
+  /** GET /api/conformance/unread — MSG26: open findings each maintainer has not looked at, per project. */
+  unread = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = this.user(req);
+      if (!this.unreadFindings) { sendSuccess(res, { total: 0, projects: [] }); return; }
+      sendSuccess(res, await this.unreadFindings.unread({ userId, role: req.user?.role ?? "user" }));
+    } catch (error) { next(error); }
+  };
+
+  /** POST /api/projects/:id/conformance/seen — the person has looked at this project's findings. */
+  seen = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = this.user(req);
+      await this.unreadFindings?.markSeen(req.params.id, userId);
+      sendSuccess(res, { seen: true });
+    } catch (error) { next(error); }
+  };
 
   private user(req: Request): string {
     const userId = req.user?.userId;

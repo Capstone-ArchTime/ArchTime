@@ -240,3 +240,30 @@ function sum(usages: LlmUsage[]): LlmUsage | null {
     estimated: a.estimated || u.estimated,
   }));
 }
+
+// ── Unread findings (MSG26) ─────────────────────────────────────────────────────────────────────────────────────────────
+
+export interface UnreadProject { projectId: string; projectName: string; count: number }
+
+/** Open findings each maintainer has not looked at yet, in the projects they can change (owner, maintainer, org owner). */
+export class UnreadFindingsUseCase {
+  constructor(
+    private readonly access: { readableProjects(user: { userId: string; role: string }): Promise<{ project: { id: string; name: string }; access: { actions: ReadonlySet<string> } }[]> },
+    private readonly store: Pick<IConformanceRepository, "unreadCounts" | "markSeen">,
+    private readonly now: () => Date = () => new Date(),
+  ) {}
+
+  async unread(user: { userId: string; role: string }): Promise<{ total: number; projects: UnreadProject[] }> {
+    const maintained = (await this.access.readableProjects(user)).filter(e => e.access.actions.has("write"));
+    const counts = await this.store.unreadCounts(user.userId, maintained.map(e => e.project.id));
+    const projects = maintained
+      .filter(e => counts.has(e.project.id))
+      .map(e => ({ projectId: e.project.id, projectName: e.project.name, count: counts.get(e.project.id)! }))
+      .sort((a, b) => b.count - a.count || a.projectName.localeCompare(b.projectName));
+    return { total: projects.reduce((n, p) => n + p.count, 0), projects };
+  }
+
+  markSeen(projectId: string, userId: string): Promise<void> {
+    return this.store.markSeen(projectId, userId, this.now());
+  }
+}

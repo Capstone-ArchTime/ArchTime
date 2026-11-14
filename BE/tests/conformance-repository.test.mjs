@@ -110,3 +110,30 @@ test('carryForward settles only open findings with the key in later commits', as
   const kinds = Object.fromEntries((await repo.findings('p1')).filter(f => f.key === 'fwd').map(f => [f.snapshotHash, f.decision?.kind ?? null]));
   assert.deepEqual(kinds, { ddddddd: null, eeeeeee: 'dismiss', fffffff: 'fix' });
 });
+
+test('claimUnnotified takes only open, undecided, current findings, and two claims at once never share one', async t => {
+  if (!connected) return t.skip(unavailable);
+  await repo.recordCheck({ check: { ...check('n1', '1010101', day(20), 3), projectId: 'pn' }, findings: [finding('a'), finding('b'), finding('c')], inherited: new Map() });
+  const [, b] = await repo.findings('pn');
+  await repo.setDecision('pn', b.id, { kind: 'fix', note: '', by: 'u', at: day(20), inheritedFrom: null });
+  const [first, second] = await Promise.all([repo.claimUnnotified('pn', new Date(Date.UTC(2026, 10, 21, 0, 0, 0, 1))), repo.claimUnnotified('pn', new Date(Date.UTC(2026, 10, 21, 0, 0, 0, 2)))]);
+  const keys = [...first, ...second].map(f => f.key).sort();
+  assert.deepEqual(keys, ['a', 'c'], 'each open finding taken once, the decided one not at all');
+  assert.equal((await repo.claimUnnotified('pn', day(22))).length, 0);
+  const claimedAt = first.length ? first[0].notifiedAt : second[0].notifiedAt;
+  await repo.releaseClaim('pn', claimedAt);
+  assert.ok((await repo.claimUnnotified('pn', day(23))).length >= 1, 'released findings can be taken again');
+});
+
+test('unread counts distinct open problems found since the person last looked', async t => {
+  if (!connected) return t.skip(unavailable);
+  const p = 'pu';
+  await repo.recordCheck({ check: { ...check('u1', '2020202', day(1), 2), projectId: p }, findings: [finding('x'), finding('y')], inherited: new Map() });
+  await repo.recordCheck({ check: { ...check('u2', '3030303', day(2), 1), projectId: p }, findings: [finding('x')], inherited: new Map() });
+  assert.equal((await repo.unreadCounts('me', [p])).get(p), 2, 'x in two commits is one problem');
+  await repo.markSeen(p, 'me', new Date(Date.now() + 1000));
+  assert.equal((await repo.unreadCounts('me', [p])).has(p), false);
+  assert.equal((await repo.unreadCounts('someone-else', [p])).get(p), 2, 'seen is per person');
+  await repo.markSeen(p, 'me', day(1));
+  assert.equal((await repo.unreadCounts('me', [p])).has(p), false, 'an older seen time never moves it back');
+});

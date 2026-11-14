@@ -104,5 +104,34 @@ export function createConformanceRouter(
    */
   router.post("/:id/conformance/findings/:findingId/explanation", auth, projectRoleMiddleware("read"), controller.explanation);
 
+  /**
+   * @swagger
+   * /api/projects/{id}/conformance/seen:
+   *   post:
+   *     tags: [Conformance]
+   *     summary: Đánh dấu người dùng đã xem các finding của dự án (MSG26)
+   *     security: [{ BearerAuth: [] }]
+   *     parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+   *     responses: { 200: { description: "{ seen: true }" } }
+   */
+  router.post("/:id/conformance/seen", auth, projectRoleMiddleware("read"), controller.seen);
+
+  return router;
+}
+
+/**
+ * Not tied to one project: mounted at /api/conformance.
+ *
+ * @swagger
+ * /api/conformance/unread:
+ *   get:
+ *     tags: [Conformance]
+ *     summary: Số finding mở chưa xem, theo từng dự án người dùng quản lý (MSG26)
+ *     security: [{ BearerAuth: [] }]
+ *     responses: { 200: { description: "{ total, projects: [{ projectId, projectName, count }] }" } }
+ */
+export function createConformanceInboxRouter(controller: ConformanceController, jwtTokenService: JwtTokenService): Router {
+  const router = Router();
+  router.get("/unread", createAuthenticateMiddleware(jwtTokenService), controller.unread);
   return router;
 }

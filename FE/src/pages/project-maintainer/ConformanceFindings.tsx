@@ -8,6 +8,7 @@ import {
   DECISIONS, FINDING_TYPES, decideFinding, explainFinding, fetchFindings, fetchOverview, findingTitle, latestCheck, runCheck,
 } from '@/features/conformance';
 import type { DecisionKind, Finding, Overview } from '@/features/conformance';
+import { markFindingsSeen } from '@/features/unread-findings';
 
 type Status = 'open' | 'decided' | 'all';
 const shown = 20;
@@ -105,6 +106,8 @@ function Findings({ project }: { project: string }) {
         // Keep the commit the person was looking at if it is still there; otherwise show the newest one.
         setSnapshotId(current => (current && next.checks.some(c => c.snapshotId === current) ? current : latestCheck(next.checks)?.snapshotId));
         setError(null);
+        // Opening the findings is reading them (MSG26): the badge and the overview notice stop counting them.
+        void markFindingsSeen(project);
       })
       .catch(cause => { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Could not load the conformance check.'); });
     return () => controller.abort();
