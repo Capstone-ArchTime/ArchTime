@@ -56,7 +56,8 @@ test('two snapshots are matched through their files, earlier one first whatever 
   assert.equal(res.after.snapshot.hash, 'bbb2222');
   assert.equal(res.before.stale, false);
   assert.deepEqual(res.before.components.map(c => c.name).sort(), ['Shop', 'Users']);
-  assert.deepEqual(res.matching.changes.map(c => `${c.kind}:${c.before}>${c.after}`), ['split:shop>cart,catalog', 'renamed:users>accounts']);
+  // No file was added, deleted or moved: the new grouping of the same files is not reported as a split (evidence rule).
+  assert.deepEqual(res.matching.changes.map(c => `${c.kind}:${c.before}>${c.after}${c.reason ? `/${c.reason}` : ''}`), ['kept:shop>cart,catalog/regrouped', 'renamed:users>accounts']);
   assert.equal(res.matching.successor.shop, 'catalog');
 });
 
@@ -108,7 +109,10 @@ test('evaluation compares the recovered architecture with the directory baseline
   assert.equal(res.hasReference, false);
   assert.deepEqual(res.snapshots.map(s => s.snapshot.hash), ['v1', 'v2']);
   assert.equal(res.snapshots[0].recoveredVsBaseline.score, 100); // shop/ and user/ folders are exactly Shop and Users
-  assert.equal(res.steps[0].recovered.summary.split, 1);
+  // The same files regrouped: no structural change under the evidence rule, one split without it.
+  assert.equal(res.steps[0].recovered.summary.split, 0);
   assert.equal(res.steps[0].baseline.structural, 0);
-  assert.deepEqual(res.overall.structuralChanges, { recovered: 1, baseline: 0 });
+  assert.deepEqual(res.overall.structuralChanges, { recovered: 0, baseline: 0 });
+  const old = await ArchitectureService.evaluation(pid, { depth: 1, noEvidence: true });
+  assert.equal(old.steps[0].recovered.summary.split, 1);
 });

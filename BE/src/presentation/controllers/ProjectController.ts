@@ -10,6 +10,7 @@ import type { CompareSnapshotsUseCase } from "../../application/use-cases/projec
 import { MiningWorkflowUseCase } from "../../application/use-cases/projects/MiningWorkflowUseCase.js";
 import { ArchitectureUseCase } from "../../application/use-cases/projects/ArchitectureUseCase.js";
 import type { GetEvidencesUseCase } from "../../application/use-cases/projects/GetEvidencesUseCase.js";
+import type { ViewerAccessUseCase } from "../../application/use-cases/projects/ViewerAccessUseCase.js";
 import { BadRequestError, NotFoundError, UnauthorizedError } from "../../shared/errors/AppError.js";
 import { sendSuccess, parsePaginationParams, buildPaginationMeta } from "../../shared/utils/apiResponse.js";
 
@@ -26,7 +27,24 @@ export class ProjectController {
     private readonly getProjectByIdUseCase: GetProjectByIdUseCase | undefined,
     private readonly miningWorkflowUseCase: MiningWorkflowUseCase = new MiningWorkflowUseCase(),
     private readonly architectureUseCase: ArchitectureUseCase = new ArchitectureUseCase(),
+    private readonly viewerAccessUseCase?: ViewerAccessUseCase,
   ) {}
+
+  /** UC-16, BR-17: what viewers of a public personal workspace may do. Read by its readers, changed by its owner. */
+  public getViewerAccess = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!this.viewerAccessUseCase) throw new NotFoundError("Not available.");
+      sendSuccess(res, { viewerAccess: await this.viewerAccessUseCase.get(req.params.id) });
+    } catch (error) { next(error); }
+  };
+
+  public updateViewerAccess = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!this.viewerAccessUseCase) throw new NotFoundError("Not available.");
+      const viewerAccess = await this.viewerAccessUseCase.update(req.params.id, req.body ?? {});
+      sendSuccess(res, { viewerAccess }, { message: "Viewer settings saved." });
+    } catch (error) { next(error); }
+  };
 
   public registerProject = async (
     req: Request,

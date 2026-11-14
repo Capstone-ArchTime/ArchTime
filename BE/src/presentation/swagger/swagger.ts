@@ -375,6 +375,7 @@ const options: swaggerJsdoc.Options = {
             confirmedAt: { type: "string", format: "date-time", nullable: true, description: "Server-set. On save, sending a new time asks to confirm (canonical map), the stored time keeps the confirmation while the content is unchanged, null clears it." },
             confirmedBy: { type: "string", nullable: true, readOnly: true, description: "Server-set: the user who confirmed." },
             confirmedRevision: { type: "integer", nullable: true, readOnly: true, description: "Workspace revision written by the confirming save." },
+            baselineCommit: { type: "string", nullable: true, readOnly: true, description: "Latest mined commit when the diagram was confirmed; the conformance check covers only later commits. An approved architecture change request moves it." },
             confirmedByName: { type: "string", nullable: true, readOnly: true },
           },
         },

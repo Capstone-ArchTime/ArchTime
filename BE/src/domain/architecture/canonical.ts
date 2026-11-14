@@ -9,9 +9,14 @@ export interface DiagramConfirmation {
   confirmedBy: string | null;
   /** The workspace revision written by the save that confirmed the diagram. */
   confirmedRevision: number | null;
+  /**
+   * The latest mined commit when the diagram was confirmed (BR-32). The conformance check covers only commits after it;
+   * an approved architecture change request moves it. Null when nothing was mined yet.
+   */
+  baselineCommit: string | null;
 }
 
-export const UNCONFIRMED: DiagramConfirmation = { confirmedAt: null, confirmedBy: null, confirmedRevision: null };
+export const UNCONFIRMED: DiagramConfirmation = { confirmedAt: null, confirmedBy: null, confirmedRevision: null, baselineCommit: null };
 
 type DiagramContent = Pick<IWorkspaceDiagram, "components" | "dependencies">;
 
@@ -39,6 +44,7 @@ export function confirmationOf(diagram: Partial<IWorkspaceDiagram> | null | unde
     confirmedAt: new Date(at),
     confirmedBy: diagram?.confirmedBy ?? null,
     confirmedRevision: typeof diagram?.confirmedRevision === "number" ? diagram.confirmedRevision : null,
+    baselineCommit: typeof diagram?.baselineCommit === "string" && diagram.baselineCommit ? diagram.baselineCommit : null,
   };
 }
 
@@ -54,7 +60,7 @@ export function requestedConfirmation(stored: Partial<IWorkspaceDiagram> | null 
 
 /**
  * The confirmation the saved diagram carries.
- * - confirm: the caller, now, at the revision this save writes.
+ * - confirm: the caller, now, at the revision this save writes, with the latest mined commit as baseline.
  * - keep: the stored confirmation, if the content is still the content that was confirmed; otherwise none.
  * - clear: none.
  */
@@ -65,9 +71,11 @@ export function settleConfirmation(input: {
   userId?: string;
   now: Date;
   nextRevision: number;
+  /** The latest mined commit of the project; used only when confirming. */
+  baselineCommit?: string | null;
 }): DiagramConfirmation {
   if (input.request === "confirm") {
-    return { confirmedAt: input.now, confirmedBy: input.userId ?? null, confirmedRevision: input.nextRevision };
+    return { confirmedAt: input.now, confirmedBy: input.userId ?? null, confirmedRevision: input.nextRevision, baselineCommit: input.baselineCommit ?? null };
   }
   if (input.request === "clear") return UNCONFIRMED;
   const stored = confirmationOf(input.stored);

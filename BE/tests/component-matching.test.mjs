@@ -115,3 +115,24 @@ test('lineages follow a component through renames and splits across snapshots', 
   assert.equal(byComponent.s3.infra, 's3:infra');
   assert.deepEqual(lineages.find(l => l.id === 's1:core').members.map(m => m.name), ['Core', 'Domain', 'Domain']);
 });
+
+test('evidence rule: a split needs files added, deleted or moved and parts of at least minPartFiles files', () => {
+  const files = n => Array.from({ length: n }, (_, i) => `src/a/F${i}.ts`);
+  const a6 = files(6);
+  const before = [{ id: 'a', name: 'A', memberIds: a6 }];
+  const regrouped = matchComponents(before, [{ id: 'x', name: 'X', memberIds: a6.slice(0, 3) }, { id: 'y', name: 'Y', memberIds: a6.slice(3) }], { evidence: { minPartFiles: 3 } });
+  assert.deepEqual(regrouped.changes.map(c => `${c.kind}/${c.reason}`), ['kept/regrouped']);
+  assert.equal(regrouped.summary.split, 0);
+
+  const split = matchComponents(before, [
+    { id: 'x', name: 'X', memberIds: [...a6.slice(0, 3), 'src/a/New1.ts'] },
+    { id: 'y', name: 'Y', memberIds: [...a6.slice(3), 'src/a/New2.ts', 'src/a/New3.ts'] },
+  ], { evidence: { minPartFiles: 3 } });
+  assert.equal(split.summary.split, 1);
+
+  const tiny = matchComponents(before, [{ id: 'x', name: 'X', memberIds: [...a6.slice(0, 5), 'src/a/New.ts'] }, { id: 'y', name: 'Y', memberIds: a6.slice(5) }], { evidence: { minPartFiles: 3 } });
+  assert.equal(tiny.summary.split, 0);
+
+  const without = matchComponents(before, [{ id: 'x', name: 'X', memberIds: a6.slice(0, 3) }, { id: 'y', name: 'Y', memberIds: a6.slice(3) }]);
+  assert.equal(without.summary.split, 1);
+});

@@ -33,6 +33,7 @@ export class GetProjectDiagramUseCase {
           confirmedAt: null,
           confirmedBy: null,
           confirmedRevision: null,
+          baselineCommit: null,
         },
         rules: [],
         decisions: [],

@@ -11,6 +11,7 @@ import { usePagination } from '@/hooks/usePagination';
 import PaginationBar from '@/components/PaginationBar';
 import { getAIModelsHealth, setDefaultAIModel } from '@/features/admin-api';
 import type { AIModelUsage } from '@/features/admin-api';
+import { providerDot, sectionTitle } from './admin-ui';
 
 export default function MiningJobsMonitor() {
   const { message } = App.useApp();
@@ -74,10 +75,10 @@ export default function MiningJobsMonitor() {
     {cancelError && <Alert type="error" showIcon title={cancelError} closable onClose={() => setCancelError(null)} />}
 
     <section className={featurePanel}>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h3 className="font-semibold mb-1">Default AI Model for Mining</h3>
-          <p className="text-xs text-[var(--at-muted)]">Used when a user does not pick a model for AI architecture refinement. Manage models under <Link to="/system-administrator/ai-models" className="text-[var(--at-link)]">AI Models</Link>.</p>
+          <h3 className={`${sectionTitle} mb-1`}>Default AI model for mining</h3>
+          <p className="text-sm text-[var(--at-muted)]">Used when a user does not pick a model for AI architecture refinement. Manage models under <Link to="/system-administrator/ai-models" className="text-[var(--at-link)]">AI Models</Link>.</p>
           {aiError && <p role="alert" className="text-xs text-red-400 mt-1">{aiError}</p>}
           {!aiError && !aiModels.length && <p className="text-xs text-[var(--at-muted)] mt-1">No AI model is configured.</p>}
         </div>
@@ -91,7 +92,7 @@ export default function MiningJobsMonitor() {
             disabled: !m.id,
             label: (
               <span className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${m.provider === 'anthropic' ? 'bg-purple-500' : m.provider === 'gemini' ? 'bg-sky-500' : 'bg-green-500'}`} />
+                <span className={providerDot(m.provider)} />
                 {m.model}
                 <Tag color={m.status === 'healthy' ? 'green' : m.status === 'degraded' ? 'gold' : m.status === 'down' ? 'red' : 'default'} className="ml-auto">
                   {m.status}
@@ -101,17 +102,20 @@ export default function MiningJobsMonitor() {
           }))}
         />
       </div>
-      <div className="grid grid-cols-4 gap-4 mt-4">
+      <div className="grid gap-4 mt-4 sm:grid-cols-2 lg:grid-cols-4">
         {aiModels.map(m => (
           <button
             key={m.id ?? m.model}
             type="button"
             onClick={() => handleDefaultModelChange(m.model)}
             disabled={modelLoading || m.model === defaultModel || !m.id}
-            className={`p-3 border text-left transition-colors cursor-pointer hover:border-[var(--at-accent)]/50 disabled:cursor-default ${m.model === defaultModel ? 'border-[var(--at-accent)] bg-[var(--at-accent)]/5' : 'border-[var(--at-line)] hover:bg-[var(--at-panel-2)]'}`}
+            aria-pressed={m.model === defaultModel}
+            // The current default is not dimmed like an unavailable choice (index.css dims disabled buttons).
+            style={m.model === defaultModel ? { opacity: 1, cursor: 'default' } : undefined}
+            className={`rounded-[14px] p-4 border text-left transition-colors cursor-pointer hover:border-[var(--at-link)] disabled:cursor-default ${m.model === defaultModel ? 'border-[var(--at-accent)] bg-[var(--at-panel-2)]' : 'border-[var(--at-line)] hover:bg-[var(--at-panel-2)]'}`}
           >
             <div className="flex items-center gap-2 mb-2">
-              <span className={`w-2 h-2 rounded-full ${m.provider === 'anthropic' ? 'bg-purple-500' : m.provider === 'gemini' ? 'bg-sky-500' : 'bg-green-500'}`} />
+              <span className={providerDot(m.provider)} />
               <span className="text-sm font-medium text-[var(--at-text)]">{m.model}</span>
               {m.model === defaultModel && <Tag color="blue" className="ml-auto">Active</Tag>}
             </div>
@@ -128,7 +132,7 @@ export default function MiningJobsMonitor() {
     <div className="flex flex-wrap gap-3 items-center"><Select className="min-w-44" aria-label="Filter jobs by status" value={filter} onChange={setFilter} options={['all', 'queued', 'running', 'completed', 'failed', 'cancelled'].map(value => ({ value, label: value === 'all' ? 'All jobs' : value }))} /><span className="text-xs text-[var(--at-muted)]">{jobs.filter(j => j.status === 'running').length} running · {jobs.filter(j => j.status === 'queued').length} queued{updated ? ` · Last updated ${updated}` : ''}</span></div>
     {loading && !updated ? <div role="status" className="p-12 text-center"><Spin /><p>Loading jobs…</p></div> : !filtered.length && !error ? <Empty description="No jobs match this filter" /> : null}
     <div className="space-y-3">{pagination.items.map(job => <article key={job.id} className={featurePanel}>
-      <div className="flex flex-wrap justify-between gap-3"><div><Tag color={job.status === 'failed' ? 'red' : job.status === 'completed' ? 'green' : job.status === 'cancelled' ? 'orange' : 'blue'}>{job.status}</Tag><h3 className="font-semibold mt-2">{job.project}</h3><p className="text-xs text-[var(--at-muted)] mt-2">Requested by {job.requestedBy} · {job.createdAt ? new Date(job.createdAt).toLocaleString() : 'Time not provided'} · <Typography.Text className="text-xs text-[var(--at-muted)]" copyable={{ text: job.id, tooltips: ['Copy job id', 'Copied'] }}>Job …{job.id.slice(-6)}</Typography.Text></p></div>{(job.status === 'queued' || job.status === 'running') && <Button danger onClick={() => cancel(job.id)}>{job.status === 'queued' ? 'Cancel' : 'Stop'}</Button>}</div>
+      <div className="flex flex-wrap justify-between gap-3"><div><Tag color={job.status === 'failed' ? 'red' : job.status === 'completed' ? 'green' : job.status === 'cancelled' ? 'default' : 'blue'}>{job.status}</Tag><h3 className="text-base font-bold mt-2">{job.project}</h3><p className="text-xs text-[var(--at-muted)] mt-2">Requested by {job.requestedBy} · {job.createdAt ? new Date(job.createdAt).toLocaleString() : 'Time not provided'} · <Typography.Text className="text-xs text-[var(--at-muted)]" copyable={{ text: job.id, tooltips: ['Copy job id', 'Copied'] }}>Job …{job.id.slice(-6)}</Typography.Text></p></div>{(job.status === 'queued' || job.status === 'running') && <Button danger onClick={() => cancel(job.id)}>{job.status === 'queued' ? 'Cancel' : 'Stop'}</Button>}</div>
       <p className="text-sm mt-3">{job.stage}{job.kind === 'mine' && job.total > 0 ? ` · ${describeBatchProgress(job)}` : ''}</p><Progress percent={job.progress} status={job.status === 'failed' ? 'exception' : job.status === 'completed' ? 'success' : 'normal'} />{job.error && <p role="alert" className="text-sm text-red-400 break-words">{job.error}</p>}
     </article>)}</div><PaginationBar {...pagination} />
   </FeaturePage>;

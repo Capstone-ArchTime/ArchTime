@@ -1,3 +1,4 @@
+import { ViewerAccessUseCase } from "./application/use-cases/projects/ViewerAccessUseCase.js";
 import { env } from "./config/env.js";
 
 // ── Infrastructure ──
@@ -220,12 +221,14 @@ export const projectController = new ProjectController(
   getProjectByIdUseCase,
   new MiningWorkflowUseCase(projectAccessPolicy),
   new ArchitectureUseCase(),
+  new ViewerAccessUseCase(projectRepository),
 );
 
 // ── Workspace ──
 import { MongoWorkspaceRepository } from "./infrastructure/repositories/MongoWorkspaceRepository.js";
 import { GetProjectWorkspaceUseCase } from "./application/use-cases/workspace/GetProjectWorkspaceUseCase.js";
 import { SaveProjectWorkspaceUseCase } from "./application/use-cases/workspace/SaveProjectWorkspaceUseCase.js";
+import { latestMinedCommit } from "./infrastructure/services/latestCommit.js";
 import { WorkspaceController } from "./presentation/controllers/WorkspaceController.js";
 
 export const workspaceRepository = new MongoWorkspaceRepository();
@@ -238,6 +241,7 @@ const saveProjectWorkspaceUseCase = new SaveProjectWorkspaceUseCase(
   workspaceRepository,
   projectRepository,
   userRepository,
+  latestMinedCommit,
 );
 
 export const workspaceController = new WorkspaceController(
@@ -404,7 +408,7 @@ export const projectMaintainerController = new ProjectMaintainerController({
   ),
   getDiagramUseCase: new GetProjectDiagramUseCase(workspaceRepository, projectRepository),
   saveDiagramUseCase: new SaveProjectDiagramUseCase(workspaceRepository, projectRepository),
-  confirmDiagramUseCase: new ConfirmProjectDiagramUseCase(workspaceRepository, projectRepository),
+  confirmDiagramUseCase: new ConfirmProjectDiagramUseCase(workspaceRepository, projectRepository, latestMinedCommit),
   getRulesUseCase: new GetProjectRulesUseCase(workspaceRepository, projectRepository),
   createRuleUseCase: new CreateProjectRuleUseCase(workspaceRepository, projectRepository),
   updateRuleUseCase: new UpdateProjectRuleUseCase(workspaceRepository, projectRepository),
@@ -419,7 +423,7 @@ export const projectMaintainerController = new ProjectMaintainerController({
   getApprovalsUseCase: new GetProjectApprovalsUseCase(projectRepository),
   createApprovalUseCase: new CreateApprovalRequestUseCase(projectRepository),
   getApprovalDetailUseCase: new GetApprovalDetailUseCase(),
-  approveRequestUseCase: new ApproveRequestUseCase(),
+  approveRequestUseCase: new ApproveRequestUseCase(workspaceRepository, latestMinedCommit),
   rejectRequestUseCase: new RejectRequestUseCase(),
   inviteMemberTokenUseCase: new InviteProjectMemberTokenUseCase(
     projectRepository,

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { App, Button, Empty, Form, Input, Modal, Select, Spin, Table, Tag } from 'antd';
 import FeaturePage from '@/components/FeaturePage';
+import { tablePanel } from './admin-ui';
 import { roles } from '@/auth/permissions';
 import { useAuth } from '@/auth/auth-context';
 import { systemRoleLabel } from '@/features/role-labels';
@@ -118,7 +119,7 @@ export default function UserManagement() {
     >
       <div className="flex flex-wrap gap-3">
         {roleCounts.map(({ role: r, count }) => (
-          <Tag key={r}>{systemRoleLabel(r)}: {count}</Tag>
+          <Tag key={r} color="blue">{systemRoleLabel(r)}: {count}</Tag>
         ))}
       </div>
 
@@ -156,58 +157,60 @@ export default function UserManagement() {
       {loading && !users.length ? (
         <div className="p-12 text-center"><Spin /><p className="mt-3 text-[var(--at-muted)]">Loading users...</p></div>
       ) : (
-        <Table
-          rowKey="id"
-          dataSource={users}
-          loading={loading}
-          scroll={{ x: 850 }}
-          pagination={{ pageSize: 10, showSizeChanger: true, pageSizeOptions: [10, 20, 50] }}
-          locale={{ emptyText: <Empty description="No matching users" /> }}
-          columns={[
-            {
-              title: 'User',
-              dataIndex: 'name',
-              render: (_, u: AdminUser) => (
-                <div>
-                  {u.name}
-                  <p className="text-xs text-[var(--at-muted)]">{u.email}</p>
-                </div>
-              ),
-            },
-            { title: 'Role', dataIndex: 'role', render: (r: string) => systemRoleLabel(r) },
-            {
-              title: 'Status',
-              dataIndex: 'status',
-              render: s => (
-                <Tag color={s === 'active' ? 'green' : s === 'suspended' ? 'red' : 'gold'}>
-                  {s}
-                </Tag>
-              ),
-            },
-            {
-              title: 'Last active',
-              dataIndex: 'lastActive',
-              render: v => v ? new Date(v).toLocaleDateString() : 'Never',
-            },
-            {
-              title: 'Actions',
-              // No role change or suspension for the signed-in administrator: either could lock them out.
-              render: (_, u: AdminUser) => u.id === me ? <span className="text-xs text-[var(--at-muted)]">This is you</span> : (
-                <div className="flex gap-2">
-                  <Button onClick={() => open(u)}>Edit role</Button>
-                  {u.status !== 'invited' && (
-                    <Button
-                      danger={u.status !== 'suspended'}
-                      onClick={() => changeStatus(u)}
-                    >
-                      {u.status === 'suspended' ? 'Reactivate' : 'Suspend'}
-                    </Button>
-                  )}
-                </div>
-              ),
-            },
-          ]}
-        />
+        <div className={tablePanel}>
+          <Table
+            rowKey="id"
+            dataSource={users}
+            loading={loading}
+            scroll={{ x: 850 }}
+            pagination={{ pageSize: 10, showSizeChanger: true, pageSizeOptions: [10, 20, 50] }}
+            locale={{ emptyText: <Empty description="No matching users" /> }}
+            columns={[
+              {
+                title: 'User',
+                dataIndex: 'name',
+                render: (_, u: AdminUser) => (
+                  <div>
+                    {u.name}
+                    <p className="text-xs text-[var(--at-muted)]">{u.email}</p>
+                  </div>
+                ),
+              },
+              { title: 'Role', dataIndex: 'role', render: (r: string) => systemRoleLabel(r) },
+              {
+                title: 'Status',
+                dataIndex: 'status',
+                render: s => (
+                  <Tag color={s === 'active' ? 'green' : s === 'suspended' ? 'red' : 'gold'}>
+                    {s}
+                  </Tag>
+                ),
+              },
+              {
+                title: 'Last active',
+                dataIndex: 'lastActive',
+                render: v => v ? new Date(v).toLocaleDateString() : 'Never',
+              },
+              {
+                title: 'Actions',
+                // No role change or suspension for the signed-in administrator: either could lock them out.
+                render: (_, u: AdminUser) => u.id === me ? <span className="text-xs text-[var(--at-muted)]">This is you</span> : (
+                  <div className="flex gap-2">
+                    <Button onClick={() => open(u)}>Edit role</Button>
+                    {u.status !== 'invited' && (
+                      <Button
+                        danger={u.status !== 'suspended'}
+                        onClick={() => changeStatus(u)}
+                      >
+                        {u.status === 'suspended' ? 'Reactivate' : 'Suspend'}
+                      </Button>
+                    )}
+                  </div>
+                ),
+              },
+            ]}
+          />
+        </div>
       )}
 
       <Modal

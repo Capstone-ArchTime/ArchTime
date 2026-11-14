@@ -16,9 +16,19 @@ export interface MatchOptions {
   dominance: number;
   /** Pair a vanished file with an appeared file of the same, otherwise unique, name as one file that moved. */
   detectMoves: boolean;
+  /**
+   * When set, a split, merge or restructuring is reported only when files behind it were added, deleted or moved and every
+   * component in it holds at least `minPartFiles` files; an added component assembled from old files, or a removed one whose
+   * files survive elsewhere, is reported only when at least half of its files are new or gone. Anything else is the same
+   * code grouped differently by a new clustering, and is reported as kept with reason "regrouped". RQ1 found every such
+   * unsupported change on the development set to be wrong (docs/rq1-protocol.md).
+   */
+  evidence: { minPartFiles: number } | null;
 }
 
-export const DEFAULT_MATCH_OPTIONS: MatchOptions = { dominance: 0.5, detectMoves: true };
+export const DEFAULT_MATCH_OPTIONS: MatchOptions = { dominance: 0.5, detectMoves: true, evidence: null };
+/** The evidence rule ArchTime uses for its own comparisons and for RQ1. */
+export const EVIDENCE_RULE = { minPartFiles: 3 } as const;
 
 export interface FileMove { from: string; to: string }
 
@@ -42,8 +52,10 @@ export interface ComponentChange {
   /**
    * removed: its files were deleted, or scattered over components it does not dominate.
    * added: made of new files, or assembled from files no earlier component dominated.
+   * kept with reason regrouped: a split, merge, restructuring, assembled or dissolved component without file evidence
+   * (only when MatchOptions.evidence is set).
    */
-  reason?: 'deleted' | 'dissolved' | 'new-files' | 'assembled';
+  reason?: 'deleted' | 'dissolved' | 'new-files' | 'assembled' | 'regrouped';
 }
 
 export interface ComponentMatching {
@@ -93,7 +105,7 @@ export function detectMoves(removed: string[], added: string[]): FileMove[] {
  * Components with no files are ignored.
  */
 export function matchComponents(before: MatchComponent[], after: MatchComponent[], options: Partial<MatchOptions> = {}): ComponentMatching {
-  const { dominance, detectMoves: findMoves } = { ...DEFAULT_MATCH_OPTIONS, ...options };
+  const { dominance, detectMoves: findMoves, evidence } = { ...DEFAULT_MATCH_OPTIONS, ...options };
   const earlier = [...before].filter(c => c.memberIds.length).sort((a, b) => byText(a.id, b.id));
   const later = [...after].filter(c => c.memberIds.length).sort((a, b) => byText(a.id, b.id));
 
@@ -136,7 +148,25 @@ export function matchComponents(before: MatchComponent[], after: MatchComponent[
   }
   links.sort((x, y) => byText(x.before, y.before) || byText(x.after, y.after));
 
-  const changes = classify(earlier, later, links, survivors, preexisting);
+  let changes = classify(earlier, later, links, survivors, preexisting);
+  if (evidence) {
+    // churn: files of a component that are gone or moved (earlier side), or new or moved in (later side)
+    const movedIn = new Set(moves.map(m => m.to));
+    const churn = new Map<string, number>();
+    for (const a of earlier) churn.set(`a:${a.id}`, new Set(a.memberIds).size - (survivors.get(a.id) ?? 0) + a.memberIds.filter(f => movedTo.has(f)).length);
+    for (const b of later) churn.set(`b:${b.id}`, b.memberIds.filter(f => !inherited.has(f) || movedIn.has(f)).length);
+    const size = new Map<string, number>([...earlier.map(c => [`a:${c.id}`, new Set(c.memberIds).size] as const), ...later.map(c => [`b:${c.id}`, new Set(c.memberIds).size] as const)]);
+    const keys = (c: ComponentChange) => [...c.before.map(id => `a:${id}`), ...c.after.map(id => `b:${id}`)];
+    const supported = (c: ComponentChange) => {
+      const ks = keys(c);
+      if (c.kind === 'split' || c.kind === 'merged' || c.kind === 'restructured') {
+        return ks.some(k => (churn.get(k) ?? 0) > 0) && ks.every(k => (size.get(k) ?? 0) >= evidence.minPartFiles);
+      }
+      if (c.reason === 'assembled' || c.reason === 'dissolved') return (churn.get(ks[0]) ?? 0) * 2 >= (size.get(ks[0]) ?? 0);
+      return true;
+    };
+    changes = changes.map(c => (supported(c) ? c : { kind: 'kept' as const, before: c.before, after: c.after, reason: 'regrouped' as const }));
+  }
   const summary = Object.fromEntries((['kept', 'renamed', 'split', 'merged', 'restructured', 'removed', 'added'] as ChangeKind[]).map(k => [k, 0])) as Record<ChangeKind, number>;
   for (const c of changes) summary[c.kind]++;
 

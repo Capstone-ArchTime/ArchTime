@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Alert, App, Button, Empty, Form, Input, Modal, Skeleton, Tag } from 'antd';
 import { Building2, Plus } from 'lucide-react';
 import FeaturePage, { featurePanel } from '@/components/FeaturePage';
-import { DESCRIPTION_MAX, NAME_MAX, checkDescription, checkOrganizationName, createOrganization, listOrganizations } from '@/features/organizations-api';
-import type { Organization } from '@/features/organizations-api';
+import { DESCRIPTION_MAX, NAME_MAX, answerInvitation, checkDescription, checkOrganizationName, createOrganization, listMyInvitations, listOrganizations } from '@/features/organizations-api';
+import type { Organization, OrganizationInvitation } from '@/features/organizations-api';
 
 /** The organizations the signed-in account belongs to, and a way to start one. */
 export default function Organizations() {
@@ -16,14 +16,31 @@ export default function Organizations() {
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm<{ name: string; description?: string }>();
+  const [invitations, setInvitations] = useState<OrganizationInvitation[]>([]);
+  const [answering, setAnswering] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
     listOrganizations(controller.signal)
       .then(list => setOrganizations([...list].sort((a, b) => a.name.localeCompare(b.name))))
       .catch(cause => { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Could not load your organizations.'); });
+    listMyInvitations(controller.signal).then(setInvitations).catch(() => { /* the list of organizations still shows */ });
     return () => controller.abort();
   }, [attempt]);
+
+  async function answer(invitation: OrganizationInvitation, accept: boolean) {
+    setAnswering(invitation.organizationId);
+    try {
+      await answerInvitation(invitation.organizationId, accept);
+      message.success(accept ? `You joined ${invitation.organizationName}.` : `You declined the invitation to ${invitation.organizationName}.`);
+      setInvitations(list => list.filter(i => i.organizationId !== invitation.organizationId));
+      if (accept) setAttempt(a => a + 1);
+    } catch (cause) {
+      message.error(cause instanceof Error ? cause.message : 'Could not answer the invitation.');
+    } finally {
+      setAnswering(null);
+    }
+  }
 
   async function create(values: { name: string; description?: string }) {
     setSaving(true);
@@ -49,6 +66,22 @@ export default function Organizations() {
       demo={false}
       actions={<Button type="primary" icon={<Plus size={14} />} onClick={() => setCreating(true)}>New organization</Button>}
     >
+      {invitations.length > 0 && (
+        <ul className={`${featurePanel} mb-4 divide-y divide-[var(--at-line)]`} aria-label="Invitations">
+          {invitations.map(i => (
+            <li key={i.organizationId} className="flex flex-wrap items-center justify-between gap-3 py-3">
+              <div className="min-w-0">
+                <p className="font-medium break-words">Invitation to {i.organizationName}</p>
+                <p className="text-xs text-[var(--at-muted)]">As {i.role === 'owner' ? 'an owner' : 'a member'}{i.invitedBy ? `, from ${i.invitedBy}` : ''}. You get access once you accept.</p>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <Button type="primary" size="small" loading={answering === i.organizationId} onClick={() => answer(i, true)}>Accept</Button>
+                <Button size="small" disabled={answering === i.organizationId} onClick={() => answer(i, false)}>Decline</Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
       {error ? <Alert type="error" showIcon title={error} action={<Button size="small" onClick={retry}>Retry</Button>} />
         : !organizations ? <Skeleton active paragraph={{ rows: 3 }} />
         : !organizations.length ? (
@@ -80,7 +113,7 @@ export default function Organizations() {
           <Form.Item name="description" label="Description (optional)" rules={[{ validator: (_, v) => { const p = checkDescription(v ?? ''); return p ? Promise.reject(new Error(p)) : Promise.resolve(); } }]}>
             <Input.TextArea rows={3} maxLength={DESCRIPTION_MAX} showCount placeholder="What the team works on" />
           </Form.Item>
-          <p className="text-xs text-[var(--at-muted)]">You become the owner. You can add members by the email of their ArchTime account.</p>
+          <p className="text-xs text-[var(--at-muted)]">You become the owner. You can invite members by the email of their ArchTime account; they join once they accept.</p>
         </Form>
       </Modal>
     </FeaturePage>

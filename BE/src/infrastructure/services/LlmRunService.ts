@@ -1,3 +1,4 @@
+import { ProjectModel } from "../database/models/ProjectModel.js";
 import mongoose from "mongoose";
 import type { MappingComponent } from "../../domain/architecture/buildView.js";
 import type { ValidationResult } from "../../domain/architecture/types.js";
@@ -148,12 +149,26 @@ const toSample = (r: Pick<ILlmRun, "status" | "errorKind" | "quality" | "filesSe
 
 export interface LeaderboardQuery { mode?: "refine" | "name-only"; windowDays?: number; purpose?: "user" | "benchmark" | "all"; preset?: ScorePreset | "custom"; benchmarkId?: string }
 
+/** The organization owning a project now; the run is charged to it (UC-30). */
+async function owningOrganization(projectId: string): Promise<string | null> {
+  // Accounting never waits on, or fails because of, this lookup: without a connection the run is simply not attributed.
+  if (!mongoose.isValidObjectId(projectId) || mongoose.connection.readyState !== 1) return null;
+  try {
+    const project = await ProjectModel.findById(projectId).select("organizationId").lean<{ organizationId?: string | null }>();
+    return project?.organizationId ? String(project.organizationId) : null;
+  } catch {
+    return null;
+  }
+}
+
+export interface OrganizationCostRow { projectId: string; projectName: string; runs: number; inputTokens: number; outputTokens: number; totalTokens: number; cost: number; currency: string }
+
 export class LlmRunService {
   /** Stores the run. Accounting must never break a refinement, so a failure is logged and null returned. */
   static async record(input: RecordRunInput): Promise<{ id: string; cost: { amount: number; currency: string } } | null> {
     try {
       const run = buildRun(input);
-      const doc = await LlmRunModel.create(run);
+      const doc = await LlmRunModel.create({ ...run, organizationId: await owningOrganization(input.projectId) });
       return { id: String(doc._id ?? (doc as any).id), cost: { amount: run.cost.amount, currency: run.cost.currency } };
     } catch (error) {
       console.warn(`[llm] could not record a run for project ${input.projectId}:`, error instanceof Error ? error.message : error);
@@ -165,12 +180,49 @@ export class LlmRunService {
   static async recordChat(input: RecordChatRunInput): Promise<{ id: string; cost: { amount: number; currency: string } } | null> {
     try {
       const run = buildChatRun(input);
-      const doc = await LlmRunModel.create(run);
+      const doc = await LlmRunModel.create({ ...run, organizationId: await owningOrganization(input.projectId) });
       return { id: String(doc._id ?? (doc as any).id), cost: { amount: run.cost.amount, currency: run.cost.currency } };
     } catch (error) {
       console.warn(`[llm] could not record a chat run for project ${input.projectId}:`, error instanceof Error ? error.message : error);
       return null;
     }
+  }
+
+  /**
+   * AI usage and cost of an organization per project over a period (UC-30): runs charged to the organization, plus runs
+   * recorded before runs carried their organization on projects it owns now. Never broken down per member.
+   */
+  static async costByProject(organizationId: string, period: { from?: Date; to?: Date } = {}): Promise<{ projects: OrganizationCostRow[]; total: Omit<OrganizationCostRow, "projectId" | "projectName"> }> {
+    const projects = await ProjectModel.find({ organizationId }).select("_id name").lean<{ _id: unknown; name: string }[]>();
+    const owned = projects.map(p => String(p._id));
+    const createdAt: Record<string, Date> = {};
+    if (period.from) createdAt.$gte = period.from;
+    if (period.to) createdAt.$lte = period.to;
+    const match: Record<string, unknown> = {
+      purpose: "user",
+      $or: [{ organizationId }, { organizationId: { $in: [null, undefined] }, projectId: { $in: owned } }],
+      ...(Object.keys(createdAt).length ? { createdAt } : {}),
+    };
+    const rows = await LlmRunModel.aggregate<{ _id: string; runs: number; inputTokens: number; outputTokens: number; totalTokens: number; cost: number; currency: string }>([
+      { $match: match },
+      { $group: {
+        _id: "$projectId", runs: { $sum: 1 },
+        inputTokens: { $sum: { $ifNull: ["$usage.inputTokens", 0] } }, outputTokens: { $sum: { $ifNull: ["$usage.outputTokens", 0] } },
+        totalTokens: { $sum: { $ifNull: ["$usage.totalTokens", 0] } }, cost: { $sum: { $ifNull: ["$cost.amount", 0] } }, currency: { $first: "$cost.currency" },
+      } },
+      { $sort: { cost: -1, totalTokens: -1 } },
+    ]);
+    const names = new Map(projects.map(p => [String(p._id), p.name]));
+    const round = (x: number) => Math.round(x * 1e6) / 1e6;
+    const list = rows.map(r => ({
+      projectId: String(r._id), projectName: names.get(String(r._id)) ?? "(moved or deleted workspace)", runs: r.runs,
+      inputTokens: r.inputTokens, outputTokens: r.outputTokens, totalTokens: r.totalTokens, cost: round(r.cost), currency: r.currency ?? "USD",
+    }));
+    const sum = (k: "runs" | "inputTokens" | "outputTokens" | "totalTokens" | "cost") => list.reduce((s, r) => s + r[k], 0);
+    return {
+      projects: list,
+      total: { runs: sum("runs"), inputTokens: sum("inputTokens"), outputTokens: sum("outputTokens"), totalTokens: sum("totalTokens"), cost: round(sum("cost")), currency: list[0]?.currency ?? "USD" },
+    };
   }
 
   static async listForUser(userId: string, query: { projectId?: string; page?: number; limit?: number }) {

@@ -8,6 +8,8 @@ import type { UsageTotals } from "../../../domain/architecture/llm/types.js";
  */
 export interface ILlmRun {
   projectId: string;
+  /** The organization that owned the project when the run was made, so its cost is charged there (UC-30); null for personal projects. */
+  organizationId?: string | null;
   snapshotId?: string;
   userId: string;
   jobId?: string;
@@ -46,6 +48,7 @@ export interface ILlmRun {
 const LlmRunSchema = new Schema<ILlmRun>(
   {
     projectId: { type: String, required: true, ref: "Project" },
+    organizationId: { type: String, ref: "Organization", default: null },
     snapshotId: { type: String, ref: "Snapshot" },
     userId: { type: String, required: true, ref: "User" },
     jobId: { type: String, ref: "MiningJob" },
@@ -91,6 +94,7 @@ const LlmRunSchema = new Schema<ILlmRun>(
 LlmRunSchema.index({ userId: 1, createdAt: -1 });
 LlmRunSchema.index({ modelId: 1, mode: 1, createdAt: -1 });
 LlmRunSchema.index({ projectId: 1, createdAt: -1 });
+LlmRunSchema.index({ organizationId: 1, createdAt: -1 });
 LlmRunSchema.index({ benchmarkId: 1 });
 
 export const LlmRunModel: Model<ILlmRun> = mongoose.model<ILlmRun>("LlmRun", LlmRunSchema);

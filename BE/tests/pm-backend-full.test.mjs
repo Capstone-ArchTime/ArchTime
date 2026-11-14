@@ -389,6 +389,40 @@ test("ApprovalQueue: creates request, approves idempotently, rejects with reason
   }
 });
 
+test("Architecture change request: approving applies the proposed diagram, confirms it and moves the baseline (BR-32)", async () => {
+  const origFindOne = ApprovalRequestModel.findOne;
+  let saved = null;
+  const workspaces = {
+    async findByProjectId() { return saved ?? { projectId: "p1", revision: 3, diagram: { components: [{ id: "api", name: "API", kind: "Service" }], dependencies: [], revision: 3 }, rules: [{ id: "r1" }], decisions: [] }; },
+    async save(w) { saved = { ...w, revision: w.revision + 1 }; return saved; },
+  };
+  const approval = {
+    _id: "appr-2", projectId: "p1", type: "architecture_change", status: ApprovalStatus.PENDING,
+    data: { commit: "abc1234", diagram: { components: [{ id: "api", name: "API", kind: "Service" }, { id: "billing", name: "Billing", kind: "Service" }], dependencies: [] } },
+    async save() { return this; }, toJSON() { return { id: this._id, status: this.status }; },
+  };
+  try {
+    ApprovalRequestModel.findOne = async () => approval;
+    await new ApproveRequestUseCase(workspaces, async () => "latest99").execute({ projectId: "p1", approvalId: "appr-2", reviewerId: "maintainer-1" });
+    assert.equal(saved.diagram.components.length, 2);
+    assert.equal(saved.diagram.baselineCommit, "abc1234");
+    assert.equal(saved.diagram.confirmedBy, "maintainer-1");
+    assert.deepEqual(saved.rules, [{ id: "r1" }], "rules and decisions are kept");
+
+    approval.status = ApprovalStatus.PENDING;
+    approval.data = { diagram: approval.data.diagram };
+    await new ApproveRequestUseCase(workspaces, async () => "latest99").execute({ projectId: "p1", approvalId: "appr-2", reviewerId: "maintainer-1" });
+    assert.equal(saved.diagram.baselineCommit, "latest99", "without a commit the latest mined commit is the baseline");
+
+    approval.status = ApprovalStatus.PENDING;
+    approval.data = { diagram: { components: "nope" } };
+    await assert.rejects(new ApproveRequestUseCase(workspaces).execute({ projectId: "p1", approvalId: "appr-2", reviewerId: "m" }),
+      (err) => err instanceof AppError && err.statusCode === 400);
+  } finally {
+    ApprovalRequestModel.findOne = origFindOne;
+  }
+});
+
 // ────────────────────────────────────────────────────────────
 // PM-06: Team Invitations
 // ────────────────────────────────────────────────────────────

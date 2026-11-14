@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, Button, Descriptions, Drawer, Empty, Input, Skeleton, Table, Tag } from 'antd';
 import FeaturePage from '@/components/FeaturePage';
+import { tablePanel } from './admin-ui';
 import PaginationBar from '@/components/PaginationBar';
 import {
   getAdminOrganization, listAdminOrganizations, personLabel,
@@ -38,16 +39,16 @@ function OrganizationDrawer({ id, onClose }: { id: string | null; onClose: () =>
         { key: 'counts', label: 'Size', children: `${detail.memberCount} member${detail.memberCount === 1 ? '' : 's'}, ${detail.projectCount} workspace${detail.projectCount === 1 ? '' : 's'}` },
       ]} />
       <section aria-label="Members">
-        <h3 className="mb-2 font-medium">Members</h3>
+        <h3 className="mb-2 text-base font-bold">Members</h3>
         <Table rowKey="userId" size="small" pagination={false} dataSource={detail.members} columns={[
           { title: 'Name', render: (_, m) => m.name ?? 'Deleted account' },
           { title: 'Email', dataIndex: 'email' },
-          { title: 'Role', dataIndex: 'role', render: (role: string) => <Tag color={role === 'owner' ? 'gold' : 'default'}>{role === 'owner' ? 'Owner' : 'Member'}</Tag> },
+          { title: 'Role', dataIndex: 'role', render: (role: string) => <Tag color={role === 'owner' ? 'blue' : 'default'}>{role === 'owner' ? 'Owner' : 'Member'}</Tag> },
           { title: 'Joined', dataIndex: 'joinedAt', render: day },
         ]} />
       </section>
       <section aria-label="Workspaces">
-        <h3 className="mb-2 font-medium">Workspaces</h3>
+        <h3 className="mb-2 text-base font-bold">Workspaces</h3>
         {detail.projects.length === 0 ? <Empty description="No workspaces yet" /> :
           <Table rowKey="id" size="small" pagination={false} dataSource={detail.projects} columns={[
             { title: 'Name', dataIndex: 'name' },
@@ -86,17 +87,19 @@ export default function Organizations() {
     actions={<Button loading={loading} onClick={() => setRevision(v => v + 1)}>Refresh</Button>}>
     <Input.Search className="max-w-sm" aria-label="Search organizations" placeholder="Organization name" allowClear
       onSearch={value => { setPage(1); setSearch(value); }} />
-    <Table<AdminOrganization> rowKey="id" loading={loading} dataSource={rows} pagination={false}
-      locale={{ emptyText: <Empty description={search ? 'No organization matches this name' : 'No organizations yet'} /> }}
-      onRow={org => ({ onClick: () => setOpen(org.id), className: 'cursor-pointer' })}
-      columns={[
-        { title: 'Organization', render: (_, o) => <div><p className="font-medium">{o.name}</p>{o.description && <p className="text-xs text-[var(--at-muted)] line-clamp-1">{o.description}</p>}</div> },
-        { title: 'Owners', render: (_, o) => o.owners.length ? o.owners.map(personLabel).join(', ') : <Tag color="red">No owner</Tag> },
-        { title: 'Members', dataIndex: 'memberCount', align: 'right' },
-        { title: 'Workspaces', dataIndex: 'projectCount', align: 'right' },
-        { title: 'Created', dataIndex: 'createdAt', render: day },
-        { title: '', render: (_, o) => <Button size="small" onClick={e => { e.stopPropagation(); setOpen(o.id); }}>Details</Button> },
-      ]} />
+    <div className={tablePanel}>
+      <Table<AdminOrganization> rowKey="id" loading={loading} dataSource={rows} pagination={false}
+        locale={{ emptyText: <Empty description={search ? 'No organization matches this name' : 'No organizations yet'} /> }}
+        onRow={org => ({ onClick: () => setOpen(org.id), className: 'cursor-pointer' })}
+        columns={[
+          { title: 'Organization', render: (_, o) => <div><p className="font-medium">{o.name}</p>{o.description && <p className="text-xs text-[var(--at-muted)] line-clamp-1">{o.description}</p>}</div> },
+          { title: 'Owners', render: (_, o) => o.owners.length ? o.owners.map(personLabel).join(', ') : <Tag color="red">No owner</Tag> },
+          { title: 'Members', dataIndex: 'memberCount', align: 'right' },
+          { title: 'Workspaces', dataIndex: 'projectCount', align: 'right' },
+          { title: 'Created', dataIndex: 'createdAt', render: day },
+          { title: '', render: (_, o) => <Button size="small" onClick={e => { e.stopPropagation(); setOpen(o.id); }}>Details</Button> },
+        ]} />
+    </div>
     {total > PAGE_SIZE && <PaginationBar current={page} pageSize={PAGE_SIZE} total={total} onChange={p => setPage(p)} />}
     <OrganizationDrawer id={open} onClose={() => setOpen(null)} />
   </FeaturePage>;

@@ -12,6 +12,8 @@ export type Workspace = {
   totalCommits: number | null; firstCommitDate: string | null; lastCommitDate: string | null; updatedAt: string | null;
   /** May scan, mine and define the architecture (the server's isMaintainer: owner, maintainer, organization owner). */
   canMaintain: boolean;
+  /** A public workspace in a personal space: the only kind that has viewers (BR-17). */
+  personalPublic: boolean;
 };
 
 const STATUSES: WorkspaceStatus[] = ['PENDING', 'CLONING', 'ANALYZING', 'PARTIAL', 'COMPLETED', 'FAILED'];
@@ -30,6 +32,7 @@ export function parseWorkspace(raw: unknown): Workspace | null {
     totalCommits: typeof commits === 'number' && Number.isFinite(commits) && commits >= 0 ? commits : null,
     firstCommitDate: date(history?.firstCommitDate), lastCommitDate: date(history?.lastCommitDate), updatedAt: date(p.updatedAt),
     canMaintain: p.isMaintainer === true,
+    personalPublic: !p.organizationId && text(p.visibility) === 'public',
   };
 }
 

@@ -167,6 +167,10 @@ You must have MongoDB running (either locally or via Atlas) and a `.env` file co
 | `npm run build` | Compile TypeScript into the `dist/` directory |
 | `npm start` | Run the compiled production server |
 | `npm run lint` | Run ESLint |
+| `npm run db:init` | Create every collection and index of the data model (safe to re-run; keeps existing data) |
+| `npm run seed:demo` | `db:init`, then the demo accounts, organizations and workspaces (password `Test@12345`; see `docs/manual-test-guide.md`) |
+| `npm run seed:test -- --remove` | Delete the demo accounts and everything inside their workspaces |
+| `npm test` | Run the backend tests |
 
 ### Backend structure
 

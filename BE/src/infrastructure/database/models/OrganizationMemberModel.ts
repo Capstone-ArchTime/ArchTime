@@ -1,5 +1,5 @@
 import mongoose, { type Document, type Model, Schema } from "mongoose";
-import { OrganizationRole, type IOrganizationMember } from "../../../domain/entities/Organization.js";
+import { OrganizationMemberStatus, OrganizationRole, type IOrganizationMember } from "../../../domain/entities/Organization.js";
 
 export interface IOrganizationMemberDocument extends Omit<IOrganizationMember, "id">, Document {}
 
@@ -8,6 +8,7 @@ const OrganizationMemberSchema = new Schema<IOrganizationMemberDocument>(
     organizationId: { type: String, required: true, ref: "Organization" },
     userId: { type: String, required: true, ref: "User", index: true },
     role: { type: String, enum: Object.values(OrganizationRole), default: OrganizationRole.MEMBER },
+    status: { type: String, enum: Object.values(OrganizationMemberStatus), default: OrganizationMemberStatus.ACTIVE, index: true },
     addedBy: { type: String, ref: "User" },
   },
   {

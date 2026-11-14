@@ -34,7 +34,8 @@ export default function MembersTab({ organization, userId, onCountChange, onLeft
     return () => controller.abort();
   }, [organization.id, attempt]);
 
-  const update = (next: OrganizationMember[]) => { setMembers(next); onCountChange(next.length); };
+  // Only people who accepted count as members; owners also see the invitations still waiting for an answer.
+  const update = (next: OrganizationMember[]) => { setMembers(next); onCountChange(next.filter(m => m.status !== 'invited').length); };
 
   async function add(values: { email: string; role: OrganizationRole }) {
     setAdding(true);
@@ -42,7 +43,7 @@ export default function MembersTab({ organization, userId, onCountChange, onLeft
       const added = await addMember(organization.id, { email: values.email.trim().toLowerCase(), role: values.role });
       update([...(members ?? []), added]);
       form.resetFields();
-      message.success(`${added.name} was added as ${added.role === 'owner' ? 'an owner' : 'a member'}.`);
+      message.success(`${added.name} was invited as ${added.role === 'owner' ? 'an owner' : 'a member'}. They join once they accept.`);
     } catch (cause) {
       message.error(cause instanceof Error ? cause.message : 'Could not add this person.');
     } finally {
@@ -113,7 +114,8 @@ export default function MembersTab({ organization, userId, onCountChange, onLeft
             return (
               <li key={m.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                 <div className="min-w-0">
-                  <p className="font-medium break-words">{m.name}{self && <span className="ml-2 text-xs text-[var(--at-muted)]">(you)</span>}</p>
+                  <p className="font-medium break-words">{m.name}{self && <span className="ml-2 text-xs text-[var(--at-muted)]">(you)</span>}
+                    {m.status === 'invited' && <Tag className="ml-2" color="gold">Invited · waiting for an answer</Tag>}</p>
                   <p className="text-xs text-[var(--at-muted)] break-all">{m.email}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
@@ -124,8 +126,10 @@ export default function MembersTab({ organization, userId, onCountChange, onLeft
                     <Tooltip title={can.reason}><Tag color={m.role === 'owner' ? 'blue' : undefined}>{m.role === 'owner' ? 'Owner' : 'Member'}</Tag></Tooltip>
                   )}
                   {can.remove && (
-                    <Popconfirm title={`Remove ${m.name}?`} description="Their roles in this organization's workspaces end too." okText="Remove" okButtonProps={{ danger: true }} onConfirm={() => remove(m, false)}>
-                      <Button size="small" danger loading={busy === m.id}>Remove</Button>
+                    <Popconfirm title={m.status === 'invited' ? `Withdraw the invitation to ${m.name}?` : `Remove ${m.name}?`}
+                      description={m.status === 'invited' ? 'They will not be able to accept it.' : "Their roles in this organization's workspaces end too."}
+                      okText={m.status === 'invited' ? 'Withdraw' : 'Remove'} okButtonProps={{ danger: true }} onConfirm={() => remove(m, false)}>
+                      <Button size="small" danger loading={busy === m.id}>{m.status === 'invited' ? 'Withdraw' : 'Remove'}</Button>
                     </Popconfirm>
                   )}
                   {can.leave && (

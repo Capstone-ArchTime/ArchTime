@@ -9,6 +9,7 @@ import { DESCRIPTION_MAX, NAME_MAX, checkDescription, checkOrganizationName, get
 import type { Organization } from '@/features/organizations-api';
 import MembersTab from './MembersTab';
 import CredentialsTab from './CredentialsTab';
+import AiCostTab from './AiCostTab';
 
 type OrgWorkspace = { id: string; name: string; userRole: string; status: string };
 const ROLE_LABELS: Record<string, string> = { owner: 'Owner', 'project-maintainer': 'Maintainer', 'developer-analyst': 'Member', viewer: 'Viewer' };
@@ -128,6 +129,7 @@ export default function OrganizationDetail() {
           },
           { key: 'workspaces', label: 'Workspaces', children: <WorkspacesTab organization={organization} /> },
           ...(owner ? [{ key: 'credentials', label: 'Credentials', children: <CredentialsTab organization={organization} /> }] : []),
+          ...(owner ? [{ key: 'ai-cost', label: 'AI cost', children: <AiCostTab organization={organization} /> }] : []),
         ]}
       />
 

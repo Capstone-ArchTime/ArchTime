@@ -150,7 +150,7 @@ const APP_THEME: ThemeConfig = {
 };
 
 /**
- * The developer-analyst look (features/ui-theme.ts): frosted glass panels on a misty slate background, ice-blue text,
+ * The signed-in look (features/ui-theme.ts): frosted glass panels on a misty slate background, ice-blue text,
  * light pill buttons with dark text and Montserrat. Same rules as above: component tokens where darkAlgorithm would
  * otherwise mix or ignore the seed colours.
  */
@@ -158,6 +158,7 @@ const FROST_THEME: ThemeConfig = {
   algorithm: theme.darkAlgorithm,
   token: {
     colorPrimary: '#9db3dc', colorBgBase: '#161c22', colorBgContainer: '#222a32', colorBgElevated: '#27303a', colorBorder: '#4a5662', colorBorderSecondary: '#38424d',
+    colorSuccess: '#4ade80', colorError: '#f87171', colorWarning: '#f0c27e',
     colorText: '#eef2f8', colorTextSecondary: '#c3cdd9', colorTextTertiary: '#a9b5c3', fontFamily: '"Montserrat", system-ui, sans-serif', borderRadius: 10,
     colorLink: '#d3def3', colorLinkHover: '#ffffff', colorLinkActive: '#d3def3', blue7: '#d3def3', colorTextLightSolid: '#18212c',
   },
