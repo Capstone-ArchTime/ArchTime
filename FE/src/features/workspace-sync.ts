@@ -1,7 +1,8 @@
 import { apiRequest, ApiError } from '../api/client.ts';
 import { canonicalStatus } from './canonical-map.ts';
 
-export type Component = { id: string; name: string; kind: string; description: string };
+/** `pathPrefixes`: the repository paths whose files belong to the component (RF-08); not part of the confirmed content. */
+export type Component = { id: string; name: string; kind: string; description: string; pathPrefixes: string[] };
 export type Dependency = { id: string; source: string; target: string; label: string };
 /**
  * `confirmedAt` is the one confirmation field the page sends back: a new time asks the server to confirm. Who confirmed
@@ -30,7 +31,7 @@ export function fromServer(ws: any): Workspace {
   const revision = Number(ws?.revision ?? ws?.diagram?.revision ?? 1);
   return {
     diagram: {
-      components: (ws?.diagram?.components ?? []).map((c: any) => ({ id: text(c.id), name: text(c.name), kind: text(c.kind), description: text(c.description) })),
+      components: (ws?.diagram?.components ?? []).map((c: any) => ({ id: text(c.id), name: text(c.name), kind: text(c.kind), description: text(c.description), pathPrefixes: Array.isArray(c.pathPrefixes) ? c.pathPrefixes.filter((p: unknown): p is string => typeof p === 'string') : [] })),
       dependencies: (ws?.diagram?.dependencies ?? []).map((d: any) => ({ id: text(d.id), source: text(d.source), target: text(d.target), label: text(d.label) })),
       revision: Number.isInteger(revision) && revision > 0 ? revision : 1,
       confirmedAt: date(ws?.diagram?.confirmedAt) || null,

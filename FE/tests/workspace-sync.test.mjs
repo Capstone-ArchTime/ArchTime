@@ -22,7 +22,7 @@ const serverWorkspace = {
 test('server workspaces use the revision the server checks and a stable field order', () => {
   const ws = fromServer(serverWorkspace);
   assert.equal(ws.diagram.revision, 4);
-  assert.equal(JSON.stringify(ws.diagram.components[0]), JSON.stringify({ id: 'web', name: 'Web', kind: 'UI', description: 'UI' }));
+  assert.equal(JSON.stringify(ws.diagram.components[0]), JSON.stringify({ id: 'web', name: 'Web', kind: 'UI', description: 'UI', pathPrefixes: [] }));
   assert.equal(ws.diagram.confirmedAt, '2026-10-01T00:00:00.000Z');
   assert.deepEqual(ws.decisions[0].componentIds, []);
   assert.equal(ws.decisions[0].origin, 'reconstructed');

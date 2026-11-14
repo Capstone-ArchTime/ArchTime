@@ -863,6 +863,41 @@ export function createProjectRouter(
       checkRole("write"),
       workspaceController.saveWorkspace,
     );
+    /**
+     * @swagger
+     * /api/projects/{id}/workspace/components/{componentId}/paths:
+     *   put:
+     *     tags: [Workspace]
+     *     summary: Gán path prefix cho một component của sơ đồ (RF-08, BR-27)
+     *     description: >
+     *       Prefix được chuẩn hoá (dấu /, bỏ ./ ở đầu và / ở cuối). Mỗi prefix chỉ thuộc một component (MSG24);
+     *       prefix lồng nhau được phép, prefix dài nhất thắng. Không làm mất xác nhận của sơ đồ.
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - { in: path, name: id, required: true, schema: { type: string } }
+     *       - { in: path, name: componentId, required: true, schema: { type: string } }
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required: [pathPrefixes]
+     *             properties:
+     *               pathPrefixes: { type: array, maxItems: 50, items: { type: string, maxLength: 200 }, example: ["BE/src/billing", "BE/src/payments"] }
+     *               expectedRevision: { type: integer, example: 4 }
+     *     responses:
+     *       200: { description: "{ component, revision }" }
+     *       400: { description: "Prefix không hợp lệ, hoặc trùng với component khác (MSG24)" }
+     *       404: { description: "Không có workspace hoặc component" }
+     *       409: { description: "Workspace đã bị người khác sửa (revision cũ)" }
+     */
+    router.put(
+      "/:id/workspace/components/:componentId/paths",
+      checkRole("write"),
+      workspaceController.setComponentPaths,
+    );
   }
 
   /**

@@ -7,6 +7,7 @@ import type { Component, Dependency, Diagram } from './workspace-store';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { downloadText } from '@/features/download';
 import { MAP_KIND, canonicalStatus, canonicalSummary } from '@/features/canonical-map';
+import { checkPathPrefixes, prefixOverlap, sameConfirmedContent } from '@/features/path-prefixes';
 
 function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyChange: (dirty: boolean) => void }) {
   const { data, save, saving, loading, loadError, loadErrorMessage, conflictError, reload, loadVersion } = useWorkspace(project);
@@ -29,11 +30,18 @@ function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyCha
 
   if (loading) return <div className="py-20 flex justify-center"><Spin /></div>;
   const options = draft.components.map(c => ({ label: c.name, value: c.id }));
-  // Any edit makes the diagram a draft again; the server drops the confirmation too when the content changes.
-  function update(next: Diagram) { setDraft({ ...next, confirmedAt: null, confirmedByName: null, confirmedRevision: null }); }
+  // An edit of components or dependencies makes the diagram a draft again (the server drops the confirmation too).
+  // Mapping files with path prefixes does not: a confirmed diagram keeps its confirmation, as on the server.
+  function update(next: Diagram) {
+    const keep = data.diagram.confirmedAt && sameConfirmedContent(next, data.diagram);
+    setDraft(keep
+      ? { ...next, confirmedAt: data.diagram.confirmedAt, confirmedByName: data.diagram.confirmedByName, confirmedRevision: data.diagram.confirmedRevision }
+      : { ...next, confirmedAt: null, confirmedByName: null, confirmedRevision: null });
+  }
   async function persist(confirm: boolean) {
     if (confirm && !draft.components.length) { message.error('Add at least one component before confirming.'); return; }
-    const next = { ...draft, revision: data.diagram.revision, confirmedAt: confirm ? new Date().toISOString() : null };
+    // Sending the stored confirmation time back means "keep it"; null means "not confirmed".
+    const next = { ...draft, revision: data.diagram.revision, confirmedAt: confirm ? new Date().toISOString() : draft.confirmedAt };
     const saved = await save({ ...data, diagram: next });
     if (saved) {
       setDraft(saved.diagram);
@@ -42,7 +50,7 @@ function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyCha
   }
   function editComponent(value: Component | null) {
     setComponent(value); componentForm.resetFields();
-    componentForm.setFieldsValue(value ?? { name: '', kind: 'Service', description: '' });
+    componentForm.setFieldsValue(value ?? { name: '', kind: 'Service', description: '', pathPrefixes: [] });
   }
   const width = 780;
   const height = Math.max(280, Math.ceil(draft.components.length / 3) * 180 + 50);
@@ -77,19 +85,25 @@ function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyCha
       </div>}
     </div>
     <div className="grid xl:grid-cols-2 gap-5">
-      <section className={panel}><h3 className="font-semibold mb-4">Components <span className="text-[var(--at-muted)]">/ {draft.components.length}</span></h3><div className="divide-y divide-[var(--at-line)]">{draft.components.map(c => <div key={c.id} className="py-3 flex items-center justify-between gap-3"><div className="min-w-0"><p className="text-sm break-words">{c.name} <Tag>{c.kind}</Tag></p><p className="text-xs text-[var(--at-muted)] break-words mt-1">{c.description}</p></div><div className="flex shrink-0 gap-1"><Button size="small" onClick={() => editComponent(c)}>Edit</Button><Popconfirm title={`Remove ${c.name}?`} description="Connected dependencies will also be removed." onConfirm={() => update({ ...draft, components: draft.components.filter(x => x.id !== c.id), dependencies: draft.dependencies.filter(e => e.source !== c.id && e.target !== c.id) })}><Button size="small" danger>Remove</Button></Popconfirm></div></div>)}</div></section>
+      <section className={panel}><h3 className="font-semibold mb-4">Components <span className="text-[var(--at-muted)]">/ {draft.components.length}</span></h3><div className="divide-y divide-[var(--at-line)]">{draft.components.map(c => <div key={c.id} className="py-3 flex items-center justify-between gap-3"><div className="min-w-0"><p className="text-sm break-words">{c.name} <Tag>{c.kind}</Tag></p><p className="text-xs text-[var(--at-muted)] break-words mt-1">{c.description}</p>{c.pathPrefixes.length ? <p className="text-xs font-mono break-all mt-1" aria-label={`Paths of ${c.name}`}>{c.pathPrefixes.join(', ')}</p> : <p className="text-xs text-[var(--at-warn)] mt-1">No paths mapped yet</p>}</div><div className="flex shrink-0 gap-1"><Button size="small" onClick={() => editComponent(c)}>Edit</Button><Popconfirm title={`Remove ${c.name}?`} description="Connected dependencies will also be removed." onConfirm={() => update({ ...draft, components: draft.components.filter(x => x.id !== c.id), dependencies: draft.dependencies.filter(e => e.source !== c.id && e.target !== c.id) })}><Button size="small" danger>Remove</Button></Popconfirm></div></div>)}</div></section>
       <section className={panel}><div className="flex justify-between gap-3 mb-4"><h3 className="font-semibold">Dependencies / {draft.dependencies.length}</h3><Button size="small" disabled={draft.components.length < 2} onClick={() => { edgeForm.resetFields(); setEditingEdge(null); setEdgeOpen(true); }}>Add dependency</Button></div>{!draft.dependencies.length && <Empty description="No dependencies" image={Empty.PRESENTED_IMAGE_SIMPLE} />}<div className="divide-y divide-[var(--at-line)]">{draft.dependencies.map(e => <div className="py-3 flex items-center justify-between gap-3" key={e.id}><div className="text-sm"><p>{draft.components.find(c => c.id === e.source)?.name} → {draft.components.find(c => c.id === e.target)?.name}</p><p className="text-xs text-[var(--at-muted)] mt-1">{e.label}</p></div><div className="flex gap-1"><Button size="small" onClick={() => { setEditingEdge(e); edgeForm.setFieldsValue(e); setEdgeOpen(true); }}>Edit</Button><Popconfirm title="Remove this dependency?" onConfirm={() => update({ ...draft, dependencies: draft.dependencies.filter(x => x.id !== e.id) })}><Button size="small" danger>Remove</Button></Popconfirm></div></div>)}</div></section>
     </div>
     <Modal title={component ? 'Edit component' : 'Add component'} open={component !== undefined} onCancel={() => setComponent(undefined)} onOk={() => componentForm.submit()} okText="Apply changes">
       <Form form={componentForm} layout="vertical" onFinish={values => {
         const name = values.name.trim();
         if (draft.components.some(c => c.id !== component?.id && c.name.toLowerCase() === name.toLowerCase())) { message.error('Component names must be unique.'); return; }
-        const next = { ...values, name, description: values.description?.trim() ?? '', id: component?.id ?? crypto.randomUUID() };
+        const checked = checkPathPrefixes(values.pathPrefixes ?? []);
+        const pathProblem = 'error' in checked ? checked.error : prefixOverlap(component?.id, name, checked.prefixes, draft.components);
+        if (pathProblem || 'error' in checked) { componentForm.setFields([{ name: 'pathPrefixes', errors: [pathProblem ?? ''] }]); return; }
+        const next = { ...values, name, description: values.description?.trim() ?? '', pathPrefixes: checked.prefixes, id: component?.id ?? crypto.randomUUID() };
         update({ ...draft, components: component ? draft.components.map(c => c.id === component.id ? next : c) : [...draft.components, next] }); setComponent(undefined);
       }}>
         <Form.Item name="name" label="Name" rules={[{ required: true, whitespace: true, max: 80 }]}><Input maxLength={80} /></Form.Item>
         <Form.Item name="kind" label="Type" rules={[{ required: true }]}><Select options={['UI', 'Service', 'Database', 'Queue', 'External'].map(value => ({ value, label: value }))} /></Form.Item>
         <Form.Item name="description" label="Responsibility"><Input.TextArea rows={3} maxLength={1000} /></Form.Item>
+        <Form.Item name="pathPrefixes" label="Path prefixes" extra="Folders or files in the repository that belong to this component, e.g. BE/src/billing. Press Enter after each. A path can belong to one component only; the longest matching path wins. Changing paths keeps the diagram confirmed.">
+          <Select mode="tags" open={false} suffixIcon={null} tokenSeparators={[',', ' ']} placeholder="BE/src/billing" aria-label="Path prefixes" />
+        </Form.Item>
       </Form>
     </Modal>
     <Modal title={editingEdge ? "Edit dependency" : "Add dependency"} open={edgeOpen} onCancel={() => setEdgeOpen(false)} onOk={() => edgeForm.submit()}>

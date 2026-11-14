@@ -4,6 +4,7 @@ import type { IWorkspaceDiagram } from "../../../domain/entities/Workspace.js";
 import { BadRequestError, NotFoundError } from "../../../shared/errors/AppError.js";
 import { settleConfirmation } from "../../../domain/architecture/canonical.js";
 import type { LatestCommitLookup } from "../../../domain/interfaces/ILatestCommit.js";
+import { settleComponentPaths } from "../workspace/SetComponentPathsUseCase.js";
 
 export interface SaveDiagramInput {
   projectId: string;
@@ -40,7 +41,7 @@ export class SaveProjectDiagramUseCase {
         revision: expectedRevision ?? ws?.revision ?? 1,
         // This route never confirms: the stored confirmation stays only if the content is unchanged.
         diagram: {
-          components: diagram.components,
+          components: settleComponentPaths(diagram.components, ws?.diagram?.components),
           dependencies: diagram.dependencies,
           revision: diagram.revision,
           ...settleConfirmation({ stored: ws?.diagram, incoming: diagram, request: "keep", now: new Date(), nextRevision: 0 }),

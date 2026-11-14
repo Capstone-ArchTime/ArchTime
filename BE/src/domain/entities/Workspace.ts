@@ -3,6 +3,11 @@ export interface IWorkspaceComponent {
   name: string;
   kind: string;
   description: string;
+  /**
+   * Repository paths whose files belong to this component (RF-08, BR-27), normalized by domain/architecture/paths.ts.
+   * One prefix belongs to one component; the longest matching prefix decides. Not part of the confirmed content.
+   */
+  pathPrefixes?: string[];
 }
 
 export interface IWorkspaceDependency {
