@@ -12,7 +12,7 @@ import {
   ConflictError,
   NotFoundError,
 } from "../../../shared/errors/AppError.js";
-import { requestedConfirmation, settleConfirmation } from "../../../domain/architecture/canonical.js";
+import { LOCKED_DIAGRAM_MESSAGE, editsLockedDiagram, requestedConfirmation, settleConfirmation } from "../../../domain/architecture/canonical.js";
 import type { LatestCommitLookup } from "../../../domain/interfaces/ILatestCommit.js";
 import { settleComponentPaths } from "./SetComponentPathsUseCase.js";
 
@@ -95,6 +95,7 @@ export class SaveProjectWorkspaceUseCase {
     const current = await this.workspaceRepository.findByProjectId(projectId);
     // Path prefixes are checked (BR-27, MSG24) before anything else is decided; components sent without them keep theirs.
     const components = settleComponentPaths(diagram.components, current?.diagram?.components);
+    if (editsLockedDiagram(current?.diagram, diagram)) throw new ConflictError(LOCKED_DIAGRAM_MESSAGE, "DIAGRAM_LOCKED");
 
     // The confirmation is decided here, never copied from the request: see domain/architecture/canonical.ts.
     const request = requestedConfirmation(current?.diagram, diagram);
