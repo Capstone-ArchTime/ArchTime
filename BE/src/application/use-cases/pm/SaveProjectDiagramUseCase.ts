@@ -1,8 +1,8 @@
 import type { IWorkspaceRepository } from "../../../domain/interfaces/IWorkspaceRepository.js";
 import type { IProjectRepository } from "../../../domain/interfaces/IProjectRepository.js";
 import type { IWorkspaceDiagram } from "../../../domain/entities/Workspace.js";
-import { BadRequestError, NotFoundError } from "../../../shared/errors/AppError.js";
-import { settleConfirmation } from "../../../domain/architecture/canonical.js";
+import { BadRequestError, ConflictError, NotFoundError } from "../../../shared/errors/AppError.js";
+import { LOCKED_DIAGRAM_MESSAGE, editsLockedDiagram, settleConfirmation } from "../../../domain/architecture/canonical.js";
 import { checkPathPrefixes } from "../../../domain/architecture/pathPrefix.js";
 import type { LatestCommitLookup } from "../../../domain/interfaces/ILatestCommit.js";
 
@@ -36,6 +36,7 @@ export class SaveProjectDiagramUseCase {
     }
 
     let ws = await this.workspaceRepository.findByProjectId(projectId);
+    if (editsLockedDiagram(ws?.diagram, diagram)) throw new ConflictError(LOCKED_DIAGRAM_MESSAGE, "DIAGRAM_LOCKED");
     const currentRules = ws?.rules ?? [];
     const currentDecisions = ws?.decisions ?? [];
 
@@ -43,7 +44,7 @@ export class SaveProjectDiagramUseCase {
       {
         projectId,
         revision: expectedRevision ?? ws?.revision ?? 1,
-        // This route never confirms: the stored confirmation stays only if the content is unchanged.
+        // This route never confirms, and a confirmed diagram reaches here only unchanged, so its confirmation stays.
         diagram: {
           components: diagram.components,
           dependencies: diagram.dependencies,
@@ -55,6 +56,46 @@ export class SaveProjectDiagramUseCase {
         updatedBy: userId,
       },
       expectedRevision,
+    ).catch((err) => {
+      // A stale expectedRevision is the client's to resolve (reload), not a server error.
+      if (err?.isConflict) {
+        throw new ConflictError(`Diagram revision conflict: expected revision ${err.expectedRevision}, but the server has revision ${err.currentRevision}. Reload before saving.`, "CONFLICT");
+      }
+      throw err;
+    });
+
+    return { diagram: updated.diagram, revision: updated.revision };
+  }
+}
+
+/** Unlocks a confirmed diagram for direct editing: the content stays, the confirmation and its baseline go. */
+export class UnconfirmProjectDiagramUseCase {
+  constructor(
+    private readonly workspaceRepository: IWorkspaceRepository,
+    private readonly projectRepository: IProjectRepository,
+  ) {}
+
+  async execute(projectId: string, userId: string): Promise<{ diagram: IWorkspaceDiagram; revision: number }> {
+    const project = await this.projectRepository.findById(projectId);
+    if (!project) {
+      throw new NotFoundError("Workspace not found.");
+    }
+
+    const ws = await this.workspaceRepository.findByProjectId(projectId);
+    if (!ws?.diagram?.confirmedAt) {
+      throw new BadRequestError("The diagram is not confirmed.", "VALIDATION_ERROR");
+    }
+
+    const updated = await this.workspaceRepository.save(
+      {
+        projectId,
+        revision: ws.revision,
+        diagram: { ...ws.diagram, ...settleConfirmation({ stored: ws.diagram, incoming: ws.diagram, request: "clear", now: new Date(), nextRevision: 0 }) },
+        rules: ws.rules,
+        decisions: ws.decisions,
+        updatedBy: userId,
+      },
+      ws.revision,
     );
 
     return { diagram: updated.diagram, revision: updated.revision };

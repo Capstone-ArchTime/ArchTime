@@ -83,3 +83,16 @@ export function settleConfirmation(input: {
   if (!stored.confirmedAt) return UNCONFIRMED;
   return diagramContentKey(input.stored as DiagramContent) === diagramContentKey(input.incoming) ? stored : UNCONFIRMED;
 }
+
+/**
+ * A confirmed diagram is locked: its content changes only through an approved architecture change request, which moves
+ * the baseline too (BR-32). A maintainer who wants to edit it directly unconfirms it first, which is a save of the same
+ * content without a confirmation. True when `incoming` would change the content of a confirmed `stored` diagram.
+ */
+export const LOCKED_DIAGRAM_MESSAGE =
+  "The confirmed diagram is locked. Propose the change as an architecture change request, or unconfirm the diagram before editing it.";
+
+export function editsLockedDiagram(stored: Partial<IWorkspaceDiagram> | null | undefined, incoming: DiagramContent): boolean {
+  if (!confirmationOf(stored).confirmedAt) return false;
+  return diagramContentKey(stored as DiagramContent) !== diagramContentKey(incoming);
+}

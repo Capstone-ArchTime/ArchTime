@@ -4,7 +4,7 @@ import {
   UNCONFIRMED, diagramContentKey, requestedConfirmation, settleConfirmation,
 } from "../src/domain/architecture/canonical.ts";
 import { SaveProjectWorkspaceUseCase } from "../src/application/use-cases/workspace/SaveProjectWorkspaceUseCase.ts";
-import { ConfirmProjectDiagramUseCase, SaveProjectDiagramUseCase } from "../src/application/use-cases/pm/SaveProjectDiagramUseCase.ts";
+import { ConfirmProjectDiagramUseCase, SaveProjectDiagramUseCase, UnconfirmProjectDiagramUseCase } from "../src/application/use-cases/pm/SaveProjectDiagramUseCase.ts";
 import { GetProjectWorkspaceUseCase } from "../src/application/use-cases/workspace/GetProjectWorkspaceUseCase.ts";
 import { createProjectRoleMiddleware } from "../src/presentation/middlewares/projectRole.ts";
 import { MemberStatus, ProjectMemberRole } from "../src/domain/entities/ProjectMember.ts";
@@ -80,7 +80,9 @@ test("Canonical map: the server records who confirmed and at which revision; the
   assert.ok(Date.now() - new Date(saved.diagram.confirmedAt).getTime() < 60_000, "the time is the server's");
 });
 
-test("Canonical map: editing the diagram drops the confirmation; saving rules alone keeps it", async () => {
+const locked = (e) => e instanceof AppError && e.statusCode === 409 && e.code === "DIAGRAM_LOCKED";
+
+test("Canonical map: a confirmed diagram is locked against edits; saving rules alone keeps it; unconfirming unlocks it", async () => {
   const ws = store();
   const save = new SaveProjectWorkspaceUseCase(ws, projects);
   await save.execute({ projectId: "p1", expectedRevision: 1, diagram: diagram([component("api")], [], { confirmedAt: new Date().toISOString() }), userId: "mentor" });
@@ -92,10 +94,18 @@ test("Canonical map: editing the diagram drops the confirmation; saving rules al
   assert.equal(new Date(ws.current.diagram.confirmedAt).getTime(), new Date(confirmedAt).getTime());
   assert.equal(ws.current.diagram.confirmedRevision, 2, "still the revision it was confirmed at");
 
-  // Someone edits the diagram but sends the old confirmation back: it does not carry over.
-  await save.execute({ projectId: "p1", expectedRevision: 3, diagram: { ...ws.current.diagram, components: [component("api"), component("db")] }, userId: "dev" });
+  // Someone edits the confirmed diagram, with or without the old confirmation: refused, nothing written.
+  const edited = [component("api"), component("db")];
+  await assert.rejects(save.execute({ projectId: "p1", expectedRevision: 3, diagram: { ...ws.current.diagram, components: edited }, userId: "dev" }), locked);
+  await assert.rejects(save.execute({ projectId: "p1", expectedRevision: 3, diagram: { ...ws.current.diagram, components: edited, confirmedAt: null }, userId: "dev" }), locked);
+  assert.equal(ws.current.revision, 3);
+
+  // Unconfirming is a save of the same content without a confirmation; then the diagram can be edited.
+  await save.execute({ projectId: "p1", expectedRevision: 3, diagram: { ...ws.current.diagram, confirmedAt: null }, userId: "mentor" });
   assert.equal(ws.current.diagram.confirmedAt, null);
   assert.equal(ws.current.diagram.confirmedBy, null);
+  await save.execute({ projectId: "p1", expectedRevision: 4, diagram: { ...ws.current.diagram, components: edited }, userId: "dev" });
+  assert.equal(ws.current.diagram.components.length, 2);
 });
 
 test("Canonical map: an empty diagram cannot be confirmed", async () => {
@@ -109,7 +119,7 @@ test("Canonical map: an empty diagram cannot be confirmed", async () => {
   await assert.rejects(new ConfirmProjectDiagramUseCase(ws, projects).execute("p1", "mentor"), (e) => e instanceof AppError && e.statusCode === 400);
 });
 
-test("Canonical map: the diagram routes confirm with the caller and drop a stale confirmation", async () => {
+test("Canonical map: the diagram routes confirm with the caller, refuse edits while confirmed, and unconfirm", async () => {
   const ws = store();
   await ws.create({ projectId: "p1", revision: 1, diagram: diagram([component("api")]), rules: [], decisions: [] });
   const confirmed = await new ConfirmProjectDiagramUseCase(ws, projects).execute("p1", "mentor");
@@ -119,8 +129,16 @@ test("Canonical map: the diagram routes confirm with the caller and drop a stale
   const put = new SaveProjectDiagramUseCase(ws, projects);
   await put.execute({ projectId: "p1", diagram: diagram([component("api")], [], { confirmedBy: "forged" }), userId: "mentor" });
   assert.equal(ws.current.diagram.confirmedBy, "mentor", "same content: kept, and the request cannot rename the confirmer");
+  await assert.rejects(put.execute({ projectId: "p1", diagram: diagram([component("web")]), userId: "mentor" }), locked);
+  assert.equal(ws.current.diagram.components[0].id, "api", "nothing written");
+
+  const unconfirm = new UnconfirmProjectDiagramUseCase(ws, projects);
+  const draft = await unconfirm.execute("p1", "mentor");
+  assert.equal(draft.diagram.confirmedAt, null);
+  assert.equal(draft.diagram.components[0].id, "api", "the content stays");
+  await assert.rejects(unconfirm.execute("p1", "mentor"), (e) => e instanceof AppError && e.statusCode === 400, "already a draft");
   await put.execute({ projectId: "p1", diagram: diagram([component("web")]), userId: "mentor" });
-  assert.equal(ws.current.diagram.confirmedAt, null, "new content: no longer canonical");
+  assert.equal(ws.current.diagram.components[0].id, "web");
 });
 
 test("Canonical map: readers see who confirmed it", async () => {
@@ -165,7 +183,7 @@ test("Canonical map: the answer to a confirming save already names the confirmer
 
 // ── baseline commit (BM03 #12, SRS BR-32) ────────────────────────────────────
 
-test("Baseline: confirming fixes the latest mined commit; keeping keeps it; a content change drops it", async () => {
+test("Baseline: confirming fixes the latest mined commit; keeping keeps it; unconfirming drops it", async () => {
   const ws = store();
   const latest = async () => "c0ffee1";
   await ws.create({ projectId: "p1", revision: 1, diagram: diagram([component("api")]), rules: [], decisions: [] });
@@ -175,8 +193,9 @@ test("Baseline: confirming fixes the latest mined commit; keeping keeps it; a co
   const put = new SaveProjectDiagramUseCase(ws, projects);
   await put.execute({ projectId: "p1", diagram: diagram([component("api")], [], { baselineCommit: "forged" }), userId: "mentor" });
   assert.equal(ws.current.diagram.baselineCommit, "c0ffee1", "same content: the baseline stays and cannot be set by the request");
+  await new UnconfirmProjectDiagramUseCase(ws, projects).execute("p1", "mentor");
+  assert.equal(ws.current.diagram.baselineCommit, null, "not canonical, so no baseline");
   await put.execute({ projectId: "p1", diagram: diagram([component("web")]), userId: "mentor" });
-  assert.equal(ws.current.diagram.baselineCommit, null, "new content: not canonical, so no baseline");
 
   const save = new SaveProjectWorkspaceUseCase(ws, projects, undefined, async () => "beef002");
   const saved = await save.execute({ projectId: "p1", expectedRevision: ws.current.revision, diagram: diagram([component("web")], [], { confirmedAt: new Date().toISOString() }), userId: "mentor" });

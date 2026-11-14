@@ -12,7 +12,7 @@ import {
   ConflictError,
   NotFoundError,
 } from "../../../shared/errors/AppError.js";
-import { requestedConfirmation, settleConfirmation } from "../../../domain/architecture/canonical.js";
+import { LOCKED_DIAGRAM_MESSAGE, editsLockedDiagram, requestedConfirmation, settleConfirmation } from "../../../domain/architecture/canonical.js";
 import { checkPathPrefixes } from "../../../domain/architecture/pathPrefix.js";
 import type { LatestCommitLookup } from "../../../domain/interfaces/ILatestCommit.js";
 
@@ -97,6 +97,7 @@ export class SaveProjectWorkspaceUseCase {
     }
 
     const current = await this.workspaceRepository.findByProjectId(projectId);
+    if (editsLockedDiagram(current?.diagram, diagram)) throw new ConflictError(LOCKED_DIAGRAM_MESSAGE, "DIAGRAM_LOCKED");
 
     // The confirmation is decided here, never copied from the request: see domain/architecture/canonical.ts.
     const request = requestedConfirmation(current?.diagram, diagram);

@@ -7,6 +7,7 @@ import type { GetProjectDiagramUseCase } from "../../application/use-cases/pm/Ge
 import type {
   SaveProjectDiagramUseCase,
   ConfirmProjectDiagramUseCase,
+  UnconfirmProjectDiagramUseCase,
 } from "../../application/use-cases/pm/SaveProjectDiagramUseCase.js";
 import type {
   GetProjectRulesUseCase,
@@ -49,6 +50,7 @@ export interface ProjectMaintainerUseCases {
   getDiagramUseCase: GetProjectDiagramUseCase;
   saveDiagramUseCase: SaveProjectDiagramUseCase;
   confirmDiagramUseCase: ConfirmProjectDiagramUseCase;
+  unconfirmDiagramUseCase: UnconfirmProjectDiagramUseCase;
   getRulesUseCase: GetProjectRulesUseCase;
   createRuleUseCase: CreateProjectRuleUseCase;
   updateRuleUseCase: UpdateProjectRuleUseCase;
@@ -126,6 +128,19 @@ export class ProjectMaintainerController {
 
       const data = await this.uc.confirmDiagramUseCase.execute(projectId, userId);
       sendSuccess(res, data, { message: "Diagram confirmed successfully." });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public unconfirmDiagram = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id: projectId } = req.params;
+      const userId = req.user?.userId;
+      if (!userId) throw new UnauthorizedError("Authentication required.");
+
+      const data = await this.uc.unconfirmDiagramUseCase.execute(projectId, userId);
+      sendSuccess(res, data, { message: "Diagram unlocked for editing; it is a draft again." });
     } catch (err) {
       next(err);
     }

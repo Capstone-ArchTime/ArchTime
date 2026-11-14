@@ -358,6 +358,7 @@ import { GetProjectDiagramUseCase } from "./application/use-cases/pm/GetProjectD
 import {
   SaveProjectDiagramUseCase,
   ConfirmProjectDiagramUseCase,
+  UnconfirmProjectDiagramUseCase,
 } from "./application/use-cases/pm/SaveProjectDiagramUseCase.js";
 import {
   GetProjectRulesUseCase,
@@ -409,6 +410,7 @@ export const projectMaintainerController = new ProjectMaintainerController({
   getDiagramUseCase: new GetProjectDiagramUseCase(workspaceRepository, projectRepository),
   saveDiagramUseCase: new SaveProjectDiagramUseCase(workspaceRepository, projectRepository),
   confirmDiagramUseCase: new ConfirmProjectDiagramUseCase(workspaceRepository, projectRepository, latestMinedCommit),
+  unconfirmDiagramUseCase: new UnconfirmProjectDiagramUseCase(workspaceRepository, projectRepository),
   getRulesUseCase: new GetProjectRulesUseCase(workspaceRepository, projectRepository),
   createRuleUseCase: new CreateProjectRuleUseCase(workspaceRepository, projectRepository),
   updateRuleUseCase: new UpdateProjectRuleUseCase(workspaceRepository, projectRepository),

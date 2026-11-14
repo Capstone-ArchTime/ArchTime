@@ -1115,6 +1115,8 @@ export function createProjectRouter(
      *         description: Lưu sơ đồ thành công
      *       400:
      *         description: Hai component có cùng path prefix, hoặc prefix ra ngoài repository
+     *       409:
+     *         description: "CONFLICT: expectedRevision đã cũ. DIAGRAM_LOCKED: sơ đồ đã xác nhận, phải bỏ xác nhận (POST /diagram/unconfirm) hoặc gửi yêu cầu thay đổi kiến trúc"
      */
     router.get("/:id/diagram", checkRole("read"), pmController.getDiagram);
     router.put("/:id/diagram", checkRole("write"), pmController.saveDiagram);
@@ -1137,6 +1139,28 @@ export function createProjectRouter(
      *         description: Sơ đồ đã được xác nhận
      */
     router.post("/:id/diagram/confirm", checkRole("write"), pmController.confirmDiagram);
+
+    /**
+     * @swagger
+     * /api/projects/{id}/diagram/unconfirm:
+     *   post:
+     *     tags: [Projects - Diagram & Rules]
+     *     summary: Bỏ xác nhận sơ đồ để sửa trực tiếp (F-07)
+     *     description: Sơ đồ đã xác nhận bị khoá; PUT /diagram hoặc PUT /workspace đổi nội dung sẽ trả 409 DIAGRAM_LOCKED. Gọi route này để sơ đồ thành bản nháp (giữ nguyên nội dung, bỏ xác nhận và baseline), hoặc đổi qua yêu cầu thay đổi kiến trúc được duyệt.
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *     responses:
+     *       200:
+     *         description: Sơ đồ đã thành bản nháp
+     *       400:
+     *         description: Sơ đồ chưa được xác nhận
+     */
+    router.post("/:id/diagram/unconfirm", checkRole("write"), pmController.unconfirmDiagram);
 
     /**
      * @swagger

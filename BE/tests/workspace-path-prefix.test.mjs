@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { checkPathPrefixes, normalizePathPrefix } from "../src/domain/architecture/pathPrefix.ts";
 import { diagramContentKey } from "../src/domain/architecture/canonical.ts";
 import { SaveProjectWorkspaceUseCase } from "../src/application/use-cases/workspace/SaveProjectWorkspaceUseCase.ts";
-import { SaveProjectDiagramUseCase } from "../src/application/use-cases/pm/SaveProjectDiagramUseCase.ts";
+import { ConfirmProjectDiagramUseCase, SaveProjectDiagramUseCase } from "../src/application/use-cases/pm/SaveProjectDiagramUseCase.ts";
 import { CreateApprovalRequestUseCase } from "../src/application/use-cases/pm/ApprovalQueueUseCases.ts";
 import { RepoVisibility } from "../src/domain/entities/Project.ts";
 import { AppError } from "../src/shared/errors/AppError.ts";
@@ -82,8 +82,25 @@ test("Path prefix: PUT /diagram and a proposed architecture change check prefixe
   );
 });
 
-test("Path prefix: it is part of the diagram content, so changing it drops a confirmation", () => {
+test("Path prefix: it is part of the confirmed content, so changing it on a confirmed diagram is locked", async () => {
   assert.notEqual(diagramContentKey(diagram([component("a", "src/a/")])), diagramContentKey(diagram([component("a", "src/b/")])));
   assert.equal(diagramContentKey(diagram([component("a", "src/a")])), diagramContentKey(diagram([component("a", "./src/a/")])));
   assert.equal(diagramContentKey(diagram([component("a")])), diagramContentKey(diagram([component("a", "")])), "absent and empty are the same");
+
+  const ws = store();
+  await ws.create({ projectId: "p1", revision: 1, diagram: diagram([component("a", "src/a/")]), rules: [], decisions: [] });
+  await new ConfirmProjectDiagramUseCase(ws, projects).execute("p1", "mentor");
+  const put = new SaveProjectDiagramUseCase(ws, projects);
+  await assert.rejects(put.execute({ projectId: "p1", diagram: diagram([component("a", "src/b/")]), userId: "dev" }), (e) => e.code === "DIAGRAM_LOCKED");
+  await put.execute({ projectId: "p1", diagram: diagram([component("a", "./src/a")]), userId: "dev" });
+  assert.ok(ws.current.diagram.confirmedAt, "the same folder written another way is no change");
+});
+
+test("PUT /diagram: a stale expectedRevision is a 409 conflict, not a server error", async () => {
+  const ws = store();
+  await ws.create({ projectId: "p1", revision: 3, diagram: diagram([component("a")]), rules: [], decisions: [] });
+  await assert.rejects(
+    new SaveProjectDiagramUseCase(ws, projects).execute({ projectId: "p1", expectedRevision: 1, diagram: diagram([component("b")]), userId: "m" }),
+    (e) => e instanceof AppError && e.statusCode === 409 && e.code === "CONFLICT",
+  );
 });
