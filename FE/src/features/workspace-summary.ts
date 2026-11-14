@@ -14,6 +14,8 @@ export type Workspace = {
   canMaintain: boolean;
   /** A public workspace in a personal space: the only kind that has viewers (BR-17). */
   personalPublic: boolean;
+  /** In its owner's personal space, not an organization's: the owner can move it into an organization (RF-11). */
+  personal: boolean;
 };
 
 const STATUSES: WorkspaceStatus[] = ['PENDING', 'CLONING', 'ANALYZING', 'PARTIAL', 'COMPLETED', 'FAILED'];
@@ -33,6 +35,7 @@ export function parseWorkspace(raw: unknown): Workspace | null {
     firstCommitDate: date(history?.firstCommitDate), lastCommitDate: date(history?.lastCommitDate), updatedAt: date(p.updatedAt),
     canMaintain: p.isMaintainer === true,
     personalPublic: !p.organizationId && text(p.visibility) === 'public',
+    personal: !p.organizationId,
   };
 }
 

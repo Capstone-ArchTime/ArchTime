@@ -346,6 +346,7 @@ import { AgentContextUseCases, AgentTokenUseCases } from "./application/use-case
 import { MongoAgentTokenRepository } from "./infrastructure/repositories/MongoAgentTokenRepository.js";
 import { AgentController } from "./presentation/controllers/AgentController.js";
 import { AuditService } from "./infrastructure/services/AuditService.js";
+import { TransferProjectUseCase } from "./application/use-cases/projects/TransferProjectUseCase.js";
 import { MongoConformanceRepository, mongoConformanceSnapshots } from "./infrastructure/repositories/MongoConformanceRepository.js";
 import { ConformanceController } from "./presentation/controllers/ConformanceController.js";
 import { LlmModelRegistry } from "./infrastructure/llm/registry.js";
@@ -386,6 +387,10 @@ export const findingNotifier = new FindingNotifier(
 MiningService.onHistoryChanged = conformanceAfterMining(checkConformanceUseCase, findingNotifier);
 
 // ── Agent access (RF-09, UC-42 – UC-44) ──
+// ── Moving a personal workspace into an organization (RF-11, UC-29) ──
+export const transferProjectUseCase = new TransferProjectUseCase(projectRepository, organizationRepository, memberRepository,
+  entry => AuditService.log({ ...entry, targetType: "project" }));
+
 export const agentController = new AgentController(
   new AgentTokenUseCases(new MongoAgentTokenRepository(), projectRepository, entry => AuditService.log({ ...entry, targetType: "project" })),
   new AgentContextUseCases(workspaceRepository, projectRepository, env.publicApiUrl),
