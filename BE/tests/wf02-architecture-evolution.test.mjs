@@ -172,7 +172,7 @@ test("WF02-05 F-04: the evidence of architecture changes lists newest first, wit
 test("WF02-06 nobody outside the workspace reads its history, comparison or evidence", async t => {
   if (!ctx) return t.skip(unavailable);
   for (const path of [`/${ctx.projectId}/snapshots?summary=1`, `/${ctx.projectId}/snapshots/compare?baseId=${ctx.ids[0]}&targetId=${ctx.ids[1]}`, `/${ctx.projectId}/evidences`]) {
-    assert.equal((await ctx.get(path, ctx.strangerToken)).status, 403, path);
+    assert.equal((await ctx.get(path, ctx.strangerToken)).status, 404, `${path} (N-05: as if it did not exist)`);
     assert.equal((await ctx.get(path, null)).status, 401, path);
   }
 });
