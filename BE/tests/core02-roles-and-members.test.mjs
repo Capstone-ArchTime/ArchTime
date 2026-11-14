@@ -247,14 +247,14 @@ test('projectRole: non-member blocked on private project, allowed read on public
   const middlewareFactory = createProjectRoleMiddleware(projectRepo, memberRepo);
   const checkRead = middlewareFactory('read');
 
-  // Private project -> 403
+  // Private project -> 404 (N-05: a stranger cannot tell it exists)
   const reqPriv = {
     params: { id: 'p-priv' },
     user: { userId: 'stranger', role: UserRole.USER },
   };
   let privErr;
   await checkRead(reqPriv, {}, (err) => { privErr = err; });
-  assert.equal(privErr?.statusCode, 403);
+  assert.equal(privErr?.statusCode, 404);
 
   // Public project -> 200 ok
   const reqPub = {
