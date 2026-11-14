@@ -1,5 +1,7 @@
 import { apiRequest } from '@/api/client';
 import { getAdminModels, getLlmUsage, getUserModels, setDefaultAdminModel } from '@/features/llm-api';
+import { auditRange, filterAuditLogs, toAdminSettings, toAuditLog } from '@/features/admin-audit';
+import type { AdminAuditLog, AdminSettings } from '@/features/admin-audit';
 
 export interface AdminUser {
   id: string;
@@ -20,36 +22,17 @@ export interface AdminUsersResponse {
   };
 }
 
-export interface AdminAuditLog {
-  id: string;
-  type: string;
-  actor: string;
-  target?: string;
-  description: string;
-  ip?: string;
-  timestamp: string;
-}
+export type { AdminAuditLog, AdminSettings } from '@/features/admin-audit';
 
 export interface AdminAuditLogsResponse {
   data: {
     logs: AdminAuditLog[];
     total: number;
-    page: number;
-    limit: number;
   };
 }
 
-/** The limits the System Settings page edits, named as the server stores them (GET/PUT /admin/settings). */
-export interface AdminSettings {
-  maxConcurrentJobs: number;
-  maxRepoSizeMb: number;
-  updatedAt?: string;
-  updatedBy?: string;
-}
-
-/** The server wraps the settings: `{ data: { settings } }`. */
 export interface AdminSettingsResponse {
-  data: { settings: AdminSettings };
+  data: AdminSettings;
 }
 
 export interface AdminMetrics {
@@ -137,35 +120,47 @@ export async function reactivateUser(
   });
 }
 
+/**
+ * Audit events, newest first. The server filters by date (From/To are whole local days); the Event group and the
+ * search text are applied here, over the latest `limit` events in that range. Account ids are shown as names using
+ * the user list (up to 100 accounts; others stay as ids).
+ */
 export async function getAdminAuditLogs(
-  params?: { query?: string; type?: string; from?: string; to?: string; page?: number; limit?: number },
+  params?: { query?: string; type?: string; from?: string; to?: string; limit?: number },
   signal?: AbortSignal
 ): Promise<AdminAuditLogsResponse> {
   const searchParams = new URLSearchParams();
-  if (params?.query) searchParams.set('query', params.query);
-  if (params?.type && params.type !== 'all') searchParams.set('type', params.type);
-  if (params?.from) searchParams.set('from', params.from);
-  if (params?.to) searchParams.set('to', params.to);
-  if (params?.page) searchParams.set('page', String(params.page));
+  const range = auditRange(params?.from, params?.to);
+  if (range.from) searchParams.set('from', range.from);
+  if (range.to) searchParams.set('to', range.to);
   if (params?.limit) searchParams.set('limit', String(params.limit));
   const qs = searchParams.toString();
-  return apiRequest<AdminAuditLogsResponse>(`/admin/audit-logs${qs ? `?${qs}` : ''}`, { signal });
+  const [res, people] = await Promise.all([
+    apiRequest<{ data?: { logs?: unknown[] } }>(`/admin/audit-logs${qs ? `?${qs}` : ''}`, { signal }),
+    getAdminUsers({ limit: 100 }, signal)
+      .then(r => new Map(r.data.users.map(u => [u.id, u.name || u.email] as const)))
+      .catch(() => new Map<string, string>()),
+  ]);
+  const logs = filterAuditLogs((res.data?.logs ?? []).map(raw => toAuditLog(raw, people)), { type: params?.type, query: params?.query });
+  return { data: { logs, total: logs.length } };
 }
 
 export async function getAdminSettings(signal?: AbortSignal): Promise<AdminSettingsResponse> {
-  return apiRequest<AdminSettingsResponse>('/admin/settings', { signal });
+  const res = await apiRequest<{ data?: unknown }>('/admin/settings', { signal });
+  return { data: toAdminSettings(res.data) };
 }
 
 export async function updateAdminSettings(
-  settings: Partial<AdminSettings>,
+  settings: Partial<Pick<AdminSettings, 'maxConcurrentJobs' | 'maxRepoSizeMb'>>,
   signal?: AbortSignal
 ): Promise<AdminSettingsResponse> {
-  return apiRequest('/admin/settings', {
+  const res = await apiRequest<{ data?: unknown }>('/admin/settings', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(settings),
     signal,
   });
+  return { data: toAdminSettings(res.data) };
 }
 
 export async function getAdminMetrics(signal?: AbortSignal): Promise<AdminMetricsResponse> {

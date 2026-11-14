@@ -1,9 +1,10 @@
 import { useSyncExternalStore } from 'react';
 
 // Which look the app wears. "frost" (frosted glass, ice-blue accents, Montserrat) is the look of the public pages
-// (landing page, sign-in, sign-up and their follow-ups) and of the developer-analyst role's workspace; the
-// administrators' console keeps the default look. The theme is a set of CSS variables (index.css, --at-*) plus the
-// matching antd theme (App.tsx), switched by an attribute on <html>.
+// (landing page, sign-in, sign-up and their follow-ups) and of every signed-in role: the developer-analyst workspace
+// and the system administrators' console. The default look is left for a guarded page before the session is known.
+// The theme is a set of CSS variables (index.css, --at-*) plus the matching antd theme (App.tsx), switched by an
+// attribute on <html>.
 
 export type UiTheme = 'default' | 'frost';
 
@@ -13,7 +14,7 @@ const PUBLIC_PATHS = ['/', '/login', '/register', '/verify-email', '/forgot-pass
 export function themeFor(role: string | undefined, pathname: string): UiTheme {
   const path = pathname.replace(/\/+$/, '') || '/';
   if (PUBLIC_PATHS.includes(path)) return 'frost';
-  return role === 'developer-analyst' ? 'frost' : 'default';
+  return role === 'developer-analyst' || role === 'system-administrator' ? 'frost' : 'default';
 }
 
 let current: UiTheme = 'default';

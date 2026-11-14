@@ -21,6 +21,8 @@ export interface IWorkspaceDiagram {
   confirmedBy?: string | null;
   /** The workspace revision at which it was confirmed. */
   confirmedRevision?: number | null;
+  /** The latest mined commit when it was confirmed; the conformance check covers only later commits (BR-32). */
+  baselineCommit?: string | null;
   /** Read-only: the confirmer's name, added when the workspace is read; never stored. */
   confirmedByName?: string | null;
 }

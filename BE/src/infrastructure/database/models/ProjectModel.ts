@@ -34,6 +34,11 @@ const ProjectSchema = new Schema<IProjectDocument>(
     userId: { type: String, required: true, ref: "User" },
     organizationId: { type: String, ref: "Organization", index: true },
     credentialId: { type: String, ref: "OrganizationCredential", index: true },
+    viewerAccess: {
+      publicRead: { type: Boolean, default: true },
+      allowChat: { type: Boolean, default: false },
+      dailyLimit: { type: Number, default: 10, min: 1 },
+    },
   },
   {
     timestamps: true,

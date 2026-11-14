@@ -150,7 +150,7 @@ components:
 
 ArchTime is where a team watches its architecture change over time, so the interface is an observatory at night seen through frosted glass. The floor is a misty slate gradient with a few faint four-point stars and two thin hanging light lines in the top right corner. Everything you work with floats above it as translucent glass: panels that let the mist show through, edged with a thin light line and a soft cold glow. The light in the room is ice blue and white, never warm and never neon.
 
-The look belongs to the people who use the product: every page a signed-in user (the developer-analyst role) sees, and every public page (landing, sign-in, sign-up, email verification, password reset, invitations). The administrators' console keeps the earlier flat near-black look; it reads the same colour variables with their original defaults (see Colors). Density stays that of a working tool: tables, graphs, file lists and diffs are the content, and the glass is the frame around them, not decoration on top of them.
+The look belongs to everyone who uses the product: every page a signed-in user sees, whether a developer-analyst's workspace or the system administrators' console, and every public page (landing, sign-in, sign-up, email verification, password reset, invitations). The colour variables keep their earlier flat near-black values as defaults (see Colors), used only for a guarded page before the session is known. Density stays that of a working tool: tables, graphs, file lists and diffs are the content, and the glass is the frame around them, not decoration on top of them.
 
 **Key Characteristics:**
 

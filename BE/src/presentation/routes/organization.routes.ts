@@ -46,6 +46,45 @@ export function createOrganizationRouter(controller: OrganizationController, jwt
 
   /**
    * @swagger
+   * /api/organizations/invitations:
+   *   get:
+   *     tags: [Organizations]
+   *     summary: Lời mời vào tổ chức đang chờ tôi trả lời (UC-28)
+   *     security: [{ BearerAuth: [] }]
+   *     responses:
+   *       200:
+   *         description: "{ invitations: [{ organizationId, organizationName, role, invitedBy, invitedAt }] }"
+   * /api/organizations/{orgId}/invitation/accept:
+   *   post:
+   *     tags: [Organizations]
+   *     summary: Chấp nhận lời mời; membership chuyển từ invited sang active
+   *     security: [{ BearerAuth: [] }]
+   *     parameters:
+   *       - { in: path, name: orgId, required: true, schema: { type: string } }
+   *     responses:
+   *       200:
+   *         description: "{ organization }"
+   *       404:
+   *         $ref: '#/components/responses/NotFound'
+   * /api/organizations/{orgId}/invitation/decline:
+   *   post:
+   *     tags: [Organizations]
+   *     summary: Từ chối lời mời; lời mời bị xoá
+   *     security: [{ BearerAuth: [] }]
+   *     parameters:
+   *       - { in: path, name: orgId, required: true, schema: { type: string } }
+   *     responses:
+   *       200:
+   *         description: "{ declined: true }"
+   *       404:
+   *         $ref: '#/components/responses/NotFound'
+   */
+  router.get("/invitations", controller.myInvitations);
+  router.post("/:orgId/invitation/accept", controller.acceptInvitation);
+  router.post("/:orgId/invitation/decline", controller.declineInvitation);
+
+  /**
+   * @swagger
    * /api/organizations/{orgId}:
    *   get:
    *     tags: [Organizations]
@@ -117,6 +156,24 @@ export function createOrganizationRouter(controller: OrganizationController, jwt
    *       409:
    *         description: Người này đã là thành viên
    */
+  /**
+   * @swagger
+   * /api/organizations/{orgId}/ai-cost:
+   *   get:
+   *     tags: [Organizations]
+   *     summary: Token và chi phí AI theo từng project của tổ chức trong một khoảng thời gian (Organization Owner, UC-30)
+   *     security: [{ BearerAuth: [] }]
+   *     parameters:
+   *       - { in: path, name: orgId, required: true, schema: { type: string } }
+   *       - { in: query, name: from, schema: { type: string, format: date } }
+   *       - { in: query, name: to, schema: { type: string, format: date } }
+   *     responses:
+   *       200:
+   *         description: "{ period, projects: [{ projectId, projectName, runs, inputTokens, outputTokens, totalTokens, cost, currency }], total }"
+   *       403:
+   *         $ref: '#/components/responses/Forbidden'
+   */
+  router.get("/:orgId/ai-cost", controller.aiCost);
   router.get("/:orgId/members", controller.listMembers);
   router.post("/:orgId/members", controller.addMember);
 

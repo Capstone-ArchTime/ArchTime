@@ -31,7 +31,7 @@ test('steps measure stability and structural changes for both groupings', () => 
     { snapshotId: 's1', components: [comp('orders', order), comp('users', user)] },
     // The recovery splits orders in two; folders do not change.
     { snapshotId: 's2', components: [comp('order-api', order.slice(2)), comp('order-core', order.slice(0, 2)), comp('users', user)] },
-  ], { baseline: { depth: 1 } });
+  ], { baseline: { depth: 1 }, evidence: null });
   const [step] = res.steps;
   assert.equal(step.recovered.summary.split, 1);
   assert.equal(step.recovered.structural, 1);
@@ -41,6 +41,22 @@ test('steps measure stability and structural changes for both groupings', () => 
   assert.deepEqual(res.overall.structuralChanges, { recovered: 1, baseline: 0 });
   assert.equal(res.overall.stability.baseline, 100);
   assert.equal(res.overall.reference.recovered, null);
+});
+
+test('by default a regrouping of unchanged files is not a structural change; one backed by new files is', () => {
+  const regroup = evaluateEvolution([
+    { snapshotId: 's1', components: [comp('orders', order), comp('users', user)] },
+    { snapshotId: 's2', components: [comp('order-api', order.slice(2)), comp('order-core', order.slice(0, 2)), comp('users', user)] },
+  ], { baseline: { depth: 1 } });
+  assert.equal(regroup.steps[0].recovered.structural, 0);
+  assert.ok(regroup.steps[0].recovered.changes.some(c => c.kind === 'kept' && c.reason === 'regrouped'));
+
+  const billing = java('billing', ['Invoice', 'Payment', 'Refund']);
+  const grown = evaluateEvolution([
+    { snapshotId: 's1', components: [comp('orders', order), comp('users', user)] },
+    { snapshotId: 's2', components: [comp('orders', order), comp('users', user), comp('billing', billing)] },
+  ], { baseline: { depth: 1 } });
+  assert.equal(grown.steps[0].recovered.summary.added, 1);
 });
 
 test('the unassigned bucket counts for MoJoFM but is not followed as a component', () => {

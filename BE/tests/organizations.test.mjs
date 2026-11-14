@@ -38,13 +38,17 @@ function world() {
     async findByIds(ids) { return orgs.filter((o) => ids.includes(o.id)); },
     async update(id, patch) { const o = orgs.find((x) => x.id === id); if (!o) return null; Object.assign(o, patch); return o; },
     async addMember(d) { const m = { id: nextId("om"), ...d }; orgMembers.push(m); return m; },
-    async findMember(organizationId, userId) { return orgMembers.find((m) => m.organizationId === organizationId && m.userId === userId) ?? null; },
+    async findMember(organizationId, userId) { return orgMembers.find((m) => m.organizationId === organizationId && m.userId === userId && m.status !== "invited") ?? null; },
+    async findMemberOrInvitation(organizationId, userId) { return orgMembers.find((m) => m.organizationId === organizationId && m.userId === userId) ?? null; },
+    async listInvited(organizationId) { return orgMembers.filter((m) => m.organizationId === organizationId && m.status === "invited"); },
+    async listInvitationsOfUser(userId) { return orgMembers.filter((m) => m.userId === userId && m.status === "invited"); },
+    async activateMember(id) { const m = orgMembers.find((x) => x.id === id && x.status === "invited"); if (m) m.status = "active"; return m ?? null; },
     async findMemberById(organizationId, id) { return orgMembers.find((m) => m.organizationId === organizationId && m.id === id) ?? null; },
-    async listMembers(organizationId) { return orgMembers.filter((m) => m.organizationId === organizationId); },
-    async listMembershipsOfUser(userId) { return orgMembers.filter((m) => m.userId === userId); },
+    async listMembers(organizationId) { return orgMembers.filter((m) => m.organizationId === organizationId && m.status !== "invited"); },
+    async listMembershipsOfUser(userId) { return orgMembers.filter((m) => m.userId === userId && m.status !== "invited"); },
     async updateMemberRole(id, role) { const m = orgMembers.find((x) => x.id === id); if (m) m.role = role; return m ?? null; },
     async removeMember(id) { const i = orgMembers.findIndex((m) => m.id === id); if (i < 0) return false; orgMembers.splice(i, 1); return true; },
-    async countOwners(organizationId) { return orgMembers.filter((m) => m.organizationId === organizationId && m.role === OrganizationRole.OWNER).length; },
+    async countOwners(organizationId) { return orgMembers.filter((m) => m.organizationId === organizationId && m.role === OrganizationRole.OWNER && m.status !== "invited").length; },
   };
   const credentialRepo = {
     async create(d) {
@@ -132,10 +136,46 @@ test("Organization: the creator becomes its owner; only members can see it", asy
   await assert.rejects(w.orgUC.create({ userId: "owner", name: "A" }), rejectsWith(400));
 });
 
+/** Invites a person (UC-28) and has them accept, so they are an active member. */
+async function joined(w, input) {
+  const invited = await w.orgUC.addMember(input);
+  assert.equal(invited.status, "invited");
+  await w.orgUC.respondToInvitation({ organizationId: input.organizationId, userId: invited.userId, accept: true });
+  return { ...invited, status: "active" };
+}
+
+test("Organization: an invitation gives no access until it is accepted; it can be declined or withdrawn (UC-28)", async () => {
+  const w = world();
+  const org = await w.orgUC.create({ userId: "owner", name: "Acme" });
+  const invited = await w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io" });
+  assert.equal(invited.status, "invited");
+  await assert.rejects(w.orgUC.get(org.id, "dev"), rejectsWith(404));
+  await assert.rejects(w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io" }), rejectsWith(409));
+  assert.equal((await w.orgUC.get(org.id, "owner")).memberCount, 1, "an invited person is not counted");
+  assert.deepEqual((await w.orgUC.listMembers(org.id, "owner")).map((m) => m.status).sort(), ["active", "invited"], "owners see pending invitations");
+  const mine = await w.orgUC.myInvitations("dev");
+  assert.equal(mine.length, 1);
+  assert.equal(mine[0].organizationName, "Acme");
+  await assert.rejects(w.orgUC.respondToInvitation({ organizationId: org.id, userId: "other", accept: true }), rejectsWith(404));
+
+  await w.orgUC.respondToInvitation({ organizationId: org.id, userId: "dev", accept: false });
+  assert.equal((await w.orgUC.myInvitations("dev")).length, 0, "declined: the invitation is gone");
+  await assert.rejects(w.orgUC.get(org.id, "dev"), rejectsWith(404));
+
+  const again = await w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io" });
+  await w.orgUC.removeMember({ organizationId: org.id, userId: "owner", memberId: again.id });
+  assert.equal((await w.orgUC.myInvitations("dev")).length, 0, "withdrawn by the owner");
+
+  await w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io" });
+  const joinedOrg = await w.orgUC.respondToInvitation({ organizationId: org.id, userId: "dev", accept: true });
+  assert.equal(joinedOrg.myRole, OrganizationRole.MEMBER);
+  assert.equal(joinedOrg.memberCount, 2);
+});
+
 test("Organization: owners add members by email; members cannot manage", async () => {
   const w = world();
   const org = await w.orgUC.create({ userId: "owner", name: "Acme" });
-  const dev = await w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io" });
+  const dev = await joined(w, { organizationId: org.id, userId: "owner", email: "dan@acme.io" });
   assert.equal(dev.role, OrganizationRole.MEMBER);
   assert.equal(dev.name, "Dan Dev");
   await assert.rejects(w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io" }), rejectsWith(409));
@@ -151,7 +191,7 @@ test("Organization: the last owner cannot be demoted or removed", async () => {
   const self = w.orgMembers.find((m) => m.userId === "owner");
   await assert.rejects(w.orgUC.updateMemberRole({ organizationId: org.id, userId: "owner", memberId: self.id, role: "member" }), rejectsWith(400));
   await assert.rejects(w.orgUC.removeMember({ organizationId: org.id, userId: "owner", memberId: self.id }), rejectsWith(400));
-  const dev = await w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io", role: "owner" });
+  const dev = await joined(w, { organizationId: org.id, userId: "owner", email: "dan@acme.io", role: "owner" });
   await w.orgUC.updateMemberRole({ organizationId: org.id, userId: "owner", memberId: self.id, role: "member" });
   assert.equal(w.orgMembers.find((m) => m.id === dev.id).role, OrganizationRole.OWNER);
 });
@@ -159,7 +199,7 @@ test("Organization: the last owner cannot be demoted or removed", async () => {
 test("Organization: removing a member also removes them from every project of the organization", async () => {
   const w = world();
   const org = await w.orgUC.create({ userId: "owner", name: "Acme" });
-  const dev = await w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io" });
+  const dev = await joined(w, { organizationId: org.id, userId: "owner", email: "dan@acme.io" });
   const project = await w.register.execute({ name: "api", repoUrl: "https://git.example/api", visibility: RepoVisibility.PUBLIC, userId: "owner", organizationId: org.id });
   w.projectMembers.push({ id: "pm-dev", projectId: project.id, userId: "dev", role: ProjectMemberRole.MEMBER, status: MemberStatus.ACTIVE });
   const personal = await w.register.execute({ name: "mine", repoUrl: "https://git.example/mine", visibility: RepoVisibility.PUBLIC, userId: "owner" });
@@ -175,7 +215,7 @@ test("Organization: removing a member also removes them from every project of th
 test("Organization: removing a member withdraws their pending invitations to its projects only", async () => {
   const w = world();
   const org = await w.orgUC.create({ userId: "owner", name: "Acme" });
-  const dev = await w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io" });
+  const dev = await joined(w, { organizationId: org.id, userId: "owner", email: "dan@acme.io" });
   const project = await w.register.execute({ name: "api", repoUrl: "https://git.example/api", visibility: RepoVisibility.PUBLIC, userId: "owner", organizationId: org.id });
   const personal = await w.register.execute({ name: "mine", repoUrl: "https://git.example/mine", visibility: RepoVisibility.PUBLIC, userId: "owner" });
   w.pendingInvitations.push(
@@ -192,7 +232,7 @@ test("Organization: removing a member withdraws their pending invitations to its
 test("Organization projects: a project role is only handed to members of the organization", async () => {
   const w = world();
   const org = await w.orgUC.create({ userId: "owner", name: "Acme" });
-  await w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io" });
+  await joined(w, { organizationId: org.id, userId: "owner", email: "dan@acme.io" });
   const project = await w.register.execute({ name: "api", repoUrl: "https://git.example/api", visibility: RepoVisibility.PUBLIC, userId: "owner", organizationId: org.id });
   const personal = await w.register.execute({ name: "mine", repoUrl: "https://git.example/mine", visibility: RepoVisibility.PUBLIC, userId: "owner" });
 
@@ -220,7 +260,7 @@ test("Organization projects: a project role is only handed to members of the org
 test("Organization projects: an invitation sent before removal can no longer be accepted", async () => {
   const w = world();
   const org = await w.orgUC.create({ userId: "owner", name: "Acme" });
-  const dev = await w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io" });
+  const dev = await joined(w, { organizationId: org.id, userId: "owner", email: "dan@acme.io" });
   const project = await w.register.execute({ name: "api", repoUrl: "https://git.example/api", visibility: RepoVisibility.PUBLIC, userId: "owner", organizationId: org.id });
   await w.orgUC.removeMember({ organizationId: org.id, userId: "owner", memberId: dev.id });
 
@@ -236,7 +276,7 @@ test("Organization projects: an invitation sent before removal can no longer be 
     assert.equal(invitation.status, "pending", "nothing was accepted");
     assert.equal(w.projectMembers.filter((m) => m.projectId === project.id && m.userId === "dev").length, 0, "no dormant role left behind");
 
-    await w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io" });
+    await joined(w, { organizationId: org.id, userId: "owner", email: "dan@acme.io" });
     const accepted = await accept.execute("token", "dev");
     assert.equal(accepted.role, ProjectMemberRole.MAINTAINER, "a member again may accept");
   } finally {
@@ -247,7 +287,7 @@ test("Organization projects: an invitation sent before removal can no longer be 
 test("Organization: a removed member's open session loses access to the organization's projects at once", async () => {
   const w = world();
   const org = await w.orgUC.create({ userId: "owner", name: "Acme" });
-  const dev = await w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io" });
+  const dev = await joined(w, { organizationId: org.id, userId: "owner", email: "dan@acme.io" });
   const project = await w.register.execute({ name: "api", repoUrl: "https://git.example/api", visibility: RepoVisibility.PUBLIC, userId: "owner", organizationId: org.id });
   w.projects.find((p) => p.id === project.id).userId = "dev"; // the removed person owns it: ownership does not outlive membership
   assert.equal((await run(w.checkRole("write"), as("dev"), project.id)).error, undefined, "before: owner of the project");
@@ -262,8 +302,8 @@ test("Organization: a removed member's open session loses access to the organiza
 test("Organization: any member may leave; members cannot remove others", async () => {
   const w = world();
   const org = await w.orgUC.create({ userId: "owner", name: "Acme" });
-  const dev = await w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io" });
-  await w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "oscar@else.io" });
+  const dev = await joined(w, { organizationId: org.id, userId: "owner", email: "dan@acme.io" });
+  await joined(w, { organizationId: org.id, userId: "owner", email: "oscar@else.io" });
   const oscar = w.orgMembers.find((m) => m.userId === "other");
   await assert.rejects(w.orgUC.removeMember({ organizationId: org.id, userId: "dev", memberId: oscar.id }), rejectsWith(403));
   await w.orgUC.removeMember({ organizationId: org.id, userId: "dev", memberId: dev.id });
@@ -275,7 +315,7 @@ test("Organization: any member may leave; members cannot remove others", async (
 test("Credentials: owners only, the token is never returned, rotating keeps the id", async () => {
   const w = world();
   const org = await w.orgUC.create({ userId: "owner", name: "Acme" });
-  await w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io" });
+  await joined(w, { organizationId: org.id, userId: "owner", email: "dan@acme.io" });
   const cred = await w.credUC.create({ organizationId: org.id, userId: "owner", name: "GitHub bot", token: "ghp_abcdefgh1234" });
   assert.equal(cred.last4, "1234");
   assert.equal(cred.usedBy, 0);
@@ -326,7 +366,7 @@ test("Register: a private organization project clones with the organization cred
 test("Register: only organization owners create projects in the organization", async () => {
   const w = world();
   const org = await w.orgUC.create({ userId: "owner", name: "Acme" });
-  await w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io" });
+  await joined(w, { organizationId: org.id, userId: "owner", email: "dan@acme.io" });
   await assert.rejects(
     w.register.execute({ name: "api", repoUrl: "https://git.example/api", visibility: RepoVisibility.PUBLIC, userId: "dev", organizationId: org.id }),
     rejectsWith(403),
@@ -359,7 +399,7 @@ test("Delete permission: the project owner may delete; maintainers, members and 
 test("Organization projects: org owners act as maintainer and may delete; non-members see nothing, public or not", async () => {
   const w = world();
   const org = await w.orgUC.create({ userId: "owner", name: "Acme" });
-  await w.orgUC.addMember({ organizationId: org.id, userId: "owner", email: "dan@acme.io" });
+  await joined(w, { organizationId: org.id, userId: "owner", email: "dan@acme.io" });
   const p = personalProject(w, { userId: "dev", organizationId: org.id, visibility: RepoVisibility.PUBLIC });
 
   const asOrgOwner = await run(w.checkRole("owner"), as("owner"), p.id);
