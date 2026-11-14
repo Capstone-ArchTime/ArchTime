@@ -60,6 +60,17 @@ export class MiningService {
   private static readonly running = new Set<string>();
   private static readonly cancelled = new Set<string>();
   private static readonly credentials = new MongoOrganizationCredentialRepository();
+  /**
+   * Called after a fetch (scan) or mine finished, or was cancelled with commits kept: the conformance check and its
+   * e-mail (RF-29). Set by the container; it never holds up or fails the job, its errors are only logged.
+   */
+  public static onHistoryChanged: ((projectId: string) => Promise<void>) | null = null;
+
+  private static afterHistoryChange(projectId: string) {
+    const hook = this.onHistoryChanged;
+    if (!hook) return;
+    void hook(projectId).catch(error => console.error(`[conformance] automatic check of project ${projectId} failed:`, error));
+  }
 
   // ---------- public API ----------
 
@@ -287,6 +298,8 @@ export class MiningService {
         await set({ stage: 'Checking dependency counts', progress: 90 });
         await this.rebaseline(project, git, commits);
         await set({ status: JobStatus.COMPLETED, stage: `Scanned ${commits.length} commits`, progress: 100, total: 0, finishedAt: new Date() });
+        // A fetch can drop commits from the history (force push) or move the baseline out of it.
+        this.afterHistoryChange(String(project._id));
         return;
       }
 
@@ -370,10 +383,12 @@ export class MiningService {
       if (processedHashes.size) await this.rebaseline(project, git, commits);
       await set({ status: JobStatus.COMPLETED, stage: failed ? `Completed with ${failed} unreadable commits` : 'Completed', progress: 100, processed, failedCommits: failed, finishedAt: new Date() });
       await this.settleProjectStatus(String(project._id), false);
+      this.afterHistoryChange(String(project._id));
     } catch (error: any) {
       if (error instanceof CancelledError) {
         await set({ status: JobStatus.CANCELLED, stage: 'Cancelled - mined commits were kept', finishedAt: new Date() });
         await this.settleProjectStatus(String(job.projectId), false);
+        if (job.kind === JobKind.MINE) this.afterHistoryChange(String(job.projectId));
         return;
       }
       console.error(error);

@@ -73,4 +73,12 @@ const ConformanceCheckSchema = new Schema(
 ConformanceCheckSchema.index({ projectId: 1, snapshotId: 1 }, { unique: true });
 ConformanceCheckSchema.index({ projectId: 1, commitDate: -1 });
 
+/** When each person last looked at a project's findings: what came after is unread for them (MSG26). */
+const ConformanceSeenSchema = new Schema(
+  { projectId: { type: String, required: true }, userId: { type: String, required: true }, seenAt: { type: Date, required: true } },
+  { collection: "conformance_seen" },
+);
+ConformanceSeenSchema.index({ userId: 1, projectId: 1 }, { unique: true });
+export const ConformanceSeenModel = mongoose.models.ConformanceSeen || mongoose.model("ConformanceSeen", ConformanceSeenSchema);
+
 export const ConformanceCheckModel = mongoose.models.ConformanceCheck || mongoose.model("ConformanceCheck", ConformanceCheckSchema);

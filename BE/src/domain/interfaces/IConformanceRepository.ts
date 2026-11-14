@@ -39,6 +39,17 @@ export interface IConformanceRepository {
   findings(projectId: string, query?: FindingQuery): Promise<IConformanceFinding[]>;
   findById(projectId: string, findingId: string): Promise<IConformanceFinding | null>;
   setDecision(projectId: string, findingId: string, decision: FindingDecision | null): Promise<IConformanceFinding | null>;
+  /**
+   * Takes the open findings of a project nobody was told about yet, by setting their notifiedAt to `at` in one write, so
+   * two runs never e-mail the same finding (BR-34). Returns the findings taken.
+   */
+  claimUnnotified(projectId: string, at: Date): Promise<IConformanceFinding[]>;
+  /** Gives findings taken by claimUnnotified back (the e-mail could not be sent), to be tried again next time. */
+  releaseClaim(projectId: string, at: Date): Promise<void>;
+  /** Records that the user has looked at the project's findings now (MSG26). */
+  markSeen(projectId: string, userId: string, at: Date): Promise<void>;
+  /** Open findings found since the user last looked, per project; projects with none are left out. */
+  unreadCounts(userId: string, projectIds: string[]): Promise<Map<string, number>>;
   /** Gives `decision` to the open findings with this key in snapshots committed after `after`; returns how many. */
   carryForward(projectId: string, key: string, after: Date, decision: FindingDecision): Promise<number>;
   setExplanation(projectId: string, findingId: string, explanation: FindingExplanation): Promise<IConformanceFinding | null>;

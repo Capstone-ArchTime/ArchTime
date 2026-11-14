@@ -13,6 +13,7 @@ import {
 import type { ProjectSummary } from '@/features/project-data';
 import { ApiError } from '@/api/client';
 import { ManagedWorkspaces } from './managed';
+import { UnreadFindingsNotice } from './UnreadFindingsNotice';
 import { describeAccessError, pickWorkspace } from './managed-access';
 import {
   getProjectDashboard,
@@ -114,6 +115,7 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
           <div className="h-[1px] w-full bg-gradient-to-r from-[var(--at-line)] to-transparent mt-8"></div>
         </div>
 
+        <UnreadFindingsNotice />
         {error && <p className="text-red-400">{error}</p>}
 
         <section aria-label="Architecture maintenance" className="grid grid-cols-1 lg:grid-cols-3 gap-4">

@@ -8,6 +8,9 @@ import { accountMenuItems, navGroupsFor, navHeadingByRole } from './navigation';
 import type { NavGroup } from './navigation';
 import { useMaintainsWorkspaces } from '@/hooks/useMaintainsWorkspaces';
 import { matchNavItem } from './nav-match';
+import { unreadMessage, useUnreadFindings } from '@/features/unread-findings';
+
+const CONFORMANCE_PATH = '/project-maintainer/conformance';
 
 const OPEN_GROUPS_KEY = 'archtime.nav.openGroups';
 function readOpenGroups(): Record<string, boolean> {
@@ -28,6 +31,7 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
   const [query, setQuery] = useState('');
   const mainRef = useRef<HTMLElement>(null);
   const maintains = useMaintainsWorkspaces(user?.id, user?.role === 'developer-analyst');
+  const unread = useUnreadFindings(!!maintains);
   const groups = user ? navGroupsFor(user.role, { maintains, pathname }) : [];
   // Every page the account can jump to: the sidebar plus the account menu (for the page title and Ctrl+K search).
   const items = [...groups.flatMap(group => group.items), ...(user ? accountMenuItems[user.role] : [])];
@@ -64,11 +68,15 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
     okText: 'Sign out', cancelText: 'Stay signed in', onOk: signOut,
   });
   const linkClass = (active: boolean) => `flex items-center gap-3 rounded-md border px-3 py-3 text-sm transition-colors ${active ? 'border-[var(--at-accent)]/30 bg-[var(--at-accent)]/10 text-[var(--at-link)]' : 'border-transparent text-[var(--at-muted)] hover:bg-[var(--at-panel-2)] hover:text-white'}`;
+  const badge = (count: number) => count > 0
+    ? <span className="ml-auto min-w-5 rounded-full bg-[var(--at-fill)] px-1.5 text-center text-xs font-semibold leading-5 text-[var(--at-on-fill)]" aria-label={`${count} unread`}>{count > 99 ? '99+' : count}</span>
+    : null;
+  const unreadOf = (path: string) => (path === CONFORMANCE_PATH ? unread.total : 0);
   const renderLink = (item: NavGroup['items'][number]) => {
     const active = currentItem?.path === item.path;
     const Icon = item.icon;
-    return <Link key={item.path} to={item.path} onClick={closeNavigation} aria-current={active ? 'page' : undefined} className={linkClass(active)}>
-      <Icon size={17} aria-hidden="true" /><span>{item.label}</span>
+    return <Link key={item.path} to={item.path} onClick={closeNavigation} aria-current={active ? 'page' : undefined} className={linkClass(active)} title={item.path === CONFORMANCE_PATH ? unreadMessage(unread) ?? undefined : undefined}>
+      <Icon size={17} aria-hidden="true" /><span>{item.label}</span>{badge(unreadOf(item.path))}
     </Link>;
   };
   const navigation = <nav aria-label="Workspace navigation" className="space-y-1">
@@ -82,7 +90,8 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
         <button type="button" aria-expanded={open} onClick={() => toggleGroup(label, !open)}
           className={`flex w-full items-center gap-3 rounded-md border border-transparent px-3 py-3 text-sm transition-colors hover:bg-[var(--at-panel-2)] hover:text-white ${holdsCurrent && !open ? 'text-[var(--at-link)]' : 'text-[var(--at-muted)]'}`}>
           {GroupIcon && <GroupIcon size={17} aria-hidden="true" />}<span>{label}</span>
-          <ChevronDown size={15} aria-hidden="true" className={`ml-auto transition-transform ${open ? 'rotate-180' : ''}`} />
+          {!open && badge(group.items.reduce((n, item) => n + unreadOf(item.path), 0))}
+          <ChevronDown size={15} aria-hidden="true" className={`${open || !group.items.some(item => unreadOf(item.path)) ? 'ml-auto' : ''} transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
         {open && <div className="space-y-1 pl-4">{group.items.map(renderLink)}</div>}
       </div>;

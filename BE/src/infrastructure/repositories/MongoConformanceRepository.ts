@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import type { FindingDecision, FindingExplanation, IConformanceCheck, IConformanceFinding } from "../../domain/entities/ConformanceFinding.js";
 import type { FindingQuery, IConformanceRepository, IConformanceSnapshots, SnapshotRef } from "../../domain/interfaces/IConformanceRepository.js";
-import { ConformanceCheckModel, ConformanceFindingModel } from "../database/models/ConformanceModels.js";
+import { ConformanceCheckModel, ConformanceFindingModel, ConformanceSeenModel } from "../database/models/ConformanceModels.js";
 import { SnapshotModel } from "../database/models/SnapshotModel.js";
 
 const toFinding = (doc: any): IConformanceFinding => {
@@ -78,6 +78,36 @@ export class MongoConformanceRepository implements IConformanceRepository {
     if (!validId(findingId)) return null;
     const doc = await ConformanceFindingModel.findOneAndUpdate({ _id: findingId, projectId }, { $set: { decision } }, { new: true }).lean();
     return doc ? toFinding(doc) : null;
+  }
+
+  async claimUnnotified(projectId: string, at: Date): Promise<IConformanceFinding[]> {
+    await ConformanceFindingModel.updateMany({ projectId, notifiedAt: null, decision: null, outdated: false }, { $set: { notifiedAt: at } });
+    const docs = await ConformanceFindingModel.find({ projectId, notifiedAt: at }).sort({ commitDate: -1, severity: 1, key: 1 }).lean();
+    return docs.map(toFinding);
+  }
+
+  async releaseClaim(projectId: string, at: Date): Promise<void> {
+    await ConformanceFindingModel.updateMany({ projectId, notifiedAt: at }, { $set: { notifiedAt: null } });
+  }
+
+  async markSeen(projectId: string, userId: string, at: Date): Promise<void> {
+    await ConformanceSeenModel.updateOne({ projectId, userId }, { $max: { seenAt: at } }, { upsert: true });
+  }
+
+  async unreadCounts(userId: string, projectIds: string[]): Promise<Map<string, number>> {
+    const out = new Map<string, number>();
+    if (!projectIds.length) return out;
+    const seen = new Map((await ConformanceSeenModel.find({ userId, projectId: { $in: projectIds } }).lean<{ projectId: string; seenAt: Date }[]>()).map(s => [s.projectId, s.seenAt]));
+    const rows = await ConformanceFindingModel.aggregate<{ _id: string; count: number }>([
+      { $match: { projectId: { $in: projectIds }, decision: null, outdated: false } },
+      { $project: { projectId: 1, key: 1, createdAt: 1 } },
+      { $match: { $or: projectIds.map(p => ({ projectId: p, ...(seen.get(p) ? { createdAt: { $gt: seen.get(p) } } : {}) })) } },
+      // One problem found again in every later commit is one unread problem, not one per commit.
+      { $group: { _id: { projectId: "$projectId", key: "$key" } } },
+      { $group: { _id: "$_id.projectId", count: { $sum: 1 } } },
+    ]);
+    for (const r of rows) if (r.count > 0) out.set(r._id, r.count);
+    return out;
   }
 
   async carryForward(projectId: string, key: string, after: Date, decision: FindingDecision): Promise<number> {

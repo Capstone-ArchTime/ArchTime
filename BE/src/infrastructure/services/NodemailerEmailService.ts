@@ -42,6 +42,10 @@ export class NodemailerEmailService implements IEmailService {
     });
   }
 
+  async sendNotification(to: string, mail: { subject: string; html: string; text: string }): Promise<void> {
+    await this.transporter.sendMail({ from: this.from, to, subject: mail.subject, html: mail.html, text: mail.text });
+  }
+
   async sendProjectInvitation(to: string, projectName: string, role: string, inviteUrl: string): Promise<void> {
     await this.transporter.sendMail({
       from: this.from,
