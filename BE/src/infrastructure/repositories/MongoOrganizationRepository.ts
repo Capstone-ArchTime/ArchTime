@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import {
+  OrganizationMemberStatus,
   OrganizationRole,
   type IOrganization,
   type IOrganizationMember,
@@ -9,6 +10,9 @@ import { OrganizationModel } from "../database/models/OrganizationModel.js";
 import { OrganizationMemberModel } from "../database/models/OrganizationMemberModel.js";
 
 const validId = (id: string) => mongoose.isValidObjectId(id);
+/** Memberships written before invitations existed have no status and are active. */
+const ACTIVE = { status: { $ne: OrganizationMemberStatus.INVITED } };
+const INVITED = { status: OrganizationMemberStatus.INVITED };
 
 export class MongoOrganizationRepository implements IOrganizationRepository {
   private toOrganization(doc: Record<string, unknown>): IOrganization {
@@ -28,6 +32,7 @@ export class MongoOrganizationRepository implements IOrganizationRepository {
       organizationId: String(doc.organizationId),
       userId: String(doc.userId),
       role: doc.role as OrganizationRole,
+      status: doc.status === OrganizationMemberStatus.INVITED ? OrganizationMemberStatus.INVITED : OrganizationMemberStatus.ACTIVE,
       addedBy: doc.addedBy ? String(doc.addedBy) : undefined,
       createdAt: doc.createdAt as Date,
       updatedAt: doc.updatedAt as Date,
@@ -58,13 +63,34 @@ export class MongoOrganizationRepository implements IOrganizationRepository {
     return doc ? this.toOrganization(doc as Record<string, unknown>) : null;
   }
 
-  async addMember(data: { organizationId: string; userId: string; role: OrganizationRole; addedBy?: string }): Promise<IOrganizationMember> {
+  async addMember(data: { organizationId: string; userId: string; role: OrganizationRole; addedBy?: string; status?: OrganizationMemberStatus }): Promise<IOrganizationMember> {
     const doc = await OrganizationMemberModel.create(data);
     return this.toMember(doc.toObject() as unknown as Record<string, unknown>);
   }
 
   async findMember(organizationId: string, userId: string): Promise<IOrganizationMember | null> {
+    const doc = await OrganizationMemberModel.findOne({ organizationId, userId, ...ACTIVE }).lean();
+    return doc ? this.toMember(doc as Record<string, unknown>) : null;
+  }
+
+  async findMemberOrInvitation(organizationId: string, userId: string): Promise<IOrganizationMember | null> {
     const doc = await OrganizationMemberModel.findOne({ organizationId, userId }).lean();
+    return doc ? this.toMember(doc as Record<string, unknown>) : null;
+  }
+
+  async listInvited(organizationId: string): Promise<IOrganizationMember[]> {
+    const docs = await OrganizationMemberModel.find({ organizationId, ...INVITED }).sort({ createdAt: 1 }).lean();
+    return docs.map(doc => this.toMember(doc as Record<string, unknown>));
+  }
+
+  async listInvitationsOfUser(userId: string): Promise<IOrganizationMember[]> {
+    const docs = await OrganizationMemberModel.find({ userId, ...INVITED }).sort({ createdAt: -1 }).lean();
+    return docs.map(doc => this.toMember(doc as Record<string, unknown>));
+  }
+
+  async activateMember(memberId: string): Promise<IOrganizationMember | null> {
+    if (!validId(memberId)) return null;
+    const doc = await OrganizationMemberModel.findOneAndUpdate({ _id: memberId, ...INVITED }, { $set: { status: OrganizationMemberStatus.ACTIVE } }, { new: true }).lean();
     return doc ? this.toMember(doc as Record<string, unknown>) : null;
   }
 
@@ -75,12 +101,12 @@ export class MongoOrganizationRepository implements IOrganizationRepository {
   }
 
   async listMembers(organizationId: string): Promise<IOrganizationMember[]> {
-    const docs = await OrganizationMemberModel.find({ organizationId }).sort({ createdAt: 1 }).lean();
+    const docs = await OrganizationMemberModel.find({ organizationId, ...ACTIVE }).sort({ createdAt: 1 }).lean();
     return docs.map(doc => this.toMember(doc as Record<string, unknown>));
   }
 
   async listMembershipsOfUser(userId: string): Promise<IOrganizationMember[]> {
-    const docs = await OrganizationMemberModel.find({ userId }).lean();
+    const docs = await OrganizationMemberModel.find({ userId, ...ACTIVE }).lean();
     return docs.map(doc => this.toMember(doc as Record<string, unknown>));
   }
 
@@ -96,7 +122,7 @@ export class MongoOrganizationRepository implements IOrganizationRepository {
   }
 
   async countOwners(organizationId: string): Promise<number> {
-    return OrganizationMemberModel.countDocuments({ organizationId, role: OrganizationRole.OWNER });
+    return OrganizationMemberModel.countDocuments({ organizationId, role: OrganizationRole.OWNER, ...ACTIVE });
   }
 
   async findPaginated(filter: { page: number; limit: number; search?: string }): Promise<{ items: IOrganization[]; total: number }> {

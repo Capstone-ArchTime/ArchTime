@@ -3,6 +3,7 @@ import type { IProjectRepository } from "../../../domain/interfaces/IProjectRepo
 import type { IWorkspaceDiagram } from "../../../domain/entities/Workspace.js";
 import { BadRequestError, NotFoundError } from "../../../shared/errors/AppError.js";
 import { settleConfirmation } from "../../../domain/architecture/canonical.js";
+import type { LatestCommitLookup } from "../../../domain/interfaces/ILatestCommit.js";
 
 export interface SaveDiagramInput {
   projectId: string;
@@ -59,6 +60,8 @@ export class ConfirmProjectDiagramUseCase {
   constructor(
     private readonly workspaceRepository: IWorkspaceRepository,
     private readonly projectRepository: IProjectRepository,
+    /** Baseline of the confirmation (BR-32). */
+    private readonly latestCommit?: LatestCommitLookup,
   ) {}
 
   async execute(projectId: string, userId: string): Promise<{ diagram: IWorkspaceDiagram; revision: number }> {
@@ -77,7 +80,8 @@ export class ConfirmProjectDiagramUseCase {
     }
     const confirmedDiagram: IWorkspaceDiagram = {
       ...ws.diagram,
-      ...settleConfirmation({ stored: ws.diagram, incoming: ws.diagram, request: "confirm", userId, now: new Date(), nextRevision: ws.revision + 1 }),
+      ...settleConfirmation({ stored: ws.diagram, incoming: ws.diagram, request: "confirm", userId, now: new Date(), nextRevision: ws.revision + 1,
+        baselineCommit: this.latestCommit ? await this.latestCommit(projectId) : null }),
     };
 
     const updated = await this.workspaceRepository.save(

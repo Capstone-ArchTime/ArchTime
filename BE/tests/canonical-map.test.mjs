@@ -58,11 +58,11 @@ test("Canonical map: a kept confirmation survives only while the content is the 
   const confirmed = diagram([component("a")], [], { confirmedAt: new Date("2026-01-01"), confirmedBy: "mentor", confirmedRevision: 4 });
   const now = new Date("2026-03-01");
   const same = settleConfirmation({ stored: confirmed, incoming: diagram([component("a")]), request: "keep", now, nextRevision: 9 });
-  assert.deepEqual(same, { confirmedAt: new Date("2026-01-01"), confirmedBy: "mentor", confirmedRevision: 4 });
+  assert.deepEqual(same, { confirmedAt: new Date("2026-01-01"), confirmedBy: "mentor", confirmedRevision: 4, baselineCommit: null });
   const changed = settleConfirmation({ stored: confirmed, incoming: diagram([component("a"), component("b")]), request: "keep", now, nextRevision: 9 });
   assert.deepEqual(changed, UNCONFIRMED);
   const confirm = settleConfirmation({ stored: confirmed, incoming: confirmed, request: "confirm", userId: "lead", now, nextRevision: 9 });
-  assert.deepEqual(confirm, { confirmedAt: now, confirmedBy: "lead", confirmedRevision: 9 });
+  assert.deepEqual(confirm, { confirmedAt: now, confirmedBy: "lead", confirmedRevision: 9, baselineCommit: null });
 });
 
 // ── use cases ────────────────────────────────────────────────────────────────
@@ -161,4 +161,30 @@ test("Canonical map: the answer to a confirming save already names the confirmer
   });
   assert.equal(saved.diagram.confirmedByName, "Mia Mentor");
   assert.equal("confirmedByName" in ws.current.diagram, false, "the name is added to the answer, never stored");
+});
+
+// ── baseline commit (BM03 #12, SRS BR-32) ────────────────────────────────────
+
+test("Baseline: confirming fixes the latest mined commit; keeping keeps it; a content change drops it", async () => {
+  const ws = store();
+  const latest = async () => "c0ffee1";
+  await ws.create({ projectId: "p1", revision: 1, diagram: diagram([component("api")]), rules: [], decisions: [] });
+  const confirmed = await new ConfirmProjectDiagramUseCase(ws, projects, latest).execute("p1", "mentor");
+  assert.equal(confirmed.diagram.baselineCommit, "c0ffee1");
+
+  const put = new SaveProjectDiagramUseCase(ws, projects);
+  await put.execute({ projectId: "p1", diagram: diagram([component("api")], [], { baselineCommit: "forged" }), userId: "mentor" });
+  assert.equal(ws.current.diagram.baselineCommit, "c0ffee1", "same content: the baseline stays and cannot be set by the request");
+  await put.execute({ projectId: "p1", diagram: diagram([component("web")]), userId: "mentor" });
+  assert.equal(ws.current.diagram.baselineCommit, null, "new content: not canonical, so no baseline");
+
+  const save = new SaveProjectWorkspaceUseCase(ws, projects, undefined, async () => "beef002");
+  const saved = await save.execute({ projectId: "p1", expectedRevision: ws.current.revision, diagram: diagram([component("web")], [], { confirmedAt: new Date().toISOString() }), userId: "mentor" });
+  assert.equal(saved.diagram.baselineCommit, "beef002");
+});
+
+test("Baseline: without anything mined a confirmation has no baseline", () => {
+  const c = settleConfirmation({ stored: null, incoming: diagram([component("api")]), request: "confirm", userId: "m", now: new Date(), nextRevision: 2 });
+  assert.equal(c.baselineCommit, null);
+  assert.equal(UNCONFIRMED.baselineCommit, null);
 });

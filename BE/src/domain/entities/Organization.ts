@@ -14,11 +14,19 @@ export interface IOrganization {
   updatedAt: Date;
 }
 
+/** An invited person is not a member yet: they get no access until they accept (UC-28). */
+export enum OrganizationMemberStatus {
+  INVITED = "invited",
+  ACTIVE = "active",
+}
+
 export interface IOrganizationMember {
   id: string;
   organizationId: string;
   userId: string;
   role: OrganizationRole;
+  /** Missing on memberships created before invitations existed: those are active. */
+  status: OrganizationMemberStatus;
   addedBy?: string;
   createdAt: Date;
   updatedAt: Date;

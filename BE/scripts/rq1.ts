@@ -8,6 +8,7 @@
  *   npm run rq1 -- --milestones                only the milestones chosen by npm run rq1:milestones
  *   npm run rq1 -- --annotator <name>          also write / update that annotator's own label sheets
  *   npm run rq1 -- --reconcile                 merge the annotators' sheets into the reconciled sheets
+ *   npm run rq1 -- --no-evidence               report every regrouping as a change (the rule before 14/11/2026)
  *   npm run rq1 -- --anchored [--tolerance x]  add the anchored variant (development set only, see the protocol)
  *   npm run rq1 -- --no-clustering             leave out the clustering-only grouping
  *   npm run rq1 -- --out <dir>                 output folder (default rq1-results)
@@ -29,10 +30,10 @@ import {
 } from "../src/domain/evaluation/rq1.js";
 import type { Agreement, CommitContext, EvaluationInput, LabelKey, LabelSheet, Method, RecoveryRow, StabilityRow } from "../src/domain/evaluation/rq1.js";
 
-interface Args { projects: string[]; out: string; annotator: string | null; reconcile: boolean; clustering: boolean; anchored: boolean; tolerance?: number; milestones: boolean }
+interface Args { projects: string[]; out: string; annotator: string | null; reconcile: boolean; clustering: boolean; anchored: boolean; tolerance?: number; milestones: boolean; noEvidence: boolean }
 
 function args(argv: string[]): Args {
-  const a: Args = { projects: [], out: "rq1-results", annotator: null, reconcile: false, clustering: true, anchored: false, milestones: false };
+  const a: Args = { projects: [], out: "rq1-results", annotator: null, reconcile: false, clustering: true, anchored: false, milestones: false, noEvidence: false };
   for (let i = 0; i < argv.length; i++) {
     const next = () => { if (!argv[i + 1]) throw new Error(`${argv[i]} needs a value`); return argv[++i]; };
     switch (argv[i]) {
@@ -44,6 +45,7 @@ function args(argv: string[]): Args {
       case "--anchored": a.anchored = true; break;
       case "--tolerance": a.tolerance = Number(next()); if (!Number.isFinite(a.tolerance)) throw new Error("--tolerance needs a number, e.g. 0.02"); break;
       case "--milestones": a.milestones = true; break;
+      case "--no-evidence": a.noEvidence = true; break;
       default: throw new Error(`Unknown argument: ${argv[i]}. See the header of scripts/rq1.ts.`);
     }
   }
@@ -103,7 +105,7 @@ async function main() {
       snapshotIds = chosen.snapshotIds;
     }
     const evaluation = (await ArchitectureService.evaluation(id, {
-      snapshotIds, clustering: opt.clustering, anchored: opt.anchored ? (opt.tolerance === undefined ? true : { tolerance: opt.tolerance }) : false, withFiles: true,
+      snapshotIds, clustering: opt.clustering, anchored: opt.anchored ? (opt.tolerance === undefined ? true : { tolerance: opt.tolerance }) : false, withFiles: true, noEvidence: opt.noEvidence,
     })) as unknown as EvaluationInput;
     methodsOf(evaluation).forEach(m => methods.add(m));
     const generators = [...new Set(evaluation.snapshots.map(s => s.generator ?? "").filter(Boolean))];

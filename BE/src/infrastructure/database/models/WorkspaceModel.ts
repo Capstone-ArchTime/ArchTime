@@ -33,6 +33,7 @@ const DiagramSchema = new Schema(
     confirmedAt: { type: Date, default: null },
     confirmedBy: { type: String, default: null },
     confirmedRevision: { type: Number, default: null },
+    baselineCommit: { type: String, default: null },
   },
   { _id: false },
 );

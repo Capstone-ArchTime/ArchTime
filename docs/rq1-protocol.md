@@ -126,7 +126,7 @@ Một cặp được tính khi đã có `trueChanges` và đủ mọi `verdict`.
 Ước lượng công sức: khoảng 5–10 phút cho mỗi cặp, với mỗi người.
 
 **Trạng thái tập phát triển (07/11/2026):**
-- 36 cặp đã được gán nhãn bởi **một** người gán nhãn là trợ lý AI (Claude), trong file `labels/<workspace>.claude.json`.
+- 36 cặp được người gán nhãn thứ nhất, trợ lý AI (Claude), gán nhãn trong `labels/<workspace>.claude.json`; người thứ hai chấm một mẫu (xem bên dưới).
 - Quy tắc đã dùng: một thay đổi thật là một khối chức năng được thêm, bỏ, tách, gộp hay tổ chức lại, nhìn thấy qua một nhóm file mới hoặc bị xoá tạo thành một năng lực. Không tính các trường hợp chỉ sửa file, thêm 1–2 file vào vùng có sẵn, hay merge commit không đổi mã nguồn.
 - Vì người gán nhãn đầu là AI, **người thứ hai phải là thành viên nhóm**, làm độc lập và không mở phiếu của Claude. Báo cáo phải ghi rõ một người gán nhãn là AI.
 
@@ -138,6 +138,20 @@ Một cặp được tính khi đã có `trueChanges` và đủ mọi `verdict`.
 - Khi hợp nhất, cặp nào người thứ hai bỏ trống thì giữ nhãn của người thứ nhất.
 - Chỗ hai người lệch nhau trong mẫu được thống nhất rồi mới tính điểm.
 - Báo cáo phải ghi rõ: người thứ hai chỉ chấm mẫu 10/24 cặp.
+
+**Kết quả người thứ hai (07/11/2026):** người thứ hai là một thành viên nhóm (Nguyễn Duy Công), file `labels/<workspace>.cong.json`.
+- Đồng thuận trước khi thống nhất:
+  - `verdict` trùng 14/16. Cohen's kappa −0,07, vì gần như mọi thay đổi đều bị cả hai chấm `wrong`. Gwet's AC1 là 0,86.
+  - `trueChanges` trùng hẳn 2/10 cặp. Người thứ hai đếm 16, người thứ nhất đếm 7.
+- Cách thống nhất: theo quy tắc viết sẵn trong hướng dẫn, không theo người nào.
+  - Thêm 1–2 file vào thư mục có sẵn thì không tính.
+  - Một năng lực trải ra nhiều thư mục chỉ tính một lần.
+  - Back end và front end tính riêng.
+  - Một thay đổi "added" mà phần lớn file đã có từ trước thì là `wrong`.
+- Kết quả thống nhất:
+  - 8 cặp lệch số đều theo số của người thứ nhất.
+  - Trong 2 thay đổi lệch nhau, có một thay đổi theo người thứ hai (`added Frontend API Client` → `wrong`).
+  - Mỗi giá trị đã thống nhất có ghi chú "Settled by the labelling guide" trong `labels/<workspace>.json`.
 
 **Công cụ chấm:** `python "D:/FPT/Fall 2026/Capstone/_scratch/make_label_page.py" <tên>` tạo trang `BE/rq1-results/label-tool.html`.
 - Trang gom file mới, file bị xoá và file chuyển chỗ theo thư mục. Với mỗi nhóm, người chấm chọn: chức năng mới, cùng chức năng với nhóm đã chọn, hoặc không phải. `trueChanges` là số nhóm được chọn là "chức năng mới".

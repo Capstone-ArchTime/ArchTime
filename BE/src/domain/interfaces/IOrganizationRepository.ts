@@ -3,6 +3,7 @@ import type {
   IOrganization,
   IOrganizationCredential,
   IOrganizationMember,
+  OrganizationMemberStatus,
   OrganizationRole,
 } from "../entities/Organization.js";
 
@@ -12,8 +13,14 @@ export interface IOrganizationRepository {
   findByIds(ids: string[]): Promise<IOrganization[]>;
   update(id: string, patch: { name?: string; description?: string }): Promise<IOrganization | null>;
 
-  addMember(data: { organizationId: string; userId: string; role: OrganizationRole; addedBy?: string }): Promise<IOrganizationMember>;
+  addMember(data: { organizationId: string; userId: string; role: OrganizationRole; addedBy?: string; status?: OrganizationMemberStatus }): Promise<IOrganizationMember>;
+  /** Active members only: an invitation gives no access. The same holds for listMembers, listMembershipsOfUser, countOwners. */
   findMember(organizationId: string, userId: string): Promise<IOrganizationMember | null>;
+  /** An active membership or a pending invitation. */
+  findMemberOrInvitation(organizationId: string, userId: string): Promise<IOrganizationMember | null>;
+  listInvited(organizationId: string): Promise<IOrganizationMember[]>;
+  listInvitationsOfUser(userId: string): Promise<IOrganizationMember[]>;
+  activateMember(memberId: string): Promise<IOrganizationMember | null>;
   findMemberById(organizationId: string, memberId: string): Promise<IOrganizationMember | null>;
   listMembers(organizationId: string): Promise<IOrganizationMember[]>;
   listMembershipsOfUser(userId: string): Promise<IOrganizationMember[]>;

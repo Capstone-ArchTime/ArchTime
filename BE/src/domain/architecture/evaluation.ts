@@ -5,7 +5,8 @@
 
 import { directoryBaseline } from './baseline.js';
 import type { BaselineOptions } from './baseline.js';
-import { matchComponents } from './matching.js';
+import { EVIDENCE_RULE, matchComponents } from './matching.js';
+import type { MatchOptions } from './matching.js';
 import type { ChangeKind, MatchComponent } from './matching.js';
 import { mojoFM } from './mojo.js';
 import type { MojoFmResult } from './mojo.js';
@@ -79,8 +80,9 @@ const mean = (xs: (number | null | undefined)[]) => {
 const STRUCTURAL: ChangeKind[] = ['split', 'merged', 'restructured', 'removed', 'added'];
 const followable = (components: MatchComponent[]) => components.filter(c => c.name !== UNASSIGNED_COMPONENT);
 
-function side(before: MatchComponent[], after: MatchComponent[], followBefore: MatchComponent[], followAfter: MatchComponent[], withFiles = false): StepSide {
-  const matching = matchComponents(followBefore, followAfter);
+function side(before: MatchComponent[], after: MatchComponent[], followBefore: MatchComponent[], followAfter: MatchComponent[], withFiles = false,
+  evidence: MatchOptions['evidence'] = EVIDENCE_RULE): StepSide {
+  const matching = matchComponents(followBefore, followAfter, { evidence });
   const nameBefore = new Map(followBefore.map(c => [c.id, c.name]));
   const nameAfter = new Map(followAfter.map(c => [c.id, c.name]));
   const membersBefore = new Map(followBefore.map(c => [c.id, [...c.memberIds].sort()]));
@@ -105,9 +107,14 @@ function side(before: MatchComponent[], after: MatchComponent[], followBefore: M
  */
 export function evaluateEvolution(
   snapshots: EvaluatedSnapshotInput[],
-  options: { reference?: ReferenceComponent[] | null; baseline?: Partial<BaselineOptions>; withFiles?: boolean } = {},
+  options: {
+    reference?: ReferenceComponent[] | null; baseline?: Partial<BaselineOptions>; withFiles?: boolean;
+    /** Evidence rule for structural changes (matching.ts); null reports every regrouping, as before 14/11/2026. */
+    evidence?: MatchOptions['evidence'];
+  } = {},
 ): EvolutionEvaluation {
   const withFiles = options.withFiles ?? false;
+  const evidence = options.evidence === undefined ? EVIDENCE_RULE : options.evidence;
   const filesOf = (s: EvaluatedSnapshotInput) => [...new Set(s.components.flatMap(c => c.memberIds))].sort();
   const latest = snapshots[snapshots.length - 1];
   const depth = options.baseline?.depth ?? (latest ? directoryBaseline(filesOf(latest), options.baseline).depth : 1);
@@ -143,14 +150,14 @@ export function evaluateEvolution(
     const step: StepEvaluation = {
       from: prev.snapshotId,
       to: s.snapshotId,
-      recovered: side(prev.components, s.components, followable(prev.components), followable(s.components), withFiles),
-      baseline: side(baselines[k], baselines[k + 1], baselines[k], baselines[k + 1], withFiles),
+      recovered: side(prev.components, s.components, followable(prev.components), followable(s.components), withFiles, evidence),
+      baseline: side(baselines[k], baselines[k + 1], baselines[k], baselines[k + 1], withFiles, evidence),
     };
     const shared = Object.keys(s.variants ?? {}).filter(m => prev.variants?.[m]);
     if (shared.length) {
       step.variants = Object.fromEntries(shared.map(m => {
         const a = prev.variants![m], b = s.variants![m];
-        return [m, side(a, b, followable(a), followable(b), withFiles)];
+        return [m, side(a, b, followable(a), followable(b), withFiles, evidence)];
       }));
     }
     return step;

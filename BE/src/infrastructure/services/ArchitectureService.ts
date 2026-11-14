@@ -13,7 +13,7 @@ import { refineMapping } from "../../domain/architecture/llm/refine.js";
 import { DEFAULT_REFINE_OPTIONS } from "../../domain/architecture/llm/types.js";
 import type { RefineReceipt } from "../../domain/architecture/llm/types.js";
 import { validateView } from "../../domain/architecture/validate.js";
-import { matchComponents, trackLineages } from "../../domain/architecture/matching.js";
+import { EVIDENCE_RULE, matchComponents, trackLineages } from "../../domain/architecture/matching.js";
 import type { ComponentMatching, Lineage, MatchComponent } from "../../domain/architecture/matching.js";
 import { evaluateEvolution, UNASSIGNED_COMPONENT } from "../../domain/architecture/evaluation.js";
 import { anchorSequence } from "../../domain/architecture/anchored.js";
@@ -112,6 +112,8 @@ export interface EvaluationOptions {
   anchored?: boolean | { tolerance?: number };
   /** List the member files of the components in every change (for the RQ1 label sheets). */
   withFiles?: boolean;
+  /** Report every regrouping as a structural change (the rule before 14/11/2026), instead of only changes backed by files. */
+  noEvidence?: boolean;
 }
 
 /** Who asked for a refinement and with which model; recorded with the run. */
@@ -299,7 +301,7 @@ export class ArchitectureService {
       return { components, info: { snapshot: this.summary(snapshot), stale, components: described } as MatchedSide };
     };
     const a = side(earlier), b = side(later);
-    return { before: a.info, after: b.info, matching: matchComponents(a.components, b.components) };
+    return { before: a.info, after: b.info, matching: matchComponents(a.components, b.components, { evidence: EVIDENCE_RULE }) };
   }
 
   /** The most recent snapshots that have stored components, oldest first, with their mappings. */
@@ -361,7 +363,8 @@ export class ArchitectureService {
     }
     const result = evaluateEvolution(
       inputs.map(({ snapshotId, components, variants }) => ({ snapshotId, components, variants })),
-      { reference: reference?.components ?? null, baseline: options.depth ? { depth: options.depth } : {}, withFiles: options.withFiles ?? false },
+      { reference: reference?.components ?? null, baseline: options.depth ? { depth: options.depth } : {}, withFiles: options.withFiles ?? false,
+        ...(options.noEvidence ? { evidence: null } : {}) },
     );
     return {
       ...result,

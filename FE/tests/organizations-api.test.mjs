@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   addMember, buildRegistration, checkCredentialName, checkEmail, checkOrganizationName, checkToken, createCredential, isLastOwner,
-  listCredentials, listOrganizations, memberActions, removeMember, workspaceSpaces,
+  answerInvitation, listCredentials, listMyInvitations, listOrganizations, memberActions, removeMember, workspaceSpaces,
 } from '../src/features/organizations-api.ts';
 import { mockGlobal } from './mock-global.mjs';
 Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, writable: true, value: undefined });
@@ -98,4 +98,27 @@ test('server problems surface with their message', async t => {
   signedIn(t);
   t.mock.method(globalThis, 'fetch', async () => Response.json({ success: false, error: { code: 'NOT_FOUND', message: 'No account uses this email. Ask the person to register first.' } }, { status: 404 }));
   await assert.rejects(addMember('o1', { email: 'x@y.co', role: 'member' }), /Ask the person to register first/);
+});
+
+test('an invited owner does not count as the organization owner, and invitations are read and answered (UC-28)', async t => {
+  const owner = { id: 'a', userId: 'a', name: 'A', email: 'a@x', role: 'owner', status: 'active', createdAt: null };
+  const invitedOwner = { id: 'b', userId: 'b', name: 'B', email: 'b@x', role: 'owner', status: 'invited', createdAt: null };
+  assert.equal(isLastOwner([owner, invitedOwner], owner), true);
+  assert.equal(isLastOwner([owner, invitedOwner], invitedOwner), false);
+
+  signedIn(t);
+  const calls = [];
+  t.mock.method(globalThis, 'fetch', async (url, options = {}) => {
+    calls.push(`${options.method ?? 'GET'} ${url}`);
+    if (String(url).endsWith('/organizations/invitations')) {
+      return Response.json({ success: true, data: { invitations: [{ organizationId: 'o1', organizationName: 'Acme', role: 'member', invitedBy: 'Olivia', invitedAt: '2026-11-14T00:00:00Z' }] } });
+    }
+    return Response.json({ success: true, data: {} });
+  });
+  const [inv] = await listMyInvitations();
+  assert.deepEqual(inv, { organizationId: 'o1', organizationName: 'Acme', role: 'member', invitedBy: 'Olivia', invitedAt: '2026-11-14T00:00:00Z' });
+  await answerInvitation('o1', true);
+  await answerInvitation('o1', false);
+  assert.ok(calls.some(c => c.startsWith('POST') && c.endsWith('/organizations/o1/invitation/accept')));
+  assert.ok(calls.some(c => c.startsWith('POST') && c.endsWith('/organizations/o1/invitation/decline')));
 });

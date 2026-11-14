@@ -283,6 +283,44 @@ export function createProjectRouter(
 
   /**
    * @swagger
+   * /api/projects/{id}/viewer-access:
+   *   get:
+   *     tags: [Projects]
+   *     summary: Viewer được làm gì trong workspace cá nhân công khai (UC-16, BR-17)
+   *     security: [{ BearerAuth: [] }]
+   *     parameters:
+   *       - { in: path, name: id, required: true, schema: { type: string } }
+   *     responses:
+   *       200:
+   *         description: "{ viewerAccess: { publicRead, allowChat, dailyLimit } }"
+   *   patch:
+   *     tags: [Projects]
+   *     summary: "Chủ workspace bật/tắt cho viewer xem, cho viewer hỏi mentor và giới hạn số câu hỏi mỗi ngày"
+   *     security: [{ BearerAuth: [] }]
+   *     parameters:
+   *       - { in: path, name: id, required: true, schema: { type: string } }
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               publicRead: { type: boolean }
+   *               allowChat: { type: boolean }
+   *               dailyLimit: { type: integer, minimum: 1, maximum: 200 }
+   *     responses:
+   *       200:
+   *         description: "{ viewerAccess }"
+   *       400:
+   *         $ref: '#/components/responses/ValidationError'
+   *       403:
+   *         $ref: '#/components/responses/Forbidden'
+   */
+  router.get("/:id/viewer-access", checkRole("read"), projectController.getViewerAccess);
+  router.patch("/:id/viewer-access", checkRole("owner"), projectController.updateViewerAccess);
+
+  /**
+   * @swagger
    * /api/projects/{id}/scan:
    *   post:
    *     tags: [Projects]

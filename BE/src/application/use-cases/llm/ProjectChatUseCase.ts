@@ -1,3 +1,6 @@
+import { LlmRunModel } from "../../../infrastructure/database/models/LlmRunModel.js";
+import { viewerAccessOf } from "../../../domain/entities/Project.js";
+import { ForbiddenError } from "../../../shared/errors/AppError.js";
 import type { IProject } from "../../../domain/entities/Project.js";
 import { LlmError, sumUsage } from "../../../domain/architecture/llm/types.js";
 import type { LlmMessage, LlmUsage } from "../../../domain/architecture/llm/types.js";
@@ -84,6 +87,18 @@ const minedCommits: MinedCommitLookup = {
   },
 };
 
+/** How many mentor questions a viewer asked in a workspace today (UTC); viewers have a daily limit set by the owner (BR-17). */
+export interface ViewerQuestionCount {
+  today(projectId: string, userId: string): Promise<number>;
+}
+const viewerQuestions: ViewerQuestionCount = {
+  async today(projectId, userId) {
+    const start = new Date();
+    start.setUTCHours(0, 0, 0, 0);
+    return LlmRunModel.countDocuments({ projectId, userId, mode: "chat", createdAt: { $gte: start } });
+  },
+};
+
 /** How long the user may be kept waiting for the accounting record; a slower write carries on in the background. */
 export const RUN_LOG_WAIT_MS = 3_000;
 
@@ -97,6 +112,7 @@ export class ProjectChatUseCase {
     private readonly history = new ChatHistoryUseCases(),
     private readonly runs: ChatRunLog = runLog,
     private readonly commits: MinedCommitLookup = minedCommits,
+    private readonly viewerCount: ViewerQuestionCount = viewerQuestions,
   ) {}
 
   /** Applies the FACT / citation rules (domain/mentor/claimLabels.ts) against the project's mined commits. */
@@ -130,10 +146,17 @@ export class ProjectChatUseCase {
     }
   }
 
-  async execute(input: { project: IProject; userId: string; messages: unknown; conversationId?: unknown }): Promise<ProjectChatResult> {
+  async execute(input: { project: IProject; userId: string; messages: unknown; conversationId?: unknown; viewer?: boolean }): Promise<ProjectChatResult> {
     const askedAt = new Date();
     const turns = parseChatMessages(input.messages);
     const conversationId = parseConversationId(input.conversationId);
+    if (input.viewer) {
+      const access = viewerAccessOf(input.project);
+      if (!access.allowChat) throw new ForbiddenError("The owner of this workspace has not allowed viewers to ask the mentor.");
+      if ((await this.viewerCount.today(input.project.id, input.userId)) >= access.dailyLimit) {
+        throw new AppError(429, "RATE_LIMITED", `You reached today's limit of ${access.dailyLimit} questions as a viewer of this workspace. Try again tomorrow.`);
+      }
+    }
     throttle(input.userId);
 
     const projectId = input.project.id;

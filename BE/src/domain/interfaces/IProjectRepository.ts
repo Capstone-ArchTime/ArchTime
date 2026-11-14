@@ -1,4 +1,4 @@
-import type { IProject } from "../entities/Project.js";
+import type { IProject, IProjectViewerAccess } from "../entities/Project.js";
 
 export interface AccessibleProjectsFilter {
   projectIds?: string[];
@@ -25,4 +25,5 @@ export interface IProjectRepository {
   findByOrganizationId(organizationId: string): Promise<IProject[]>;
   findByIds(ids: string[]): Promise<IProject[]>;
   countByCredentialId(credentialId: string): Promise<number>;
+  updateViewerAccess(id: string, access: IProjectViewerAccess): Promise<IProject | null>;
 }

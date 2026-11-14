@@ -1,4 +1,4 @@
-import type { IProject, ProjectStatus, RepoVisibility } from "../../domain/entities/Project.js";
+import type { IProject, IProjectViewerAccess, ProjectStatus, RepoVisibility } from "../../domain/entities/Project.js";
 import type { IProjectRepository } from "../../domain/interfaces/IProjectRepository.js";
 import mongoose from "mongoose";
 import { ProjectModel } from "../database/models/ProjectModel.js";
@@ -27,9 +27,16 @@ export class MongoProjectRepository implements IProjectRepository {
       userId: String(doc.userId),
       ...(doc.organizationId ? { organizationId: String(doc.organizationId) } : {}),
       ...(doc.credentialId ? { credentialId: String(doc.credentialId) } : {}),
+      ...(doc.viewerAccess ? { viewerAccess: doc.viewerAccess as IProject["viewerAccess"] } : {}),
       createdAt: doc.createdAt as Date,
       updatedAt: doc.updatedAt as Date,
     };
+  }
+
+  async updateViewerAccess(id: string, access: IProjectViewerAccess): Promise<IProject | null> {
+    if (!mongoose.isValidObjectId(id)) return null;
+    const doc = await ProjectModel.findByIdAndUpdate(id, { $set: { viewerAccess: access } }, { new: true }).lean();
+    return doc ? this.toEntity(doc as Record<string, unknown>) : null;
   }
 
   async findByOrganizationId(organizationId: string): Promise<IProject[]> {

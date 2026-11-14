@@ -13,6 +13,7 @@ import {
   NotFoundError,
 } from "../../../shared/errors/AppError.js";
 import { requestedConfirmation, settleConfirmation } from "../../../domain/architecture/canonical.js";
+import type { LatestCommitLookup } from "../../../domain/interfaces/ILatestCommit.js";
 
 export interface SaveWorkspaceRequest {
   projectId: string;
@@ -66,6 +67,8 @@ export class SaveProjectWorkspaceUseCase {
     private readonly projectRepository: IProjectRepository,
     /** Names the confirmer in the answer, as a read does, so the page shows who confirmed without reloading. */
     private readonly users?: Pick<IUserRepository, "findById">,
+    /** Baseline of a confirmation (BR-32); without it a confirmation has no baseline. */
+    private readonly latestCommit?: LatestCommitLookup,
   ) {}
 
   async execute(req: SaveWorkspaceRequest): Promise<IWorkspace> {
@@ -100,6 +103,7 @@ export class SaveProjectWorkspaceUseCase {
     const confirmation = settleConfirmation({
       stored: current?.diagram, incoming: diagram, request, userId, now: new Date(),
       nextRevision: (baseRevision ?? current?.revision ?? 1) + 1,
+      baselineCommit: request === "confirm" && this.latestCommit ? await this.latestCommit(projectId) : null,
     });
 
     try {

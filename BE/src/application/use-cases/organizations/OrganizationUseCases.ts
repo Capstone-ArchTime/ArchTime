@@ -1,4 +1,5 @@
 import {
+  OrganizationMemberStatus,
   OrganizationRole,
   type IOrganization,
   type IOrganizationMember,
@@ -26,6 +27,14 @@ export interface OrganizationSummary extends IOrganization {
 export interface OrganizationMemberView extends IOrganizationMember {
   name: string;
   email: string;
+}
+
+export interface OrganizationInvitationView {
+  organizationId: string;
+  organizationName: string;
+  role: OrganizationRole;
+  invitedBy: string | null;
+  invitedAt: Date;
 }
 
 function parseName(value: unknown): string {
@@ -90,7 +99,7 @@ export class OrganizationUseCases {
     const name = parseName(input.name);
     const description = parseDescription(input.description);
     const organization = await this.organizations.create({ name, description, createdBy: input.userId });
-    await this.organizations.addMember({ organizationId: organization.id, userId: input.userId, role: OrganizationRole.OWNER });
+    await this.organizations.addMember({ organizationId: organization.id, userId: input.userId, role: OrganizationRole.OWNER, status: OrganizationMemberStatus.ACTIVE });
     return { ...organization, myRole: OrganizationRole.OWNER, memberCount: 1 };
   }
 
@@ -123,16 +132,23 @@ export class OrganizationUseCases {
     return updated;
   }
 
+  /** Active members; owners also see the invitations still waiting for an answer (status invited). */
   async listMembers(organizationId: string, userId: string): Promise<OrganizationMemberView[]> {
-    await this.requireMember(organizationId, userId);
-    const members = await this.organizations.listMembers(organizationId);
+    const caller = await this.requireMember(organizationId, userId);
+    const members = [
+      ...(await this.organizations.listMembers(organizationId)),
+      ...(caller.role === OrganizationRole.OWNER ? await this.organizations.listInvited(organizationId) : []),
+    ];
     return Promise.all(members.map(async m => {
       const user = await this.users.findById(m.userId);
       return { ...m, name: user?.name ?? "(deleted account)", email: user?.email ?? "" };
     }));
   }
 
-  /** Adds an existing account by email. People without an account have to register first. */
+  /**
+   * Invites an existing account by email (UC-28). The membership stays `invited`, with no access, until the person
+   * accepts. People without an account have to register first.
+   */
   async addMember(input: { organizationId: string; userId: string; email: unknown; role?: unknown }): Promise<OrganizationMemberView> {
     await this.requireOwner(input.organizationId, input.userId);
     if (typeof input.email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email.trim())) {
@@ -141,10 +157,15 @@ export class OrganizationUseCases {
     const role = parseRole(input.role);
     const user = await this.users.findByEmail(input.email.trim().toLowerCase());
     if (!user) throw new NotFoundError("No account uses this email. Ask the person to register first.");
-    if (await this.organizations.findMember(input.organizationId, user.id)) {
-      throw new ConflictError("This person is already a member of the organization.");
+    const existing = await this.organizations.findMemberOrInvitation(input.organizationId, user.id);
+    if (existing) {
+      throw new ConflictError(existing.status === OrganizationMemberStatus.INVITED
+        ? "This person has already been invited and has not answered yet."
+        : "This person is already a member of the organization.");
     }
-    const member = await this.organizations.addMember({ organizationId: input.organizationId, userId: user.id, role, addedBy: input.userId });
+    const member = await this.organizations.addMember({
+      organizationId: input.organizationId, userId: user.id, role, addedBy: input.userId, status: OrganizationMemberStatus.INVITED,
+    });
     return { ...member, name: user.name, email: user.email };
   }
 
@@ -155,7 +176,8 @@ export class OrganizationUseCases {
     const member = await this.organizations.findMemberById(input.organizationId, input.memberId);
     if (!member) throw new NotFoundError("Member not found.");
     if (member.role === role) return member;
-    if (member.role === OrganizationRole.OWNER && (await this.organizations.countOwners(input.organizationId)) <= 1) {
+    if (member.status !== OrganizationMemberStatus.INVITED && member.role === OrganizationRole.OWNER
+      && (await this.organizations.countOwners(input.organizationId)) <= 1) {
       throw new BadRequestError("An organization needs at least one owner. Make someone else an owner first.");
     }
     const updated = await this.organizations.updateMemberRole(member.id, role);
@@ -175,10 +197,12 @@ export class OrganizationUseCases {
     if (member.userId !== input.userId && caller.role !== OrganizationRole.OWNER) {
       throw new ForbiddenError("Only organization owners can remove other members.");
     }
-    if (member.role === OrganizationRole.OWNER && (await this.organizations.countOwners(input.organizationId)) <= 1) {
+    if (member.status !== OrganizationMemberStatus.INVITED && member.role === OrganizationRole.OWNER
+      && (await this.organizations.countOwners(input.organizationId)) <= 1) {
       throw new BadRequestError("An organization needs at least one owner. Make someone else an owner first.");
     }
     await this.organizations.removeMember(member.id);
+    if (member.status === OrganizationMemberStatus.INVITED) return { removedProjectMemberships: 0, cancelledInvitations: 1 };
     const projectIds = (await this.projects.findByOrganizationId(input.organizationId)).map(p => p.id);
     const removedProjectMemberships = await this.projectMembers.deleteByUserInProjects(member.userId, projectIds);
     let cancelledInvitations = 0;
@@ -187,5 +211,31 @@ export class OrganizationUseCases {
       if (email) cancelledInvitations = await this.invitations.cancelPending(projectIds, email.trim().toLowerCase());
     }
     return { removedProjectMemberships, cancelledInvitations };
+  }
+
+  /** Invitations waiting for the caller's answer. */
+  async myInvitations(userId: string): Promise<OrganizationInvitationView[]> {
+    const invitations = await this.organizations.listInvitationsOfUser(userId);
+    const organizations = new Map((await this.organizations.findByIds(invitations.map(i => i.organizationId))).map(o => [o.id, o]));
+    const views: OrganizationInvitationView[] = [];
+    for (const i of invitations) {
+      const org = organizations.get(i.organizationId);
+      if (!org) continue;
+      const by = i.addedBy ? await this.users.findById(i.addedBy) : null;
+      views.push({ organizationId: org.id, organizationName: org.name, role: i.role, invitedBy: by?.name ?? null, invitedAt: i.createdAt });
+    }
+    return views;
+  }
+
+  /** Accepting makes the membership active; declining deletes the invitation. Only the invited person may answer. */
+  async respondToInvitation(input: { organizationId: string; userId: string; accept: boolean }): Promise<OrganizationSummary | null> {
+    const invitation = await this.organizations.findMemberOrInvitation(input.organizationId, input.userId);
+    if (!invitation || invitation.status !== OrganizationMemberStatus.INVITED) throw new NotFoundError("Invitation not found.");
+    if (!input.accept) {
+      await this.organizations.removeMember(invitation.id);
+      return null;
+    }
+    if (!(await this.organizations.activateMember(invitation.id))) throw new NotFoundError("Invitation not found.");
+    return this.get(input.organizationId, input.userId);
   }
 }
