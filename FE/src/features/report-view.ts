@@ -1,7 +1,8 @@
 // An architecture report as the server stores it (BE: ProjectReportUseCases.ts, GenerateProjectReportUseCase), read
 // defensively: reports generated before the lists were stored have the figures only, and lists then are null.
 
-export type ReportStatus = 'ready' | 'generating' | 'failed';
+/** A report is stored once it is complete, so the server only ever sends 'ready' (BE ProjectReport.ts). */
+export type ReportStatus = 'ready';
 export type ReportCommit = { hash: string; title: string; date: string | null };
 export type ReportView = {
   id: string; title: string; status: ReportStatus; summary: string; createdAt: string | null;
@@ -36,10 +37,9 @@ export function parseReport(raw: unknown): ReportView | null {
   const rules = obj(data.rules);
   const decisions = obj(data.decisions);
   const snapshots = obj(data.snapshots);
-  const status = str(r.status);
   return {
     id: str(r.id), title: str(r.title) || 'Architecture report', summary: str(r.summary),
-    status: status === 'generating' || status === 'failed' ? status : 'ready',
+    status: 'ready',
     createdAt: date(r.createdAt),
     project: { name: str(project.name), repoUrl: str(project.repoUrl), status: str(project.status) },
     figures: {

@@ -140,10 +140,9 @@ function ReportsView({ projects, managed }: { projects: ProjectSummary[]; manage
                         {when(report.createdAt)} · {count(report.figures.components, 'component')} · {count(report.figures.decisions, 'decision')} · {count(report.figures.minedCommits, 'mined commit')}
                       </p>
                     </div>
-                    {report.status !== 'ready' && <Tag color={report.status === 'failed' ? 'red' : 'gold'}>{report.status === 'failed' ? 'Failed' : 'Being made'}</Tag>}
                     <div className="flex gap-2">
                       <Button icon={<Eye size={14} />} onClick={() => setViewing(report)} aria-label={`Open ${report.title}`}>Open</Button>
-                      <Button icon={<Download size={14} />} loading={downloading === report.id} disabled={report.status !== 'ready'} onClick={() => void handleDownload(report)} aria-label={`Download ${report.title} as PDF`}>PDF</Button>
+                      <Button icon={<Download size={14} />} loading={downloading === report.id} onClick={() => void handleDownload(report)} aria-label={`Download ${report.title} as PDF`}>PDF</Button>
                     </div>
                   </li>
                 ))}
