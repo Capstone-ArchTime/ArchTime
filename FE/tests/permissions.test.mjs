@@ -17,7 +17,7 @@ test('every workspace route is restricted to its assigned role', () => {
   }
 });
 test('the maintainer pages are open to developer-analysts (the server decides which workspaces they maintain)', () => {
-  assert.deepEqual(maintainerRoutes, ['/project-maintainer', '/project-maintainer/approvals', '/project-maintainer/team', '/project-maintainer/reports', '/project-maintainer/component-diagram', '/project-maintainer/architecture-rules', '/project-maintainer/design-decisions']);
+  assert.deepEqual(maintainerRoutes, ['/project-maintainer', '/project-maintainer/approvals', '/project-maintainer/team', '/project-maintainer/reports', '/project-maintainer/component-diagram', '/project-maintainer/architecture-rules', '/project-maintainer/conformance', '/project-maintainer/design-decisions']);
   for (const path of maintainerRoutes) {
     assert.equal(canAccess('developer-analyst', path), true, path);
     assert.equal(canAccess('system-administrator', path), false, path);

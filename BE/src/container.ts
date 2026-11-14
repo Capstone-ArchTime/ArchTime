@@ -338,10 +338,36 @@ import { AdminLlmController, LlmController } from "./presentation/controllers/Ll
 
 export const llmController = new LlmController(new UserLlmUseCases(projectAccessPolicy));
 import { ProjectChatUseCase } from "./application/use-cases/llm/ProjectChatUseCase.js";
+import { CheckConformanceUseCase, DecideFindingUseCase, ExplainFindingUseCase, ListConformanceUseCase } from "./application/use-cases/conformance/ConformanceUseCases.js";
+import { MongoConformanceRepository, mongoConformanceSnapshots } from "./infrastructure/repositories/MongoConformanceRepository.js";
+import { ConformanceController } from "./presentation/controllers/ConformanceController.js";
+import { LlmModelRegistry } from "./infrastructure/llm/registry.js";
+import { LlmRunService } from "./infrastructure/services/LlmRunService.js";
+import type { LlmUsage } from "./domain/architecture/llm/types.js";
 import { ChatHistoryUseCases } from "./application/use-cases/llm/ChatHistoryUseCases.js";
 import { ProjectChatController } from "./presentation/controllers/ProjectChatController.js";
 const chatHistory = new ChatHistoryUseCases();
 export const projectChatController = new ProjectChatController(new ProjectChatUseCase(chatHistory), chatHistory);
+
+// ── Conformance check (RF-08, UC-40, UC-41) ──
+const conformanceRepository = new MongoConformanceRepository();
+/** The configured model; each explanation is logged as an AI run of the project, as a mentor answer is. */
+const explainModel = async (projectId: string, userId: string) => {
+  const resolved = await LlmModelRegistry.resolve();
+  return {
+    client: resolved.client,
+    record: async (run: { usage: LlmUsage | null; status: "accepted" | "failed"; errorKind?: string; latencyMs: number; wallMs: number }) => {
+      await LlmRunService.recordChat({ projectId, userId, model: resolved, ...run });
+    },
+  };
+};
+export const checkConformanceUseCase = new CheckConformanceUseCase(workspaceRepository, mongoConformanceSnapshots, conformanceRepository);
+export const conformanceController = new ConformanceController(
+  checkConformanceUseCase,
+  new ListConformanceUseCase(workspaceRepository, conformanceRepository),
+  new DecideFindingUseCase(conformanceRepository),
+  new ExplainFindingUseCase(conformanceRepository, workspaceRepository, explainModel),
+);
 export const adminLlmController = new AdminLlmController(new AdminLlmUseCases());
 
 export const adminControllersConfig: AdminControllersConfig = {
