@@ -1,0 +1,75 @@
+# Every push and pull request: the whole backend and frontend test suites, type checks, lint and the build.
+# The backend gets a MongoDB so the repository tests and the N-07 / N-08 checks run against a real database; a test
+# skipped for want of one fails the job instead of passing silently (D11).
+name: CI
+
+on:
+  # Every branch of this repository, so a feature branch is checked before it is merged into Develop.
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (tests on MongoDB, tsc)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: BE
+    services:
+      mongodb:
+        image: mongo:7
+        ports: ["27017:27017"]
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      MONGODB_TEST_URI: mongodb://127.0.0.1:27017
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: BE/package-lock.json
+      - run: npm ci
+      - name: Type check
+        run: npx tsc --noEmit
+      - name: Tests
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee test-output.txt
+      - name: No test may be skipped (MongoDB must be reachable)
+        shell: bash
+        run: |
+          # The summary reads "ℹ skipped 0" (spec reporter) or "# skipped 0" (TAP, when the output is not a terminal).
+          grep -E "^(ℹ|#) (tests|pass|fail|skipped) " test-output.txt
+          grep -qE "^(ℹ|#) skipped 0$" test-output.txt || { echo "::error::Some tests were skipped"; grep -iE "# SKIP" test-output.txt || true; exit 1; }
+
+  frontend:
+    name: Frontend (tests, tsc, lint, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: FE
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: FE/package-lock.json
+      - run: npm ci
+      - name: Tests
+        run: npm test
+      - name: Lint (errors fail, existing warnings are reported)
+        run: npx oxlint src tests
+      - name: Type check and build
+        run: npm run build
