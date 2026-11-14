@@ -198,6 +198,16 @@ export class MongoUserRepository implements IUserRepository {
     const { passwordHash, githubId } = doc as Record<string, unknown>;
     return { passwordHash: typeof passwordHash === "string" ? passwordHash : null, githubId: typeof githubId === "string" && githubId ? githubId : null };
   }
+  async findIdByGithubId(githubId: string): Promise<string | null> {
+    const doc = await UserModel.findOne({ githubId }).select("_id").lean();
+    return doc ? String((doc as { _id: unknown })._id) : null;
+  }
+  async setGithubId(userId: string, githubId: string | null): Promise<boolean> {
+    const result = githubId
+      ? await UserModel.updateOne({ _id: userId, $or: [{ githubId: null }, { githubId: { $exists: false } }, { githubId: "" }] }, { $set: { githubId } })
+      : await UserModel.updateOne({ _id: userId, githubId: { $exists: true, $nin: [null, ""] } }, { $unset: { githubId: 1 } });
+    return result.modifiedCount === 1;
+  }
   async setPasswordIfNone(userId: string, passwordHash: string): Promise<boolean> {
     const result = await UserModel.updateOne({ _id: userId,
       $or: [{ passwordHash: null }, { passwordHash: "" }, { passwordHash: { $regex: `^${GITHUB_ONLY_PASSWORD_PREFIX}` } }],

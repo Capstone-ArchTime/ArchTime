@@ -4,18 +4,25 @@ import type { GitHubIdentityService } from '../../infrastructure/services/GitHub
 import type { GitHubLoginUseCase } from '../../application/use-cases/GitHubLoginUseCase.js';
 import type { JwtTokenService } from '../../infrastructure/services/JwtTokenService.js';
 import type { IUserRepository } from '../../domain/interfaces/IUserRepository.js';
-import { ConflictError } from '../../shared/errors/AppError.js';
+import { ConflictError, UnauthorizedError } from '../../shared/errors/AppError.js';
+import { GitHubLinkError, type GitHubLinkUseCase } from '../../application/use-cases/GitHubLinkUseCase.js';
+import { createAuthenticateMiddleware } from '../middlewares/authenticate.js';
+import { sendSuccess } from '../../shared/utils/apiResponse.js';
 
 type Config = { githubClientId: string; githubClientSecret: string; githubCallbackUrl: string; corsOrigin: string };
 export function createGitHubRouter(config: Config, identity: GitHubIdentityService,
-  login: GitHubLoginUseCase, users: IUserRepository, jwt: JwtTokenService) {
+  login: GitHubLoginUseCase, users: IUserRepository, jwt: JwtTokenService, linking?: GitHubLinkUseCase) {
   const router = Router();
-  const pending = new Map<string, { binding: string; verifier: string; expires: number }>();
+  /** linkUserId: the flow links GitHub to this signed-in account (UC-35) instead of signing in. */
+  const pending = new Map<string, { binding: string; verifier: string; expires: number; linkUserId?: string }>();
   const tickets = new Map<string, { binding: string; userId: string; expires: number }>();
+  /** One-time tickets that let a browser redirect start a link flow for a signed-in account (a redirect carries no Bearer token). */
+  const linkTickets = new Map<string, { userId: string; expires: number }>();
   const cookieName = 'archtime_github';
   const cookie = { httpOnly: true, sameSite: 'lax' as const, secure: config.githubCallbackUrl.startsWith('https:'), path: '/api/auth/github' };
   const binding = (req: Request) => req.headers.cookie?.split(';').map(part => part.trim()).find(part => part.startsWith(`${cookieName}=`))?.slice(cookieName.length + 1);
-  const sweep = () => { for (const map of [pending, tickets]) for (const [key, value] of map) if (value.expires <= Date.now()) map.delete(key); };
+  const sweep = () => { for (const map of [pending, tickets, linkTickets]) for (const [key, value] of map) if (value.expires <= Date.now()) map.delete(key); };
+  const profileUrl = (hash: string) => `${config.corsOrigin}/profile#${hash}`;
   const failUrl = (reason: string) => `${config.corsOrigin}/auth/github/callback#error=${reason}`;
   router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); res.set('Referrer-Policy', 'no-referrer'); sweep(); next(); });
 
@@ -40,13 +47,20 @@ export function createGitHubRouter(config: Config, identity: GitHubIdentityServi
    *             schema: { type: string }
    *             description: HTTP-only cookie để bind phiên OAuth (archtime_github)
    */
-  router.get('/', (_req, res) => {
-    if (!config.githubClientId || !config.githubClientSecret) { res.redirect(failUrl('unavailable')); return; }
-    if (pending.size >= 5000) { res.redirect(failUrl('unavailable')); return; }
+  router.get('/', (req, res) => {
+    // ?link=<ticket from POST /link>: link GitHub to that signed-in account rather than sign in.
+    const linkTicket = typeof req.query.link === 'string' ? req.query.link : '';
+    const link = linkTicket ? linkTickets.get(linkTicket) : undefined;
+    if (linkTicket) {
+      linkTickets.delete(linkTicket);
+      if (!link || !linking) { res.redirect(profileUrl('github_error=expired')); return; }
+    }
+    if (!config.githubClientId || !config.githubClientSecret) { res.redirect(link ? profileUrl('github_error=unavailable') : failUrl('unavailable')); return; }
+    if (pending.size >= 5000) { res.redirect(link ? profileUrl('github_error=unavailable') : failUrl('unavailable')); return; }
     const state = randomBytes(32).toString('base64url');
     const secret = randomBytes(32).toString('base64url');
     const verifier = randomBytes(32).toString('base64url');
-    pending.set(state, { binding: secret, verifier, expires: Date.now() + 600_000 });
+    pending.set(state, { binding: secret, verifier, expires: Date.now() + 600_000, ...(link ? { linkUserId: link.userId } : {}) });
     res.cookie(cookieName, secret, { ...cookie, maxAge: 600_000 });
     const url = new URL('https://github.com/login/oauth/authorize');
     url.search = new URLSearchParams({ client_id: config.githubClientId, redirect_uri: config.githubCallbackUrl,
@@ -93,6 +107,17 @@ export function createGitHubRouter(config: Config, identity: GitHubIdentityServi
     const flow = pending.get(state);
     if (!flow || binding(req) !== flow.binding) { res.redirect(failUrl('invalid_state')); return; }
     pending.delete(state);
+    if (flow.linkUserId && linking) {
+      res.clearCookie(cookieName, cookie);
+      if (req.query.error || typeof req.query.code !== 'string') { res.redirect(profileUrl('github_error=cancelled')); return; }
+      try {
+        await linking.link(flow.linkUserId, await identity.identify(req.query.code, flow.verifier));
+        res.redirect(profileUrl('github=linked'));
+      } catch (error) {
+        res.redirect(profileUrl(`github_error=${error instanceof GitHubLinkError ? error.problem : 'failed'}`));
+      }
+      return;
+    }
     if (req.query.error || typeof req.query.code !== 'string') { res.clearCookie(cookieName, cookie); res.redirect(failUrl('cancelled')); return; }
     try {
       const userId = await login.execute(await identity.identify(req.query.code, flow.verifier));
@@ -185,5 +210,43 @@ export function createGitHubRouter(config: Config, identity: GitHubIdentityServi
       res.json({ success: true, data: tokens });
     } catch (error) { next(error); }
   });
+
+  if (linking) {
+    const authenticate = createAuthenticateMiddleware(jwt);
+    const signedIn = (req: Request) => { const id = req.user?.userId; if (!id) throw new UnauthorizedError(); return id; };
+    /**
+     * @swagger
+     * /api/auth/github/link:
+     *   post:
+     *     tags: [GitHub OAuth]
+     *     summary: Bắt đầu liên kết GitHub với tài khoản đang đăng nhập (UC-35)
+     *     description: >
+     *       Trả về ticket dùng một lần (60 giây). Trình duyệt mở GET /api/auth/github?link={ticket}; sau khi GitHub cấp
+     *       quyền, server liên kết tài khoản và chuyển về /profile#github=linked, hoặc /profile#github_error={lý do}:
+     *       in_use (GitHub đã liên kết với tài khoản khác), other_account, cancelled, expired, unavailable, failed.
+     *     security: [{ BearerAuth: [] }]
+     *     responses: { 200: { description: "{ ticket }" } }
+     *   delete:
+     *     tags: [GitHub OAuth]
+     *     summary: Gỡ liên kết GitHub (UC-35)
+     *     description: Bị từ chối (409) khi GitHub là cách đăng nhập duy nhất - cần đặt mật khẩu trước.
+     *     security: [{ BearerAuth: [] }]
+     *     responses:
+     *       200: { description: "{ signInMethods: { password, github } }" }
+     *       409: { description: GitHub là cách đăng nhập duy nhất, hoặc chưa liên kết GitHub }
+     */
+    router.post('/link', authenticate, (req, res, next) => {
+      try {
+        const userId = signedIn(req);
+        if (linkTickets.size >= 5000) { res.status(503).json({ success: false, error: { code: 'SERVICE_UNAVAILABLE', message: 'Try again in a minute.' } }); return; }
+        const ticket = randomBytes(32).toString('base64url');
+        linkTickets.set(ticket, { userId, expires: Date.now() + 60_000 });
+        sendSuccess(res, { ticket });
+      } catch (error) { next(error); }
+    });
+    router.delete('/link', authenticate, async (req, res, next) => {
+      try { sendSuccess(res, { signInMethods: await linking.unlink(signedIn(req)) }); } catch (error) { next(error); }
+    });
+  }
   return router;
 }
