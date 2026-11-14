@@ -314,10 +314,13 @@ export class ArchitectureService {
     return { snapshots: snapshots.reverse(), bySnapshot };
   }
 
-  /** Components followed through the project's snapshots that have them, oldest first. */
+  /**
+   * Components followed through the project's snapshots that have them, oldest first. Each step uses the evidence rule
+   * of Compare, so the Architecture Map shows the same split, merge and restructuring as Compare does for the same pair.
+   */
   public static async lineage(projectId: string): Promise<ArchitectureLineagePayload> {
     const { snapshots, bySnapshot } = await this.mappedSnapshots(projectId);
-    const tracked = trackLineages(snapshots.map(s => ({ snapshotId: String(s._id), components: this.matchable(s, bySnapshot.get(String(s._id))).components })));
+    const tracked = trackLineages(snapshots.map(s => ({ snapshotId: String(s._id), components: this.matchable(s, bySnapshot.get(String(s._id))).components })), { evidence: EVIDENCE_RULE });
     return {
       snapshots: snapshots.map(s => this.summary(s)),
       lineages: tracked.lineages,
