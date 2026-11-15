@@ -6,7 +6,9 @@ test('a finding is worded by its type, naming the components and the rule', () =
   assert.equal(findingTitle({ type: 'forbidden-dependency', sourceName: 'Domain', targetName: 'Database', ruleName: 'Domain stays pure' }), 'Domain → Database is forbidden by "Domain stays pure"');
   assert.equal(findingTitle({ type: 'missing-required-dependency', sourceName: 'Web', targetName: 'API', ruleName: null }), 'Web → API is required but missing');
   assert.equal(findingTitle({ type: 'undeclared-dependency', sourceName: 'Web', targetName: 'Domain', ruleName: null }), 'Web → Domain is not in the diagram');
-  assert.deepEqual(Object.keys(FINDING_TYPES).sort(), ['forbidden-dependency', 'missing-required-dependency', 'undeclared-dependency']);
+  assert.deepEqual(Object.keys(FINDING_TYPES).sort(), ['convention', 'forbidden-dependency', 'missing-required-dependency', 'undeclared-dependency']);
+  // T5: a convention finding is worded by its own sentence.
+  assert.equal(findingTitle({ type: 'convention', sourceName: 'Commit message', targetName: 'Commit message', ruleName: 'The subject has no scope: write type(scope): summary.' }), 'The subject has no scope: write type(scope): summary.');
 });
 
 test('accept and dismiss ask for a note, fix does not, as the server requires', () => {

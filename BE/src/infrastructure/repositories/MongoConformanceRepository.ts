@@ -138,4 +138,14 @@ export const mongoConformanceSnapshots: IConformanceSnapshots = {
     if (!validId(snapshotId)) return null;
     return SnapshotModel.findById(snapshotId).select("nodes edges").lean<{ nodes: { id: string }[]; edges: { source: string; target: string }[] }>();
   },
+  async commit(snapshotId) {
+    if (!validId(snapshotId)) return null;
+    const doc = await SnapshotModel.findById(snapshotId).select("projectId title trailers baseHash").lean<{ projectId: string; title: string; trailers?: string[]; baseHash?: string }>();
+    if (!doc) return null;
+    // baseHash "" (or absent, on snapshots counted before the rule) means there is no base to compare with.
+    const before = doc.baseHash
+      ? await SnapshotModel.findOne({ projectId: doc.projectId, fullHash: doc.baseHash }).select("nodes edges").lean<{ nodes: { id: string }[]; edges: { source: string; target: string }[] }>()
+      : null;
+    return { title: doc.title ?? "", trailers: doc.trailers ?? [], before: before ?? null };
+  },
 };

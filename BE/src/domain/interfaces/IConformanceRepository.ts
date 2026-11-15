@@ -11,6 +11,18 @@ export interface IConformanceSnapshots {
   after(projectId: string, after: Date | null): Promise<SnapshotRef[]>;
   /** The file graph of one snapshot. */
   graph(snapshotId: string): Promise<{ nodes: { id: string }[]; edges: { source: string; target: string }[] } | null>;
+  /**
+   * The commit message of a snapshot (subject and trailers) and the graph of its base snapshot (the commit its counts
+   * were measured against; null for the first mined commit), for the commit convention check (T5). Optional: a store
+   * without it gets no convention findings.
+   */
+  commit?(snapshotId: string): Promise<CommitOfSnapshot | null>;
+}
+
+export interface CommitOfSnapshot {
+  title: string;
+  trailers: string[];
+  before: { nodes: { id: string }[]; edges: { source: string; target: string }[] } | null;
 }
 
 export interface FindingQuery {

@@ -54,7 +54,7 @@ export function createConformanceRouter(
    *       - { in: path, name: id, required: true, schema: { type: string } }
    *       - { in: query, name: snapshotId, schema: { type: string } }
    *       - { in: query, name: status, schema: { type: string, enum: [open, decided] } }
-   *       - { in: query, name: type, schema: { type: string, enum: [forbidden-dependency, missing-required-dependency, undeclared-dependency] } }
+   *       - { in: query, name: type, schema: { type: string, enum: [forbidden-dependency, missing-required-dependency, undeclared-dependency, convention] } }
    *       - { in: query, name: limit, schema: { type: integer, maximum: 500 } }
    *     responses:
    *       200: { description: "{ findings: [{ id, snapshotHash, type, severity, sourceName, targetName, files, imports, importCount, decision, explanation }] }" }

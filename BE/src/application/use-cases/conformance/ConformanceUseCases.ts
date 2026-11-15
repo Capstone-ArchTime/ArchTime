@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { checkConformance } from "../../../domain/architecture/conformance.js";
+import { COMMIT_SIDE, checkCommitConvention } from "../../../domain/architecture/commitConvention.js";
 import { fileDependencies } from "../../../domain/architecture/buildView.js";
 import { FINDING_DECISIONS } from "../../../domain/entities/ConformanceFinding.js";
 import type { FindingDecision, FindingDecisionKind, IConformanceCheck, IConformanceFinding } from "../../../domain/entities/ConformanceFinding.js";
@@ -14,7 +15,8 @@ import { AppError, BadRequestError, ConflictError, NotFoundError } from "../../.
 // Conformance check (RF-08, UC-40, UC-41, SDD §3.15): compares every mined snapshot after the baseline of the confirmed
 // diagram with that diagram (domain/architecture/conformance.ts) and keeps what it finds, for maintainers to decide on.
 
-export const CONFORMANCE_VERSION = "conformance-1";
+/** conformance-2 adds the commit convention (T5): snapshots checked by conformance-1 are checked again once. */
+export const CONFORMANCE_VERSION = "conformance-2";
 /** Imports kept per finding; the count keeps the full number. */
 export const MAX_STORED_IMPORTS = 200;
 
@@ -78,9 +80,16 @@ export class CheckConformanceUseCase {
         dependencies: workspace.diagram.dependencies ?? [],
         rules: workspace.rules ?? [],
       });
-      const findings = result.findings.map(f => ({
+      // The commit convention (T5, RF-30): the message, and its Arch-Change against the real change since the base.
+      const commit = this.snapshots.commit ? await this.snapshots.commit(snapshot.id) : null;
+      const convention = commit
+        ? checkCommitConvention({ hash: snapshot.hash, title: commit.title, trailers: commit.trailers, before: commit.before, after: graph, components })
+        : [];
+      const all = [...result.findings, ...convention];
+      const nameOf = (id: string) => (id === COMMIT_SIDE ? "Commit message" : names.get(id) ?? id);
+      const findings = all.map(f => ({
         ...f, imports: f.imports.slice(0, MAX_STORED_IMPORTS),
-        sourceName: names.get(f.source) ?? f.source, targetName: names.get(f.target) ?? f.target,
+        sourceName: nameOf(f.source), targetName: nameOf(f.target),
       }));
       const carried = await this.store.carriedDecisions(projectId, findings.map(f => f.key), snapshot.date);
       const inherited = new Map([...carried].map(([key, d]) => [key, { kind: d.kind, note: d.note, by: d.by, at: d.at, inheritedFrom: d.inheritedFrom ?? d.snapshotHash } satisfies FindingDecision]));
@@ -95,7 +104,7 @@ export class CheckConformanceUseCase {
         },
         unresolvedRules: result.unresolvedRules,
       };
-      await this.store.recordCheck({ check, findings: findings.map((f, i) => ({ ...f, importCount: result.findings[i].imports.length })), inherited });
+      await this.store.recordCheck({ check, findings: findings.map((f, i) => ({ ...f, importCount: all[i].imports.length })), inherited });
       summary.checked.push({ snapshotId: snapshot.id, hash: snapshot.hash, findings: findings.length });
     }
     return summary;
