@@ -23,6 +23,7 @@ const TYPE_LABEL: Record<IConformanceFinding["type"], string> = {
   "forbidden-dependency": "Forbidden dependency",
   "missing-required-dependency": "Missing required dependency",
   "undeclared-dependency": "Undeclared dependency",
+  convention: "Commit convention",
 };
 const escape = (s: string) => s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
@@ -42,6 +43,8 @@ export function summarize(findings: IConformanceFinding[]) {
 }
 
 function describe(f: IConformanceFinding): string {
+  // A convention finding carries its whole sentence (commitConvention.ts).
+  if (f.type === "convention") return f.ruleName ?? "The commit does not follow the commit convention";
   const pair = `${f.sourceName} → ${f.targetName}`;
   if (f.type === "forbidden-dependency") return `${pair} is forbidden${f.ruleName ? ` by "${f.ruleName}"` : ""}`;
   if (f.type === "missing-required-dependency") return `${pair} is required${f.ruleName ? ` by "${f.ruleName}"` : ""} but missing`;

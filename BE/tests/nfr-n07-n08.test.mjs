@@ -74,9 +74,11 @@ test("N-07: checking the same snapshots again, any number of times, gives exactl
   const countsOf = async () => (await ConformanceCheckModel.find({ projectId }).sort({ snapshotHash: 1 }).lean()).map(c => [c.snapshotHash, c.fingerprint, c.counts]);
 
   const first = await check.execute(projectId);
-  assert.deepEqual(first.checked.map(c => [c.hash, c.findings]), [["aaaaaaa", 1], ["bbbbbbb", 1]]);
+  // Per commit: the forbidden dependency, and (T5) a convention finding, since "one" / "two" are not "type(scope): summary".
+  assert.deepEqual(first.checked.map(c => [c.hash, c.findings]), [["aaaaaaa", 2], ["bbbbbbb", 2]]);
   const findings = await snapshotOf(), counts = await countsOf();
-  assert.ok(findings.length === 2 && findings[1].importCount === 2);
+  assert.deepEqual(findings.map(f => [f.snapshotHash, f.type]), [["aaaaaaa", "convention"], ["aaaaaaa", "forbidden-dependency"], ["bbbbbbb", "convention"], ["bbbbbbb", "forbidden-dependency"]]);
+  assert.equal(findings[3].importCount, 2);
   for (let run = 0; run < 2; run++) {
     const again = await check.execute(projectId, { force: true });
     assert.deepEqual(again.checked, first.checked);

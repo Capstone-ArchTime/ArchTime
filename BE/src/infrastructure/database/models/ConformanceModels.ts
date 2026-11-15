@@ -25,7 +25,7 @@ const ConformanceFindingSchema = new Schema(
     snapshotHash: { type: String, required: true },
     commitDate: { type: Date, required: true },
     key: { type: String, required: true },
-    type: { type: String, enum: ["forbidden-dependency", "missing-required-dependency", "undeclared-dependency"], required: true },
+    type: { type: String, enum: ["forbidden-dependency", "missing-required-dependency", "undeclared-dependency", "convention"], required: true },
     ruleId: { type: String, default: null },
     ruleName: { type: String, default: null },
     severity: { type: String, enum: ["error", "warning"], required: true },

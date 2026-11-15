@@ -18,6 +18,8 @@ test("every @swagger comment in the route files is valid, so no documented route
     "/api/projects/{id}/onboarding-paths",
     "/api/projects/{id}/onboarding-paths/{pathId}/steps/{stepId}/answer",
     "/api/onboarding/me",
+    "/api/projects/{id}/tasks",
+    "/api/projects/{id}/tasks/import",
   ]) {
     assert.ok(spec.paths[path], `${path} is documented`);
   }

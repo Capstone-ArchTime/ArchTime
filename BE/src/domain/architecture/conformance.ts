@@ -38,7 +38,8 @@ export interface ImportRef { from: string; to: string }
 
 export interface ComponentDependency { source: string; target: string; imports: ImportRef[] }
 
-export type ConformanceFindingType = 'forbidden-dependency' | 'missing-required-dependency' | 'undeclared-dependency';
+/** convention: the commit message breaks the commit convention, or its Arch-Change differs from the real change (commitConvention.ts, T5). */
+export type ConformanceFindingType = 'forbidden-dependency' | 'missing-required-dependency' | 'undeclared-dependency' | 'convention';
 
 export interface ConformanceFinding {
   /** Identifies the finding across checks of one snapshot: type, rule, source and target. */

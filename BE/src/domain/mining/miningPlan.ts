@@ -8,6 +8,8 @@ export interface CommitRef {
   message: string;
   /** Full hashes of the parents, first parent first; empty for a root commit. */
   parents: string[];
+  /** Git trailers of the message ("Task: T22", "Arch-Change: none"), one per entry; task linking and the commit convention read them. */
+  trailers?: string[];
 }
 
 /**
@@ -74,13 +76,16 @@ export interface MonthBucket {
 
 export const DEFAULT_BATCH_SIZE = 50;
 const FIELD = "\x1f";
-export const GIT_LOG_FORMAT = ["%H", "%aI", "%ae", "%S", "%P", "%s"].join(FIELD);
+const TRAILER_SEPARATOR = "\x1e";
+// Trailers come before the subject (a subject may itself hold FIELD). They are unfolded and joined with
+// TRAILER_SEPARATOR, so every commit stays one line of output.
+export const GIT_LOG_FORMAT = ["%H", "%aI", "%ae", "%S", "%P", "%(trailers:unfold,separator=%x1e)", "%s"].join(FIELD);
 
 export function parseCommitLog(raw: string): CommitRef[] {
   const commits: CommitRef[] = [];
   for (const line of raw.split("\n")) {
     if (!line.trim()) continue;
-    const [hash, iso, author, source, parents, ...subject] = line.split(FIELD);
+    const [hash, iso, author, source, parents, trailers, ...subject] = line.split(FIELD);
     const date = new Date(iso);
     if (!/^[0-9a-f]{7,64}$/i.test(hash ?? "") || Number.isNaN(date.getTime())) continue;
     commits.push({
@@ -90,6 +95,7 @@ export function parseCommitLog(raw: string): CommitRef[] {
       ref: (source ?? "").replace(/^refs\/(remotes\/origin|heads|tags)\//, ""),
       message: subject.join(FIELD),
       parents: (parents ?? "").split(" ").filter(p => /^[0-9a-f]{7,64}$/i.test(p)),
+      trailers: (trailers ?? "").split(TRAILER_SEPARATOR).map(t => t.trim()).filter(Boolean),
     });
   }
   return commits;

@@ -187,7 +187,7 @@ function Findings({ project }: { project: string }) {
 }
 
 export default function ConformanceFindings() {
-  return <WorkspacePage title="Conformance Findings" description="Where the code of each new commit departs from the confirmed component diagram: forbidden, missing and undeclared dependencies, with the files behind each.">
+  return <WorkspacePage title="Conformance Findings" description="Where the code of each new commit departs from the confirmed component diagram: forbidden, missing and undeclared dependencies, and commits that break the commit convention (type(scope): summary, Task:, Arch-Change:), with the files behind each.">
     {project => <Findings key={project} project={project} />}
   </WorkspacePage>;
 }

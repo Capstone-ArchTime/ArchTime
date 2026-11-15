@@ -3,7 +3,7 @@ import { apiRequest } from '../api/client.ts';
 // The conformance check (RF-08, UC-40, UC-41): how the code of each snapshot after the baseline departs from the
 // confirmed component diagram. The server computes everything; this module reads it and words it for people.
 
-export type FindingType = 'forbidden-dependency' | 'missing-required-dependency' | 'undeclared-dependency';
+export type FindingType = 'forbidden-dependency' | 'missing-required-dependency' | 'undeclared-dependency' | 'convention';
 export type DecisionKind = 'fix' | 'accept' | 'dismiss';
 
 export interface Finding {
@@ -49,6 +49,7 @@ export const FINDING_TYPES: Record<FindingType, { label: string; help: string }>
   'forbidden-dependency': { label: 'Forbidden dependency', help: 'A rule forbids this dependency, and the code has it.' },
   'missing-required-dependency': { label: 'Missing required dependency', help: 'A rule requires this dependency, and the code does not have it.' },
   'undeclared-dependency': { label: 'Undeclared dependency', help: 'The code has this dependency, but the confirmed diagram does not declare it.' },
+  convention: { label: 'Commit convention', help: 'The commit message is not "type(scope): summary" with Task: and Arch-Change:, or its Arch-Change differs from the dependencies the commit really changed.' },
 };
 
 export const DECISIONS: Record<DecisionKind, { label: string; verb: string; color: string; help: string; needsNote: boolean }> = {
@@ -59,6 +60,8 @@ export const DECISIONS: Record<DecisionKind, { label: string; verb: string; colo
 
 /** One line saying what the finding is, for lists and screen readers. */
 export function findingTitle(f: Pick<Finding, 'type' | 'sourceName' | 'targetName' | 'ruleName'>): string {
+  // A convention finding (T5) carries its whole sentence.
+  if (f.type === 'convention') return f.ruleName ?? 'The commit does not follow the commit convention';
   const pair = `${f.sourceName} → ${f.targetName}`;
   if (f.type === 'forbidden-dependency') return `${pair} is forbidden${f.ruleName ? ` by "${f.ruleName}"` : ''}`;
   if (f.type === 'missing-required-dependency') return `${pair} is required${f.ruleName ? ` by "${f.ruleName}"` : ''} but missing`;

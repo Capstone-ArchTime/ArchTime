@@ -66,6 +66,23 @@ export class MiningService {
    */
   public static onHistoryChanged: ((projectId: string) => Promise<void>) | null = null;
 
+  /**
+   * Called after each mined batch is saved, with the commits of that batch: links them to the project's tasks (F-13,
+   * LinkCommitsToTasksUseCase). Set by the container. Awaited so links follow the batch, but its errors are only logged:
+   * a failed link never fails the mining job (POST /tasks/link links everything again).
+   */
+  public static onBatchSaved: ((projectId: string, commits: { hash: string; fullHash: string; title: string; trailers: string[]; author: string; date: Date }[]) => Promise<unknown>) | null = null;
+
+  private static async afterBatchSaved(projectId: string, snapshotDocs: any[]) {
+    const hook = this.onBatchSaved;
+    if (!hook || !snapshotDocs.length) return;
+    try {
+      await hook(projectId, snapshotDocs.map(d => ({ hash: d.hash, fullHash: d.fullHash, title: d.title, trailers: d.trailers ?? [], author: d.author, date: d.date })));
+    } catch (error) {
+      console.error(`[tasks] linking commits of project ${projectId} to tasks failed:`, error);
+    }
+  }
+
   private static afterHistoryChange(projectId: string) {
     const hook = this.onHistoryChanged;
     if (!hook) return;
@@ -352,7 +369,7 @@ export class MiningService {
             snapshotDocs.push({
               projectId: project._id, hash: shortHash, fullHash: commit.hash, version: snapshotLabel(commit.hash, tags),
               tags: tags.get(commit.hash.toLowerCase()) ?? [],
-              title: commit.message || '(no message)', author: commit.author || 'unknown', date: commit.date,
+              title: commit.message || '(no message)', trailers: commit.trailers ?? [], author: commit.author || 'unknown', date: commit.date,
               branches: commit.ref ? [commit.ref] : [], files: nodes.length, archChanges,
               depAdded: diff.depAdded, depRemoved: diff.depRemoved, baseHash, nodes, edges,
             });
@@ -374,6 +391,7 @@ export class MiningService {
         // Persist the batch so a cancel or crash keeps everything analyzed so far.
         if (snapshotDocs.length) await SnapshotModel.insertMany(snapshotDocs, { ordered: false });
         if (evidenceDocs.length) await EvidenceModel.insertMany(evidenceDocs, { ordered: false });
+        await this.afterBatchSaved(String(project._id), snapshotDocs);
         batchGraphs.clear();
         lastWrite = Date.now();
         await set({ stage: `Batch ${b + 1}/${batches.length} saved`, batchIndex: b + 1, processed, failedCommits: failed, progress: analysisProgress(processed, pending.length) });

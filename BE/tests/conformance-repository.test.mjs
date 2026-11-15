@@ -137,3 +137,18 @@ test('unread counts distinct open problems found since the person last looked', 
   await repo.markSeen(p, 'me', day(1));
   assert.equal((await repo.unreadCounts('me', [p])).has(p), false, 'an older seen time never moves it back');
 });
+
+test('T5 commit(): the message (subject and trailers) and the graph of the base snapshot, null base for the first commit', async t => {
+  if (!connected) return t.skip(unavailable);
+  const base = { projectId: 'pc', author: 'a', edges: [] };
+  const [first, second, old] = await SnapshotModel.insertMany([
+    { ...base, hash: 'aaaaaaa', fullHash: 'a'.repeat(40), title: 'feat(x): first', trailers: ['Task: T5'], baseHash: '', nodes: [{ id: 'a.ts' }], date: day(1) },
+    { ...base, hash: 'bbbbbbb', fullHash: 'b'.repeat(40), title: 'fix(x): second', trailers: ['Arch-Change: none'], baseHash: 'a'.repeat(40), nodes: [{ id: 'b.ts' }], date: day(2) },
+    { ...base, hash: 'ccccccc', fullHash: 'c'.repeat(40), title: 'mined before trailers were kept', nodes: [], date: day(3) },
+  ]);
+  assert.deepEqual(await mongoConformanceSnapshots.commit(String(first._id)), { title: 'feat(x): first', trailers: ['Task: T5'], before: null });
+  const c2 = await mongoConformanceSnapshots.commit(String(second._id));
+  assert.deepEqual([c2.title, c2.trailers, c2.before.nodes.map(n => n.id)], ['fix(x): second', ['Arch-Change: none'], ['a.ts']]);
+  assert.deepEqual(await mongoConformanceSnapshots.commit(String(old._id)), { title: 'mined before trailers were kept', trailers: [], before: null });
+  assert.equal(await mongoConformanceSnapshots.commit('not-an-id'), null);
+});

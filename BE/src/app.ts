@@ -25,7 +25,9 @@ import {
   organizationController,
   onboardingController,
   rateLimiter,
+  taskUseCases,
 } from "./container.js";
+import { createTaskRouter } from "./presentation/routes/task.routes.js";
 import { createOrganizationRouter } from "./presentation/routes/organization.routes.js";
 import { createRevisionRouter } from "./presentation/routes/revision.routes.js";
 import { createLearningRouter, createOnboardingRouter } from "./presentation/routes/onboarding.routes.js";
@@ -66,6 +68,7 @@ app.use("/api/projects", createConformanceRouter(conformanceController, jwtToken
 app.use("/api/conformance", createConformanceInboxRouter(conformanceController, jwtTokenService));
 app.use("/api/agent", createAgentRouter(agentController));
 app.use("/api/projects", createAgentTokenRouter(agentController, jwtTokenService, projectRoleMiddleware));
+app.use("/api/projects", createTaskRouter(taskUseCases, jwtTokenService, projectRoleMiddleware));
 app.use("/api/projects", createProjectTransferRouter(transferProjectUseCase, jwtTokenService, projectRoleMiddleware));
 app.use("/api/projects", createRevisionRouter(jwtTokenService, projectRoleMiddleware));
 app.use("/api/projects", createOnboardingRouter(onboardingController, jwtTokenService, projectRoleMiddleware));

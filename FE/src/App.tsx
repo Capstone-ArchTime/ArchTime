@@ -25,6 +25,7 @@ const OrganizationDetail = lazy(() => import("@/pages/organizations/Organization
 const ArchitectureMap = lazy(() => import("@/pages/developer-analyst/ArchitectureMap"));
 const Compare = lazy(() => import("@/pages/developer-analyst/Compare"));
 const Evidence = lazy(() => import("@/pages/developer-analyst/Evidence"));
+const TasksSprints = lazy(() => import("@/pages/developer-analyst/TasksSprints"));
 const Insights = lazy(() => import("@/pages/developer-analyst/Insights"));
 const ProjectDetail = lazy(() => import("@/pages/developer-analyst/ProjectDetail"));
 const ProjectMaintainerDashboard = lazy(() => import("@/pages/project-maintainer/Dashboard"));
@@ -95,6 +96,7 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path="/architecture" element={<ArchitectureMap />} />
       <Route path="/compare" element={<Compare />} />
       <Route path="/evidence" element={<Evidence />} />
+      <Route path="/tasks" element={<TasksSprints />} />
       <Route path="/insights" element={<Insights />} />
       <Route path="/reports" element={<ProjectMaintainerReports />} />
       <Route path="/ai-usage" element={<AiUsage />} />

@@ -248,3 +248,38 @@ test('accepting a finding also settles the same open finding in later commits al
   await decide.execute({ projectId: 'p1', findingId: older.id, decision: 'dismiss', note: 'Changed our mind.', userId: 'u1' });
   assert.equal(later.decision.kind, 'fix', 'a decision made on the later commit stays');
 });
+
+// ── Commit convention (T5, RF-30) ────────────────────────────────────────────
+
+test('T5 the check adds convention findings: message format, and Arch-Change against the real change since the base', async () => {
+  const store = memoryStore();
+  const commits = {
+    // s2 adds domain -> db but declares nothing; s3 adds web -> domain, declares Web, but its subject has no scope.
+    s2: { title: 'feat(orders): save orders', trailers: ['Task: T5', 'Arch-Change: none'], before: graphs.s1 },
+    s3: { title: 'feat: order page', trailers: ['Task: T5', 'Arch-Change: Web'], before: graphs.s2 },
+  };
+  const snaps = { ...snapshots(), async commit(id) { return commits[id] ?? null; } };
+  await new CheckConformanceUseCase(workspaces(workspace()), snaps, store).execute('p1');
+  const convention = store.rows.filter(f => f.type === 'convention').map(f => [f.snapshotHash, f.ruleId, f.sourceName, f.targetName, f.severity]);
+  assert.deepEqual(convention, [
+    ['bbbbbbb', 'convention:undeclared-change', 'Domain', 'Database', 'warning'],
+    ['ccccccc', 'convention:missing-scope', 'Commit message', 'Commit message', 'warning'],
+  ]);
+  // The conformance findings are unchanged next to them, and the counts include both kinds.
+  assert.equal(store.rows.filter(f => f.type === 'forbidden-dependency').length, 2);
+  assert.deepEqual(store.checks.get('s2').counts, { findings: 2, errors: 1, warnings: 1, unmappedFiles: 0, files: 2 });
+});
+
+test('T5 a dismissed convention finding is never carried to another commit (its key holds the commit hash)', async () => {
+  const store = memoryStore();
+  const same = { title: 'Fix things', trailers: [], before: null };
+  const snaps = { ...snapshots(), async commit() { return same; } };
+  const uc = new CheckConformanceUseCase(workspaces(workspace()), snaps, store);
+  await uc.execute('p1');
+  const first = store.rows.find(f => f.type === 'convention' && f.snapshotHash === 'bbbbbbb');
+  await new DecideFindingUseCase(store).execute({ projectId: 'p1', findingId: first.id, decision: 'dismiss', note: 'old habit', userId: 'u1' });
+  await uc.execute('p1', { force: true });
+  const later = store.rows.find(f => f.type === 'convention' && f.snapshotHash === 'ccccccc');
+  assert.equal(later.decision, null);
+  assert.notEqual(later.key, first.key);
+});
