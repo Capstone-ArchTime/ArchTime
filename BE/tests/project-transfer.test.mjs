@@ -35,7 +35,9 @@ function world() {
     { id: 'p3', name: 'Other', repoUrl: 'https://github.com/acme/other', userId: 'olga', organizationId: 'org1' },
     { id: 'p4', name: 'Api', repoUrl: 'https://github.com/acme/api', userId: 'olga' },
   ];
-  const orgMembers = { org1: { olga: 'owner', mia: 'member' }, org2: { olga: 'owner' }, org3: { olga: 'member' } };
+  const orgMembers = { org1: { olga: 'owner', mia: 'member' }, org2: { olga: 'owner' }, org3: { olga: 'member' }, org4: { olga: 'owner' } };
+  // org4 is suspended by a System Administrator (RF-14).
+  const suspended = { org4: { at: new Date(), by: 'admin', reason: 'Security review' } };
   const projectMembers = {
     p1: [
       { userId: 'olga', name: 'Olga', email: 'olga@x', role: 'project-maintainer', status: 'active' },
@@ -53,7 +55,7 @@ function world() {
       moveToOrganization: async (id, owner, org) => { const p = projects.find(x => x.id === id && x.userId === owner && !x.organizationId); if (!p) return null; p.organizationId = org; return { ...p }; },
     },
     {
-      findById: async id => (orgMembers[id] ? { id, name: id.toUpperCase() } : null),
+      findById: async id => (orgMembers[id] ? { id, name: id.toUpperCase(), suspension: suspended[id] ?? null } : null),
       findMember: async (org, user) => (orgMembers[org]?.[user] ? { organizationId: org, userId: user, role: orgMembers[org][user] } : null),
     },
     { findByProjectId: async id => projectMembers[id] ?? [] },
@@ -94,6 +96,13 @@ test('only the project owner, only into an organization they own, only a persona
   await assert.rejects(uc.execute({ projectId: 'p4', organizationId: 'nope', userId: 'olga' }), e => e.statusCode === 404);
   await assert.rejects(uc.execute({ projectId: 'zz', organizationId: 'org1', userId: 'olga' }), e => e.statusCode === 404);
   await assert.rejects(uc.execute({ projectId: 'p4', organizationId: '', userId: 'olga' }), e => e.statusCode === 400);
+});
+
+test('RF-14: nothing moves into a suspended organization, even by its owner', async () => {
+  const { uc, projects } = world();
+  await assert.rejects(uc.execute({ projectId: 'p4', organizationId: 'org4', userId: 'olga' }), e => e.statusCode === 403 && /suspended/.test(e.message));
+  await assert.rejects(uc.preview({ projectId: 'p4', organizationId: 'org4', userId: 'olga' }), e => e.statusCode === 403 && /suspended/.test(e.message));
+  assert.equal(projects.find(p => p.id === 'p4').organizationId, undefined, 'the workspace stayed personal');
 });
 
 test('if the project changes hands between the check and the move, the move is refused', async () => {

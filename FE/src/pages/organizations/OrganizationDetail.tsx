@@ -100,7 +100,8 @@ export default function OrganizationDetail() {
     );
   }
 
-  const owner = organization.myRole === 'owner';
+  // While suspended, the server refuses every change by its owners (RF-14), so the page does not offer them.
+  const owner = organization.myRole === 'owner' && !organization.suspension;
   return (
     <FeaturePage
       title={organization.name}
@@ -113,9 +114,11 @@ export default function OrganizationDetail() {
         </div>
       }
     >
+      {organization.suspension && <Alert type="warning" showIcon title="This organization is suspended"
+        description={`A System Administrator suspended it${organization.suspension.at ? ` on ${new Date(organization.suspension.at).toLocaleString()}` : ''}${organization.suspension.reason ? `. Reason: ${organization.suspension.reason}` : ''}. Its workspaces cannot be opened and it cannot be changed until it is reactivated. Nothing was deleted.`} />}
       <div className="flex flex-wrap items-center gap-2 text-sm text-[var(--at-muted)]">
         <Building2 size={16} className="text-[var(--at-link)]" />
-        <Tag color={owner ? 'blue' : undefined}>{owner ? 'You are an owner' : 'You are a member'}</Tag>
+        <Tag color={organization.myRole === 'owner' ? 'blue' : undefined}>{organization.myRole === 'owner' ? 'You are an owner' : 'You are a member'}</Tag>
         <span>{organization.memberCount} {organization.memberCount === 1 ? 'member' : 'members'}</span>
       </div>
 

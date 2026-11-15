@@ -122,3 +122,21 @@ test('an invited owner does not count as the organization owner, and invitations
   assert.ok(calls.some(c => c.startsWith('POST') && c.endsWith('/organizations/o1/invitation/accept')));
   assert.ok(calls.some(c => c.startsWith('POST') && c.endsWith('/organizations/o1/invitation/decline')));
 });
+
+// ── RF-14: a suspended organization, as its members see it ───────────────────
+import { listOrganizations as listOrgs, suspensionNotice, workspaceSpaces as spaces } from '../src/features/organizations-api.ts';
+
+test('a suspended organization is read as such, explained once, and offered no new workspace', async (t) => {
+  mockGlobal(t, 'sessionStorage', { getItem: k => (k === 'accessToken' ? 'token' : null), setItem() {}, removeItem() {} });
+  mockGlobal(t, 'localStorage', { getItem: () => null, setItem() {}, removeItem() {} });
+  t.mock.method(globalThis, 'fetch', async () => Response.json({ success: true, data: { organizations: [
+    { id: 'a', name: 'Acme', myRole: 'owner', memberCount: 4, suspension: { at: '2026-11-16T06:36:51Z', by: 'admin', reason: 'Security review' } },
+    { id: 'b', name: 'Beta', myRole: 'owner', memberCount: 1, suspension: null },
+  ] } }));
+  const orgs = await listOrgs();
+  assert.deepEqual(orgs.map(o => [o.name, o.suspension?.reason ?? null]), [['Acme', 'Security review'], ['Beta', null]]);
+  assert.match(suspensionNotice(orgs), /^Acme is suspended by a System Administrator\..*nothing was deleted/);
+  assert.equal(suspensionNotice(orgs.filter(o => o.id === 'b')), null);
+  assert.match(suspensionNotice([{ ...orgs[0], name: 'Zeta' }, orgs[0]]), /^Acme and Zeta are suspended/);
+  assert.deepEqual(spaces(orgs).map(s => s.label), ['Personal space', 'Beta'], 'no new workspace in a suspended organization');
+});

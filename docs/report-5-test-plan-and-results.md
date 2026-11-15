@@ -105,18 +105,27 @@ Ba test cho mỗi feature: **F-04** = WF02-03, WF02-04, WF02-05; **F-13** = WF07
 | S13 | Chỉ System Administrator tạm khoá / mở lại, có lý do | Không token 401; owner, member 403; thiếu lý do 400; tổ chức không có 404; khoá 200 kèm người khoá và lý do, không có repoUrl / mô tả project; khoá lần hai 409; danh sách có trạng thái; audit `ORGANIZATION_SUSPEND` / `REACTIVATE`; mở lại lần hai 409 | Pass |
 | S14 | Trong lúc khoá | Alice (owner), bob, carl: 403 cả metadata, đọc, ghi, thông báo có chữ "suspended"; owner không sửa được tổ chức (403) nhưng vẫn thấy tổ chức (200); tổ chức Beta và project cá nhân không bị ảnh hưởng; admin vẫn chỉ metadata; mở lại thì quyền trở về như cũ, không mất thành viên | Pass |
 
-## 5. UAT thủ công (chưa chạy)
+## 5. UAT thủ công (chạy ngày 2026-11-16)
 
-| # | Bước | Mong đợi | Trạng thái |
+Môi trường: máy phát triển, `npm run dev` (BE + FE), MongoDB cục bộ, tài khoản của `npm run seed:demo`. Workspace demo "Dự án lớn" của eve trỏ tới một repo git cục bộ có 4 commit (`ffd4807` có `Task: ARCH-12`; `9858b3e` thêm phụ thuộc Billing → Orders nhưng ghi `Arch-Change: none`; `f98f807 update stuff`; `87446ea fix(orders): T22 rounding`). Mine repo cục bộ cần `ARCHTIME_ALLOW_LOCAL_REPOS=true`. Người chạy: Đặng Nhật Trường, đối chiếu từng bước qua ảnh chụp màn hình.
+
+| # | Bước | Mong đợi | Kết quả |
 |---|---|---|---|
-| U-T1 | (DS-07a) Maintainer mở *Analyze → Tasks & Sprints*, nhập `docs/samples/jira-export-sample.json` | 5 task; Sprint 2: 1 / 3 done (33 %); Sprint 1 "No tasks"; ARCH-20 ở Backlog | Chưa chạy |
-| U-T2 | Nhập `docs/samples/jira-export-msg22-sample.json` | Hộp lỗi "The export was not imported", nêu MSG22 và task 3; bảng không đổi | Chưa chạy |
-| U-T3 | (DS-07b) Mine commit `feat(x): ... ` có `Task: ARCH-12`; mở lại trang | Commit hiện khi mở rộng dòng ARCH-12, nhãn "Task: trailer" | Chưa chạy |
-| U-T4 | Member (không phải maintainer) mở trang | Không có nút Import / Link | Chưa chạy |
-| U-C1 | (DS-02a) Compare trên workspace nhiều snapshot | Bộ chọn tải nhanh; so sánh hiển thị file / cạnh thêm, bớt | Chưa chạy |
-| U-C2 | (DS-02b) Changes & Evidence, mở một evidence | Component bị ảnh hưởng (INFERENCE) | Chưa chạy |
-| U-O1 | Admin khoá một tổ chức có lý do; owner tải lại workspace | Hộp xác nhận; owner gặp 403 "suspended"; admin mở lại được | Chưa chạy |
-| U-V1 | Maintainer mở Conformance Findings sau khi mine commit sai quy ước | Finding "Commit convention" với câu mô tả | Chưa chạy |
+| U-T0 | `npm run jira-preview` trên hai file mẫu | 5 task; Sprint 2: 1/3 (33 %); Sprint 1 n/a; Backlog 1; file thứ hai: `REFUSED [MSG22] … task 3 … Nothing was imported` | **Pass** |
+| U-T1 | (DS-07a) *Tasks & Sprints*, nhập `jira-export-sample.json` | 5 task mới; Sprint 2: 1/3 done (33 %) · 3/10 points; Sprint 3: 0/1; Sprint 1: "No tasks"; Backlog: 0/1; ARCH-12 có 1 commit mine **trước** khi nhập | **Pass** (lần đầu **Fail**, xem K9) |
+| U-T2 | Nhập `jira-export-msg22-sample.json` | Hộp đỏ "The export was not imported", nêu MSG22 và task 3; dữ liệu không đổi (giờ "last import" giữ nguyên) | **Pass** |
+| U-T3 | Mở dòng ARCH-12 | Commit `ffd4807 feat(orders): order model`, nhãn "Task: trailer" | **Pass** |
+| U-T4 | Nhập lại cùng file | "0 new, 0 updated, 5 unchanged"; vẫn 5 task | **Pass** |
+| U-T5 | Nhập file thiếu ARCH-13 | "4 tasks, 1 removed"; Sprint 2 thành 1/2 (50 %); ARCH-13 chỉ hiện khi bật "Show removed tasks", gạch ngang, nhãn removed | **Pass** |
+| U-T6 | (DS-07b) Mine thêm 3 commit | T22 có commit `87446ea` (khớp qua tiêu đề); ARCH-13 (removed) vẫn có commit `9858b3e` (trailer); "3 linked commits" | **Pass** |
+| U-T7 | Member (không phải maintainer) mở trang | Không có nút Import / Link | Chưa chạy |
+| U-V1 | Conformance Findings, commit `9858b3e` | "Commit convention": Billing → Orders … declares "Arch-Change: none"; kèm finding Undeclared dependency của D5 | **Pass** |
+| U-V2 | Commit `f98f807`; Dismiss nó; xem lại `9858b3e` | Finding "subject … is not type(scope): summary"; Dismiss không lan sang commit khác | Chưa chạy |
+| U-C1 | (DS-02a) Compare `ffd4807` → `87446ea`, xem tab Network | Danh sách gọi `snapshots?summary=1`; Dependencies +1/−0; mũi tên mới billing → orders; change log "bill.ts → order.ts" | **Pass** |
+| U-C2 | (DS-02b) Changes & Evidence, mở evidence `9858b3e` | +1 added / −0 removed, file `src/billing/bill.ts`, nhãn INFERENCE. Phần component bị ảnh hưởng ghi "Not grouped into components yet" vì workspace chưa được phân cụm ở Architecture Map (đúng thiết kế) | **Pass** |
+| U-O1 | Admin khoá Acme có lý do | Status Suspended; khung ghi thời điểm, người khoá, lý do, "Nothing was deleted"; chỉ metadata; đủ 4 thành viên | **Pass** (lần đầu **Fail**, xem K9) |
+| U-O2 | bob đăng nhập trong lúc khoá | Không thấy workspace nào của Acme; mở thẳng acme-api: 403 "organization is suspended" | **Pass**, nhưng trang Workspaces chỉ hiện "Create your first workspace", không nói lý do (K10) |
+| U-O3 | Admin Reactivate | Acme Active; bob thấy lại acme-api như trước | **Pass** |
 
 ## 6. Kết quả toàn bộ bộ test (đã chạy)
 
@@ -157,3 +166,5 @@ Việc cần làm để đóng T12: đưa danh sách 101 test của BM04 §7 và
 | K6 | Tạm khoá tổ chức: job mining đang chạy không bị dừng; e-mail finding vẫn có thể gửi cho maintainer của tổ chức bị khoá | Thấp | Ghi nhận |
 | K7 | Giao diện chưa có test trình duyệt tự động | Trung bình | UAT mục 5 |
 | K8 | Câu chữ MSG22 và mã SM-09 / SM-10 chưa đối chiếu với SRS / BM04 | Thấp | Cần SRS / BM04 trong repo |
+| K9 | Nút Import Jira và nút Suspend gửi JSON mà không có `Content-Type` (`apiRequest` không tự thêm), nên server thấy body rỗng: "Attach the Jira export file". Test FE giả lập `fetch` nên không bắt được | Cao | **Đã sửa** (`fix/json-content-type`); test kiểm header và quét mọi `apiRequest` có body JSON |
+| K10 | Thành viên của tổ chức bị khoá chỉ thấy danh sách workspace trống, không có lời giải thích; owner vẫn chuyển được workspace cá nhân **vào** tổ chức đang bị khoá | Trung bình | **Đã sửa** (`fix/suspended-org-notice`): thông báo trên Workspaces, thẻ "Suspended" và cảnh báo trên Organizations, tổ chức bị khoá không còn trong danh sách nơi tạo workspace; chuyển workspace vào tổ chức bị khoá trả 403 |

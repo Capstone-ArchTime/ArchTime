@@ -3,7 +3,7 @@ import type { IProjectMemberRepository } from "../../../domain/interfaces/IProje
 import type { IOrganizationRepository } from "../../../domain/interfaces/IOrganizationRepository.js";
 import type { IProject } from "../../../domain/entities/Project.js";
 import { MemberStatus } from "../../../domain/entities/ProjectMember.js";
-import { OrganizationRole } from "../../../domain/entities/Organization.js";
+import { OrganizationRole, isSuspended } from "../../../domain/entities/Organization.js";
 import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "../../../shared/errors/AppError.js";
 
 // Moving a personal project into an organization (RF-11, UC-29). Snapshots, evidence, the workspace with its diagram,
@@ -52,6 +52,8 @@ export class TransferProjectUseCase {
     if (!organization) throw new NotFoundError("Organization not found.");
     const membership = await this.organizations.findMember(organizationId, input.userId);
     if (membership?.role !== OrganizationRole.OWNER) throw new ForbiddenError("Only an owner of the organization can move a workspace into it.");
+    // RF-14: nothing moves into a suspended organization; the workspace would close the moment it arrived.
+    if (isSuspended(organization)) throw new ForbiddenError("This organization is suspended by a System Administrator; no workspace can be moved into it until it is reactivated.");
 
     const key = sameRepositoryKey(project.repoUrl);
     const existing = (await this.projects.findByOrganizationId(organizationId)).find(p => p.id !== project.id && sameRepositoryKey(p.repoUrl) === key);

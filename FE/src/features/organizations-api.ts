@@ -7,7 +7,8 @@ import { apiRequest } from '../api/client.ts';
 export type OrganizationRole = 'owner' | 'member';
 export type CredentialProvider = 'github' | 'gitlab' | 'bitbucket' | 'other';
 
-export type Organization = { id: string; name: string; description: string; myRole: OrganizationRole; memberCount: number; createdAt: string | null };
+/** `suspension`: set while a System Administrator has suspended the organization (RF-14); its workspaces are closed. */
+export type Organization = { id: string; name: string; description: string; myRole: OrganizationRole; memberCount: number; createdAt: string | null; suspension: { at: string | null; reason: string } | null };
 /** `invited`: the person has not accepted yet and has no access (UC-28). Only owners see invited rows. */
 export type MemberStatus = 'invited' | 'active';
 export type OrganizationMember = { id: string; userId: string; name: string; email: string; role: OrganizationRole; status: MemberStatus; createdAt: string | null };
@@ -42,6 +43,7 @@ function pick<T>(body: Envelope<Record<string, unknown>> | undefined, key: strin
 const toOrganization = (o: any): Organization => ({
   id: str(o.id), name: str(o.name), description: str(o.description), myRole: o.myRole === 'owner' ? 'owner' : 'member',
   memberCount: Number(o.memberCount) || 0, createdAt: date(o.createdAt),
+  suspension: o.suspension && typeof o.suspension === 'object' ? { at: date(o.suspension.at), reason: str(o.suspension.reason) } : null,
 });
 const toMember = (m: any): OrganizationMember => ({
   id: str(m.id), userId: str(m.userId), name: str(m.name), email: str(m.email), role: m.role === 'owner' ? 'owner' : 'member',
@@ -205,8 +207,17 @@ export function memberActions(members: OrganizationMember[], member: Organizatio
 export function workspaceSpaces(organizations: Organization[]): { value: string; label: string }[] {
   return [
     { value: '', label: 'Personal space' },
-    ...organizations.filter(o => o.myRole === 'owner').sort((a, b) => a.name.localeCompare(b.name)).map(o => ({ value: o.id, label: o.name })),
+    // A suspended organization takes no new workspace (the server refuses it too).
+    ...organizations.filter(o => o.myRole === 'owner' && !o.suspension).sort((a, b) => a.name.localeCompare(b.name)).map(o => ({ value: o.id, label: o.name })),
   ];
+}
+
+/** One sentence for the people of suspended organizations: why their workspaces of it are not listed. Null when none is. */
+export function suspensionNotice(organizations: readonly Organization[]): string | null {
+  const names = organizations.filter(o => o.suspension).map(o => o.name).sort((a, b) => a.localeCompare(b));
+  if (!names.length) return null;
+  const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  return `${list} ${names.length === 1 ? 'is' : 'are'} suspended by a System Administrator. Its workspaces are hidden and cannot be opened until it is reactivated; nothing was deleted.`;
 }
 
 export interface RegistrationInput {

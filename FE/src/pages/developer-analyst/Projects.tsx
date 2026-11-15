@@ -25,7 +25,7 @@ import ViewerSettingsModal from '@/components/ViewerSettingsModal';
 import TransferProjectModal from '@/components/TransferProjectModal';
 import { Link } from 'react-router-dom';
 import { byRecent, getWorkspaces, hasMinedHistory, nextStep, STATUS_LABELS, type Workspace } from '@/features/workspace-summary';
-import { buildRegistration, listCredentials, listOrganizations, workspaceSpaces } from '@/features/organizations-api';
+import { buildRegistration, listCredentials, listOrganizations, suspensionNotice, workspaceSpaces } from '@/features/organizations-api';
 import type { Credential, Organization } from '@/features/organizations-api';
 
 const Projects: React.FC = () => {
@@ -50,6 +50,12 @@ const Projects: React.FC = () => {
   const [credentialId, setCredentialId] = useState('');
   // Without credentials to choose from, an organization workspace clones with a personal token like a personal one.
   const effectiveAccess = organizationId && credentials?.length ? access : 'token';
+
+  // RF-14: the organizations are also read up front, to say why workspaces of a suspended one are not listed.
+  useEffect(() => {
+    listOrganizations().then(setOrganizations).catch(() => setOrganizations(prev => prev ?? []));
+  }, []);
+  const suspended = suspensionNotice(organizations ?? []);
 
   useEffect(() => {
     if (!isModalOpen || organizations) return;
@@ -170,6 +176,12 @@ const Projects: React.FC = () => {
           </div>
           <div className="h-[1px] w-full bg-gradient-to-r from-[var(--at-line)] to-transparent mt-8"></div>
         </div>
+
+        {suspended && (
+          <div role="status" className="border border-[#f59e0b]/40 bg-[#f59e0b]/5 p-4 text-sm text-[var(--at-text)]">
+            {suspended}
+          </div>
+        )}
 
         {loadError && (
           <div role="alert" className="border border-[#ef4444]/40 bg-[#ef4444]/5 p-4 text-sm text-[#fca5a5] flex flex-wrap items-center justify-between gap-3">
