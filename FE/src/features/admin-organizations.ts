@@ -90,7 +90,7 @@ export async function getAdminOrganization(id: string, signal?: AbortSignal): Pr
 
 /** RF-14, UC-25: closes every workspace of the organization until it is reactivated. Nothing is deleted. */
 export async function suspendOrganization(id: string, reason: string): Promise<AdminOrganizationDetail> {
-  const res = await apiRequest<{ data?: { organization?: unknown } }>(`/admin/organizations/${encodeURIComponent(id)}/suspend`, { method: 'POST', body: JSON.stringify({ reason: reason.trim() }) });
+  const res = await apiRequest<{ data?: { organization?: unknown } }>(`/admin/organizations/${encodeURIComponent(id)}/suspend`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: reason.trim() }) });
   if (!res?.data?.organization) throw new Error('The server did not confirm the suspension.');
   return toAdminOrganizationDetail(res.data.organization);
 }
