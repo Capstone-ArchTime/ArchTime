@@ -54,7 +54,7 @@ import { MongoOrganizationRepository } from "./infrastructure/repositories/Mongo
 import { MongoOrganizationCredentialRepository } from "./infrastructure/repositories/MongoOrganizationCredentialRepository.js";
 import { OrganizationUseCases } from "./application/use-cases/organizations/OrganizationUseCases.js";
 import { MongoPendingInvitationStore } from "./infrastructure/repositories/MongoPendingInvitationStore.js";
-import { GetAdminOrganizationsUseCase } from "./application/use-cases/admin/GetAdminOrganizationsUseCase.js";
+import { GetAdminOrganizationsUseCase, SuspendOrganizationUseCase } from "./application/use-cases/admin/GetAdminOrganizationsUseCase.js";
 import { AdminOrganizationController } from "./presentation/controllers/AdminOrganizationController.js";
 import { OrganizationCredentialUseCases } from "./application/use-cases/organizations/OrganizationCredentialUseCases.js";
 import { OrganizationController } from "./presentation/controllers/OrganizationController.js";
@@ -393,9 +393,16 @@ export const transferProjectUseCase = new TransferProjectUseCase(projectReposito
 
 export const agentController = new AgentController(
   new AgentTokenUseCases(new MongoAgentTokenRepository(), projectRepository, entry => AuditService.log({ ...entry, targetType: "project" })),
-  new AgentContextUseCases(workspaceRepository, projectRepository, env.publicApiUrl),
+  new AgentContextUseCases(workspaceRepository, projectRepository, env.publicApiUrl, organizationRepository),
 );
 export const adminLlmController = new AdminLlmController(new AdminLlmUseCases());
+
+// RF-14, UC-25: organizations for System Administrators (metadata only) and their temporary suspension.
+const adminOrganizationsUseCase = new GetAdminOrganizationsUseCase(organizationRepository, projectRepository, userRepository);
+const adminOrganizationController = new AdminOrganizationController(
+  adminOrganizationsUseCase,
+  new SuspendOrganizationUseCase(organizationRepository, adminOrganizationsUseCase, entry => AuditService.log({ ...entry, targetType: "organization" })),
+);
 
 export const adminControllersConfig: AdminControllersConfig = {
   userController: adminUserController,
@@ -404,7 +411,7 @@ export const adminControllersConfig: AdminControllersConfig = {
   settingsController: adminSettingsController,
   metricsController: adminMetricsController,
   llmController: adminLlmController,
-  organizationController: new AdminOrganizationController(new GetAdminOrganizationsUseCase(organizationRepository, projectRepository, userRepository)),
+  organizationController: adminOrganizationController,
 };
 
 // ── Project Maintainer (PM) ──

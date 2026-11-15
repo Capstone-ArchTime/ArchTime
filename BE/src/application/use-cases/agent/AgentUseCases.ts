@@ -5,7 +5,9 @@ import type { AgentTokenView } from "../../../domain/entities/AgentToken.js";
 import type { IAgentTokenRepository } from "../../../domain/interfaces/IAgentTokenRepository.js";
 import type { IWorkspaceRepository } from "../../../domain/interfaces/IWorkspaceRepository.js";
 import type { IProjectRepository } from "../../../domain/interfaces/IProjectRepository.js";
-import { BadRequestError, ConflictError, NotFoundError, UnauthorizedError } from "../../../shared/errors/AppError.js";
+import type { IOrganizationRepository } from "../../../domain/interfaces/IOrganizationRepository.js";
+import { isSuspended } from "../../../domain/entities/Organization.js";
+import { BadRequestError, ConflictError, ForbiddenError, NotFoundError, UnauthorizedError } from "../../../shared/errors/AppError.js";
 
 // Agent access (RF-09, UC-42 create a project token, UC-43 revoke it, UC-44 read the architecture context).
 
@@ -77,10 +79,18 @@ export class AgentContextUseCases {
     private readonly workspaces: Pick<IWorkspaceRepository, "findByProjectId">,
     private readonly projects: Pick<IProjectRepository, "findById">,
     private readonly apiBase: string,
+    private readonly organizations?: Pick<IOrganizationRepository, "findById">,
   ) {}
 
   /** Only a confirmed diagram is a reference an agent may follow. */
   private async confirmedWorkspace(projectId: string) {
+    // RF-14: a project token of a suspended organization's workspace reads nothing until it is reactivated.
+    if (this.organizations) {
+      const project = await this.projects.findById(projectId);
+      if (project?.organizationId && isSuspended(await this.organizations.findById(project.organizationId))) {
+        throw new ForbiddenError("This workspace's organization is suspended by a System Administrator.");
+      }
+    }
     const workspace = await this.workspaces.findByProjectId(projectId);
     if (!workspace?.diagram?.confirmedAt) throw new ConflictError("The component diagram of this workspace is not confirmed yet, so there is no architecture to follow. Ask a maintainer to confirm it.", "CONFLICT");
     return workspace;

@@ -4,6 +4,7 @@ import {
   OrganizationRole,
   type IOrganization,
   type IOrganizationMember,
+  type OrganizationSuspension,
 } from "../../domain/entities/Organization.js";
 import type { IOrganizationRepository } from "../../domain/interfaces/IOrganizationRepository.js";
 import { OrganizationModel } from "../database/models/OrganizationModel.js";
@@ -21,9 +22,21 @@ export class MongoOrganizationRepository implements IOrganizationRepository {
       name: doc.name as string,
       description: doc.description as string | undefined,
       createdBy: String(doc.createdBy),
+      suspension: doc.suspension ? { ...(doc.suspension as OrganizationSuspension) } : null,
       createdAt: doc.createdAt as Date,
       updatedAt: doc.updatedAt as Date,
     };
+  }
+
+  /**
+   * Suspends (a suspension) or reactivates (null) in one conditional write: it only applies when the organization is
+   * in the other state, so two administrators acting at once cannot both succeed. Null when nothing was changed.
+   */
+  async setSuspension(id: string, suspension: OrganizationSuspension | null): Promise<IOrganization | null> {
+    if (!validId(id)) return null;
+    const filter = suspension ? { _id: id, $or: [{ suspension: null }, { suspension: { $exists: false } }] } : { _id: id, suspension: { $ne: null } };
+    const doc = await OrganizationModel.findOneAndUpdate(filter, { $set: { suspension } }, { new: true }).lean();
+    return doc ? this.toOrganization(doc as Record<string, unknown>) : null;
   }
 
   private toMember(doc: Record<string, unknown>): IOrganizationMember {

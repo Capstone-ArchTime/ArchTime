@@ -1,9 +1,9 @@
-import { OrganizationRole, type IOrganization } from "../../../domain/entities/Organization.js";
+import { OrganizationRole, isSuspended, type IOrganization } from "../../../domain/entities/Organization.js";
 import type { IProject, ProjectStatus, RepoVisibility } from "../../../domain/entities/Project.js";
 import type { IOrganizationRepository } from "../../../domain/interfaces/IOrganizationRepository.js";
 import type { IProjectRepository } from "../../../domain/interfaces/IProjectRepository.js";
 import type { IUserRepository } from "../../../domain/interfaces/IUserRepository.js";
-import { NotFoundError } from "../../../shared/errors/AppError.js";
+import { ConflictError, NotFoundError, ValidationError } from "../../../shared/errors/AppError.js";
 import { buildPaginationMeta, type PaginationMeta } from "../../../shared/utils/apiResponse.js";
 
 /**
@@ -23,6 +23,9 @@ export interface AdminOrganizationSummary {
   owners: AdminPerson[];
   memberCount: number;
   projectCount: number;
+  /** RF-14: active, or suspended by a System Administrator (with when, by whom and why). */
+  status: "active" | "suspended";
+  suspension: { at: Date; by: AdminPerson; reason: string } | null;
 }
 
 export interface AdminOrganizationProject {
@@ -71,6 +74,8 @@ export class GetAdminOrganizationsUseCase {
     const summary: AdminOrganizationSummary = {
       id: org.id, name: org.name, description: org.description ?? null, createdAt: org.createdAt, createdBy, owners,
       memberCount: members.length, projectCount: projects.length,
+      status: isSuspended(org) ? "suspended" : "active",
+      suspension: org.suspension ? { at: org.suspension.at, by: await this.person(org.suspension.by, cache), reason: org.suspension.reason } : null,
     };
     return { summary, members, projects };
   }
@@ -95,5 +100,48 @@ export class GetAdminOrganizationsUseCase {
       members: await Promise.all(members.map(async m => ({ ...(await this.person(m.userId, cache)), role: m.role, joinedAt: m.createdAt }))),
       projects: projects.map(projectMetadata),
     };
+  }
+}
+
+export const SUSPENSION_REASON_MIN = 5;
+export const SUSPENSION_REASON_MAX = 500;
+
+export type OrganizationAudit = (entry: { action: "ORGANIZATION_SUSPEND" | "ORGANIZATION_REACTIVATE"; userId: string; targetId: string; details: Record<string, unknown>; ipAddress?: string }) => Promise<void>;
+
+/**
+ * Temporary suspension of an organization by a System Administrator (RF-14, UC-25). While suspended its workspaces are
+ * closed to everyone (ProjectAccessPolicy) and its owners cannot change it (OrganizationUseCases.requireOwner); nothing
+ * is deleted, and reactivating restores access as it was. The administrator still sees metadata only.
+ */
+export class SuspendOrganizationUseCase {
+  constructor(
+    private readonly organizations: Pick<IOrganizationRepository, "findById" | "setSuspension">,
+    private readonly view: Pick<GetAdminOrganizationsUseCase, "get">,
+    private readonly audit: OrganizationAudit,
+    private readonly now: () => Date = () => new Date(),
+  ) {}
+
+  async suspend(input: { organizationId: string; adminId: string; reason: unknown; ipAddress?: string }): Promise<AdminOrganizationDetail> {
+    const reason = typeof input.reason === "string" ? input.reason.trim() : "";
+    if (reason.length < SUSPENSION_REASON_MIN || reason.length > SUSPENSION_REASON_MAX) {
+      throw new ValidationError(`Give the reason for the suspension (${SUSPENSION_REASON_MIN}–${SUSPENSION_REASON_MAX} characters): it is recorded in the audit log and shown to administrators.`, { reason: "required" });
+    }
+    const org = await this.organizations.findById(input.organizationId);
+    if (!org) throw new NotFoundError("Organization not found.");
+    if (isSuspended(org)) throw new ConflictError("The organization is already suspended.");
+    const updated = await this.organizations.setSuspension(org.id, { at: this.now(), by: input.adminId, reason });
+    if (!updated) throw new ConflictError("The organization is already suspended.");
+    await this.audit({ action: "ORGANIZATION_SUSPEND", userId: input.adminId, targetId: org.id, details: { name: org.name, reason }, ipAddress: input.ipAddress });
+    return this.view.get(org.id);
+  }
+
+  async reactivate(input: { organizationId: string; adminId: string; ipAddress?: string }): Promise<AdminOrganizationDetail> {
+    const org = await this.organizations.findById(input.organizationId);
+    if (!org) throw new NotFoundError("Organization not found.");
+    if (!isSuspended(org)) throw new ConflictError("The organization is not suspended.");
+    const updated = await this.organizations.setSuspension(org.id, null);
+    if (!updated) throw new ConflictError("The organization is not suspended.");
+    await this.audit({ action: "ORGANIZATION_REACTIVATE", userId: input.adminId, targetId: org.id, details: { name: org.name, suspendedSince: org.suspension?.at ?? null }, ipAddress: input.ipAddress });
+    return this.view.get(org.id);
   }
 }

@@ -2,7 +2,7 @@ import type { IProject } from "../../domain/entities/Project.js";
 import { RepoVisibility, viewerAccessOf } from "../../domain/entities/Project.js";
 import { UserRole } from "../../domain/entities/User.js";
 import { MemberStatus, ProjectMemberRole } from "../../domain/entities/ProjectMember.js";
-import { OrganizationRole } from "../../domain/entities/Organization.js";
+import { OrganizationRole, isSuspended } from "../../domain/entities/Organization.js";
 import type { IProjectRepository } from "../../domain/interfaces/IProjectRepository.js";
 import type { IProjectMemberRepository } from "../../domain/interfaces/IProjectMemberRepository.js";
 import type { IOrganizationRepository } from "../../domain/interfaces/IOrganizationRepository.js";
@@ -30,6 +30,8 @@ export interface ProjectAccess {
   actions: ReadonlySet<ProjectAction>;
   /** The membership role to expose on the request, as before this policy existed. */
   memberRole?: ProjectMemberRole | "owner";
+  /** True when access is closed because the workspace's organization is suspended (RF-14). */
+  suspended?: boolean;
 }
 
 const set = (...a: ProjectAction[]): ReadonlySet<ProjectAction> => new Set(a);
@@ -55,7 +57,8 @@ export class ProjectAccessPolicy {
   constructor(
     private readonly projects: Pick<IProjectRepository, "findById" | "findByUserId" | "findByOrganizationId" | "findByIds">,
     private readonly members: Pick<IProjectMemberRepository, "findByProjectAndUserId" | "findByUserId">,
-    private readonly organizations?: Pick<IOrganizationRepository, "findMember" | "listMembershipsOfUser">,
+    // findById is optional for stores written before suspension existed; without it no organization counts as suspended.
+    private readonly organizations?: Pick<IOrganizationRepository, "findMember" | "listMembershipsOfUser"> & Partial<Pick<IOrganizationRepository, "findById">>,
   ) {}
 
   async evaluate(project: IProject, user: AccessUser): Promise<ProjectAccess> {
@@ -66,6 +69,10 @@ export class ProjectAccessPolicy {
     if (project.organizationId) {
       const orgMember = this.organizations ? await this.organizations.findMember(project.organizationId, user.userId) : null;
       if (!orgMember) return { role: null, actions: NOTHING };
+      // RF-14, UC-25: a suspended organization's workspaces are closed to their members, owners included, until it is
+      // reactivated. Their data is kept as it is.
+      const organization = this.organizations?.findById ? await this.organizations.findById(project.organizationId) : null;
+      if (isSuspended(organization)) return { role: null, actions: NOTHING, suspended: true };
       if (orgMember.role === OrganizationRole.OWNER) {
         return project.userId === user.userId
           ? { role: "owner", actions: EVERYTHING, memberRole: "owner" }
@@ -125,6 +132,7 @@ export class ProjectAccessPolicy {
 }
 
 export function deniedMessage(access: ProjectAccess, action: ProjectAction): string {
+  if (access.suspended) return "Forbidden: this workspace's organization is suspended by a System Administrator.";
   if (!access.actions.has("metadata")) return "Forbidden: you do not have permission to access this workspace.";
   if (access.role === "system-administrator") {
     return action === "owner"
