@@ -15,7 +15,8 @@
     "seed:test": "tsx scripts/seed-test-accounts.ts",
     "test": "node --import tsx --import ./tests/setup-env.mjs --test tests/*.test.mjs",
     "db:init": "tsx scripts/db-init.ts",
-    "seed:demo": "tsx scripts/db-init.ts && tsx scripts/seed-test-accounts.ts"
+    "seed:demo": "tsx scripts/db-init.ts && tsx scripts/seed-test-accounts.ts",
+    "rq2": "tsx scripts/rq2.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
