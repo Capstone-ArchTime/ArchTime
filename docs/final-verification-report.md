@@ -37,10 +37,10 @@
 
 | Demo | Kịch bản | Trạng thái |
 |---|---|---|
-| DS-02a | Compare hai release của một workspace đã mine | Chưa chạy trên trình duyệt; phần API đã kiểm bằng WF02-02…04 |
-| DS-02b | Changes & Evidence, mở evidence, xem component bị ảnh hưởng | Chưa chạy trên trình duyệt; WF02-05 |
-| DS-07a | Nhập `docs/samples/jira-export-sample.json`, xem tiến độ sprint | Chưa chạy trên trình duyệt; WF07-01, 06 |
-| DS-07b | Mine commit có `Task:`, thấy commit dưới task; file MSG22 bị từ chối | Chưa chạy trên trình duyệt; WF07-04, 07, 08 |
+| DS-02a | Compare hai release của một workspace đã mine | **Pass cục bộ** trên trình duyệt (UAT U-C1, 2026-11-16); chưa chạy trên staging |
+| DS-02b | Changes & Evidence, mở evidence, xem component bị ảnh hưởng | **Pass cục bộ** (U-C2); chưa chạy trên staging |
+| DS-07a | Nhập `docs/samples/jira-export-sample.json`, xem tiến độ sprint | **Pass cục bộ** (U-T1…U-T5), sau khi sửa K9; chưa chạy trên staging |
+| DS-07b | Mine commit có `Task:`, thấy commit dưới task; file MSG22 bị từ chối | **Pass cục bộ** (U-T2, U-T6); chưa chạy trên staging |
 
 ## 4. Việc để đóng T13
 
