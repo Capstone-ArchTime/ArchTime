@@ -73,10 +73,41 @@ export function createAdminRouter(
    *     responses:
    *       200: { description: "{ organization }" }
    *       404: { $ref: "#/components/responses/NotFound" }
+   * /api/admin/organizations/{id}/suspend:
+   *   post:
+   *     tags: [Admin - Organizations]
+   *     summary: Tạm khoá tổ chức (RF-14, UC-25)
+   *     description: >
+   *       Mọi workspace của tổ chức bị đóng với mọi người (kể cả owner) và owner không sửa được tổ chức cho tới khi mở lại.
+   *       Không xoá dữ liệu nào. Có ghi audit log. Admin vẫn chỉ xem metadata.
+   *     security: [{ BearerAuth: [] }]
+   *     parameters:
+   *       - { in: path, name: id, required: true, schema: { type: string } }
+   *     requestBody:
+   *       required: true
+   *       content: { application/json: { schema: { type: object, required: [reason], properties: { reason: { type: string, minLength: 5, maxLength: 500 } } } } }
+   *     responses:
+   *       200: { description: "{ organization } với status = suspended" }
+   *       400: { description: Thiếu lý do }
+   *       404: { $ref: "#/components/responses/NotFound" }
+   *       409: { description: Tổ chức đã bị khoá }
+   * /api/admin/organizations/{id}/reactivate:
+   *   post:
+   *     tags: [Admin - Organizations]
+   *     summary: Mở lại tổ chức đã tạm khoá (RF-14, UC-25)
+   *     security: [{ BearerAuth: [] }]
+   *     parameters:
+   *       - { in: path, name: id, required: true, schema: { type: string } }
+   *     responses:
+   *       200: { description: "{ organization } với status = active" }
+   *       404: { $ref: "#/components/responses/NotFound" }
+   *       409: { description: Tổ chức không bị khoá }
    */
   if (organizationController) {
     router.get("/organizations", organizationController.list);
     router.get("/organizations/:id", organizationController.get);
+    router.post("/organizations/:id/suspend", organizationController.suspend);
+    router.post("/organizations/:id/reactivate", organizationController.reactivate);
   }
 
   // ────────────────────────────────────────────────────────────

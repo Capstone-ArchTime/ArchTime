@@ -5,6 +5,7 @@ import type {
   IOrganizationMember,
   OrganizationMemberStatus,
   OrganizationRole,
+  OrganizationSuspension,
 } from "../entities/Organization.js";
 
 export interface IOrganizationRepository {
@@ -29,6 +30,11 @@ export interface IOrganizationRepository {
   countOwners(organizationId: string): Promise<number>;
   /** Every organization, newest first, for platform administration; `search` matches the name. */
   findPaginated(filter: { page: number; limit: number; search?: string }): Promise<{ items: IOrganization[]; total: number }>;
+  /**
+   * Suspends (a suspension) or reactivates (null) the organization, only if it is in the other state; null when it
+   * does not exist or was already in the requested state (RF-14, UC-25).
+   */
+  setSuspension(id: string, suspension: OrganizationSuspension | null): Promise<IOrganization | null>;
 }
 
 /** Secrets go in as plain text and come back only through resolveSecret; encryption is the repository's concern. */

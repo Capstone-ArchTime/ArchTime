@@ -1,18 +1,71 @@
 import { useEffect, useState } from 'react';
-import { Alert, Button, Descriptions, Drawer, Empty, Input, Skeleton, Table, Tag } from 'antd';
+import { Alert, App, Button, Descriptions, Drawer, Empty, Input, Modal, Skeleton, Table, Tag } from 'antd';
 import FeaturePage from '@/components/FeaturePage';
 import { tablePanel } from './admin-ui';
 import PaginationBar from '@/components/PaginationBar';
 import {
-  getAdminOrganization, listAdminOrganizations, personLabel,
+  getAdminOrganization, listAdminOrganizations, personLabel, reactivateOrganization, suspendOrganization, suspensionReasonError, SUSPENSION_REASON,
   type AdminOrganization, type AdminOrganizationDetail,
 } from '@/features/admin-organizations';
 
 const PAGE_SIZE = 10;
 const day = (iso: string) => (iso ? new Date(iso).toLocaleDateString() : '');
 
+const StatusTag = ({ org }: { org: Pick<AdminOrganization, 'status'> }) =>
+  org.status === 'suspended' ? <Tag color="red">Suspended</Tag> : <Tag color="green">Active</Tag>;
+
+/**
+ * Suspend (with a reason) or reactivate an organization (RF-14, UC-25), each behind a confirmation. The server checks
+ * that the caller is a System Administrator; this only asks first and shows what happened.
+ */
+function SuspensionControls({ detail, onChanged }: { detail: AdminOrganizationDetail; onChanged: (next: AdminOrganizationDetail) => void }) {
+  const { message, modal } = App.useApp();
+  const [asking, setAsking] = useState(false);
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const reasonError = suspensionReasonError(reason);
+
+  async function suspend() {
+    setBusy(true); setError(null);
+    try {
+      onChanged(await suspendOrganization(detail.id, reason));
+      message.success(`${detail.name} is suspended.`);
+      setAsking(false); setReason('');
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not suspend the organization.'); }
+    finally { setBusy(false); }
+  }
+  function reactivate() {
+    modal.confirm({
+      title: `Reactivate ${detail.name}?`,
+      content: 'Its members get their workspaces back as they were, and its owners can manage it again.',
+      okText: 'Reactivate',
+      onOk: async () => {
+        try { onChanged(await reactivateOrganization(detail.id)); message.success(`${detail.name} is active again.`); }
+        catch (e) { message.error(e instanceof Error ? e.message : 'Could not reactivate the organization.'); throw e; }
+      },
+    });
+  }
+
+  return <section aria-label="Suspension" className="space-y-2">
+    {detail.status === 'suspended' && detail.suspension && <Alert type="warning" showIcon title="Suspended"
+      description={<>Since {new Date(detail.suspension.at).toLocaleString()} by {personLabel(detail.suspension.by)}. Reason: {detail.suspension.reason}<br />Its workspaces are closed to every member, owners included, until it is reactivated. Nothing was deleted.</>} />}
+    {detail.status === 'suspended'
+      ? <Button type="primary" onClick={reactivate}>Reactivate organization</Button>
+      : <Button danger onClick={() => { setAsking(true); setError(null); }}>Suspend organization</Button>}
+    <Modal open={asking} title={`Suspend ${detail.name}?`} okText="Suspend" okButtonProps={{ danger: true, disabled: !!reasonError }} confirmLoading={busy}
+      onOk={suspend} onCancel={() => { setAsking(false); setReason(''); setError(null); }} destroyOnHidden>
+      <p className="text-sm mb-3">All {detail.projectCount} workspace{detail.projectCount === 1 ? '' : 's'} of this organization close for its {detail.memberCount} member{detail.memberCount === 1 ? '' : 's'}, owners included, and its owners cannot change it until you reactivate it. No data is deleted.</p>
+      <label htmlFor="suspension-reason" className="block text-xs text-[var(--at-muted)] mb-1">Reason (recorded in the audit log)</label>
+      <Input.TextArea id="suspension-reason" rows={3} maxLength={SUSPENSION_REASON.max} showCount value={reason} onChange={e => setReason(e.target.value)} status={reason && reasonError ? 'error' : undefined} />
+      {reason && reasonError && <p className="text-xs text-red-500 mt-1">{reasonError}</p>}
+      {error && <Alert className="!mt-3" type="error" showIcon title={error} />}
+    </Modal>
+  </section>;
+}
+
 /** Who runs an organization and how big it is. The content of its workspaces stays with its members. */
-function OrganizationDrawer({ id, onClose }: { id: string | null; onClose: () => void }) {
+function OrganizationDrawer({ id, onClose, onChanged }: { id: string | null; onClose: () => void; onChanged: () => void }) {
   // What was loaded, and for which organization: anything loaded for another id reads as "still loading".
   const [loaded, setLoaded] = useState<{ id: string; detail: AdminOrganizationDetail | null; error: string | null } | null>(null);
   useEffect(() => {
@@ -33,7 +86,9 @@ function OrganizationDrawer({ id, onClose }: { id: string | null; onClose: () =>
     {detail && <div className="space-y-6">
       <Alert type="info" showIcon title="Metadata only"
         description="System Administrators see who belongs to an organization and how its workspaces are doing, never their repositories, code, evidence, maps or decisions." />
+      <SuspensionControls detail={detail} onChanged={next => { setLoaded({ id: detail.id, detail: next, error: null }); onChanged(); }} />
       <Descriptions column={1} size="small" bordered items={[
+        { key: 'status', label: 'Status', children: <StatusTag org={detail} /> },
         { key: 'desc', label: 'Description', children: detail.description || '—' },
         { key: 'created', label: 'Created', children: `${day(detail.createdAt)} by ${personLabel(detail.createdBy)}` },
         { key: 'counts', label: 'Size', children: `${detail.memberCount} member${detail.memberCount === 1 ? '' : 's'}, ${detail.projectCount} workspace${detail.projectCount === 1 ? '' : 's'}` },
@@ -83,7 +138,7 @@ export default function Organizations() {
   const total = answer?.total ?? 0;
   const error = answer?.error ?? null;
 
-  return <FeaturePage title="Organizations" description="Every organization on the platform: who owns it, how many members and workspaces it has." error={error}
+  return <FeaturePage title="Organizations" description="Every organization on the platform: who owns it, how many members and workspaces it has, and whether it is suspended." error={error}
     actions={<Button loading={loading} onClick={() => setRevision(v => v + 1)}>Refresh</Button>}>
     <Input.Search className="max-w-sm" aria-label="Search organizations" placeholder="Organization name" allowClear
       onSearch={value => { setPage(1); setSearch(value); }} />
@@ -93,6 +148,7 @@ export default function Organizations() {
         onRow={org => ({ onClick: () => setOpen(org.id), className: 'cursor-pointer' })}
         columns={[
           { title: 'Organization', render: (_, o) => <div><p className="font-medium">{o.name}</p>{o.description && <p className="text-xs text-[var(--at-muted)] line-clamp-1">{o.description}</p>}</div> },
+          { title: 'Status', render: (_, o) => <StatusTag org={o} /> },
           { title: 'Owners', render: (_, o) => o.owners.length ? o.owners.map(personLabel).join(', ') : <Tag color="red">No owner</Tag> },
           { title: 'Members', dataIndex: 'memberCount', align: 'right' },
           { title: 'Workspaces', dataIndex: 'projectCount', align: 'right' },
@@ -101,6 +157,6 @@ export default function Organizations() {
         ]} />
     </div>
     {total > PAGE_SIZE && <PaginationBar current={page} pageSize={PAGE_SIZE} total={total} onChange={p => setPage(p)} />}
-    <OrganizationDrawer id={open} onClose={() => setOpen(null)} />
+    <OrganizationDrawer id={open} onClose={() => setOpen(null)} onChanged={() => setRevision(v => v + 1)} />
   </FeaturePage>;
 }

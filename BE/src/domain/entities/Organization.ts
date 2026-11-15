@@ -10,9 +10,23 @@ export interface IOrganization {
   name: string;
   description?: string;
   createdBy: string;
+  /**
+   * Set while a System Administrator has suspended the organization (RF-14, UC-25): its workspaces are closed to
+   * everyone and its owners cannot change it, until it is reactivated. Null or absent: active.
+   */
+  suspension?: OrganizationSuspension | null;
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface OrganizationSuspension {
+  at: Date;
+  /** The System Administrator who suspended it. */
+  by: string;
+  reason: string;
+}
+
+export const isSuspended = (org: Pick<IOrganization, "suspension"> | null | undefined): boolean => !!org?.suspension;
 
 /** An invited person is not a member yet: they get no access until they accept (UC-28). */
 export enum OrganizationMemberStatus {

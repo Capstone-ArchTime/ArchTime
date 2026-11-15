@@ -8,6 +8,9 @@ export type AdminPerson = { userId: string; name: string | null; email: string |
 export type AdminOrganization = {
   id: string; name: string; description: string | null; createdAt: string;
   createdBy: AdminPerson; owners: AdminPerson[]; memberCount: number; projectCount: number;
+  /** RF-14: suspended by a System Administrator, with when, by whom and why. */
+  status: 'active' | 'suspended';
+  suspension: { at: string; by: AdminPerson; reason: string } | null;
 };
 export type AdminOrganizationProject = { id: string; name: string; status: string; visibility: string; totalCommits: number | null; createdAt: string };
 export type AdminOrganizationDetail = AdminOrganization & {
@@ -29,7 +32,24 @@ export function toAdminOrganization(raw: unknown): AdminOrganization {
     id: text(o.id), name: text(o.name), description: text(o.description) || null, createdAt: text(o.createdAt),
     createdBy: person(o.createdBy), owners: Array.isArray(o.owners) ? o.owners.map(person) : [],
     memberCount: count(o.memberCount), projectCount: count(o.projectCount),
+    ...suspensionOf(o),
   };
+}
+
+function suspensionOf(o: Record<string, unknown>): Pick<AdminOrganization, 'status' | 'suspension'> {
+  const s = o.suspension as Record<string, unknown> | null | undefined;
+  // A server that sends status "suspended" without the details still reads as suspended.
+  const suspended = o.status === 'suspended' || !!s;
+  return { status: suspended ? 'suspended' : 'active', suspension: suspended && s ? { at: text(s.at), by: person(s.by), reason: text(s.reason) } : null };
+}
+
+/** The reason a suspension needs, as the server checks it. */
+export const SUSPENSION_REASON = { min: 5, max: 500 } as const;
+export function suspensionReasonError(reason: string): string | null {
+  const length = reason.trim().length;
+  if (length < SUSPENSION_REASON.min) return `Give a reason of at least ${SUSPENSION_REASON.min} characters.`;
+  if (length > SUSPENSION_REASON.max) return `Keep the reason under ${SUSPENSION_REASON.max} characters.`;
+  return null;
 }
 
 export function toAdminOrganizationDetail(raw: unknown): AdminOrganizationDetail {
@@ -65,5 +85,18 @@ export async function listAdminOrganizations(params: { search?: string; page: nu
 export async function getAdminOrganization(id: string, signal?: AbortSignal): Promise<AdminOrganizationDetail> {
   const res = await apiRequest<{ data?: { organization?: unknown } }>(`/admin/organizations/${encodeURIComponent(id)}`, { signal });
   if (!res?.data?.organization) throw new Error('The server returned an invalid organization.');
+  return toAdminOrganizationDetail(res.data.organization);
+}
+
+/** RF-14, UC-25: closes every workspace of the organization until it is reactivated. Nothing is deleted. */
+export async function suspendOrganization(id: string, reason: string): Promise<AdminOrganizationDetail> {
+  const res = await apiRequest<{ data?: { organization?: unknown } }>(`/admin/organizations/${encodeURIComponent(id)}/suspend`, { method: 'POST', body: JSON.stringify({ reason: reason.trim() }) });
+  if (!res?.data?.organization) throw new Error('The server did not confirm the suspension.');
+  return toAdminOrganizationDetail(res.data.organization);
+}
+
+export async function reactivateOrganization(id: string): Promise<AdminOrganizationDetail> {
+  const res = await apiRequest<{ data?: { organization?: unknown } }>(`/admin/organizations/${encodeURIComponent(id)}/reactivate`, { method: 'POST' });
+  if (!res?.data?.organization) throw new Error('The server did not confirm the reactivation.');
   return toAdminOrganizationDetail(res.data.organization);
 }

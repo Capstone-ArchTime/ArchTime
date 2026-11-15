@@ -1,6 +1,7 @@
 import {
   OrganizationMemberStatus,
   OrganizationRole,
+  isSuspended,
   type IOrganization,
   type IOrganizationMember,
 } from "../../../domain/entities/Organization.js";
@@ -91,6 +92,10 @@ export class OrganizationUseCases {
     const membership = await this.requireMember(organizationId, userId);
     if (membership.role !== OrganizationRole.OWNER) {
       throw new ForbiddenError("Only organization owners can do this.");
+    }
+    // RF-14: a suspended organization cannot be changed until a System Administrator reactivates it.
+    if (isSuspended(await this.organizations.findById(organizationId))) {
+      throw new ForbiddenError("This organization is suspended by a System Administrator; it cannot be changed until it is reactivated.");
     }
     return membership;
   }
