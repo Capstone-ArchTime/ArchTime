@@ -51,7 +51,9 @@ const Compare: React.FC = () => {
     if (!selectedProjectId) return;
     const fetchSnapshots = async () => {
       try {
-        const data = await apiRequest<{ data?: { snapshots?: any[] } }>(`/projects/${selectedProjectId}/snapshots`);
+        // The pickers need names, dates and titles only; the graphs of the two chosen revisions come with the comparison.
+        // Without summary=1 a workspace of 1,000 snapshots sent ~36 MB and took ~3.8 s (N-02, docs/report-5-test-plan-and-results.md).
+        const data = await apiRequest<{ data?: { snapshots?: any[] } }>(`/projects/${selectedProjectId}/snapshots?summary=1`);
         {
           const sList = data.data?.snapshots || [];
           setSnapshots(sList);
