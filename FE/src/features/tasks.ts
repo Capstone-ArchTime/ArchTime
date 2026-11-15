@@ -75,7 +75,10 @@ export async function fetchTaskBoard(projectId: string, signal?: AbortSignal): P
 
 /** Sends the text of the export as it is: the server parses and validates it, and refuses the whole file on any error (MSG22). */
 export async function importJiraExport(projectId: string, fileText: string): Promise<ImportResult> {
-  const body = await apiRequest<{ data?: ImportResult }>(`/projects/${encodeURIComponent(projectId)}/tasks/import`, { method: 'POST', body: JSON.stringify({ file: fileText }) });
+  // apiRequest adds no Content-Type: without it the server's JSON parser ignores the body ("Attach the Jira export file").
+  const body = await apiRequest<{ data?: ImportResult }>(`/projects/${encodeURIComponent(projectId)}/tasks/import`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: fileText }),
+  }, 60_000);
   if (!body?.data) throw new Error('The server did not confirm the import.');
   return body.data;
 }
