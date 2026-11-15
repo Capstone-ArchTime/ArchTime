@@ -1,5 +1,5 @@
 import type { ElementType } from 'react';
-import { LayoutDashboard, FolderKanban, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, Users2, SlidersHorizontal, ScrollText, Activity, Boxes, Cpu, Gauge, Coins, GraduationCap, UserRound, ChartNetwork, Briefcase, Building2, ScanSearch, Bot } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, Users2, SlidersHorizontal, ScrollText, Activity, Boxes, Cpu, Gauge, Coins, GraduationCap, UserRound, ChartNetwork, Briefcase, Building2, ScanSearch, Bot, ListChecks } from 'lucide-react';
 import type { Role } from '@/auth/permissions';
 
 export type NavItem = { path: string; label: string; icon: ElementType };
@@ -11,6 +11,7 @@ export const analyzeNavItems: readonly NavItem[] = [
   { path: '/architecture', label: 'Architecture Map', icon: Boxes },
   { path: '/compare', label: 'Compare', icon: GitCompare },
   { path: '/evidence', label: 'Changes & Evidence', icon: FileSearch },
+  { path: '/tasks', label: 'Tasks & Sprints', icon: ListChecks },
   { path: '/insights', label: 'AI Insights', icon: Sparkles },
 ];
 
