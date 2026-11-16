@@ -13,6 +13,7 @@
     "rq1:milestones": "tsx scripts/rq1-milestones.ts",
     "extractor-eval": "tsx scripts/extractor-eval.ts",
     "reference-agreement": "tsx scripts/reference-agreement.ts",
+    "reference-check": "tsx scripts/reference-check.ts",
     "jira-preview": "tsx scripts/jira-preview.ts",
     "seed:test": "tsx scripts/seed-test-accounts.ts",
     "test": "node --import tsx --import ./tests/setup-env.mjs --test tests/*.test.mjs",
