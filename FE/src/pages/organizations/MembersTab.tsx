@@ -24,7 +24,9 @@ export default function MembersTab({ organization, userId, onCountChange, onLeft
   const [busy, setBusy] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [form] = Form.useForm<{ email: string; role: OrganizationRole }>();
-  const owner = organization.myRole === 'owner';
+  // RF-14: while suspended the server refuses every change by owners except leaving, so only Leave is offered.
+  const suspended = !!organization.suspension;
+  const owner = organization.myRole === 'owner' && !suspended;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -110,7 +112,7 @@ export default function MembersTab({ organization, userId, onCountChange, onLeft
         <ul className={`${featurePanel} divide-y divide-[var(--at-line)]`} aria-label="Members">
           {members.map(m => {
             const self = m.userId === userId;
-            const can = memberActions(members, m, { userId, role: organization.myRole });
+            const can = memberActions(members, m, { userId, role: suspended ? 'member' : organization.myRole });
             return (
               <li key={m.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                 <div className="min-w-0">

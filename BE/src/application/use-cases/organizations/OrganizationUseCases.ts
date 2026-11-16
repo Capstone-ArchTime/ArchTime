@@ -202,6 +202,10 @@ export class OrganizationUseCases {
     if (member.userId !== input.userId && caller.role !== OrganizationRole.OWNER) {
       throw new ForbiddenError("Only organization owners can remove other members.");
     }
+    // RF-14: while suspended nobody removes anyone else; a member may still leave on their own.
+    if (member.userId !== input.userId && isSuspended(await this.organizations.findById(input.organizationId))) {
+      throw new ForbiddenError("This organization is suspended by a System Administrator; it cannot be changed until it is reactivated.");
+    }
     if (member.status !== OrganizationMemberStatus.INVITED && member.role === OrganizationRole.OWNER
       && (await this.organizations.countOwners(input.organizationId)) <= 1) {
       throw new BadRequestError("An organization needs at least one owner. Make someone else an owner first.");
