@@ -18,13 +18,15 @@
 | RF-14 | Admin xem tổ chức (chỉ metadata), tạm khoá / mở lại | T7 (T44 làm phần xem) | S01, S11–S14, `organization-suspension` (3), FE `admin-organizations` (+4) | **Đã làm, chờ review** | PR + review + CI; UAT U-O1 |
 | RF-24 | Kiến trúc tham chiếu 5 repo, đồng thuận MoJoFM | T1, T6 | Công cụ `reference-agreement` + 6 test; mẫu và hướng dẫn | **BLOCKED** | Cần hai người viết tham chiếu cho 5 repo; số MoJoFM; giao Công |
 | RF-30 | Quy ước commit, finding `convention` | T5 | `commit-convention` (10), `conformance-check` (+2), `conformance-repository` (+1), N-07 | **Đã làm, chờ review** | PR + review + CI; Đức xác nhận dùng chung kiểu finding (D5) và cách gửi e-mail (K3 ở Report 5); UAT U-V1 |
+| RF-15 | Mine theo release tag (T17) | Đợt trước | `mining-plan`, `mining-service` (milestones) | **Đã làm** | Theo BM04 §8.2 là RF của Trường; review + BM04 |
+| RF-16 | FACT không trích dẫn hiển thị là INFERENCE (T31) | Đợt trước | `mentor-claim-labels` (12), WF02-E2E | **Đã làm** | Theo BM04 §8.2 là RF của Trường; review + BM04 |
 
 ## 2. Luồng, chức năng, NFR
 
 | Mục | Kiểm tra | Cục bộ | Staging |
 |---|---|---|---|
-| WF-02 | 8 test qua ứng dụng thật trên MongoDB | 8 / 8 pass | — |
-| WF-07 | 10 test (HTTP thật + mining thật) | 10 / 10 pass | — |
+| WF-02 | 8 test theo cơ cấu BM04 (F-04 ×3, F-06 ×3, E2E, N-02), tất cả trong CI | 8 / 8 pass | — |
+| WF-07 | 10 test theo cơ cấu BM04 (F-13 ×3, E2E, SM-09 ×4, SM-10 ×2), tất cả trong CI | 10 / 10 pass | — |
 | F-04 | So sánh, ranh giới project, evidence | WF02-03…05 pass | — |
 | F-13 | Nhập, removed, tiến độ sprint, liên kết | WF07-01, 03, 06 pass | — |
 | N-02 | p95 liệt kê 1.000 snapshot ≤ 1 s | p95 47,7–89,1 ms qua 4 lần đo | — |

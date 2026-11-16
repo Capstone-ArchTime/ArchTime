@@ -1,5 +1,5 @@
 import { Router, type RequestHandler } from "express";
-import type { ImportTasksUseCase, LinkCommitsToTasksUseCase, ListTasksUseCase } from "../../application/use-cases/tasks/TaskUseCases.js";
+import type { ImportTasksUseCase, LinkCommitsToTasksUseCase, ListTasksUseCase, TaskImpactUseCase } from "../../application/use-cases/tasks/TaskUseCases.js";
 import type { JwtTokenService } from "../../infrastructure/services/JwtTokenService.js";
 import { createAuthenticateMiddleware } from "../middlewares/authenticate.js";
 import type { ProjectAction } from "../middlewares/projectRole.js";
@@ -9,6 +9,7 @@ export interface TaskUseCases {
   list: ListTasksUseCase;
   importTasks: ImportTasksUseCase;
   link: LinkCommitsToTasksUseCase;
+  impact?: TaskImpactUseCase;
 }
 
 /**
@@ -36,6 +37,28 @@ export function createTaskRouter(useCases: TaskUseCases, jwtTokenService: JwtTok
    */
   router.get("/:id/tasks", auth, projectRoleMiddleware("read"), async (req, res, next) => {
     try { sendSuccess(res, await useCases.list.execute(req.params.id)); } catch (error) { next(error); }
+  });
+
+  /**
+   * @swagger
+   * /api/projects/{id}/tasks/{key}/impact:
+   *   get:
+   *     tags: [Tasks]
+   *     summary: Tác động kiến trúc của một task (DS-07a) - commit liên kết, phụ thuộc thêm / bớt, component bị đổi, evidence
+   *     description: Component lấy từ Component Diagram (path prefix); thay đổi tính bằng bridge.ts giữa snapshot của commit và snapshot nền.
+   *     security: [{ BearerAuth: [] }]
+   *     parameters:
+   *       - { in: path, name: id, required: true, schema: { type: string } }
+   *       - { in: path, name: key, required: true, schema: { type: string } }
+   *     responses:
+   *       200: { description: "{ key, diagram, commits: [{ hash, title, depAdded, depRemoved, evidenceId, components, edges }], totals }" }
+   *       404: { description: Task không có trong workspace }
+   */
+  router.get("/:id/tasks/:key/impact", auth, projectRoleMiddleware("read"), async (req, res, next) => {
+    try {
+      if (!useCases.impact) throw new Error("Task impact is not configured.");
+      sendSuccess(res, await useCases.impact.execute(req.params.id, req.params.key));
+    } catch (error) { next(error); }
   });
 
   /**

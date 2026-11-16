@@ -5,7 +5,11 @@
 | Phiên bản | 1.0 |
 | Ngày | 2026-11-16 |
 | Nguồn | BM04 RF-24; [rq1-protocol.md](../rq1-protocol.md) §1–§2; danh sách việc T1, T6 |
-| Trạng thái | **Đã chuẩn bị công cụ, mẫu và hướng dẫn. Chưa có bản tham chiếu nào do người viết.** Không file nào trong thư mục này chứa kiến trúc tham chiếu thật. |
+| Trạng thái (2026-11-16) | **Reference A** của react-router và docusaurus đã có, do **trợ lý AI (Claude)** viết, ghi rõ trong trường `author` (cách làm giống người gán nhãn thứ nhất của tập phát triển RQ1-B). **Reference B (thành viên nhóm) chưa có**, nên chưa có MoJoFM. 3 repo còn lại chưa có bản nào. |
+
+> ⚠️ **Người viết Reference B: không mở `react-router.claude.json` và `docusaurus.claude.json`** cho tới khi đã nộp bản
+> của mình. Nếu đã mở, báo nhóm và đổi người viết; đồng thuận đo sau đó không còn ý nghĩa. Khi nhóm chấp nhận người viết
+> thứ nhất là AI, báo cáo RQ1 phải ghi rõ điều đó (rq1-protocol §4).
 
 Tài liệu này dành cho **hai người viết** tham chiếu của mỗi repo. Đọc hết mục 1 trước khi bắt đầu.
 
@@ -37,6 +41,7 @@ Tài liệu này dành cho **hai người viết** tham chiếu của mỗi repo
   ```
 
   Script kiểm tra: cùng repo, cùng commit, hai tác giả khác nhau, checkout đúng commit. Nó báo tiền tố không khớp file nào (lỗi chính tả), số file mỗi bản phủ, **MoJoFM hai chiều** trên các file cả hai cùng gán (cùng hàm `mojoFM` mà báo cáo RQ1 dùng, đã kiểm chứng bằng brute force trong `BE/tests/mojo.test.mjs`), và các component bị bản kia tách ra (điểm bắt đầu khi thống nhất).
+- Trước khi so, kiểm tra một bản: `npm run reference-check -- --checkout <thư-mục-repo> --ref <repo>.<tên>.json` (đọc được không, tiền tố nào không khớp file nào, mỗi component phủ bao nhiêu file).
 - Số báo cáo: **chiều thấp hơn** của MoJoFM (MoJoFM không đối xứng). Ghi cả hai chiều vào [architecture-reference-evaluation.md](../architecture-reference-evaluation.md).
 - Sau khi thống nhất: một file `<repo>.final.json`, rồi Công nhập vào workspace của repo qua *Quality → Reference architecture* (hoặc `PUT /api/projects/:id/architecture/reference` với `{ components: [{ name, prefixes }] }`).
 

@@ -89,8 +89,12 @@ architecture's 55.74; `docs/rq1-protocol.md` §7).
 repository's documentation, not by either writer's preference, and record each decision. The reconciled reference is
 imported into the repository's workspace and used for RQ1-A.
 
-**[PENDING]** No reference architecture had been written by 16 November 2026. The tooling, template, commits and guide are
-in place (`docs/architecture-reference-evaluation.md`).
+**[PENDING]** By 16 November 2026, reference A had been written for react-router (13 components covering 208 of 542
+analysed files; integration tests and playgrounds deliberately excluded) and for docusaurus (15 components, 671 of 813
+files). Both were written by an AI assistant from the repositories' architecture documents and source, before
+ArchTime had been run on these repositories; this is disclosed as in the development set. Reference B, by a team
+member working independently, and therefore writer agreement, are pending for all five repositories
+(`docs/architecture-reference-evaluation.md`).
 
 ## 5. Agreement between reference writers (MoJoFM)
 

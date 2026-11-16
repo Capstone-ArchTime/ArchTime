@@ -5,7 +5,7 @@
 | Ngày | 2026-11-16 |
 | Nguồn | BM04 RF-24; [rq1-protocol.md](rq1-protocol.md) §2.3; danh sách việc T1, T6 |
 | Hướng dẫn cho người viết | [architecture-references/README.md](architecture-references/README.md) |
-| Trạng thái | **BLOCKED** cho cả 5 repo: chưa có bản tham chiếu nào do người viết. Công cụ so sánh, mẫu, hướng dẫn và commit đã sẵn sàng. |
+| Trạng thái | **IN_PROGRESS.** react-router và docusaurus: có Reference A do trợ lý AI viết (ghi rõ), chờ Reference B của một thành viên nhóm. actual, react-admin, outline: chưa có bản nào. Công cụ (`reference-check`, `reference-agreement`), mẫu, hướng dẫn và commit đã sẵn sàng. |
 | Phụ thuộc | T6 phải xong trước khi Công chạy C11 (tập kiểm tra). Hạn trong danh sách việc: 18/11/2026 |
 
 > Tài liệu này **không** chứa số MoJoFM nào. Mỗi ô "—" được điền từ đầu ra của `npm run reference-agreement` sau khi
@@ -27,10 +27,12 @@
 
 ## 2. Kết quả theo repo
 
+Reference A của hai repo đầu do trợ lý AI viết từ ADR / trang kiến trúc và mã nguồn, **không** dùng đầu ra ArchTime (hai repo này chưa được mine). Người viết thứ hai phải là thành viên nhóm, không mở file của AI trước khi nộp bản của mình. Phủ ít ở react-router (38 %) là có chủ đích: `integration/`, `playground/` không thuộc kiến trúc theo ADR.
+
 | Repo | Commit | Reference A (tác giả, số component, phủ) | Reference B (tác giả, số component, phủ) | File chung | MoJoFM A→B | MoJoFM B→A | Đồng thuận | Trạng thái |
 |---|---|---|---|---:|---|---|---|---|
-| react-router | `5d7962e` | — | — | — | — | — | — | BLOCKED: chưa có bản nào |
-| docusaurus | `4c4ec4a` | — | — | — | — | — | — | BLOCKED: chưa có bản nào |
+| react-router | `5d7962e` | Claude (AI), 13 component, 208 / 542 | — | — | — | — | — | Chờ Reference B |
+| docusaurus | `4c4ec4a` | Claude (AI), 15 component, 671 / 813 | — | — | — | — | — | Chờ Reference B |
 | react-admin | `f466cf7` | — | — | — | — | — | — | BLOCKED: chưa có bản nào |
 | actual | `33912a0` | — | — | — | — | — | — | BLOCKED: chưa có bản nào |
 | outline | `c0288df` | — | — | — | — | — | — | BLOCKED: chưa có bản nào |

@@ -45,3 +45,31 @@ test('Tasks & Sprints is a page of every developer-analyst, in the Analyze group
   const analyze = navGroupsFor('developer-analyst').find(g => g.label === 'Analyze');
   assert.ok(analyze.items.some(i => i.path === '/tasks' && i.label === 'Tasks & Sprints'));
 });
+
+// ── DS-07a: a task's architectural impact ────────────────────────────────────
+import { edgeLabel, fetchTaskImpact, impactSummary, readTaskImpact } from '../src/features/tasks.ts';
+import { mockGlobal } from './mock-global.mjs';
+
+const impact = (over = {}) => ({
+  key: 'T47', diagram: { confirmed: true, components: 2 },
+  commits: [{ hash: 'aaaaaaa', title: 't', date: '2026-11-16', source: 'subject', mined: true, depAdded: 1, depRemoved: 0, evidenceId: 'ev1', components: ['Billing', 'Orders'], edges: [{ source: 'Billing', target: 'Orders', added: 1, removed: 0 }] }],
+  totals: { commits: 1, depAdded: 1, depRemoved: 0, components: ['Billing', 'Orders'], architecturalCommits: 1 },
+  ...over,
+});
+
+test('a task impact is worded: changed dependencies between components, and where', () => {
+  assert.equal(edgeLabel({ source: 'Billing', target: 'Orders', added: 1, removed: 2 }), 'Billing → Orders +1 −2');
+  assert.equal(impactSummary(impact()), '1 commit, 1 changing dependencies between components in Billing, Orders; 1 dependency added, 0 removed.');
+  assert.match(impactSummary(impact({ diagram: null })), /Map path prefixes in the Component Diagram/);
+  assert.equal(impactSummary(impact({ commits: [] })), 'No commit names this task yet.');
+  assert.throws(() => readTaskImpact({ key: 'T47' }), /invalid task impact/);
+});
+
+test('the impact is asked for the task by key, in its workspace', async (t) => {
+  mockGlobal(t, 'sessionStorage', { getItem: k => (k === 'accessToken' ? 'token' : null), setItem() {}, removeItem() {} });
+  mockGlobal(t, 'localStorage', { getItem: () => null, setItem() {}, removeItem() {} });
+  const asked = [];
+  t.mock.method(globalThis, 'fetch', async url => { asked.push(String(url)); return Response.json({ success: true, data: impact() }); });
+  assert.equal((await fetchTaskImpact('p 1', 'T47')).totals.architecturalCommits, 1);
+  assert.match(asked[0], /\/projects\/p%201\/tasks\/T47\/impact$/);
+});

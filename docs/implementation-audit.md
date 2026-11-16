@@ -4,7 +4,8 @@
 |---|---|
 | Ngày | 2026-11-16 |
 | Nguồn | `SEP490_FA26SE279_Tasks_Truong.pdf` (danh sách việc lập 12/11/2026); repo tại `Develop` `718415e` |
-| Tài liệu không có trong repo | SRS, SDD, BM03, BM04 (RF, UC, BR, MSG, SM, DS). Mọi chỗ dựa vào chúng ở dưới đều ghi rõ là **diễn giải** và cần đối chiếu |
+| BM04 | Đã đối chiếu với `SWP490_FA26SE279_R2_Commitment.pdf` (BM04 Review 2) ngày 2026-11-16: Report 5 §7 |
+| Tài liệu không có | SRS, SDD, BM03 (BR, MSG, UC chi tiết). Chỗ dựa vào chúng ghi rõ là **diễn giải** |
 
 ## 1. Kiến trúc hiện có
 
@@ -49,18 +50,18 @@
 
 | Task | Status | Existing implementation | Missing work | Verification |
 |---|---|---|---|---|
-| T1 Tham chiếu 5 repo (bản 1) | BLOCKED | Protocol, MoJoFM | **Hai người viết** cho ≥ 2 repo | Đã có: commit cố định, mẫu, hướng dẫn, `reference-agreement` (6 test) |
-| T2 JiraExportParser | DONE (chờ review / CI) | — | Đối chiếu câu chữ MSG22 với SRS | 11 test viết trước code; chạy trên file mẫu |
-| T3 Chuẩn bị review | IN_PROGRESS | — | 2 bản tham chiếu + MoJoFM (chờ T1); ý kiến thầy | [review-preparation.md](review-preparation.md); parser chạy với file mẫu |
-| T4 Task, sprint, liên kết commit | DONE (chờ review / CI) | — | UAT trên trình duyệt | WF07-01…10, `task-tracking`, `task-repository` (MongoDB) |
-| T5 Quy ước commit | DONE (chờ review / CI) | Kiểu finding D5 | Đức xác nhận kiểu finding và chính sách e-mail | `commit-convention` (10), conformance (+3), N-07 |
-| T6 Hoàn tất 5 tham chiếu | BLOCKED | — | Tham chiếu của người viết, MoJoFM, thống nhất, giao Công | [architecture-reference-evaluation.md](architecture-reference-evaluation.md) (khung, không số) |
-| T7 Màn hình tổ chức cho admin | DONE (chờ review / CI) | Xem metadata (T44) | UAT trên trình duyệt | S13, S14, `organization-suspension` (3), FE (+4) |
+| T1 Tham chiếu 5 repo (bản 1) | IN_PROGRESS | Protocol, MoJoFM | Reference B (thành viên nhóm) cho react-router và docusaurus; nhóm chấp nhận người viết A là AI | Reference A (AI, ghi rõ) cho react-router (13 component, 208/542 file) và docusaurus (15 component, 671/813); `reference-check` báo không có tiền tố hỏng |
+| T2 JiraExportParser | DONE (chờ review) | — | Câu chữ MSG22 theo SRS | 13 test viết trước code; thông báo nêu dòng của task hỏng (DS-07b); CI xanh trên Develop |
+| T3 Chuẩn bị review | IN_PROGRESS (quá hạn 14/11) | — | MoJoFM giữa 2 người viết (chờ Reference B); ý kiến thầy | [review-preparation.md](review-preparation.md); `npm run jira-preview` với file mẫu |
+| T4 Task, sprint, liên kết commit | DONE (chờ review) | — | UAT U-T7 | WF07-01…10, WF07-E2E, SM-09/SM-10, tác động kiến trúc của task (DS-07a); UAT U-T1…U-T6 pass |
+| T5 Quy ước commit | DONE (chờ review) | Kiểu finding D5 | Đức xác nhận kiểu finding và chính sách e-mail; UAT U-V2 | `commit-convention` (10), conformance (+3), N-07; UAT U-V1 pass |
+| T6 Hoàn tất 5 tham chiếu | IN_PROGRESS | — | Reference B cho 2 repo; cả A và B cho actual, react-admin, outline; MoJoFM; thống nhất; giao Công trước C11 | [architecture-reference-evaluation.md](architecture-reference-evaluation.md) |
+| T7 Màn hình tổ chức cho admin | DONE (chờ review) | Xem metadata (T44) | — | S13, S14, `organization-suspension`, chặn chuyển workspace vào tổ chức bị khoá, thông báo cho thành viên; UAT U-O1…U-O3 pass |
 | T8 Độ chính xác extractor | IN_PROGRESS | Công cụ, test | Nhãn của 2 người; quyết định về file test `*-test.ts` | 5 phiếu seed 2026, tái lập đã kiểm; [extractor-evaluation-report.md](extractor-evaluation-report.md) |
 | T9 Gán nhãn tập kiểm tra | BLOCKED | Công cụ RQ1-B | Chờ C11 (Công), C11 chờ T6 | [test-set-annotation-report.md](test-set-annotation-report.md) (quy trình) |
-| T10 Test WF-02, WF-07 | DONE (chờ CI) | — | Push để CI chạy | 18 / 18 pass cục bộ; N-02 p95 ≤ 89,1 ms |
+| T10 Test WF-02, WF-07 | DONE (chờ review) | — | — | Đúng cơ cấu BM04: WF-02 8 test, WF-07 10 test, **18 / 18 trong CI** (BM04 yêu cầu ≥ 9); N-02 p95 ≤ 89,1 ms; CI xanh |
 | T11 Thesis: chương đánh giá | IN_PROGRESS | — | Số liệu RQ1 / EX (chờ nhãn); Công ghép | [thesis-evaluation-content.md](thesis-evaluation-content.md) |
-| T12 Report 5 | IN_PROGRESS | report5-test-plan.md (T07) | Danh sách 101 test của BM04 §7 | [report-5-test-plan-and-results.md](report-5-test-plan-and-results.md) |
+| T12 Report 5 | IN_PROGRESS | report5-test-plan.md (T07) | Bảng kết quả cho cả 101 test của nhóm cần phần của các thành viên khác | [report-5-test-plan-and-results.md](report-5-test-plan-and-results.md) §7 đối chiếu BM04 cho 18 test của Trường; UAT §5 |
 | T13 Kiểm tra cuối | BLOCKED | — | Quyền staging; PR / CI | [final-verification-report.md](final-verification-report.md) (phần cục bộ) |
 
 "DONE (chờ review / CI)": đã code, có test, test pass cục bộ, tài liệu đã cập nhật. Theo quy ước nhóm, việc chỉ xong khi đã merge qua PR có review và CI xanh: **chưa đạt**, vì các nhánh chưa được push.
@@ -89,4 +90,4 @@ Nhánh 3–5 xếp chồng: mở PR theo thứ tự, PR sau chỉ còn diff riê
 | Tiến độ sprint | Done / tổng, **không tính task removed**; sprint rỗng là `n/a`, không phải 0 % | 0 % sẽ ngụ ý còn việc |
 | Quy ước commit | Scope bắt buộc; `Task:` bắt buộc khi commit đổi phụ thuộc giữa component; merge / revert của git được miễn; mọi finding là `warning` | Theo đúng chữ `type(scope): summary` và "kèm Task:, Arch-Change: khi đổi kiến trúc" |
 | Tạm khoá tổ chức | Đóng mọi workspace của tổ chức với mọi người (kể cả owner), owner không sửa được tổ chức, token agent bị chặn; không xoá dữ liệu; cần lý do | UC-25 không có trong repo |
-| SM-09, SM-10 | Gán theo luồng: SM-09 ↔ WF-02, SM-10 ↔ WF-07 | Cùng cách Đức đã làm cho SM-06/11/12 |
+| SM-09, SM-10 | **Đã đối chiếu BM04 §6.7:** SM-09 là máy trạng thái của Task (4 chuyển trạng thái), SM-10 của Sprint (2). Cách gán theo luồng ở bản trước là sai và đã bỏ | Report 5 §7.2 |

@@ -1,5 +1,6 @@
 import type { ISprint, ITask, ITaskCommitLink } from "../../domain/entities/Task.js";
-import type { IMinedCommitSource, ITaskRepository, MinedCommit } from "../../domain/interfaces/ITaskRepository.js";
+import type { CommitArchitecture, ICommitArchitectureSource, IMinedCommitSource, ITaskRepository, MinedCommit } from "../../domain/interfaces/ITaskRepository.js";
+import { EvidenceModel } from "../database/models/EvidenceModel.js";
 import type { ImportPlan } from "../../domain/tasks/tasks.js";
 import { SnapshotModel } from "../database/models/SnapshotModel.js";
 import { SprintModel, TaskCommitModel, TaskModel } from "../database/models/TaskModels.js";
@@ -77,5 +78,25 @@ export const mongoMinedCommits: IMinedCommitSource = {
   async commitsOf(projectId: string): Promise<MinedCommit[]> {
     const docs = await SnapshotModel.find({ projectId, missingSince: null }).select("hash fullHash title trailers author date").sort({ date: 1 }).lean();
     return docs.map((d: any) => ({ hash: d.hash, fullHash: d.fullHash ?? null, title: d.title ?? "", trailers: d.trailers ?? [], author: d.author ?? "", date: d.date }));
+  },
+};
+
+type Graph = { nodes: { id: string }[]; edges: { source: string; target: string }[] };
+
+/** A linked commit's snapshot, the snapshot it was measured against, and its evidence (DS-07a). */
+export const mongoCommitArchitecture: ICommitArchitectureSource = {
+  async ofCommit(projectId: string, hash: string): Promise<CommitArchitecture | null> {
+    const snap = await SnapshotModel.findOne({ projectId, hash, missingSince: null }).select("depAdded depRemoved baseHash nodes edges").lean<Graph & { depAdded?: number; depRemoved?: number; baseHash?: string }>();
+    if (!snap) return null;
+    const [base, evidence] = await Promise.all([
+      snap.baseHash ? SnapshotModel.findOne({ projectId, fullHash: snap.baseHash }).select("nodes edges").lean<Graph>() : Promise.resolve(null),
+      EvidenceModel.findOne({ projectId, commit: hash }).select("_id").lean<{ _id: unknown }>(),
+    ]);
+    return {
+      depAdded: snap.depAdded ?? 0, depRemoved: snap.depRemoved ?? 0,
+      graph: { nodes: snap.nodes ?? [], edges: snap.edges ?? [] },
+      baseGraph: base ? { nodes: base.nodes ?? [], edges: base.edges ?? [] } : null,
+      evidenceId: evidence ? String(evidence._id) : null,
+    };
   },
 };

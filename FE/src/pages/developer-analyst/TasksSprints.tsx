@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Alert, App, Button, Empty, Input, Progress as Bar, Segmented, Select, Spin, Switch, Table, Tag, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { GitCommitHorizontal, Link2, Upload } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { getManagedProjects, getReadableProjects, type ProjectSummary } from '@/features/project-data';
 import {
-  STATUS_COLORS, fetchTaskBoard, filterTasks, importJiraExport, importSummary, progressLabel, relinkCommits,
+  STATUS_COLORS, edgeLabel, fetchTaskBoard, fetchTaskImpact, filterTasks, impactSummary, importJiraExport, importSummary, progressLabel, relinkCommits,
 } from '@/features/tasks';
-import type { Sprint, Task, TaskBoard, TaskFilter } from '@/features/tasks';
+import type { Sprint, Task, TaskBoard, TaskFilter, TaskImpact } from '@/features/tasks';
 import { ApiError } from '@/api/client';
 
 // Tasks & Sprints (F-13, WF-07): the tasks of a workspace imported from Jira, the commits that name them, and sprint
@@ -33,6 +33,43 @@ function SprintCard({ sprint, selected, onSelect }: { sprint: Sprint; selected: 
     <Bar percent={progress.percent ?? 0} size="small" showInfo={false} status={progress.total && progress.done === progress.total ? 'success' : 'normal'} aria-label={`${sprint.name} progress`} />
     <p className="text-sm">{progressLabel(progress)}{progress.pointsTotal ? ` · ${progress.pointsDone} / ${progress.pointsTotal} points` : ''}</p>
   </button>;
+}
+
+/** The commits of one task with what each changed in the architecture (DS-07a), loaded when the row is opened. */
+function TaskCommits({ project, task }: { project: string; task: Task }) {
+  const [impact, setImpact] = useState<TaskImpact | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchTaskImpact(project, task.key, controller.signal).then(setImpact)
+      .catch(cause => { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Could not load the impact.'); });
+    return () => controller.abort();
+  }, [project, task.key]);
+  const byHash = new Map((impact?.commits ?? []).map(c => [c.hash, c]));
+  return <div className="space-y-2">
+    {impact && <p className="text-xs text-[var(--at-muted)]">{impactSummary(impact)}{impact.diagram && !impact.diagram.confirmed ? ' (components from an unconfirmed diagram)' : ''}</p>}
+    {error && <p className="text-xs text-[var(--at-warn)]">{error}</p>}
+    <ul className="space-y-2 text-sm">
+      {task.commits.map(c => {
+        const i = byHash.get(c.hash);
+        return <li key={c.hash} className="space-y-1">
+          <div className="flex gap-2 items-baseline flex-wrap">
+            <GitCommitHorizontal size={13} className="shrink-0 self-center" />
+            <code>{c.hash}</code><span className="break-words">{c.title}</span>
+            <span className="text-xs text-[var(--at-muted)] shrink-0">{c.author} · {day(c.date)}{c.source === 'trailer' ? ' · Task: trailer' : ''}</span>
+          </div>
+          {i && <div className="pl-5 flex flex-wrap items-center gap-1 text-xs">
+            {!i.mined ? <Tag>no longer in the mined history</Tag> : <>
+              <Tag color={i.depAdded || i.depRemoved ? 'gold' : undefined}>+{i.depAdded} / −{i.depRemoved} dependencies</Tag>
+              {i.edges.map(e => <Tag key={`${e.source}>${e.target}`} color="purple">{edgeLabel(e)}</Tag>)}
+              {!i.edges.length && i.components.length > 0 && <span className="text-[var(--at-muted)]">inside {i.components.join(', ')}</span>}
+              {i.evidenceId && <Link className="text-[var(--at-link)] hover:underline" to={`/evidence?projectId=${encodeURIComponent(project)}&commit=${encodeURIComponent(c.hash)}`}>Evidence</Link>}
+            </>}
+          </div>}
+        </li>;
+      })}
+    </ul>
+  </div>;
 }
 
 function Board({ project, maintains }: { project: string; maintains: boolean }) {
@@ -136,13 +173,7 @@ function Board({ project, maintains }: { project: string; maintains: boolean }) 
         <Table<Task> rowKey="key" size="small" columns={columns} dataSource={rows} pagination={{ pageSize: 25, hideOnSinglePage: true }}
           expandable={{
             rowExpandable: t => t.commits.length > 0,
-            expandedRowRender: t => <ul className="space-y-1 text-sm">
-              {t.commits.map(c => <li key={c.hash} className="flex gap-2 items-baseline">
-                <GitCommitHorizontal size={13} className="shrink-0 self-center" />
-                <code>{c.hash}</code><span className="break-words">{c.title}</span>
-                <span className="text-xs text-[var(--at-muted)] shrink-0">{c.author} · {day(c.date)}{c.source === 'trailer' ? ' · Task: trailer' : ''}</span>
-              </li>)}
-            </ul>,
+            expandedRowRender: t => <TaskCommits project={project} task={t} />,
           }}
           locale={{ emptyText: 'No task matches.' }} />
       </>}

@@ -31,7 +31,7 @@ File: `BE/tests/wf02-architecture-evolution.test.mjs`. Dữ liệu chung: một 
 
 | ID | Yêu cầu | Kịch bản | Tiền điều kiện | Kết quả mong đợi | Kết quả thực tế | Pass/Fail | CI |
 |---|---|---|---|---|---|---|---|
-| WF02-01 | WF-02, SM-09\* | Xem lịch sử theo trang | 1.000 snapshot | 50 dòng mới nhất trước, `meta.total` = 1.000, không có `nodes`/`edges`; trang 20 kết thúc ở commit đầu | Đúng như mong đợi | Pass | Có |
+| WF02-01 | WF-02 | Xem lịch sử theo trang | 1.000 snapshot | 50 dòng mới nhất trước, `meta.total` = 1.000, không có `nodes`/`edges`; trang 20 kết thúc ở commit đầu | Đúng như mong đợi | Pass | Có |
 | WF02-02 | WF-02 | Bộ chọn revision tải toàn bộ danh sách tóm tắt | như trên | 1.000 dòng, có tên release (`v1.9.0`, `v1.8.0` mới nhất trước), không có đồ thị | Đúng | Pass | Có |
 | WF02-03 | **F-04** | So sánh revision đầu và cuối; so một revision với chính nó | như trên | +19 file, −0 file, 120 file giữ nguyên, có cạnh thêm; so với chính nó: 0 thay đổi | Đúng | Pass | Có |
 | WF02-04 | **F-04** | So với revision của workspace khác; id sai; thiếu tham số | snapshot ngoại | 404; 400; 400 | Đúng | Pass | Có |
@@ -40,7 +40,7 @@ File: `BE/tests/wf02-architecture-evolution.test.mjs`. Dữ liệu chung: một 
 | WF02-07 | **N-02** | p95 khi liệt kê 1.000 snapshot (tóm tắt) và một trang 50 | 1.000 snapshot | p95 ≤ 1.000 ms cho cả hai | Xem mục 3.1 | Pass | Có |
 | WF02-08 | N-02 (ghi nhận) | Liệt kê 1.000 snapshot **kèm đồ thị** (cách trang Compare tải trước T10) | 1.000 snapshot | Chỉ ghi số; khẳng định đồ thị chiếm phần lớn dung lượng (> 20 lần bản tóm tắt) | 24,8 MB, xem 3.1 | Pass | Có |
 
-\* Mã SM gán theo luồng (SM-09 ↔ WF-02, SM-10 ↔ WF-07), cùng cách Đức đã làm ở D11; **cần đối chiếu với BM04**, vì BM04 không có trong repo.
+\
 
 ### 3.1 N-02: số đo thực tế
 
@@ -64,7 +64,7 @@ File: `BE/tests/wf07-task-tracking.test.mjs` (WF07-01…06, 08…10) và `BE/tes
 
 | ID | Yêu cầu | Kịch bản | Tiền điều kiện | Kết quả mong đợi | Kết quả thực tế | Pass/Fail | CI |
 |---|---|---|---|---|---|---|---|
-| WF07-01 | **F-13**, RF-07, SM-10\* | Maintainer nhập file Jira (3 task, 1 sprint, 1 task backlog) | chưa có task | 3 tạo mới; bảng có key, summary, status, assignee, story points, sprint | Đúng | Pass | Có |
+| WF07-01 | **F-13**, RF-07 | Maintainer nhập file Jira (3 task, 1 sprint, 1 task backlog) | chưa có task | 3 tạo mới; bảng có key, summary, status, assignee, story points, sprint | Đúng | Pass | Có |
 | WF07-02 | F-13, RF-07 | Nhập lại cùng file (lần hai gửi dạng object) | đã nhập | 0 tạo mới, 2 unchanged; vẫn 2 task, 1 sprint | Đúng | Pass | Có |
 | WF07-03 | **F-13**, RF-07 | Lần nhập sau thiếu một task | đã nhập 2 task | Task thiếu được đánh dấu `removed`, có `removedAt`, vẫn hiển thị | Đúng | Pass | Có |
 | WF07-04 | RF-07, MSG22, BR-25 | File có task thiếu key; file JSON hỏng; thiếu file | đã có ARCH-1 | 400, `messageId` MSG22, nêu "task 2", "Nothing was imported"; ARCH-1 không đổi, ARCH-5 không được tạo; 400; 400 | Đúng | Pass | Có |
@@ -140,19 +140,60 @@ Môi trường: máy phát triển, `npm run dev` (BE + FE), MongoDB cục bộ,
 
 "Không cảnh báo mới": `oxlint` không báo gì trong các file đã thêm hoặc sửa; các cảnh báo cũ (ví dụ `Projects.tsx`) vẫn còn.
 
-## 7. Report 5 theo "101 test đã cam kết"
+## 7. Đối chiếu với BM04 Review 2 (phần của Trường)
 
-BM04 §7 ghi 101 test case đã cam kết, nhưng **danh sách 101 test không có trong repo** (BM04 chưa được đưa vào). Vì vậy tài liệu này **không** khẳng định 101 test đã pass. Những gì kiểm chứng được:
+Nguồn: `SWP490_FA26SE279_R2_Commitment.pdf` (BM04 Review 2), §6.2 WF-02, §6.7 WF-07, §4 N-02, §8 và §9. BM04 cam kết **101 test case cho cả nhóm, 52 tự động trong CI**; phần của Trường là **18 test, ít nhất 9 trong CI**, 4 demo (DS-02a, DS-02b, DS-07a, DS-07b).
 
-| Phần | Số test case | Tự động / CI | Kết quả | Tài liệu |
-|---|---:|---|---|---|
-| WF-02 (Trường) | 8 | 8 / 8 | 8 pass | Mục 3 |
-| WF-07 (Trường) | 10 | 10 / 10 | 10 pass | Mục 4 |
-| Tổ chức, vai trò (system test) | 14 (S01–S14) | 14 / 14 | 14 pass | [system-test-report.md](system-test-report.md), mục 4.2 |
-| WF-05, WF-08, WF-09 (Đức) | 25 | 13 tự động | theo D11 / D14 | [d11-test-cases-wf05-wf08-wf09.md](d11-test-cases-wf05-wf08-wf09.md) |
-| Phần còn lại của 101 | ? | ? | **Chưa đối chiếu** | Cần BM04 §7 |
+### 7.1 WF-02: 8 test (BM04: 4 trong CI)
 
-Việc cần làm để đóng T12: đưa danh sách 101 test của BM04 §7 vào repo, ánh xạ từng mã sang file test hoặc bước UAT, rồi điền cột kết quả.
+| Loại (BM04) | Mã BM04 | Test | CI |
+|---|---|---|---|
+| Feature F-04 | FE-04-TC01 | WF02-03: so hai revision, liệt kê file / phụ thuộc thêm, bớt, giữ nguyên | Có |
+| Feature F-04 | FE-04-TC02 | WF02-04: không so được revision của workspace khác, id sai, thiếu tham số | Có |
+| Feature F-04 | FE-04-TC03 | WF02-05: evidence của thay đổi; component giữ / đổi tên / tách / gộp: `component-matching.test.mjs` | Có |
+| Feature F-06 | FE-07-TC01 | Mọi claim có nhãn; FACT không trích dẫn hạ xuống INFERENCE (`mentor-claim-labels.test.mjs`) | Có |
+| Feature F-06 | FE-07-TC02 | Chỉ trích dẫn commit có thật; hash bịa bị gỡ (`mentor-claim-labels.test.mjs`) | Có |
+| Feature F-06 | FE-07-TC03 | Câu hỏi thứ 16 trong một phút bị từ chối (MSG10), không gọi mô hình (`mentor-claim-labels.test.mjs`, mới) | Có |
+| End-to-end | DS-02a | WF02-E2E: so sánh → mở evidence → hỏi mentor trên ứng dụng thật và MongoDB; câu trả lời có nhãn, chỉ trích dẫn commit đã mine | Có |
+| NFR N-02 | N-02 | WF02-07: p95 liệt kê 1.000 snapshot ≤ 1 s (đo: 47,7–89,1 ms) | Có |
+
+**8 / 8 tự động, 8 trong CI** (BM04 yêu cầu 4). Ngoài 8 test trên còn các test bổ trợ WF02-01, 02, 06, 08.
+**DS-02b** (mô hình đăng ký với key sai → giữ kết quả phân cụm, nêu lý do MSG08): đã có trong `architecture-refine-service.test.mjs` ("when the model cannot give a verifiable answer, the clustering result is stored with the reason", "a job whose model fails still completes and says it did so without AI").
+
+### 7.2 WF-07: 10 test (BM04: 5 trong CI)
+
+| Loại (BM04) | Mã BM04 | Test | CI |
+|---|---|---|---|
+| Feature F-13 | FE-14-TC01 | WF07-02: nhập cùng file hai lần, không trùng task | Có |
+| Feature F-13 | FE-14-TC02 | WF07-07 (mining thật) và WF07-08: commit "T22 …" / "ARCH-12 …" được liên kết sau khi mine | Có |
+| Feature F-13 | FE-14-TC03 | WF07-06: tiến độ sprint = Done / tổng; WF07-05: Member nhập → 403 | Có |
+| End-to-end | DS-07a | WF07-E2E: nhập file 2 sprint → liên kết commit đã mine → mở T47: commit, evidence, component | Có |
+| SM-09 (Task) | T1 | To Do → In Progress (`wf07-state-transitions.test.mjs`) | Có |
+| SM-09 (Task) | T2 | In Progress → In Review | Có |
+| SM-09 (Task) | T3 | In Review → Done (tiến độ sprint tính task) | Có |
+| SM-09 (Task) | T4 | In Review → In Progress (làm lại) | Có |
+| SM-10 (Sprint) | S1 | Future → Active | Có |
+| SM-10 (Sprint) | S2 | Active → Closed | Có |
+
+**10 / 10 tự động, 10 trong CI** (BM04 yêu cầu 5). **DS-07b** (file có task thiếu key → từ chối, chỉ ra dòng của task hỏng, task cũ không đổi): WF07-04 và `jira-export-parser.test.mjs` ("DS-07b: a refusal names the line…"); thông báo: *MSG22: task 3 (line 7) in the file has no key…*.
+
+### 7.3 Tiêu chí đạt ở Defense 1.1 (BM04 §6.2, §6.7)
+
+| Tiêu chí | WF-02 | WF-07 |
+|---|---|---|
+| Chạy end-to-end trên staging với dữ liệu seed | **Chưa** (chưa có quyền staging); đạt trên máy phát triển | **Chưa**; đạt trên máy phát triển |
+| Kịch bản chính đạt | Đạt cục bộ (WF02-E2E, UAT U-C1, U-C2) | Đạt cục bộ (WF07-E2E, UAT U-T1…U-T6) |
+| Kịch bản ngoại lệ đạt | 1 / 1 (DS-02b, test tự động) | 1 / 1 (DS-07b) |
+| Tỉ lệ test đạt ≥ 90 %; 100 % test đường chính | 100 % | 100 % |
+| Lỗi Critical / High còn mở | 0 (K1, K9 đã sửa) | 0 |
+
+### 7.4 Chỗ lệch giữa danh sách việc và BM04 (cần nhóm xác nhận)
+
+| Mục | Danh sách việc (12/11) | BM04 Review 2 | Ghi chú |
+|---|---|---|---|
+| RF của Trường | RF-07, RF-14, RF-24, RF-30 | §8.2 "Required fixes owned": RF-07, RF-14, **RF-15, RF-16** | RF-15 (mine theo release tag, T17) và RF-16 (FACT không trích dẫn → INFERENCE, T31) đã làm ở đợt trước, có test: `mining-plan`, `mining-service` (milestones) và `mentor-claim-labels`. RF-24 (tham chiếu RQ1) và RF-30 (quy ước commit) có trong danh sách việc; chủ của RF-24 trong bảng §9 cần đối chiếu lại |
+| Workflow của F-13 | WF-07 | Bảng §8.1 ghi F-13 ở dòng WF-04 (Bảo) nhưng §6.7 và §2 ghi WF-07 / Trường | Có thể do bảng bị lệch cột khi xuất PDF |
+| Câu chữ MSG22 | "task thiếu key (MSG22)" | Không có trong BM04 | Cần SRS; hiện dùng câu tự diễn giải |
 
 ## 8. Lỗi đã biết và hạn chế
 
@@ -165,6 +206,6 @@ Việc cần làm để đóng T12: đưa danh sách 101 test của BM04 §7 và
 | K5 | Test file theo kiểu `*-test.ts` không bị `isAnalyzable` loại | Trung bình | Ghi ở [extractor-evaluation-report.md](extractor-evaluation-report.md) §6, chờ nhóm quyết định |
 | K6 | Tạm khoá tổ chức: job mining đang chạy không bị dừng; e-mail finding vẫn có thể gửi cho maintainer của tổ chức bị khoá | Thấp | Ghi nhận |
 | K7 | Giao diện chưa có test trình duyệt tự động | Trung bình | UAT mục 5 |
-| K8 | Câu chữ MSG22 và mã SM-09 / SM-10 chưa đối chiếu với SRS / BM04 | Thấp | Cần SRS / BM04 trong repo |
+| K8 | Câu chữ MSG22 chưa đối chiếu với SRS (SM-09 / SM-10 đã đối chiếu với BM04, mục 7) | Thấp | Cần SRS |
 | K9 | Nút Import Jira và nút Suspend gửi JSON mà không có `Content-Type` (`apiRequest` không tự thêm), nên server thấy body rỗng: "Attach the Jira export file". Test FE giả lập `fetch` nên không bắt được | Cao | **Đã sửa** (`fix/json-content-type`); test kiểm header và quét mọi `apiRequest` có body JSON |
 | K10 | Thành viên của tổ chức bị khoá chỉ thấy danh sách workspace trống, không có lời giải thích; owner vẫn chuyển được workspace cá nhân **vào** tổ chức đang bị khoá | Trung bình | **Đã sửa** (`fix/suspended-org-notice`): thông báo trên Workspaces, thẻ "Suspended" và cảnh báo trên Organizations, tổ chức bị khoá không còn trong danh sách nơi tạo workspace; chuyển workspace vào tổ chức bị khoá trả 403 |

@@ -14,6 +14,7 @@ import { ProjectModel } from "../src/infrastructure/database/models/ProjectModel
 import { SnapshotModel } from "../src/infrastructure/database/models/SnapshotModel.ts";
 import { EvidenceModel } from "../src/infrastructure/database/models/EvidenceModel.ts";
 import { UserModel } from "../src/infrastructure/database/models/UserModel.ts";
+import { LlmModelRegistry } from "../src/infrastructure/llm/registry.ts";
 
 const uri = process.env.MONGODB_TEST_URI ?? "mongodb://127.0.0.1:27017";
 const dbName = `archtime_test_wf02_${randomUUID().slice(0, 8)}`;
@@ -72,6 +73,11 @@ before(async () => {
   const base = `http://127.0.0.1:${server.address().port}/api/projects`;
   const ownerToken = jwt.generateTokens(String(owner._id), "developer-analyst", 0).accessToken;
   const strangerToken = jwt.generateTokens(String(stranger._id), "developer-analyst", 0).accessToken;
+  const post = async (path, body, token = ownerToken) => {
+    const res = await fetch(base + path, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+    const text = await res.text();
+    return { status: res.status, json: text ? JSON.parse(text) : null };
+  };
   const get = async (path, token = ownerToken) => {
     const t0 = performance.now();
     const res = await fetch(base + path, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
@@ -79,7 +85,7 @@ before(async () => {
     return { status: res.status, ms: performance.now() - t0, bytes: Buffer.byteLength(text), json: text ? JSON.parse(text) : null };
   };
   const ids = (await SnapshotModel.find({ projectId }).sort({ date: 1 }).select("_id").lean()).map(d => String(d._id));
-  ctx = { server, get, projectId, ids, foreignId: String(foreign._id), strangerToken, seedMs };
+  ctx = { server, get, post, projectId, ids, foreignId: String(foreign._id), strangerToken, seedMs };
 });
 
 after(async () => {
@@ -189,4 +195,28 @@ test("WF02-08 N-02 (for the record): the same list with every dependency graph, 
   const full = await measure(`/${ctx.projectId}/snapshots`, 5);
   t.diagnostic(`N-02 list all WITH graphs, 5 runs: p50 ${full.p50.toFixed(1)} ms, p95 ${full.p95.toFixed(1)} ms, max ${full.max.toFixed(1)} ms, ${full.bytes} bytes`);
   assert.ok(full.bytes > 20 * (await measure(`/${ctx.projectId}/snapshots?summary=1`, 1)).bytes, "the graphs are most of the payload");
+});
+
+test("WF02-E2E DS-02a: compare two revisions, open the evidence, ask the mentor: the answer is labelled and cites only mined commits", async t => {
+  if (!ctx) return t.skip(unavailable);
+  // 1. Compare the first and the last revision.
+  const compare = await ctx.get(`/${ctx.projectId}/snapshots/compare?baseId=${ctx.ids[0]}&targetId=${ctx.ids[SNAPSHOTS - 1]}`);
+  assert.equal(compare.status, 200);
+  assert.ok(compare.json.data.diff.nodesAdded.length > 0);
+  // 2. Open the newest evidence: commit 000001d ("Dependency change 29").
+  const evidence = (await ctx.get(`/${ctx.projectId}/evidences?page=1&limit=1`)).json.data.evidences[0];
+  assert.equal(evidence.commit, "000001d");
+  // 3. Ask the mentor (the default model is replaced by a scripted one: no AI provider is called in tests). It cites the
+  //    evidence's commit, which is mined, and a hash that was never mined.
+  t.mock.method(LlmModelRegistry, "resolve", async () => ({
+    modelId: null, modelKey: "test", pricing: null,
+    client: { info: { model: "scripted", host: "localhost", external: false }, complete: async () => "[FACT] A dependency was added in `000001d`.\n[FACT] It was reverted in `badc0de`.\n[INFERENCE] The module is growing." },
+  }));
+  const chat = await ctx.post(`/${ctx.projectId}/chat`, { messages: [{ role: "user", content: `Why did ${evidence.commit} change dependencies?` }] });
+  assert.equal(chat.status, 200, JSON.stringify(chat.json));
+  const { answer, labelCheck, evidence: cited } = chat.json.data;
+  assert.equal(answer, "[FACT] A dependency was added in `000001d`.\n[INFERENCE] It was reverted in.\n[INFERENCE] The module is growing.");
+  assert.ok(answer.split("\n").every(line => /^\[(FACT|INFERENCE|UNKNOWN)\]/.test(line)), "every claim labelled");
+  assert.deepEqual(labelCheck.removedCitations, ["badc0de"], "the never-mined commit is not cited");
+  assert.deepEqual(cited.commits, ["000001d"]);
 });
