@@ -159,7 +159,8 @@
  * thin light edge and a soft glow, ice-blue text, light pill buttons with dark text, Montserrat. Panels are translucent
  * so the background shows through; every text colour keeps at least 7:1 against the panels.
  */
-html[data-theme="frost"] {
+/* `.at-frost-scope` wears the same palette and floor on one page whatever the theme on <html> (the 404 page). */
+html[data-theme="frost"], .at-frost-scope {
   --at-page: rgb(14 19 24 / 0.5);
   --at-sidebar: rgb(12 17 22 / 0.6);
   --at-chrome: rgb(14 19 24 / 0.78);
@@ -235,6 +236,60 @@ html[data-theme="frost"] :is(.ant-tag-blue, .ant-tag-processing, .ant-tag-geekbl
 html[data-theme="frost"] ::selection { background: rgb(212 224 245 / 0.35); color: #ffffff; }
 /* A handwritten accent, like the "New Subscriber" flourish of the reference: for one or two words, never for reading. */
 html[data-theme="frost"] .at-script { font-family: "Great Vibes", cursive; font-weight: 400; font-size: 1.35em; letter-spacing: 0; text-transform: none; text-shadow: 0 0 18px rgb(230 238 255 / 0.45); }
+
+/* The 404 page (pages/NotFound.tsx): DESIGN.md glass and pearl pills over the background picture; the portal glow
+   breathes, the lantern flickers, stars twinkle and the mist drifts. With prefers-reduced-motion everything stands still. */
+.at-frost-scope { color: var(--at-text); font-family: "Montserrat", system-ui, sans-serif; letter-spacing: 0.005em; }
+.at-404-oops { font-size: clamp(3.5rem, 8vw, 6rem); line-height: 1; letter-spacing: -0.02em; color: #ffffff; text-shadow: 0 0 28px rgb(220 232 255 / 0.35); }
+.at-404-headline { font-size: clamp(2rem, 4.2vw, 3.25rem); line-height: 1.15; letter-spacing: -0.01em; color: #c3cdd9; text-shadow: 0 0 22px rgb(220 232 255 / 0.18); }
+.at-404-gradient { background: linear-gradient(90deg, #ffffff, #c7d3ff 45%, #8fa3e8); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.at-404-pearl { background: #e4eaf5; color: #18212c; box-shadow: 0 0 22px rgb(214 228 255 / 0.4), inset 0 -1px 0 rgb(24 33 44 / 0.12); transition: background-color 150ms; }
+.at-404-pearl:hover { background: #ffffff; color: #18212c; }
+.at-404-pearl:active { background: #cdd8ea; }
+.at-404-glass { background: rgb(214 225 240 / 0.07); color: #eef2f8; border: 1px solid rgb(225 234 248 / 0.26); transition: background-color 150ms, border-color 150ms; }
+a.at-404-glass:hover { background: rgb(214 225 240 / 0.12); border-color: #d3def3; color: #ffffff; }
+.at-404-avatar { background: #e4eaf5; color: #18212c; box-shadow: 0 0 16px rgb(214 228 255 / 0.32); }
+.at-404-nav { position: relative; padding-bottom: 6px; transition: color 150ms; }
+.at-404-nav.active { color: #ffffff; }
+.at-404-nav.active::after { content: ""; position: absolute; left: -10px; right: -10px; bottom: -4px; height: 2px; border-radius: 2px; background: #e4eaf5; box-shadow: 0 0 10px rgb(214 228 255 / 0.5); }
+:is(.at-404-pearl, .at-404-glass, .at-404-nav, .at-404-avatar):focus-visible { outline: 2px solid #9db3dc; outline-offset: 3px; }
+
+.at-404-mist { position: absolute; pointer-events: none; border-radius: 50%; filter: blur(40px); opacity: 0.55; z-index: 0; }
+.at-404-mist-1 { width: 70vw; height: 30vh; left: -20vw; bottom: -10vh; background: radial-gradient(closest-side, rgb(150 165 185 / 0.55), transparent); animation: at404-drift 38s ease-in-out infinite alternate; }
+.at-404-mist-2 { width: 60vw; height: 26vh; right: -15vw; bottom: -6vh; background: radial-gradient(closest-side, rgb(170 182 200 / 0.45), transparent); animation: at404-drift 46s ease-in-out infinite alternate-reverse; }
+.at-404-mist-3 { width: 45vw; height: 22vh; left: 30vw; bottom: 2vh; background: radial-gradient(closest-side, rgb(140 155 175 / 0.35), transparent); animation: at404-drift 30s ease-in-out infinite alternate; }
+
+
+@keyframes at404-drift { from { transform: translateX(-6vw); } to { transform: translateX(8vw); } }
+@keyframes at404-breathe { 0%, 100% { opacity: 0.75; transform: scale(0.97); } 50% { opacity: 1; transform: scale(1.04); } }
+@keyframes at404-twinkle { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+@keyframes at404-flicker { 0%, 100% { opacity: 0.85; transform: scale(1); } 30% { opacity: 1; transform: scale(1.06); } 60% { opacity: 0.75; transform: scale(0.96); } }
+
+/* Background picture of the 404 page. .at-404-art keeps the picture's 1024:572 proportions and always covers the screen,
+   anchored right, so the light layers (positioned in % of the picture) stay on the portal and the lantern. */
+.at-404-bg { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.at-404-art {
+  position: absolute; right: 0; top: 50%; aspect-ratio: 1024 / 572; width: max(100vw, calc(100vh * 1024 / 572));
+  transform: translateY(-50%); background: url("/not-found-bg.webp") center / 100% 100% no-repeat;
+  animation: at404-zoom 40s ease-in-out infinite alternate; transform-origin: 75% 45%;
+}
+.at-404-portal-glow { position: absolute; left: 75.5%; top: 41%; width: 22%; height: 52%; translate: -50% -50%; border-radius: 40%;
+  background: radial-gradient(closest-side, rgb(200 210 255 / 0.5), rgb(150 160 240 / 0.15) 55%, transparent); mix-blend-mode: screen; animation: at404-breathe 6s ease-in-out infinite; }
+.at-404-lantern-glow { position: absolute; left: 69.2%; top: 65.5%; width: 7%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(255 236 200 / 0.75), rgb(240 194 126 / 0.25) 50%, transparent); mix-blend-mode: screen; animation: at404-flicker 2.4s ease-in-out infinite; }
+.at-404-star { position: absolute; translate: -50% -50%; width: 4px; height: 4px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 8px #eaf1ff; animation: at404-twinkle 3.2s ease-in-out infinite; }
+/* Darker on the left, where the text is, and over the whole picture on narrow screens. */
+.at-404-veil { position: absolute; inset: 0; background: linear-gradient(90deg, rgb(14 18 23 / 0.9) 0%, rgb(14 18 23 / 0.7) 30%, rgb(14 18 23 / 0.15) 55%, transparent 70%); }
+/* Narrow screens: the whole picture below the text, at full width, fading into the page above it. */
+@media (max-width: 1023px) {
+  .at-404-art { top: auto; bottom: 0; width: 100%; transform: none; animation: none; }
+  .at-404-veil { background: linear-gradient(180deg, #151b21 0%, #151b21 calc(100% - 64vw), rgb(21 27 33 / 0) calc(100% - 46vw)); }
+}
+@keyframes at404-zoom { from { transform: translateY(-50%) scale(1); } to { transform: translateY(-50%) scale(1.06); } }
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.at-404-mist, .at-404-art, .at-404-portal-glow, .at-404-lantern-glow, .at-404-star) { animation: none; }
+}
 
 /* Folder boxes of the Compare drawing: a lighter box on hover, an outline on keyboard focus. */
 .compare-node { outline: none; }
