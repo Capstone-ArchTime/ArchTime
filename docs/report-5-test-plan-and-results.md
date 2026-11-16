@@ -129,6 +129,7 @@ Môi trường: máy phát triển, `npm run dev` (BE + FE), MongoDB cục bộ,
 | U-T8 | (DS-07b) Nhập lại `jira-export-msg22-sample.json` sau khi thêm số dòng | *MSG22: task 3 (line 7) …*; dòng 7 của file đúng là task thiếu key | **Pass** |
 | U-T9 | (DS-07a) Mở ARCH-13 (removed), T22, ARCH-12 | ARCH-13: "1 commit, 1 changing dependencies between components in Billing, Orders", thẻ +1/−0, Billing → Orders +1, nút xem evidence; T22 và ARCH-12: +0/−0, không có cạnh | **Pass** (link evidence lúc đầu quá nhỏ: đổi thành nút "View evidence", K11) |
 | U-T10 | (SM-09, SM-10) Nhập `jira-sm-1`…`jira-sm-5` | ARCH-14: To Do → In Progress → In Review → In Progress → In Review → Done; Sprint 3 Future → Active; Sprint 2 Active → Closed, 2/2 (100 %); vẫn 4 task, 1 removed, 3 commit liên kết | **Pass** |
+| U-O4 | Tổ chức bị khoá: bob và alice mở chi tiết Acme | Cảnh báo vàng có thời điểm và lý do; không có nút Edit; owner không còn form thêm thành viên, ô đổi vai trò, nút Remove; member vẫn có nút Leave | **Pass** sau khi sửa K12 (lần đầu owner vẫn thấy các nút quản lý thành viên) |
 
 ## 6. Kết quả toàn bộ bộ test (đã chạy)
 
@@ -213,3 +214,4 @@ Nguồn: `SWP490_FA26SE279_R2_Commitment.pdf` (BM04 Review 2), §6.2 WF-02, §6.
 | K9 | Nút Import Jira và nút Suspend gửi JSON mà không có `Content-Type` (`apiRequest` không tự thêm), nên server thấy body rỗng: "Attach the Jira export file". Test FE giả lập `fetch` nên không bắt được | Cao | **Đã sửa** (`fix/json-content-type`); test kiểm header và quét mọi `apiRequest` có body JSON |
 | K10 | Thành viên của tổ chức bị khoá chỉ thấy danh sách workspace trống, không có lời giải thích; owner vẫn chuyển được workspace cá nhân **vào** tổ chức đang bị khoá | Trung bình | **Đã sửa** (`fix/suspended-org-notice`): thông báo trên Workspaces, thẻ "Suspended" và cảnh báo trên Organizations, tổ chức bị khoá không còn trong danh sách nơi tạo workspace; chuyển workspace vào tổ chức bị khoá trả 403 |
 | K11 | Link "Evidence" của commit trong Tasks & Sprints là chữ nhỏ, khó thấy | Thấp | **Đã sửa** (`fix/task-evidence-button`): nút "View evidence" có viền và biểu tượng |
+| K12 | Khi tổ chức bị khoá, owner vẫn **gỡ được thành viên khác** (`removeMember` không kiểm tra trạng thái khoá), và tab Members vẫn hiện form thêm, ô đổi vai trò, nút Remove | Trung bình | **Đã sửa** (`fix/suspended-org-members`): server trả 403 khi gỡ người khác, vẫn cho tự rời; giao diện chỉ còn nút Leave; system test S15 (đã thử bỏ bản sửa, S15 fail) |

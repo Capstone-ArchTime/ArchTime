@@ -348,3 +348,17 @@ test("S14 while suspended, the organization's workspaces are closed to everyone 
   assert.equal(await status("PATCH", "/organizations/acme", "alice", { name: "Acme" }), 200);
   assert.equal(w.orgMembers.length, membersBefore, "suspension removed no member");
 });
+
+test("S15 while suspended, owners cannot add, re-role or remove members; a member may still leave", async (t) => {
+  const { status, w } = await start(t);
+  await status("POST", "/admin/organizations/acme/suspend", "admin", { reason: "Security review" });
+  const before = w.orgMembers.filter((m) => m.organizationId === "acme").length;
+  assert.equal(await status("POST", "/organizations/acme/members", "alice", { email: "gina@x.io" }), 403, "add");
+  assert.equal(await status("PATCH", "/organizations/acme/members/om1", "alice", { role: "owner" }), 403, "change role");
+  assert.equal(await status("DELETE", "/organizations/acme/members/om1", "alice"), 403, "remove someone else");
+  assert.equal(w.orgMembers.filter((m) => m.organizationId === "acme").length, before, "nobody was added or removed");
+  assert.equal(await status("DELETE", "/organizations/acme/members/om2", "carl"), 200, "carl leaves on his own");
+  assert.equal(w.orgMembers.filter((m) => m.organizationId === "acme").length, before - 1);
+  await status("POST", "/admin/organizations/acme/reactivate", "admin");
+  assert.equal(await status("DELETE", "/organizations/acme/members/om3", "alice"), 200, "after reactivation the owner manages members again");
+});
