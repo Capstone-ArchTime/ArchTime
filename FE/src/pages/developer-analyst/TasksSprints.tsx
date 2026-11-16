@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Alert, App, Button, Empty, Input, Progress as Bar, Segmented, Select, Spin, Switch, Table, Tag, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { GitCommitHorizontal, Link2, Upload } from 'lucide-react';
+import { FileSearch, GitCommitHorizontal, Link2, Upload } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { getManagedProjects, getReadableProjects, type ProjectSummary } from '@/features/project-data';
 import {
@@ -63,7 +63,11 @@ function TaskCommits({ project, task }: { project: string; task: Task }) {
               <Tag color={i.depAdded || i.depRemoved ? 'gold' : undefined}>+{i.depAdded} / −{i.depRemoved} dependencies</Tag>
               {i.edges.map(e => <Tag key={`${e.source}>${e.target}`} color="purple">{edgeLabel(e)}</Tag>)}
               {!i.edges.length && i.components.length > 0 && <span className="text-[var(--at-muted)]">inside {i.components.join(', ')}</span>}
-              {i.evidenceId && <Link className="text-[var(--at-link)] hover:underline" to={`/evidence?projectId=${encodeURIComponent(project)}&commit=${encodeURIComponent(c.hash)}`}>Evidence</Link>}
+              {i.evidenceId && <Link to={`/evidence?projectId=${encodeURIComponent(project)}&commit=${encodeURIComponent(c.hash)}`}
+                aria-label={`Open the evidence of commit ${c.hash}`}
+                className="inline-flex items-center gap-1 rounded-md border border-[var(--at-link)] px-2 py-0.5 text-xs font-semibold text-[var(--at-link)] hover:bg-[var(--at-link)] hover:text-[var(--at-page)] transition-colors">
+                <FileSearch size={12} /> View evidence
+              </Link>}
             </>}
           </div>}
         </li>;
