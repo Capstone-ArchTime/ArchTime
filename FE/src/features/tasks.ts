@@ -116,3 +116,51 @@ export function filterTasks(tasks: readonly Task[], filter: TaskFilter): Task[] 
     && (filter.sprint === 'all' || (filter.sprint === 'backlog' ? !t.sprintId : t.sprintId === filter.sprint))
     && (!q || t.key.toLowerCase().includes(q) || t.summary.toLowerCase().includes(q) || (t.assignee ?? '').toLowerCase().includes(q)));
 }
+
+// ── Architectural impact of a task (DS-07a) ──
+
+export interface TaskCommitImpact {
+  hash: string;
+  title: string;
+  date: string;
+  source: 'subject' | 'trailer';
+  mined: boolean;
+  depAdded: number;
+  depRemoved: number;
+  evidenceId: string | null;
+  components: string[];
+  edges: { source: string; target: string; added: number; removed: number }[];
+}
+
+export interface TaskImpact {
+  key: string;
+  diagram: { confirmed: boolean; components: number } | null;
+  commits: TaskCommitImpact[];
+  totals: { commits: number; depAdded: number; depRemoved: number; components: string[]; architecturalCommits: number };
+}
+
+export function readTaskImpact(data: unknown): TaskImpact {
+  const d = data as TaskImpact | null;
+  if (!d || typeof d.key !== 'string' || !Array.isArray(d.commits) || !d.totals || !d.commits.every(c => typeof c.hash === 'string' && Array.isArray(c.edges) && Array.isArray(c.components))) {
+    throw new Error('The server returned an invalid task impact.');
+  }
+  return d;
+}
+
+export async function fetchTaskImpact(projectId: string, key: string, signal?: AbortSignal): Promise<TaskImpact> {
+  const body = await apiRequest<{ data?: unknown }>(`/projects/${encodeURIComponent(projectId)}/tasks/${encodeURIComponent(key)}/impact`, { signal });
+  return readTaskImpact(body?.data);
+}
+
+/** "Billing → Orders +1", "Billing → Orders −2": one changed dependency between components. */
+export const edgeLabel = (e: TaskCommitImpact['edges'][number]) =>
+  `${e.source} → ${e.target}${e.added ? ` +${e.added}` : ''}${e.removed ? ` −${e.removed}` : ''}`;
+
+/** One line for the whole task: how many of its commits changed the architecture, and where. */
+export function impactSummary(i: TaskImpact): string {
+  if (!i.commits.length) return 'No commit names this task yet.';
+  const deps = `${i.totals.depAdded} dependenc${i.totals.depAdded === 1 ? 'y' : 'ies'} added, ${i.totals.depRemoved} removed`;
+  if (!i.diagram) return `${i.totals.commits} commit${i.totals.commits === 1 ? '' : 's'}: ${deps}. Map path prefixes in the Component Diagram to see the components.`;
+  const where = i.totals.components.length ? ` in ${i.totals.components.join(', ')}` : '';
+  return `${i.totals.commits} commit${i.totals.commits === 1 ? '' : 's'}, ${i.totals.architecturalCommits} changing dependencies between components${where}; ${deps}.`;
+}

@@ -10,7 +10,7 @@ import { UserRole, UserStatus } from "../src/domain/entities/User.ts";
 import { OrganizationRole } from "../src/domain/entities/Organization.ts";
 import { MemberStatus, ProjectMemberRole } from "../src/domain/entities/ProjectMember.ts";
 import { ProjectStatus, RepoVisibility } from "../src/domain/entities/Project.ts";
-import { ImportTasksUseCase, LinkCommitsToTasksUseCase, ListTasksUseCase } from "../src/application/use-cases/tasks/TaskUseCases.ts";
+import { ImportTasksUseCase, LinkCommitsToTasksUseCase, ListTasksUseCase, TaskImpactUseCase } from "../src/application/use-cases/tasks/TaskUseCases.ts";
 import { createTaskRouter } from "../src/presentation/routes/task.routes.ts";
 import { createProjectRoleMiddleware } from "../src/presentation/middlewares/projectRole.ts";
 import { errorHandler } from "../src/presentation/middlewares/errorHandler.ts";
@@ -51,14 +51,14 @@ const issue = (key, { done = false, sprints = [sprint(1, "Sprint 1")], points = 
 });
 const exportText = (...issues) => JSON.stringify({ issues });
 
-async function start(t, mined = []) {
+async function start(t, mined = [], architecture = {}, components = []) {
   t.mock.method(MongoUserRepository.prototype, "findById", async id => users.find(u => u.id === id) ?? null);
   const jwt = new JwtTokenService("test-jwt-secret", "15m", "7d");
   const repo = new InMemoryTaskRepository();
   const link = new LinkCommitsToTasksUseCase(repo, minedCommits(mined));
   const app = express();
   app.use(express.json({ limit: "2mb" }));
-  app.use("/api/projects", createTaskRouter({ list: new ListTasksUseCase(repo), importTasks: new ImportTasksUseCase(repo, link), link }, jwt, createProjectRoleMiddleware(projectRepo, memberRepo, organizations)));
+  app.use("/api/projects", createTaskRouter({ list: new ListTasksUseCase(repo), importTasks: new ImportTasksUseCase(repo, link), link, impact: new TaskImpactUseCase(repo, { ofCommit: async (_p, hash) => architecture[hash] ?? null }, { findByProjectId: async () => ({ diagram: { components, confirmedAt: new Date() } }) }) }, jwt, createProjectRoleMiddleware(projectRepo, memberRepo, organizations)));
   app.use(errorHandler);
   const server = app.listen(0, "127.0.0.1");
   await once(server, "listening");
@@ -184,4 +184,29 @@ test("WF07-10 commits naming unknown keys are reported and not linked to anythin
   const r = await call("POST", "/shop/tasks/import", "mia", { file: exportText(issue("ARCH-1")) });
   assert.deepEqual(r.json.data.links, { commits: 2, linked: 0, unknownKeys: ["ARCH-404", "HTTP2"] });
   assert.equal(repo.links.length, 0);
+});
+
+test("WF07-E2E DS-07a: import, link mined commits, open T47: its commits, evidence and components; members read, strangers do not", async t => {
+  const g = edges => ({ nodes: ["src/orders/o.ts", "src/billing/b.ts"].map(id => ({ id })), edges: edges.map(([source, target]) => ({ source, target })) });
+  const mined = [commit("aaaaaaa", "feat(billing): T47 bill reads orders"), commit("bbbbbbb", "fix(orders): rounding", ["Task: T22"])];
+  const architecture = {
+    aaaaaaa: { depAdded: 1, depRemoved: 0, graph: g([["src/billing/b.ts", "src/orders/o.ts"]]), baseGraph: g([]), evidenceId: "ev-1" },
+    bbbbbbb: { depAdded: 0, depRemoved: 0, graph: g([["src/billing/b.ts", "src/orders/o.ts"]]), baseGraph: g([["src/billing/b.ts", "src/orders/o.ts"]]), evidenceId: null },
+  };
+  const components = [{ id: "orders", name: "Orders", pathPrefixes: ["src/orders"] }, { id: "billing", name: "Billing", pathPrefixes: ["src/billing"] }];
+  const { call } = await start(t, mined, architecture, components);
+  // An export with two sprints, as in DS-07a.
+  const imported = await call("POST", "/shop/tasks/import", "mia", { file: exportText(issue("T47"), issue("T22", { sprints: [sprint(2, "Sprint 2", "future")] })) });
+  assert.equal(imported.json.data.created, 2);
+  assert.equal(imported.json.data.links.linked, 2);
+  const board = (await call("GET", "/shop/tasks", "dev")).json.data;
+  assert.deepEqual(board.sprints.map(s => s.name), ["Sprint 1", "Sprint 2"]);
+  const impact = await call("GET", "/shop/tasks/T47/impact", "dev");
+  assert.equal(impact.status, 200);
+  assert.deepEqual(impact.json.data.commits.map(c => [c.hash, c.evidenceId, c.components, c.edges]), [["aaaaaaa", "ev-1", ["Billing", "Orders"], [{ source: "Billing", target: "Orders", added: 1, removed: 0 }]]]);
+  assert.deepEqual(impact.json.data.totals.components, ["Billing", "Orders"]);
+  assert.equal((await call("GET", "/shop/tasks/T22/impact", "dev")).json.data.totals.architecturalCommits, 0);
+  assert.equal((await call("GET", "/shop/tasks/T99/impact", "dev")).status, 404);
+  assert.equal((await call("GET", "/shop/tasks/T47/impact", "out")).status, 403);
+  assert.equal((await call("GET", "/shop/tasks/T47/impact")).status, 401);
 });

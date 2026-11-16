@@ -131,3 +131,25 @@ test('team task ids without a dash (T22) are valid keys; keys are trimmed and up
 test('the parser accepts an already parsed object as well as the text of the file', () => {
   assert.equal(parseJiraExport({ issues: [issue('ARCH-1')] }).tasks.length, 1);
 });
+
+// ── DS-07b: "refused with the line of the bad task" ──────────────────────────
+import { issueLines } from '../src/domain/tasks/jiraExport.ts';
+
+test('DS-07b: a refusal names the line of the file where the bad task starts', () => {
+  const text = '{\n  "issues": [\n    { "key": "ARCH-1", "fields": { "summary": "a" } },\n    { "fields": { "summary": "no key" } }\n  ]\n}';
+  rejects(text, err => {
+    assert.equal(err.messageId, MSG22);
+    assert.equal(err.line, 4);
+    assert.match(err.message, /task 2 \(line 4\)/);
+  });
+  // A parsed object has no lines: the task position alone is given.
+  rejects({ issues: [issue('ARCH-1'), { fields: {} }] }, err => assert.equal(err.line, null));
+});
+
+test('the line scanner skips brackets inside strings, reads a root array, and counts blank lines', () => {
+  assert.deepEqual(issueLines('{"issues":[{"key":"A-1"},\n{"key":"A-2","s":"],[,{"},\n\n {}]}'), [1, 2, 4]);
+  assert.deepEqual(issueLines('[\n {"key":"A-1"},\n {}\n]'), [2, 3]);
+  assert.deepEqual(issueLines('{"names":{"x":"issues"},"meta":[1,2],"issues":[\n{}]}'), [2]);
+  assert.deepEqual(issueLines('{"issues":[]}'), []);
+  assert.deepEqual(issueLines('{"a":"\\"issues\\"","issues":[{}]}'), [1]);
+});

@@ -31,3 +31,19 @@ export interface MinedCommit {
 export interface IMinedCommitSource {
   commitsOf(projectId: string): Promise<MinedCommit[]>;
 }
+
+/** A mined commit as the architectural impact of a task reads it (DS-07a, WF-07). */
+export interface CommitArchitecture {
+  depAdded: number;
+  depRemoved: number;
+  graph: { nodes: { id: string }[]; edges: { source: string; target: string }[] };
+  /** Graph of the snapshot its counts were measured against; null for the first mined commit. */
+  baseGraph: { nodes: { id: string }[]; edges: { source: string; target: string }[] } | null;
+  /** The change evidence recorded for the commit, when it changed dependencies. */
+  evidenceId: string | null;
+}
+
+export interface ICommitArchitectureSource {
+  /** Null when the commit is not (or no longer) mined. */
+  ofCommit(projectId: string, hash: string): Promise<CommitArchitecture | null>;
+}

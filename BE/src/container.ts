@@ -507,8 +507,8 @@ export const projectMaintainerController = new ProjectMaintainerController({
 export { jwtTokenService };
 
 // ── Project tasks & sprints (F-13, RF-07, UC-36 – UC-39) ──
-import { ImportTasksUseCase, LinkCommitsToTasksUseCase, ListTasksUseCase } from "./application/use-cases/tasks/TaskUseCases.js";
-import { MongoTaskRepository, mongoMinedCommits } from "./infrastructure/repositories/MongoTaskRepository.js";
+import { ImportTasksUseCase, LinkCommitsToTasksUseCase, ListTasksUseCase, TaskImpactUseCase } from "./application/use-cases/tasks/TaskUseCases.js";
+import { MongoTaskRepository, mongoCommitArchitecture, mongoMinedCommits } from "./infrastructure/repositories/MongoTaskRepository.js";
 import type { TaskUseCases } from "./presentation/routes/task.routes.js";
 const taskRepository = new MongoTaskRepository();
 const linkCommitsToTasksUseCase = new LinkCommitsToTasksUseCase(taskRepository, mongoMinedCommits);
@@ -516,6 +516,7 @@ export const taskUseCases: TaskUseCases = {
   list: new ListTasksUseCase(taskRepository),
   importTasks: new ImportTasksUseCase(taskRepository, linkCommitsToTasksUseCase),
   link: linkCommitsToTasksUseCase,
+  impact: new TaskImpactUseCase(taskRepository, mongoCommitArchitecture, workspaceRepository),
 };
 // After every mined batch: link its commits to the tasks they name (ARCH-12, T22).
 MiningService.onBatchSaved = (projectId, commits) => linkCommitsToTasksUseCase.execute(projectId, commits);

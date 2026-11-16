@@ -47,6 +47,8 @@ export class JiraExportError extends Error {
     public readonly messageId: typeof MSG22 | null = null,
     /** 1-based position of the offending task in the file, when one is to blame. */
     public readonly taskIndex: number | null = null,
+    /** 1-based line of the file where that task starts (DS-07b: "refused with the line of the bad task"). */
+    public readonly line: number | null = null,
   ) {
     super(message);
     this.name = "JiraExportError";
@@ -64,8 +66,44 @@ const REFUSED = "Nothing was imported.";
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
-function refuse(message: string, index: number | null = null): never {
-  throw new JiraExportError(`${message} ${REFUSED}`, null, index);
+function refuse(message: string, index: number | null = null, line: number | null = null): never {
+  throw new JiraExportError(`${message} ${REFUSED}`, null, index, line);
+}
+
+/**
+ * The line on which each element of the export's issue list starts, in order: the "issues" array of the root object, or
+ * the root array itself. A small scanner over the JSON text (strings and escapes respected); the text is already known
+ * to be valid JSON when this runs.
+ */
+export function issueLines(text: string): number[] {
+  const lines: number[] = [];
+  const stack: ("object" | "array")[] = [];
+  let line = 1, inString = false, escaped = false, stringStart = -1;
+  let lastKey: string | null = null, issuesDepth = -1, expectElement = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === "\n") line++;
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (c === "\\") escaped = true;
+      else if (c === '"') { inString = false; if (stack.length === 1 && stack[0] === "object") lastKey = text.slice(stringStart + 1, i); }
+      continue;
+    }
+    if (/\s/.test(c) || c === ":") continue;
+    if (expectElement && c !== "]") { lines.push(line); expectElement = false; }
+    if (c === '"') { inString = true; stringStart = i; continue; }
+    if (c === "{" || c === "[") {
+      stack.push(c === "{" ? "object" : "array");
+      const isIssues = c === "[" && ((stack.length === 1) || (stack.length === 2 && stack[0] === "object" && lastKey === "issues"));
+      if (isIssues && issuesDepth < 0) { issuesDepth = stack.length; expectElement = true; }
+    } else if (c === "}" || c === "]") {
+      if (stack.length === issuesDepth && c === "]") { issuesDepth = -2; expectElement = false; }
+      stack.pop();
+    } else if (c === "," && stack.length === issuesDepth) {
+      expectElement = true;
+    }
+  }
+  return lines;
 }
 
 /** The field ids holding story points and the sprint: by name when the export says, else the usual defaults. */
@@ -134,6 +172,7 @@ export function parseJiraExport(input: unknown): ParsedJiraExport {
     try { data = JSON.parse(input); } catch { refuse("The file is not valid JSON."); }
   }
   const issues = Array.isArray(data) ? data : isObject(data) && Array.isArray(data.issues) ? data.issues : null;
+  const lines = typeof input === "string" ? issueLines(input) : [];
   if (!issues) refuse('This is not a Jira JSON export: it has no "issues" list.');
   if (!issues.length) refuse("The export has no tasks.");
 
@@ -144,16 +183,18 @@ export function parseJiraExport(input: unknown): ParsedJiraExport {
 
   issues.forEach((issue: unknown, i: number) => {
     const n = i + 1;
-    if (!isObject(issue)) refuse(`Task ${n} is not a Jira issue object.`, n);
+    const line = lines[i] ?? null;
+    const at = line ? ` (line ${line})` : "";
+    if (!isObject(issue)) refuse(`Task ${n}${at} is not a Jira issue object.`, n, line);
 
     // BR-25 / MSG22: a task without a key cannot be matched on the next import, so the file is refused as a whole.
     const rawKey = issue.key;
     if (rawKey === undefined || rawKey === null || (typeof rawKey === "string" && !rawKey.trim())) {
-      throw new JiraExportError(`MSG22: task ${n} in the file has no key. Every task of a Jira export needs its key. ${REFUSED}`, MSG22, n);
+      throw new JiraExportError(`MSG22: task ${n}${at} in the file has no key. Every task of a Jira export needs its key. ${REFUSED}`, MSG22, n, line);
     }
-    if (typeof rawKey !== "string") refuse(`Task ${n}: the key must be text.`, n);
+    if (typeof rawKey !== "string") refuse(`Task ${n}${at}: the key must be text.`, n, line);
     const key = rawKey.trim().toUpperCase();
-    if (!TASK_KEY_PATTERN.test(key)) refuse(`Task ${n}: "${rawKey}" is not a valid task key.`, n);
+    if (!TASK_KEY_PATTERN.test(key)) refuse(`Task ${n}${at}: "${rawKey}" is not a valid task key.`, n, line);
     if (seen.has(key)) refuse(`Task ${key} appears twice in the file.`, n);
     seen.add(key);
 

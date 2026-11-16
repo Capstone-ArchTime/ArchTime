@@ -1,8 +1,10 @@
 import type { ISprint, ITask, ITaskCommitLink } from "../../../domain/entities/Task.js";
-import type { IMinedCommitSource, ITaskRepository, MinedCommit } from "../../../domain/interfaces/ITaskRepository.js";
+import type { ICommitArchitectureSource, IMinedCommitSource, ITaskRepository, MinedCommit } from "../../../domain/interfaces/ITaskRepository.js";
+import type { IWorkspaceRepository } from "../../../domain/interfaces/IWorkspaceRepository.js";
+import { commitComponentImpact } from "../../../domain/tasks/impact.js";
 import { JiraExportError, parseJiraExport } from "../../../domain/tasks/jiraExport.js";
 import { planImport, sprintProgress, taskKeysOf, type SprintProgress } from "../../../domain/tasks/tasks.js";
-import { ValidationError } from "../../../shared/errors/AppError.js";
+import { NotFoundError, ValidationError } from "../../../shared/errors/AppError.js";
 
 // Task tracking (F-13, RF-07, UC-36 – UC-39, SDD §3.14): import tasks and sprints from a Jira export, link mined commits
 // to the tasks they name, and show sprints with their progress.
@@ -93,6 +95,7 @@ export class ImportTasksUseCase {
           file: error.messageId ?? "invalid",
           ...(error.messageId ? { messageId: error.messageId } : {}),
           ...(error.taskIndex !== null ? { task: String(error.taskIndex) } : {}),
+          ...(error.line !== null ? { line: String(error.line) } : {}),
         });
       }
       throw error;
@@ -161,6 +164,75 @@ export class ListTasksUseCase {
       backlog: sprintProgress(tasks.filter(t => !t.sprintId || !known.has(t.sprintId))),
       totals: { tasks: tasks.filter(t => !t.removed).length, removed: tasks.filter(t => t.removed).length, linkedCommits: new Set(links.map(l => l.hash)).size },
       lastImportedAt: tasks.reduce<Date | null>((latest, t) => (!latest || t.lastImportedAt > latest ? t.lastImportedAt : latest), null),
+    };
+  }
+}
+
+export interface TaskCommitImpact {
+  hash: string;
+  title: string;
+  date: Date;
+  source: "subject" | "trailer";
+  /** False when the commit is no longer in the mined history (force-pushed away). */
+  mined: boolean;
+  depAdded: number;
+  depRemoved: number;
+  evidenceId: string | null;
+  /** Component names, from the workspace's component diagram; empty when the diagram maps no path. */
+  components: string[];
+  edges: { source: string; target: string; added: number; removed: number }[];
+}
+
+export interface TaskImpact {
+  key: string;
+  /** Null when the workspace has no component diagram with path prefixes: dependencies are known, components are not. */
+  diagram: { confirmed: boolean; components: number } | null;
+  commits: TaskCommitImpact[];
+  /** Union over the task's commits. */
+  totals: { commits: number; depAdded: number; depRemoved: number; components: string[]; architecturalCommits: number };
+}
+
+/** TaskImpactUseCase (DS-07a): what each commit of a task changed in the architecture. Read-only; computed on request. */
+export class TaskImpactUseCase {
+  constructor(
+    private readonly tasks: Pick<ITaskRepository, "listTasks" | "listLinks">,
+    private readonly commits: ICommitArchitectureSource,
+    private readonly workspaces: Pick<IWorkspaceRepository, "findByProjectId">,
+  ) {}
+
+  async execute(projectId: string, rawKey: unknown): Promise<TaskImpact> {
+    const key = typeof rawKey === "string" ? rawKey.trim().toUpperCase() : "";
+    const task = (await this.tasks.listTasks(projectId)).find(t => t.key === key);
+    if (!task) throw new NotFoundError("Task not found in this workspace.");
+    const links = (await this.tasks.listLinks(projectId)).filter(l => l.taskKey === key);
+    const diagram = (await this.workspaces.findByProjectId(projectId))?.diagram;
+    const components = (diagram?.components ?? []).filter(c => (c.pathPrefixes ?? []).length);
+    const names = new Map(components.map(c => [c.id, c.name]));
+    const name = (id: string) => names.get(id) ?? id;
+
+    const commits: TaskCommitImpact[] = [];
+    for (const link of links) {
+      const arch = await this.commits.ofCommit(projectId, link.hash);
+      const base = { hash: link.hash, title: link.title, date: link.date, source: link.source };
+      if (!arch) { commits.push({ ...base, mined: false, depAdded: 0, depRemoved: 0, evidenceId: null, components: [], edges: [] }); continue; }
+      const impact = components.length ? commitComponentImpact({ before: arch.baseGraph, after: arch.graph, components }) : null;
+      commits.push({
+        ...base, mined: true, depAdded: arch.depAdded, depRemoved: arch.depRemoved, evidenceId: arch.evidenceId,
+        components: (impact?.components ?? []).map(name),
+        edges: (impact?.edges ?? []).map(e => ({ ...e, source: name(e.source), target: name(e.target) })),
+      });
+    }
+    return {
+      key,
+      diagram: components.length ? { confirmed: !!diagram?.confirmedAt, components: components.length } : null,
+      commits,
+      totals: {
+        commits: commits.length,
+        depAdded: commits.reduce((s, c) => s + c.depAdded, 0),
+        depRemoved: commits.reduce((s, c) => s + c.depRemoved, 0),
+        components: [...new Set(commits.flatMap(c => c.components))].sort(),
+        architecturalCommits: commits.filter(c => c.edges.length).length,
+      },
     };
   }
 }
