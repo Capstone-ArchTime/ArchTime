@@ -5,9 +5,9 @@
 | Phiên bản | 1.0 |
 | Ngày | 2026-11-16 |
 | Nguồn | BM04 RF-24; [rq1-protocol.md](../rq1-protocol.md) §1–§2; danh sách việc T1, T6 |
-| Trạng thái (2026-11-16) | **Reference A** của react-router và docusaurus đã có, do **trợ lý AI (Claude)** viết, ghi rõ trong trường `author` (cách làm giống người gán nhãn thứ nhất của tập phát triển RQ1-B). **Reference B (thành viên nhóm) chưa có**, nên chưa có MoJoFM. 3 repo còn lại chưa có bản nào. |
+| Trạng thái (2026-11-16) | **Reference A của cả 5 repo** đã có, do **trợ lý AI (Claude)** viết, ghi rõ trong trường `author` (cách làm giống người gán nhãn thứ nhất của tập phát triển RQ1-B). **Reference B (thành viên nhóm) chưa có**, nên chưa có MoJoFM. |
 
-> ⚠️ **Người viết Reference B: không mở `react-router.claude.json` và `docusaurus.claude.json`** cho tới khi đã nộp bản
+> ⚠️ **Người viết Reference B: không mở các file `*.claude.json` và `outline.claude.rules.cjs`** cho tới khi đã nộp bản
 > của mình. Nếu đã mở, báo nhóm và đổi người viết; đồng thuận đo sau đó không còn ý nghĩa. Khi nhóm chấp nhận người viết
 > thứ nhất là AI, báo cáo RQ1 phải ghi rõ điều đó (rq1-protocol §4).
 

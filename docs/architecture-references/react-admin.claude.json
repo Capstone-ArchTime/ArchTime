@@ -1,0 +1,222 @@
+{
+  "repo": "react-admin",
+  "commit": "f466cf73330d1458c9e371c5a7bce2659ede5817",
+  "author": "Claude (AI assistant) - reference A, AI-written; must be paired with an independent reference B by a team member",
+  "writtenAt": "2026-11-16",
+  "note": "Written from docs/Architecture.md (\"Key Concepts\": SPA with an internal router, providers, smart components, composition, headless ra-core hooks as MVC controllers with ra-ui-materialui as the view, contexts) and the source at the commit above, without any ArchTime output for this repository (it has not been mined). Each functional component joins the ra-core controller and the ra-ui-materialui view of one concern, as the document pairs them (useListController / <List>). Left unassigned: examples/, cypress/, codemods, Storybook helpers and the test-ui kit.",
+  "sources": [
+    "docs/Architecture.md: Single-Page Application, Providers, Smart Components, Composition, Hooks (ra-core headless, Controller hooks), Context: Pull, Don't Push",
+    "docs/DataProviders.md, docs/Authentication.md, docs/Translation.md, docs/Store.md (one provider per concern)",
+    "packages/*/package.json"
+  ],
+  "components": [
+    {
+      "name": "Admin core and resources",
+      "responsibility": "The <Admin> / CoreAdmin application root, resource definitions and their contexts, custom routes, the react-admin meta-package and shared core utilities and types.",
+      "prefixes": [
+        "packages/ra-core/src/core/",
+        "packages/ra-core/src/util/",
+        "packages/ra-core/src/types",
+        "packages/ra-core/src/index",
+        "packages/ra-ui-materialui/src/AdminContext",
+        "packages/ra-ui-materialui/src/AdminUI",
+        "packages/ra-ui-materialui/src/index",
+        "packages/react-admin/"
+      ],
+      "evidence": [
+        "Architecture.md: <Resource> links CRUD pages; the <Admin> component creates the contexts"
+      ]
+    },
+    {
+      "name": "Routing",
+      "responsibility": "The internal router abstraction (react-router by default) and the TanStack Router adapter.",
+      "prefixes": [
+        "packages/ra-core/src/routing/",
+        "packages/ra-router-tanstack/"
+      ],
+      "evidence": [
+        "Architecture.md \"Single-Page Application\": an internal router displays the screen for each URL"
+      ]
+    },
+    {
+      "name": "Data provider layer",
+      "responsibility": "The dataProvider interface, data hooks (useGetList, useUpdate...), caching and mutation modes, and the bundled data providers (REST, JSON server, GraphQL, local storage, FakeRest).",
+      "prefixes": [
+        "packages/ra-core/src/dataProvider/",
+        "packages/ra-data-simple-rest/",
+        "packages/ra-data-json-server/",
+        "packages/ra-data-graphql/",
+        "packages/ra-data-graphql-simple/",
+        "packages/ra-data-fakerest/",
+        "packages/ra-data-local-storage/",
+        "packages/ra-data-local-forage/"
+      ],
+      "evidence": [
+        "Architecture.md \"Providers\": components never call fetch; they go through the dataProvider"
+      ]
+    },
+    {
+      "name": "Authentication and authorization",
+      "responsibility": "The authProvider, login / logout / permission hooks and access control, and the login page and user menu views.",
+      "prefixes": [
+        "packages/ra-core/src/auth/",
+        "packages/ra-ui-materialui/src/auth/"
+      ],
+      "evidence": [
+        "Architecture.md \"Providers\": authentication through the authProvider"
+      ]
+    },
+    {
+      "name": "Internationalization",
+      "responsibility": "The i18nProvider, translate hooks, the Polyglot and i18next adapters and the English and French messages.",
+      "prefixes": [
+        "packages/ra-core/src/i18n/",
+        "packages/ra-i18n-polyglot/",
+        "packages/ra-i18n-i18next/",
+        "packages/ra-language-english/",
+        "packages/ra-language-french/"
+      ],
+      "evidence": [
+        "Architecture.md: <Admin> creates an I18NProviderContext read by useTranslate"
+      ]
+    },
+    {
+      "name": "Store and preferences",
+      "responsibility": "The store (user preferences persisted across sessions) and configurable components that edit them.",
+      "prefixes": [
+        "packages/ra-core/src/store/",
+        "packages/ra-core/src/preferences/",
+        "packages/ra-ui-materialui/src/preferences/"
+      ],
+      "evidence": [
+        "Architecture.md \"Providers\": preferences through the store"
+      ]
+    },
+    {
+      "name": "List views and data tables",
+      "responsibility": "List controllers (filters, sort, pagination, selection), the data table, export, and the List, Datagrid / DataTable, filter and pagination views.",
+      "prefixes": [
+        "packages/ra-core/src/controller/list/",
+        "packages/ra-core/src/controller/useFilterState",
+        "packages/ra-core/src/controller/usePaginationState",
+        "packages/ra-core/src/controller/useSortState",
+        "packages/ra-core/src/dataTable/",
+        "packages/ra-core/src/export/",
+        "packages/ra-ui-materialui/src/list/"
+      ],
+      "evidence": [
+        "Architecture.md \"Hooks\": useListController (controller) and <List> (view)"
+      ]
+    },
+    {
+      "name": "Record pages (show, edit, create)",
+      "responsibility": "Controllers and views for showing, editing and creating one record, the record and save contexts, previous / next navigation.",
+      "prefixes": [
+        "packages/ra-core/src/controller/create/",
+        "packages/ra-core/src/controller/edit/",
+        "packages/ra-core/src/controller/show/",
+        "packages/ra-core/src/controller/record/",
+        "packages/ra-core/src/controller/saveContext/",
+        "packages/ra-core/src/controller/usePrevNextController",
+        "packages/ra-core/src/controller/checkMinimumRequiredProps",
+        "packages/ra-core/src/controller/index",
+        "packages/ra-ui-materialui/src/detail/"
+      ],
+      "evidence": [
+        "Architecture.md: <Show> fetches a record and exposes it via a RecordContext"
+      ]
+    },
+    {
+      "name": "Forms and inputs",
+      "responsibility": "Form state and validation, input controllers, the input components and the rich-text input.",
+      "prefixes": [
+        "packages/ra-core/src/form/",
+        "packages/ra-core/src/controller/input/",
+        "packages/ra-ui-materialui/src/form/",
+        "packages/ra-ui-materialui/src/input/",
+        "packages/ra-input-rich-text/"
+      ],
+      "evidence": [
+        "Architecture.md \"Smart Components\": sub-forms, inputs; composition of form parts"
+      ]
+    },
+    {
+      "name": "Fields and references",
+      "responsibility": "Field controllers, reference fetching between resources, and the field components that display record values.",
+      "prefixes": [
+        "packages/ra-core/src/controller/field/",
+        "packages/ra-core/src/controller/useReference",
+        "packages/ra-ui-materialui/src/field/",
+        "packages/ra-ui-materialui/src/Labeled"
+      ],
+      "evidence": [
+        "Architecture.md: related entities are linked through references"
+      ]
+    },
+    {
+      "name": "Actions and buttons",
+      "responsibility": "Action controllers (delete, bulk actions, export...) and the button components.",
+      "prefixes": [
+        "packages/ra-core/src/controller/button/",
+        "packages/ra-ui-materialui/src/button/"
+      ],
+      "evidence": [
+        "Architecture.md \"Hooks\": <DeleteButton> and its controller hook"
+      ]
+    },
+    {
+      "name": "Layout and theme",
+      "responsibility": "The application layout, menu, app bar, notifications display, theming, links, keyboard shortcuts and the offline indicator.",
+      "prefixes": [
+        "packages/ra-ui-materialui/src/layout/",
+        "packages/ra-ui-materialui/src/theme/",
+        "packages/ra-ui-materialui/src/Link",
+        "packages/ra-ui-materialui/src/KeyboardShortcut",
+        "packages/ra-ui-materialui/src/Offline"
+      ],
+      "evidence": [
+        "Architecture.md \"Smart Components\": <Menu>; \"Composition\": overriding the layout"
+      ]
+    },
+    {
+      "name": "Notifications",
+      "responsibility": "The notification queue and hooks used to show messages to the user.",
+      "prefixes": [
+        "packages/ra-core/src/notification/"
+      ],
+      "evidence": [
+        "ra-core notification context"
+      ]
+    },
+    {
+      "name": "Guessers (inference)",
+      "responsibility": "Infers list, show and edit views from the data returned by the API.",
+      "prefixes": [
+        "packages/ra-core/src/inference/"
+      ],
+      "evidence": [
+        "ra-core/src/inference (ListGuesser, EditGuesser)"
+      ]
+    },
+    {
+      "name": "No-code builder",
+      "responsibility": "ra-no-code: builds an admin from imported data without writing code.",
+      "prefixes": [
+        "packages/ra-no-code/"
+      ],
+      "evidence": [
+        "packages/ra-no-code"
+      ]
+    },
+    {
+      "name": "Project scaffolding",
+      "responsibility": "create-react-admin: creates a new application from a template.",
+      "prefixes": [
+        "packages/create-react-admin/"
+      ],
+      "evidence": [
+        "packages/create-react-admin"
+      ]
+    }
+  ]
+}

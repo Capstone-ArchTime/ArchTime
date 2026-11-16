@@ -5,7 +5,7 @@
 | Ngày | 2026-11-16 |
 | Nguồn | BM04 RF-24; [rq1-protocol.md](rq1-protocol.md) §2.3; danh sách việc T1, T6 |
 | Hướng dẫn cho người viết | [architecture-references/README.md](architecture-references/README.md) |
-| Trạng thái | **IN_PROGRESS.** react-router và docusaurus: có Reference A do trợ lý AI viết (ghi rõ), chờ Reference B của một thành viên nhóm. actual, react-admin, outline: chưa có bản nào. Công cụ (`reference-check`, `reference-agreement`), mẫu, hướng dẫn và commit đã sẵn sàng. |
+| Trạng thái | **IN_PROGRESS.** Cả 5 repo có Reference A do trợ lý AI viết (ghi rõ), chờ Reference B của thành viên nhóm. Công cụ (`reference-check`, `reference-agreement`), mẫu, hướng dẫn và commit đã sẵn sàng. |
 | Phụ thuộc | T6 phải xong trước khi Công chạy C11 (tập kiểm tra). Hạn trong danh sách việc: 18/11/2026 |
 
 > Tài liệu này **không** chứa số MoJoFM nào. Mỗi ô "—" được điền từ đầu ra của `npm run reference-agreement` sau khi
@@ -27,15 +27,15 @@
 
 ## 2. Kết quả theo repo
 
-Reference A của hai repo đầu do trợ lý AI viết từ ADR / trang kiến trúc và mã nguồn, **không** dùng đầu ra ArchTime (hai repo này chưa được mine). Người viết thứ hai phải là thành viên nhóm, không mở file của AI trước khi nộp bản của mình. Phủ ít ở react-router (38 %) là có chủ đích: `integration/`, `playground/` không thuộc kiến trúc theo ADR.
+Reference A của hai repo đầu do trợ lý AI viết từ ADR / trang kiến trúc và mã nguồn, **không** dùng đầu ra ArchTime (hai repo này chưa được mine). Người viết thứ hai phải là thành viên nhóm, không mở file của AI trước khi nộp bản của mình. Phủ ít ở react-router (38 %) và react-admin (71 %) là có chủ đích: `integration/`, `playground/`, `examples/`, `cypress/` không thuộc kiến trúc theo tài liệu. Với actual và outline, component là **chức năng cắt ngang các tầng**: một chức năng gồm giao diện, xử lý ở background server / API và (nếu có) route của sync-server. outline gán **từng file** bằng quy tắc theo từ trong tên file (ghi trong trường `note` và tái lập bằng `outline.claude.rules.cjs`); đã soát tay các trường hợp khớp nhầm (ví dụ `Spinner`, `startup`, `shared/constants.ts`) và một mẫu ngẫu nhiên 25 file.
 
 | Repo | Commit | Reference A (tác giả, số component, phủ) | Reference B (tác giả, số component, phủ) | File chung | MoJoFM A→B | MoJoFM B→A | Đồng thuận | Trạng thái |
 |---|---|---|---|---:|---|---|---|---|
 | react-router | `5d7962e` | Claude (AI), 13 component, 208 / 542 | — | — | — | — | — | Chờ Reference B |
 | docusaurus | `4c4ec4a` | Claude (AI), 15 component, 671 / 813 | — | — | — | — | — | Chờ Reference B |
-| react-admin | `f466cf7` | — | — | — | — | — | — | BLOCKED: chưa có bản nào |
-| actual | `33912a0` | — | — | — | — | — | — | BLOCKED: chưa có bản nào |
-| outline | `c0288df` | — | — | — | — | — | — | BLOCKED: chưa có bản nào |
+| react-admin | `f466cf7` | Claude (AI), 16 component, 994 / 1391 | — | — | — | — | — | Chờ Reference B |
+| actual | `33912a0` | Claude (AI), 19 component, 1789 / 1953 | — | — | — | — | — | Chờ Reference B |
+| outline | `c0288df` | Claude (AI), 16 component, 2035 / 2056, gán từng file theo quy tắc ghi trong `outline.claude.rules.cjs` | — | — | — | — | — | Chờ Reference B |
 
 ## 3. Thống nhất và bản cuối
 
