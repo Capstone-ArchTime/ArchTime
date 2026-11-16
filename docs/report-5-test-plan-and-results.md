@@ -126,6 +126,9 @@ Môi trường: máy phát triển, `npm run dev` (BE + FE), MongoDB cục bộ,
 | U-O1 | Admin khoá Acme có lý do | Status Suspended; khung ghi thời điểm, người khoá, lý do, "Nothing was deleted"; chỉ metadata; đủ 4 thành viên | **Pass** (lần đầu **Fail**, xem K9) |
 | U-O2 | bob đăng nhập trong lúc khoá | Không thấy workspace nào của Acme; mở thẳng acme-api: 403 "organization is suspended" | **Pass**, nhưng trang Workspaces chỉ hiện "Create your first workspace", không nói lý do (K10) |
 | U-O3 | Admin Reactivate | Acme Active; bob thấy lại acme-api như trước | **Pass** |
+| U-T8 | (DS-07b) Nhập lại `jira-export-msg22-sample.json` sau khi thêm số dòng | *MSG22: task 3 (line 7) …*; dòng 7 của file đúng là task thiếu key | **Pass** |
+| U-T9 | (DS-07a) Mở ARCH-13 (removed), T22, ARCH-12 | ARCH-13: "1 commit, 1 changing dependencies between components in Billing, Orders", thẻ +1/−0, Billing → Orders +1, nút xem evidence; T22 và ARCH-12: +0/−0, không có cạnh | **Pass** (link evidence lúc đầu quá nhỏ: đổi thành nút "View evidence", K11) |
+| U-T10 | (SM-09, SM-10) Nhập `jira-sm-1`…`jira-sm-5` | ARCH-14: To Do → In Progress → In Review → In Progress → In Review → Done; Sprint 3 Future → Active; Sprint 2 Active → Closed, 2/2 (100 %); vẫn 4 task, 1 removed, 3 commit liên kết | **Pass** |
 
 ## 6. Kết quả toàn bộ bộ test (đã chạy)
 
@@ -209,3 +212,4 @@ Nguồn: `SWP490_FA26SE279_R2_Commitment.pdf` (BM04 Review 2), §6.2 WF-02, §6.
 | K8 | Câu chữ MSG22 chưa đối chiếu với SRS (SM-09 / SM-10 đã đối chiếu với BM04, mục 7) | Thấp | Cần SRS |
 | K9 | Nút Import Jira và nút Suspend gửi JSON mà không có `Content-Type` (`apiRequest` không tự thêm), nên server thấy body rỗng: "Attach the Jira export file". Test FE giả lập `fetch` nên không bắt được | Cao | **Đã sửa** (`fix/json-content-type`); test kiểm header và quét mọi `apiRequest` có body JSON |
 | K10 | Thành viên của tổ chức bị khoá chỉ thấy danh sách workspace trống, không có lời giải thích; owner vẫn chuyển được workspace cá nhân **vào** tổ chức đang bị khoá | Trung bình | **Đã sửa** (`fix/suspended-org-notice`): thông báo trên Workspaces, thẻ "Suspended" và cảnh báo trên Organizations, tổ chức bị khoá không còn trong danh sách nơi tạo workspace; chuyển workspace vào tổ chức bị khoá trả 403 |
+| K11 | Link "Evidence" của commit trong Tasks & Sprints là chữ nhỏ, khó thấy | Thấp | **Đã sửa** (`fix/task-evidence-button`): nút "View evidence" có viền và biểu tượng |
