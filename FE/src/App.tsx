@@ -1,9 +1,9 @@
 import { lazy, Suspense, useEffect, useLayoutEffect } from 'react';
-import { App as AntApp, ConfigProvider, Result, theme } from 'antd';
+import { App as AntApp, ConfigProvider, theme } from 'antd';
 import type { ThemeConfig } from 'antd';
 import { StyleProvider } from '@ant-design/cssinjs';
 import { MotionConfig } from 'motion/react';
-import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, Outlet, Link, Navigate, useLocation } from 'react-router-dom';
+import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, Outlet, Navigate, useLocation } from 'react-router-dom';
 import AuthProvider from '@/auth/AuthProvider';
 import { useAuth } from '@/auth/auth-context';
 import { setUiTheme, themeFor, useUiTheme } from '@/features/ui-theme';
@@ -51,6 +51,7 @@ const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
 const AcceptInvitation = lazy(() => import('@/pages/AcceptInvitation'));
 const GitHubCallback = lazy(() => import('@/pages/GitHubCallback'));
+const NotFound = lazy(() => import('@/pages/NotFound'));
 
 /** Redirects to another page, keeping the query (such as ?projectId=) and the hash. */
 function KeepQuery({ to }: { to: string }) {
@@ -127,7 +128,7 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path="/system-administrator/ai-models" element={<AiModels />} />
       <Route path="/system-administrator/ai-metrics" element={<AiMetrics />} />
     </Route>
-    <Route path="*" element={<div className="min-h-screen bg-[var(--at-page)] p-8"><Result status="404" title="Page not found" extra={<Link to="/">Back to home</Link>} /></div>} />
+    <Route path="*" element={<NotFound />} />
 
   </Route>
 ));
