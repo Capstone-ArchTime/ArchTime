@@ -16,7 +16,7 @@
 1. Hai người viết độc lập (luật ở hướng dẫn §1), mỗi người một file `<repo>.<tên>.json` trên **cùng commit**.
 2. Mọi file nguồn mà ArchTime phân tích ở commit đó (git ls-files, JS/TS, bỏ test, build, `.d.ts`) được gán vào component theo **tiền tố cụ thể nhất**, đúng như ArchTime gán khi chấm điểm với tham chiếu (`quality.ts referenceGrouping`).
 3. MoJoFM tính trên các file **cả hai** cùng gán, bằng `mojoFM` của `BE/src/domain/architecture/mojo.ts` (cùng hàm của báo cáo RQ1; đã kiểm chứng với brute force trong `BE/tests/mojo.test.mjs`). Hai chiều: A → B (B là chuẩn) và B → A. **Số báo cáo là chiều thấp hơn.**
-4. Lệnh: `npm run reference-agreement -- --checkout <repo> --a <A>.json --b <B>.json --out ../docs/architecture-references/<repo>.agreement.md`. Script từ chối hai file cùng tác giả, khác commit, khác repo, hoặc checkout sai commit; liệt kê tiền tố không khớp file nào và các component bị bản kia tách ra.
+4. Lệnh (trong `BE`): `npx tsx scripts/reference-agreement.ts --checkout <repo> --a <A>.json --b <B>.json --out ../docs/architecture-references/<repo>.agreement.md`. Script từ chối hai file cùng tác giả, khác commit, khác repo, hoặc checkout sai commit; liệt kê tiền tố không khớp file nào và các component bị bản kia tách ra.
 5. Kiểm thử của công cụ: `BE/tests/reference-agreement.test.mjs` (6 test, có một ví dụ tính tay: lệch một file trên 4 file → MoJoFM 50 cả hai chiều).
 
 ### Đọc con số
@@ -44,7 +44,7 @@ Với mỗi repo, sau khi đã ghi số ở mục 2 (số **trước** khi thố
 1. Đi qua danh sách "Components split by the other reference" trong báo cáo của script, bắt đầu từ component bị tách nhiều file nhất.
 2. Quyết định theo **tài liệu kiến trúc của repo** (trường `evidence`), không theo người nào. Ghi mỗi quyết định vào bảng dưới.
 3. Ghi bản cuối `<repo>.final.json` (`author` = "A + B, reconciled"). Chạy lại script giữa bản cuối và từng bản gốc để ghi lại mức thay đổi (không bắt buộc).
-4. Giao Công nhập bản cuối vào workspace của repo (*Quality → Reference architecture*), **trước** C11.
+4. Chạy `npx tsx scripts/reference-export.ts --checkout <repo> --ref <repo>.final.json`; giao Công file `.final.import.json.txt` (dán vào *Quality → Reference architecture*) hoặc `.final.import.json` (body của API), **trước** C11.
 
 | Repo | Chỗ lệch | Quyết định | Căn cứ |
 |---|---|---|---|

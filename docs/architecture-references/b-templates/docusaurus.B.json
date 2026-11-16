@@ -1,0 +1,34 @@
+{
+  "repo": "docusaurus",
+  "commit": "4c4ec4aaabc6d70288d53e10203c6d271f0cac7a",
+  "author": "<ten-nguoi-viet-B>",
+  "writtenAt": "<YYYY-MM-DD>",
+  "sources": [
+    "decisions/ (ADR files you read)",
+    "docs/... (pages you read)",
+    "packages/*/package.json, entry points you opened"
+  ],
+  "components": [
+    {
+      "name": "<functional name, e.g. Routing core>",
+      "responsibility": "<one sentence: what this component is responsible for>",
+      "prefixes": [
+        "packages/example/lib/router/",
+        "packages/example/lib/single-file-that-belongs-here.ts"
+      ],
+      "evidence": [
+        "<where the docs or code say so, e.g. decisions/0001-x.md §Decision, or the module's header comment>"
+      ]
+    },
+    {
+      "name": "<second component>",
+      "responsibility": "<...>",
+      "prefixes": [
+        "<...>"
+      ],
+      "evidence": [
+        "<...>"
+      ]
+    }
+  ]
+}

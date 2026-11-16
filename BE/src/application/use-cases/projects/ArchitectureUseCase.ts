@@ -6,6 +6,7 @@ import { LlmRunService } from "../../../infrastructure/services/LlmRunService.js
 import { SystemSettingsModel } from "../../../infrastructure/database/models/SystemSettingsModel.js";
 import { BadRequestError, ForbiddenError } from "../../../shared/errors/AppError.js";
 import { loadProject } from "./loadOwnedProject.js";
+import { ReferenceBodyError, parseReferenceBody } from "../../../domain/evaluation/referenceExport.js";
 
 function snapshotIdOf(value: unknown): string | undefined {
   if (value === undefined || value === null || value === "") return undefined;
@@ -58,19 +59,15 @@ export class ArchitectureUseCase {
   /** Body: { components: [{ name, prefixes: [path prefix, ...] }] }; an empty list removes the reference. */
   public async saveReference(projectId: string, userId: string, body: unknown) {
     await loadProject(projectId);
-    const raw = (body && typeof body === "object" ? (body as Record<string, unknown>).components : undefined);
-    if (!Array.isArray(raw) || raw.length > 40) throw new BadRequestError("components must be a list of at most 40 entries.");
-    const seen = new Set<string>();
-    const components = raw.map((c, i) => {
-      const item = (c && typeof c === "object" ? c : {}) as Record<string, unknown>;
-      const name = typeof item.name === "string" ? item.name.trim() : "";
-      if (!name || name.length > 60) throw new BadRequestError(`components[${i}].name must be 1 to 60 characters.`);
-      if (seen.has(name.toLowerCase())) throw new BadRequestError(`The name "${name}" is used twice.`);
-      seen.add(name.toLowerCase());
-      const prefixes = Array.isArray(item.prefixes) ? item.prefixes.filter((p): p is string => typeof p === "string").map(p => p.trim()).filter(Boolean) : [];
-      if (!prefixes.length || prefixes.length > 50 || prefixes.some(p => p.length > 200)) throw new BadRequestError(`components[${i}] needs 1 to 50 path prefixes of at most 200 characters.`);
-      return { name, prefixes: [...new Set(prefixes)] };
-    });
+    // Limits and checks are shared with the export tool (domain/evaluation/referenceExport.ts), so a reference prepared
+    // by `scripts/reference-export.ts` is exactly what this accepts.
+    let components;
+    try {
+      components = parseReferenceBody(body);
+    } catch (error) {
+      if (error instanceof ReferenceBodyError) throw new BadRequestError(error.message);
+      throw error;
+    }
     return ArchitectureService.saveReference(projectId, components, userId);
   }
 
