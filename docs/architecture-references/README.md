@@ -32,18 +32,27 @@ Tài liệu này dành cho **hai người viết** tham chiếu của mỗi repo
 
 ## 3. Định dạng và công cụ
 
+- **Mẫu điền sẵn repo và commit cho người viết bản B:** `b-templates/<repo>.B.json`. Chép ra `<repo>.<tên>.json` rồi điền.
+
 - Mẫu: [TEMPLATE.json](TEMPLATE.json). Trường bắt buộc: `repo`, `commit`, `author`, `components[].name`, `components[].prefixes` (ít nhất 2 component).
 - `commit` là commit ghi ở bảng mục 4. Mọi người viết trên **cùng commit**.
 - So hai bản (chạy trong `BE`, checkout repo đúng commit):
 
   ```
-  npm run reference-agreement -- --checkout <thư-mục-repo> --a <repo>.<A>.json --b <repo>.<B>.json --out ../docs/architecture-references/<repo>.agreement.md
+  npx tsx scripts/reference-agreement.ts --checkout <thư-mục-repo> --a <repo>.<A>.json --b <repo>.<B>.json --out ../docs/architecture-references/<repo>.agreement.md
   ```
 
   Script kiểm tra: cùng repo, cùng commit, hai tác giả khác nhau, checkout đúng commit. Nó báo tiền tố không khớp file nào (lỗi chính tả), số file mỗi bản phủ, **MoJoFM hai chiều** trên các file cả hai cùng gán (cùng hàm `mojoFM` mà báo cáo RQ1 dùng, đã kiểm chứng bằng brute force trong `BE/tests/mojo.test.mjs`), và các component bị bản kia tách ra (điểm bắt đầu khi thống nhất).
-- Trước khi so, kiểm tra một bản: `npm run reference-check -- --checkout <thư-mục-repo> --ref <repo>.<tên>.json` (đọc được không, tiền tố nào không khớp file nào, mỗi component phủ bao nhiêu file).
+- Trước khi so, kiểm tra một bản: `npx tsx scripts/reference-check.ts --checkout <thư-mục-repo> --ref <repo>.<tên>.json` (đọc được không, tiền tố nào không khớp file nào, mỗi component phủ bao nhiêu file).
 - Số báo cáo: **chiều thấp hơn** của MoJoFM (MoJoFM không đối xứng). Ghi cả hai chiều vào [architecture-reference-evaluation.md](../architecture-reference-evaluation.md).
-- Sau khi thống nhất: một file `<repo>.final.json`, rồi Công nhập vào workspace của repo qua *Quality → Reference architecture* (hoặc `PUT /api/projects/:id/architecture/reference` với `{ components: [{ name, prefixes }] }`).
+- Chạy các lệnh trong thư mục `BE`. Trên Windows PowerShell 5.1 **dùng `npx tsx scripts/...`**, không dùng `npm run ... -- ...`: PowerShell 5.1 bỏ mất dấu `--`, script chỉ in ra "Usage".
+- Sau khi thống nhất: một file `<repo>.final.json`. Chuẩn bị bản nhập cho Công:
+
+  ```
+  npx tsx scripts/reference-export.ts --checkout <thư-mục-repo> --ref ../docs/architecture-references/<repo>.final.json
+  ```
+
+  Script nén các tiền tố từng file thành tiền tố thư mục **mà không đổi cách gán của file nào** (tự kiểm tra từng file), kiểm giới hạn của workspace (tối đa 40 component, 1.000 tiền tố mỗi component, 5.000 tổng), rồi ghi `<repo>.final.import.json` (body của `PUT /api/projects/:id/architecture/reference`) và `<repo>.final.import.json.txt` (dán vào *Quality → Reference architecture*).
 
 ## 4. Năm repo, commit và tài liệu kiến trúc
 
