@@ -203,3 +203,15 @@ test('planImport is a pure diff: create, update, unchanged, remove, restore', ()
   assert.deepEqual(plan.restore, ['A-4']);
   assert.deepEqual(plan.sprints.remove, ['jira:0']);
 });
+
+test('an export larger than the old 2 MB limit is imported; over 20 MB is refused before parsing', async () => {
+  const { repo, importTasks } = setup();
+  // 3,000 issues with long summaries: over 3 MB of JSON. (Few issues, so the in-memory store of this test stays quick.)
+  const issues = Array.from({ length: 3000 }, (_, i) => issue(`BIG-${i + 1}`, { summary: `Task ${i + 1} ${'with a long description '.repeat(40)}` }));
+  const text = file(...issues);
+  assert.ok(text.length > 3_000_000, `${text.length} characters`);
+  const r = await importTasks.execute('p1', text);
+  assert.equal(r.created, 3000);
+  assert.equal(repo.tasks.length, 3000);
+  await assert.rejects(importTasks.execute('p1', ' '.repeat(20_000_001)), err => err.statusCode === 400 && /larger than 20 MB/.test(err.message));
+});

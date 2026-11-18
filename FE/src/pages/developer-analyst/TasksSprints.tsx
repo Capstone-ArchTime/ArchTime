@@ -16,7 +16,8 @@ import { ApiError } from '@/api/client';
 
 const panel = 'rounded-xl border border-[var(--at-border)] bg-[var(--at-surface)] p-4';
 const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString() : '—');
-const MAX_FILE_BYTES = 2_000_000;
+/** As the server accepts (TaskUseCases MAX_EXPORT_CHARS): a large project's Jira export is several MB. */
+const MAX_FILE_BYTES = 20_000_000;
 
 function SprintCard({ sprint, selected, onSelect }: { sprint: Sprint; selected: boolean; onSelect: () => void }) {
   const { progress } = sprint;
@@ -97,7 +98,7 @@ function Board({ project, maintains }: { project: string; maintains: boolean }) 
 
   async function onFile(file: File | undefined) {
     if (!file) return;
-    if (file.size > MAX_FILE_BYTES) { setRefusal('The file is larger than 2 MB. Export fewer issues at a time.'); return; }
+    if (file.size > MAX_FILE_BYTES) { setRefusal(`The file is larger than ${MAX_FILE_BYTES / 1_000_000} MB. Export fewer issues at a time.`); return; }
     setImporting(true);
     setRefusal(null);
     try {
