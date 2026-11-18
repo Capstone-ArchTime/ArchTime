@@ -1,7 +1,6 @@
 export enum ProjectStatus {
   PENDING = "PENDING",
-  CLONING = "CLONING",
-  ANALYZING = "ANALYZING",
+  ANALYZING = "ANALYZING", // a mining job is running; cloning is a stage of that job, not a status of its own
   PARTIAL = "PARTIAL", // some, but not all, commits have been mined
   COMPLETED = "COMPLETED",
   FAILED = "FAILED",

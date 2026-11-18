@@ -7,7 +7,7 @@ export type OrganizationRole = 'owner' | 'member';
 export type MyOrganization = { id: string; name: string; description: string; myRole: OrganizationRole; memberCount: number };
 
 export type WorkspaceRole = 'owner' | 'project-maintainer' | 'developer-analyst' | 'system-administrator' | 'viewer';
-export type WorkspaceStatus = 'PENDING' | 'CLONING' | 'ANALYZING' | 'PARTIAL' | 'COMPLETED' | 'FAILED';
+export type WorkspaceStatus = 'PENDING' | 'ANALYZING' | 'PARTIAL' | 'COMPLETED' | 'FAILED';
 export type MyWorkspace = {
   id: string; name: string; description: string; status: WorkspaceStatus | string; userRole: WorkspaceRole;
   organizationId: string | null; totalCommits: number | null; lastCommitDate: string | null; updatedAt: string | null;
@@ -63,7 +63,6 @@ export const WORKSPACE_ROLE_LABELS: Record<WorkspaceRole, string> = {
 
 export const STATUS_VIEW: Record<WorkspaceStatus, { label: string; color: string }> = {
   PENDING: { label: 'Not scanned', color: 'default' },
-  CLONING: { label: 'Cloning', color: 'blue' },
   ANALYZING: { label: 'Mining', color: 'blue' },
   PARTIAL: { label: 'Partly mined', color: 'gold' },
   COMPLETED: { label: 'Mined', color: 'green' },
