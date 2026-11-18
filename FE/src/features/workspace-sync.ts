@@ -63,4 +63,6 @@ export async function saveServerWorkspace(projectId: string, expectedRevision: n
   return fromServer(res.data.workspace);
 }
 
-export const isRevisionConflict = (error: unknown) => error instanceof ApiError && (error.status === 409 || error.code === 'CONFLICT');
+export const isRevisionConflict = (error: unknown) => error instanceof ApiError && !isDiagramLocked(error) && (error.status === 409 || error.code === 'CONFLICT');
+/** The server refused to change a confirmed diagram: it has to be unconfirmed first, or changed through an approval. */
+export const isDiagramLocked = (error: unknown) => error instanceof ApiError && error.code === 'DIAGRAM_LOCKED';
