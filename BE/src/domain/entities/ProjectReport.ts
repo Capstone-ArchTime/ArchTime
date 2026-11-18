@@ -5,10 +5,9 @@ export enum ReportType {
   FULL_AUDIT = "full_audit",
 }
 
+/** A report is built in the request that asks for it, so it is stored only once it is ready. */
 export enum ReportStatus {
   READY = "ready",
-  GENERATING = "generating",
-  FAILED = "failed",
 }
 
 export interface IProjectReport {
