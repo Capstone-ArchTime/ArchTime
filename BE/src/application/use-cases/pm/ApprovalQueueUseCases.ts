@@ -13,19 +13,23 @@ import type { IWorkspaceRepository } from "../../../domain/interfaces/IWorkspace
 import type { IWorkspaceDiagram } from "../../../domain/entities/Workspace.js";
 import type { LatestCommitLookup } from "../../../domain/interfaces/ILatestCommit.js";
 import { settleConfirmation } from "../../../domain/architecture/canonical.js";
+import { settleComponentPaths } from "../workspace/SetComponentPathsUseCase.js";
 
 /**
  * An architecture change request may carry the diagram it proposes (`data.diagram`: components and dependencies) and the
  * commit that introduced the change (`data.commit`). Approving it applies that diagram, confirms it and moves the baseline
  * to the commit (or the latest mined commit), so a confirmed diagram changes only through an approved request (BR-32).
  */
-function proposedDiagram(data: unknown): Pick<IWorkspaceDiagram, "components" | "dependencies"> | null {
+function proposedDiagram(data: unknown, stored?: IWorkspaceDiagram["components"]): Pick<IWorkspaceDiagram, "components" | "dependencies"> | null {
   const d = (data as { diagram?: unknown } | undefined)?.diagram as { components?: unknown; dependencies?: unknown } | undefined;
   if (!d) return null;
   if (!Array.isArray(d.components) || !Array.isArray(d.dependencies)) {
     throw new BadRequestError("The proposed diagram needs components and dependencies arrays.", "VALIDATION_ERROR");
   }
-  return { components: d.components as IWorkspaceDiagram["components"], dependencies: d.dependencies as IWorkspaceDiagram["dependencies"] };
+  // Path prefixes are checked as on a direct save (BR-27, MSG24): normalized, never shared by two components; a component
+  // proposed without them keeps the ones it has.
+  const components = settleComponentPaths(d.components as IWorkspaceDiagram["components"], stored);
+  return { components, dependencies: d.dependencies as IWorkspaceDiagram["dependencies"] };
 }
 
 export interface FilterApprovalsInput {
@@ -145,10 +149,10 @@ export class ApproveRequestUseCase {
       );
     }
 
-    const proposal = approval.type === ApprovalType.ARCHITECTURE_CHANGE ? proposedDiagram(approval.data) : null;
+    const ws = approval.type === ApprovalType.ARCHITECTURE_CHANGE && this.workspaceRepository ? await this.workspaceRepository.findByProjectId(input.projectId) : null;
+    const proposal = approval.type === ApprovalType.ARCHITECTURE_CHANGE ? proposedDiagram(approval.data, ws?.diagram?.components) : null;
     if (proposal && this.workspaceRepository) {
       if (!proposal.components.length) throw new BadRequestError("The proposed diagram has no component.", "VALIDATION_ERROR");
-      const ws = await this.workspaceRepository.findByProjectId(input.projectId);
       const commit = (approval.data as { commit?: unknown } | undefined)?.commit;
       const baselineCommit = typeof commit === "string" && commit.trim() ? commit.trim() : this.latestCommit ? await this.latestCommit(input.projectId) : null;
       const revision = ws?.revision ?? 1;
