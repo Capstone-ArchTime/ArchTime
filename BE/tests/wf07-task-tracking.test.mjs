@@ -133,8 +133,8 @@ test("WF07-05 permissions: members read, only maintainers import or relink; stra
   assert.equal((await call("GET", "/shop/tasks", "dev")).status, 200, "member reads");
   assert.equal((await call("POST", "/shop/tasks/import", "dev", { file })).status, 403, "member cannot import");
   assert.equal((await call("POST", "/shop/tasks/link", "dev")).status, 403, "member cannot relink");
-  assert.equal((await call("GET", "/shop/tasks", "out")).status, 403, "stranger");
-  assert.equal((await call("POST", "/shop/tasks/import", "out", { file })).status, 403);
+  assert.equal((await call("GET", "/shop/tasks", "out")).status, 404, "stranger: as if the workspace did not exist (N-05)");
+  assert.equal((await call("POST", "/shop/tasks/import", "out", { file })).status, 404);
   assert.equal((await call("GET", "/shop/tasks")).status, 401, "no token");
   assert.equal((await call("GET", "/nope/tasks", "mia")).status, 404);
 });
@@ -207,6 +207,6 @@ test("WF07-E2E DS-07a: import, link mined commits, open T47: its commits, eviden
   assert.deepEqual(impact.json.data.totals.components, ["Billing", "Orders"]);
   assert.equal((await call("GET", "/shop/tasks/T22/impact", "dev")).json.data.totals.architecturalCommits, 0);
   assert.equal((await call("GET", "/shop/tasks/T99/impact", "dev")).status, 404);
-  assert.equal((await call("GET", "/shop/tasks/T47/impact", "out")).status, 403);
+  assert.equal((await call("GET", "/shop/tasks/T47/impact", "out")).status, 404);
   assert.equal((await call("GET", "/shop/tasks/T47/impact")).status, 401);
 });
