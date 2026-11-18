@@ -51,19 +51,19 @@ const actionsOf = async (projectId, u) => [...(await policy.evaluate(projects.fi
 // ── the permission table (system overview §4.2) ──────────────────────────────
 
 test("Policy: personal project roles", async () => {
-  assert.equal(await actionsOf("p-personal", user("alice")), "admin,metadata,owner,read,write", "owner");
-  assert.equal(await actionsOf("p-personal", user("bob")), "admin,metadata,read,write", "maintainer: scan, mine, refine, but not delete");
-  assert.equal(await actionsOf("p-personal", user("dan")), "metadata,read", "member (newcomer) reads history, snapshots and maps");
+  assert.equal(await actionsOf("p-personal", user("alice")), "admin,metadata,owner,propose,read,write", "owner");
+  assert.equal(await actionsOf("p-personal", user("bob")), "admin,metadata,propose,read,write", "maintainer: scan, mine, refine, but not delete");
+  assert.equal(await actionsOf("p-personal", user("dan")), "metadata,propose,read", "member (newcomer) reads history, snapshots and maps, and proposes changes");
   assert.equal(await actionsOf("p-personal", user("eve")), "", "an invitation not yet accepted gives nothing");
   assert.equal(await actionsOf("p-personal", user("zed")), "", "stranger");
   assert.equal(await actionsOf("p-public", user("zed")), "metadata,read", "viewer of a public personal project");
-  assert.equal(await actionsOf("p-personal", user("root", UserRole.SYSTEM_ADMINISTRATOR)), "admin,metadata,read,write", "admin on a personal project: everything but delete");
+  assert.equal(await actionsOf("p-personal", user("root", UserRole.SYSTEM_ADMINISTRATOR)), "admin,metadata,propose,read,write", "admin on a personal project: everything but delete");
 });
 
 test("Policy: organization projects", async () => {
-  assert.equal(await actionsOf("p-org", user("alice")), "admin,metadata,owner,read,write", "organization owner acts as maintainer and may delete");
-  assert.equal(await actionsOf("p-org", user("carol")), "admin,metadata,owner,read,write", "project owner, still in the organization");
-  assert.equal(await actionsOf("p-org", user("dan")), "metadata,read", "project member who is in the organization");
+  assert.equal(await actionsOf("p-org", user("alice")), "admin,metadata,owner,propose,read,write", "organization owner acts as maintainer and may delete");
+  assert.equal(await actionsOf("p-org", user("carol")), "admin,metadata,owner,propose,read,write", "project owner, still in the organization");
+  assert.equal(await actionsOf("p-org", user("dan")), "metadata,propose,read", "project member who is in the organization");
   assert.equal(await actionsOf("p-org", user("zed")), "", "public does not leak outside the organization");
   assert.equal(await actionsOf("p-org", user("root", UserRole.SYSTEM_ADMINISTRATOR)), "metadata", "admin sees metadata, never content");
 
