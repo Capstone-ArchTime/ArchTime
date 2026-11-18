@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import {
   ProjectAccessPolicy,
   deniedMessage,
+  isForeign,
   type ProjectAction,
 } from "../../application/services/ProjectAccessPolicy.js";
 import type { IProjectRepository } from "../../domain/interfaces/IProjectRepository.js";
@@ -50,6 +51,11 @@ export function createProjectRoleMiddleware(
         }
 
         const access = await policy.evaluate(project, req.user);
+        // N-05: a workspace the caller has nothing to do with answers as if it did not exist, so its id leaks nothing.
+        if (isForeign(access)) {
+          next(new NotFoundError("Workspace not found."));
+          return;
+        }
         if (!access.actions.has(action)) {
           next(new ForbiddenError(deniedMessage(access, action)));
           return;
