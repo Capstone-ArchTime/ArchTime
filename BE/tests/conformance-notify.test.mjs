@@ -53,10 +53,10 @@ test('one e-mail per person per run, and a finding is never e-mailed twice', asy
   const sent = [];
   let clock = 1;
   const notifier = new FindingNotifier(store, directory(), async (to, mail) => { sent.push([to, mail.subject]); }, 'https://app.example/', () => day(clock++));
-  assert.deepEqual(await notifier.notify('p1'), { findings: 1, sent: 2 });
+  assert.deepEqual(await notifier.notify('p1'), { findings: 1, problems: 1, sent: 2, recipients: 2 });
   assert.deepEqual(sent.map(s => s[0]), ['mia@x.test', 'owner@x.test']);
   assert.equal(store.rows[1].notifiedAt, null, 'a decided finding is not news');
-  assert.deepEqual(await notifier.notify('p1'), { findings: 0, sent: 0 });
+  assert.deepEqual(await notifier.notify('p1'), { findings: 0, problems: 0, sent: 0, recipients: 0 });
   assert.equal(sent.length, 2);
   store.rows.push(finding('k3', 'ccccccc', day(3)));
   await notifier.notify('p1');
@@ -71,17 +71,17 @@ test('when no e-mail can be sent the findings are given back and go out with the
   let clock = 1;
   const notifier = new FindingNotifier(store, directory(), async to => { if (failing) throw new Error('SMTP down'); sent.push(to); }, 'x', () => day(clock++));
   const warn = console.warn; console.warn = () => {};
-  try { assert.deepEqual(await notifier.notify('p1'), { findings: 1, sent: 0 }); } finally { console.warn = warn; }
+  try { assert.deepEqual(await notifier.notify('p1'), { findings: 1, problems: 1, sent: 0, recipients: 2 }); } finally { console.warn = warn; }
   assert.equal(store.rows[0].notifiedAt, null);
   failing = false;
-  assert.deepEqual(await notifier.notify('p1'), { findings: 1, sent: 2 });
+  assert.deepEqual(await notifier.notify('p1'), { findings: 1, problems: 1, sent: 2, recipients: 2 });
   assert.ok(store.rows[0].notifiedAt);
 });
 
 test('if one person\'s e-mail fails and another\'s goes out, the findings count as told (no resend to everybody)', async () => {
   const store = claimStore([finding('k1', 'bbbbbbb', day(2))]);
   const notifier = new FindingNotifier(store, directory(), async to => { if (to.startsWith('mia')) throw new Error('mailbox full'); }, 'x', () => day(5));
-  assert.deepEqual(await notifier.notify('p1'), { findings: 1, sent: 1 });
+  assert.deepEqual(await notifier.notify('p1'), { findings: 1, problems: 1, sent: 1, recipients: 2 });
   assert.deepEqual(store.rows[0].notifiedAt, day(5));
 });
 
@@ -126,4 +126,25 @@ test('unread findings (MSG26) are counted only in projects the person can change
   const result = await new UnreadFindingsUseCase(access, store).unread({ userId: 'u1', role: 'developer-analyst' });
   assert.deepEqual(asked, [['a', 'c', 'd']]);
   assert.deepEqual(result, { total: 5, projects: [{ projectId: 'c', projectName: 'Gamma', count: 4 }, { projectId: 'a', projectName: 'Alpha', count: 1 }] });
+});
+
+test('with nobody to e-mail the findings are given back, and go out once someone can receive them', async () => {
+  const store = claimStore([finding('k1', 'bbbbbbb', day(2))]);
+  const people = [];
+  const sent = [];
+  let clock = 1;
+  const notifier = new FindingNotifier(store, directory(people), async to => { sent.push(to); }, 'x', () => day(clock++));
+  assert.deepEqual(await notifier.notify('p1'), { findings: 1, problems: 1, sent: 0, recipients: 0 });
+  assert.equal(store.rows[0].notifiedAt, null);
+  people.push({ email: 'new-maintainer@x.test', name: 'New' });
+  assert.deepEqual(await notifier.notify('p1'), { findings: 1, problems: 1, sent: 1, recipients: 1 });
+  assert.deepEqual(sent, ['new-maintainer@x.test']);
+});
+
+test('the result counts problems as the e-mail does: one finding in two commits is one problem', async () => {
+  const store = claimStore([finding('k1', 'bbbbbbb', day(2)), finding('k1', 'ccccccc', day(3))]);
+  const subjects = [];
+  const notifier = new FindingNotifier(store, directory([{ email: 'mia@x.test', name: 'Mia' }]), async (_to, mail) => { subjects.push(mail.subject); }, 'x', () => day(5));
+  assert.deepEqual(await notifier.notify('p1'), { findings: 2, problems: 1, sent: 1, recipients: 1 });
+  assert.match(subjects[0], /1 new conformance finding in/);
 });
