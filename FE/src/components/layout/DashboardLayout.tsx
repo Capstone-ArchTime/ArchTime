@@ -8,6 +8,7 @@ import { accountMenuItems, navGroupsFor, navHeadingByRole } from './navigation';
 import type { NavGroup } from './navigation';
 import { useMaintainsWorkspaces } from '@/hooks/useMaintainsWorkspaces';
 import { matchNavItem } from './nav-match';
+import BackgroundJobs from './BackgroundJobs';
 import { unreadMessage, useUnreadFindings } from '@/features/unread-findings';
 
 const CONFORMANCE_PATH = '/project-maintainer/conformance';
@@ -118,6 +119,7 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
           <div className="min-w-0"><p className="text-[10px] text-[var(--at-muted)] uppercase tracking-wider truncate">{navHeadingByRole[user.role]}</p><p className="text-sm font-medium truncate mt-1">{currentPage}</p></div>
         </div>
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+          <BackgroundJobs userId={user.id} />
           <button type="button" onClick={() => setSearchOpen(true)} aria-label="Search workspace pages" aria-keyshortcuts="Control+k Meta+k" className="flex items-center gap-3 border border-[var(--at-line)] bg-[var(--at-panel)] rounded h-10 px-3 text-[var(--at-muted)] hover:border-[var(--at-accent)]/50">
             <Search size={16} aria-hidden="true" /><span className="hidden sm:inline text-xs">Find a page…</span><kbd className="hidden md:inline text-[10px]">Ctrl K</kbd>
           </button>

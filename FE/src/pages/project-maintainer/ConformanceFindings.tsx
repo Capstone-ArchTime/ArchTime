@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Alert, App, Button, Empty, Input, Modal, Segmented, Select, Spin, Tag, Tooltip } from 'antd';
+import { Alert, App, Button, Empty, Input, Modal, Progress, Segmented, Select, Spin, Tag, Tooltip } from 'antd';
 import { Mail, RefreshCw, ScanSearch, Sparkles } from 'lucide-react';
 import { WorkspacePage } from './workspace';
 import { panel } from './workspace-store';
 import {
-  DECISIONS, FINDING_TYPES, decideFinding, explainFinding, fetchFindings, fetchOverview, findingTitle, latestCheck, notifyFindings, notifyMessage, runCheck,
+  DECISIONS, FINDING_TYPES, decideFinding, explainFinding, fetchFindings, fetchOverview, findingTitle, isRunning, latestCheck, notifyFindings, notifyMessage, runCheck, startProblem,
 } from '@/features/conformance';
 import type { DecisionKind, Finding, Overview } from '@/features/conformance';
 import { markFindingsSeen } from '@/features/unread-findings';
+import { trackJobs } from '@/features/background-jobs';
 
 type Status = 'open' | 'decided' | 'all';
 const shown = 20;
@@ -133,17 +134,27 @@ function Findings({ project }: { project: string }) {
     } finally { setMailing(false); }
   }
 
+  // The check runs as a background job on the server: follow it here while it runs, then load what it found.
+  const checking = isRunning(overview?.job);
+  useEffect(() => {
+    if (!checking) return;
+    const timer = setInterval(() => {
+      fetchOverview(project)
+        .then(next => { setOverview(next); if (!isRunning(next.job)) setRevision(v => v + 1); })
+        .catch(() => undefined);
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [checking, project]);
+
   async function check(force: boolean) {
     setRunning(true);
     try {
-      const result = await runCheck(project, force);
-      const found = result.checked.reduce((n, c) => n + c.findings, 0);
-      message.success(result.checked.length
-        ? `Checked ${result.checked.length} commit${result.checked.length === 1 ? '' : 's'}: ${found} finding${found === 1 ? '' : 's'}.`
-        : 'Nothing new to check: every commit after the baseline was already checked against this diagram and these rules.');
+      const { jobId } = await runCheck(project, force);
+      trackJobs(jobId);
+      message.info('The check is running in the background. You can leave this page and keep working: you will be told when it finishes.', 6);
       setRevision(v => v + 1);
     } catch (cause) {
-      message.error(cause instanceof Error ? cause.message : 'The check failed.');
+      message.error(startProblem(cause), 8);
     } finally { setRunning(false); }
   }
 
@@ -159,6 +170,9 @@ function Findings({ project }: { project: string }) {
       description={<>Files of these components are not checked. Add path prefixes in the <Link to={`/project-maintainer/component-diagram?project=${project}`}>Component Diagram</Link>.</>} />}
     {anyStale && <Alert type="info" showIcon title="The diagram or the rules changed since some commits were checked. Run the check to update their findings." />}
     {error && <Alert type="error" showIcon closable title={error} onClose={() => setError(null)} />}
+    {checking && overview.job && <Alert type="info" showIcon title={overview.job.status === 'queued' ? 'The check is waiting to start.' : `Checking in the background: ${overview.job.stage}`}
+      description={<div className="space-y-1"><Progress percent={Math.round(overview.job.progress)} size="small" status="active" /><p>You can leave this page and keep working; you will be told when it finishes. The findings below update when it does.</p></div>} />}
+    {overview.job?.status === 'failed' && <Alert type="error" showIcon closable title="The last check failed." description={overview.job.stage.replace(/^Failed:\s*/, '')} />}
 
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div className="text-sm text-[var(--at-muted)]">
@@ -170,8 +184,8 @@ function Findings({ project }: { project: string }) {
         <Tooltip title="E-mail the owner, the maintainers and the organization owner about open findings nobody was told about yet. Each finding is e-mailed once; this also happens by itself after every fetch or mine.">
           <Button icon={<Mail size={14} />} loading={mailing} disabled={!overview.confirmed || running} onClick={() => void emailNow()}>E-mail new findings</Button>
         </Tooltip>
-        <Button icon={<RefreshCw size={14} />} disabled={!overview.confirmed || running} onClick={() => check(true)}>Check everything again</Button>
-        <Button type="primary" icon={<ScanSearch size={14} />} loading={running} disabled={!overview.confirmed} onClick={() => check(false)}>Run check</Button>
+        <Button icon={<RefreshCw size={14} />} disabled={!overview.confirmed || running || checking} onClick={() => check(true)}>Check everything again</Button>
+        <Button type="primary" icon={<ScanSearch size={14} />} loading={running || checking} disabled={!overview.confirmed} onClick={() => check(false)}>{checking ? 'Checking…' : 'Run check'}</Button>
       </div>
     </div>
 
