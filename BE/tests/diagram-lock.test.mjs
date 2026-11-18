@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { editsLockedDiagram } from "../src/domain/architecture/canonical.ts";
 import { SaveProjectDiagramUseCase } from "../src/application/use-cases/pm/SaveProjectDiagramUseCase.ts";
+import { CreateApprovalRequestUseCase } from "../src/application/use-cases/pm/ApprovalQueueUseCases.ts";
 import { RepoVisibility } from "../src/domain/entities/Project.ts";
 import { AppError } from "../src/shared/errors/AppError.ts";
 
@@ -36,4 +37,13 @@ test("PUT /diagram: a stale expectedRevision is a 409 conflict, not a server err
     (e) => e instanceof AppError && e.statusCode === 409 && e.code === "CONFLICT",
   );
   assert.equal(ws.diagram.components[0].id, "a", "nothing written");
+});
+
+test("A proposed change is the way to change a locked diagram, so its path prefixes are checked like a direct save", async () => {
+  const propose = (components) => new CreateApprovalRequestUseCase(projects).execute({
+    projectId: "p1", title: "Split billing", requestedBy: "dev", data: { diagram: { components, dependencies: [] } },
+  });
+  await assert.rejects(propose([component("a", { pathPrefixes: ["src/x/"] }), component("b", { pathPrefixes: ["./src/x"] })]),
+    (e) => e instanceof AppError && e.statusCode === 400 && /already mapped/.test(e.message), "the same folder written two ways");
+  await assert.rejects(propose([component("a", { pathPrefixes: ["../outside"] })]), (e) => e instanceof AppError && e.statusCode === 400);
 });
