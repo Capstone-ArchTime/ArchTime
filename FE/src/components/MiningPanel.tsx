@@ -8,6 +8,9 @@ import { getAIModelsConfig } from '@/features/admin-api';
 import type { AIModelConfig } from '@/features/admin-api';
 import { coverageRows, describeBatchProgress, monthBounds } from '@/features/mining-coverage';
 import { trackJobs } from '@/features/background-jobs';
+import { notifyFindings, notifyMessage } from '@/features/conformance';
+import { Link } from 'react-router-dom';
+import { Mail } from 'lucide-react';
 
 type Range = { since: string; until: string };
 
@@ -18,6 +21,7 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
   const [range, setRange] = useState<Range | null>(null);
   const [result, setResult] = useState<{ key: string; estimate?: MiningEstimate; error?: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [mailing, setMailing] = useState(false);
   const wasActive = useRef(false);
   const [aiModels, setAiModels] = useState<AIModelConfig[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>('');
@@ -89,6 +93,13 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
     try { const result = await action(); message.success(success); trackJobs((result as { data?: { jobId?: unknown } } | undefined)?.data?.jobId); await refresh(); }
     catch (cause) { message.error(cause instanceof Error ? cause.message : 'The request failed.'); }
     finally { setBusy(false); }
+  }
+
+  async function mail() {
+    setMailing(true);
+    try { const { kind, text } = notifyMessage(await notifyFindings(project.id)); message[kind](text, 8); }
+    catch (cause) { message.error(cause instanceof Error ? cause.message : 'The findings could not be e-mailed.', 8); }
+    finally { setMailing(false); }
   }
 
   const fullyMined = overview?.remaining === 0;
@@ -182,6 +193,14 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
           </div>
           <p className="text-xs text-[var(--at-muted)]">Commits are analyzed in batches and saved after each one, so you can stop at any time and continue later. Each snapshot is compared with the previous mined snapshot, so mining non-adjacent ranges shows larger changes at the gaps.</p>
         </section>
+        {overview.mined.count > 0 && <section aria-label="Conformance findings" className="border-t border-[var(--at-line)] pt-4 space-y-2">
+          <h3 className="text-sm font-medium">Conformance findings</h3>
+          <p className="text-xs text-[var(--at-muted)]">Once the component diagram is confirmed, every mined commit is checked against it, and new findings are e-mailed to the owner and maintainers. Send them now, or open them to decide.</p>
+          <div className="flex flex-wrap gap-2">
+            <Button icon={<Mail size={14} />} loading={mailing} disabled={!!active} onClick={mail}>E-mail new findings</Button>
+            <Link to={`/project-maintainer/conformance?project=${encodeURIComponent(project.id)}`} onClick={onClose}><Button>Open findings</Button></Link>
+          </div>
+        </section>}
       </>}
     </div>}
   </Modal>;
