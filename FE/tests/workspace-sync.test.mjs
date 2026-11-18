@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { emptyWorkspace, fetchServerWorkspace, fromServer, isRevisionConflict, isServerProjectId, saveServerWorkspace } from '../src/features/workspace-sync.ts';
+import { emptyWorkspace, fetchServerWorkspace, fromServer, isDiagramLocked, isRevisionConflict, isServerProjectId, saveServerWorkspace } from '../src/features/workspace-sync.ts';
 import { mockGlobal } from './mock-global.mjs';
 Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, writable: true, value: undefined });
 Object.defineProperty(globalThis, 'localStorage', { configurable: true, writable: true, value: undefined });
@@ -85,4 +85,10 @@ test('lists the server leaves out become empty lists, never undefined', () => {
   assert.deepEqual(ws.rules, []);
   assert.deepEqual(ws.decisions, []);
   assert.equal(ws.diagram.revision, 3);
+});
+
+test('editing a confirmed diagram is reported as locked, not as a revision conflict', async t => {
+  signedIn(t);
+  t.mock.method(globalThis, 'fetch', async () => Response.json({ success: false, error: { code: 'DIAGRAM_LOCKED', message: 'The confirmed diagram is locked.' } }, { status: 409 }));
+  await assert.rejects(saveServerWorkspace('p1', 4, fromServer(serverWorkspace)), error => isDiagramLocked(error) && !isRevisionConflict(error));
 });
