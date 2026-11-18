@@ -20,3 +20,13 @@ test('the check shown first is the newest commit checked, whatever order the lis
   assert.equal(latestCheck([check('a', '2026-11-01T00:00:00Z'), check('c', '2026-11-03T00:00:00Z'), check('b', '2026-11-02T00:00:00Z')]).snapshotId, 'c');
   assert.equal(latestCheck([]), null);
 });
+
+test('the "E-mail new findings" result is worded for each case', async () => {
+  const { notifyMessage } = await import('../src/features/conformance.ts');
+  assert.deepEqual(notifyMessage({ findings: 3, sent: 2, recipients: 2 }), { kind: 'success', text: 'E-mailed 3 new findings to 2 people.' });
+  assert.deepEqual(notifyMessage({ findings: 1, sent: 1, recipients: 2 }), { kind: 'success', text: 'E-mailed 1 new finding to 1 of 2 people.' });
+  assert.equal(notifyMessage({ findings: 6, problems: 5, sent: 1, recipients: 1 }).text, 'E-mailed 5 new findings to 1 person.', 'counted as the e-mail counts');
+  assert.equal(notifyMessage({ findings: 0, sent: 0, recipients: 0 }).kind, 'info');
+  assert.match(notifyMessage({ findings: 2, sent: 0, recipients: 0 }).text, /nobody can receive them/);
+  assert.match(notifyMessage({ findings: 2, sent: 0, recipients: 3 }).text, /SMTP/);
+});

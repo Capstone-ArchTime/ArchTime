@@ -370,19 +370,21 @@ const explainModel = async (projectId: string, userId: string) => {
   };
 };
 export const checkConformanceUseCase = new CheckConformanceUseCase(workspaceRepository, mongoConformanceSnapshots, conformanceRepository);
+// After every fetch or mine: check, then e-mail what is new (RF-29, BR-34); maintainers can also send it at once from the
+// findings page. The link opens the first allowed origin.
+export const findingNotifier = new FindingNotifier(
+  conformanceRepository,
+  mongoConformanceDirectory,
+  (to, mail) => emailService.sendNotification(to, mail),
+  env.corsOrigin.split(",")[0].trim(),
+);
 export const conformanceController = new ConformanceController(
   checkConformanceUseCase,
   new ListConformanceUseCase(workspaceRepository, conformanceRepository),
   new DecideFindingUseCase(conformanceRepository),
   new ExplainFindingUseCase(conformanceRepository, workspaceRepository, explainModel),
   new UnreadFindingsUseCase(projectAccessPolicy, conformanceRepository),
-);
-// After every fetch or mine: check, then e-mail what is new (RF-29, BR-34). The link opens the first allowed origin.
-export const findingNotifier = new FindingNotifier(
-  conformanceRepository,
-  mongoConformanceDirectory,
-  (to, mail) => emailService.sendNotification(to, mail),
-  env.corsOrigin.split(",")[0].trim(),
+  findingNotifier,
 );
 MiningService.onHistoryChanged = conformanceAfterMining(checkConformanceUseCase, findingNotifier);
 

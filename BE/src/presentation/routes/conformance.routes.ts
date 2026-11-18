@@ -116,6 +116,22 @@ export function createConformanceRouter(
    */
   router.post("/:id/conformance/seen", auth, projectRoleMiddleware("read"), controller.seen);
 
+  /**
+   * @swagger
+   * /api/projects/{id}/conformance/notify:
+   *   post:
+   *     tags: [Conformance]
+   *     summary: Gửi e-mail các finding mới ngay (thay vì chờ lần fetch/mine sau)
+   *     description: >
+   *       Cùng quy tắc với e-mail tự động (RF-29, BR-34): chỉ finding mở, chưa quyết định, chưa từng được báo; mỗi finding
+   *       chỉ gửi một lần, tới chủ workspace, maintainer và chủ tổ chức.
+   *     security: [{ BearerAuth: [] }]
+   *     parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+   *     responses:
+   *       200: { description: "{ findings, sent, recipients }: recipients 0 = không có ai để gửi; sent 0 khi có recipients = không gửi được (SMTP)" }
+   */
+  router.post("/:id/conformance/notify", auth, projectRoleMiddleware("write"), controller.notify);
+
   return router;
 }
 

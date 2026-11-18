@@ -83,14 +83,24 @@ export class FindingNotifier {
     private readonly now: () => Date = () => new Date(),
   ) {}
 
-  /** E-mails what is new; returns how many findings were reported and to how many people. */
-  async notify(projectId: string): Promise<{ findings: number; sent: number }> {
+  /**
+   * E-mails what is new. Returns how many findings were reported, to how many of how many people: `recipients` 0 means
+   * nobody could be told, `sent` 0 with recipients means no e-mail went out; either way the findings are given back for
+   * the next try.
+   */
+  async notify(projectId: string): Promise<{ findings: number; problems: number; sent: number; recipients: number }> {
     const at = this.now();
     const findings = await this.store.claimUnnotified(projectId, at);
-    if (!findings.length) return { findings: 0, sent: 0 };
+    if (!findings.length) return { findings: 0, problems: 0, sent: 0, recipients: 0 };
+    // What the e-mail lists: the same finding in several commits is one problem.
+    const problems = summarize(findings).length;
     const [name, recipients] = await Promise.all([this.directory.projectName(projectId), this.directory.recipients(projectId)]);
-    // Nobody to tell: they stay claimed, the app still shows them as unread (MSG26).
-    if (!recipients.length) return { findings: findings.length, sent: 0 };
+    // Nobody to tell: give them back, so they go out once someone can receive them (a maintainer added, an account
+    // verified); the app shows them as unread meanwhile (MSG26).
+    if (!recipients.length) {
+      await this.store.releaseClaim(projectId, at);
+      return { findings: findings.length, problems, sent: 0, recipients: 0 };
+    }
     const link = `${this.appUrl.replace(/\/+$/, "")}/project-maintainer/conformance?project=${encodeURIComponent(projectId)}`;
     const mail = buildFindingsMail(name ?? "your project", findings, link);
     const results = await Promise.allSettled(recipients.map(r => this.send(r.email, mail)));
@@ -101,7 +111,7 @@ export class FindingNotifier {
       const reason = results.find((r): r is PromiseRejectedResult => r.status === "rejected")?.reason;
       console.warn(`[conformance] could not e-mail findings of project ${projectId}:`, reason instanceof Error ? reason.message : reason);
     }
-    return { findings: findings.length, sent };
+    return { findings: findings.length, problems, sent, recipients: recipients.length };
   }
 }
 

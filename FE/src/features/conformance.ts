@@ -94,6 +94,25 @@ export async function runCheck(projectId: string, force = false): Promise<{ chec
   return res.data;
 }
 
+/** `problems`: what the e-mail lists (the same finding in several commits counts once). */
+export interface NotifyResult { findings: number; problems?: number; sent: number; recipients: number }
+
+/** E-mails the new findings now (same rules as the automatic e-mail after a fetch or mine: each finding once). */
+export async function notifyFindings(projectId: string): Promise<NotifyResult> {
+  return (await apiRequest<{ data: NotifyResult }>(`${base(projectId)}/notify`, { method: 'POST' })).data;
+}
+
+/** What to tell the maintainer after pressing "E-mail new findings". */
+export function notifyMessage(r: NotifyResult): { kind: 'success' | 'info' | 'warning' | 'error'; text: string } {
+  const n = r.problems ?? r.findings;
+  const findings = `${n} new finding${n === 1 ? '' : 's'}`;
+  if (!r.findings) return { kind: 'info', text: 'Nothing new to e-mail: every open finding was already e-mailed, or has been decided.' };
+  if (!r.recipients) return { kind: 'warning', text: `${findings}, but nobody can receive them: the owner and maintainers need an active account with a verified e-mail. They will be e-mailed once someone can.` };
+  if (!r.sent) return { kind: 'error', text: `The e-mail about ${findings} could not be sent. Check the server's e-mail (SMTP) settings; they will be e-mailed on the next try.` };
+  const people = `${r.sent === r.recipients ? r.recipients : `${r.sent} of ${r.recipients}`} ${r.recipients === 1 ? 'person' : 'people'}`;
+  return { kind: 'success', text: `E-mailed ${findings} to ${people}.` };
+}
+
 export async function decideFinding(projectId: string, findingId: string, decision: DecisionKind | 'reopen', note = ''): Promise<Finding> {
   const res = await apiRequest<{ data: { finding: Finding } }>(`${base(projectId)}/findings/${encodeURIComponent(findingId)}/decision`, { method: 'PUT', ...json({ decision, note }) });
   return res.data.finding;

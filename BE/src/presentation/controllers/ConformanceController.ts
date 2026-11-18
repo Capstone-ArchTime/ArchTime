@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import type {
   CheckConformanceUseCase, DecideFindingUseCase, ExplainFindingUseCase, ListConformanceUseCase, UnreadFindingsUseCase,
 } from "../../application/use-cases/conformance/ConformanceUseCases.js";
+import type { FindingNotifier } from "../../application/use-cases/conformance/FindingNotifier.js";
 import { ForbiddenError, UnauthorizedError } from "../../shared/errors/AppError.js";
 import { sendSuccess } from "../../shared/utils/apiResponse.js";
 
@@ -14,7 +15,20 @@ export class ConformanceController {
     private readonly decide: DecideFindingUseCase,
     private readonly explain: ExplainFindingUseCase,
     private readonly unreadFindings?: UnreadFindingsUseCase,
+    private readonly notifier?: Pick<FindingNotifier, "notify">,
   ) {}
+
+  /**
+   * POST /api/projects/:id/conformance/notify — e-mail the new findings now, instead of waiting for the next fetch or
+   * mine. Same rules as the automatic e-mail: open, undecided findings nobody was told about, each e-mailed once.
+   */
+  notify = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      this.user(req);
+      if (!this.notifier) throw new Error("E-mail notifications are not configured.");
+      sendSuccess(res, await this.notifier.notify(req.params.id));
+    } catch (error) { next(error); }
+  };
 
   /** GET /api/conformance/unread — MSG26: open findings each maintainer has not looked at, per project. */
   unread = async (req: Request, res: Response, next: NextFunction) => {

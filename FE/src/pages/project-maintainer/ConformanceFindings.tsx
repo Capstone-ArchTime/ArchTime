@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, App, Button, Empty, Input, Modal, Segmented, Select, Spin, Tag, Tooltip } from 'antd';
-import { RefreshCw, ScanSearch, Sparkles } from 'lucide-react';
+import { Mail, RefreshCw, ScanSearch, Sparkles } from 'lucide-react';
 import { WorkspacePage } from './workspace';
 import { panel } from './workspace-store';
 import {
-  DECISIONS, FINDING_TYPES, decideFinding, explainFinding, fetchFindings, fetchOverview, findingTitle, latestCheck, runCheck,
+  DECISIONS, FINDING_TYPES, decideFinding, explainFinding, fetchFindings, fetchOverview, findingTitle, latestCheck, notifyFindings, notifyMessage, runCheck,
 } from '@/features/conformance';
 import type { DecisionKind, Finding, Overview } from '@/features/conformance';
 import { markFindingsSeen } from '@/features/unread-findings';
@@ -122,6 +122,17 @@ function Findings({ project }: { project: string }) {
     return () => controller.abort();
   }, [project, snapshotId, status, revision]);
 
+  const [mailing, setMailing] = useState(false);
+  async function emailNow() {
+    setMailing(true);
+    try {
+      const { kind, text } = notifyMessage(await notifyFindings(project));
+      message[kind](text, kind === 'success' || kind === 'info' ? 4 : 8);
+    } catch (cause) {
+      message.error(cause instanceof Error ? cause.message : 'Could not send the e-mail.');
+    } finally { setMailing(false); }
+  }
+
   async function check(force: boolean) {
     setRunning(true);
     try {
@@ -156,6 +167,9 @@ function Findings({ project }: { project: string }) {
           : <>The diagram was confirmed before anything was mined: every commit is checked.</>)}
       </div>
       <div className="flex flex-wrap gap-2">
+        <Tooltip title="E-mail the owner, the maintainers and the organization owner about open findings nobody was told about yet. Each finding is e-mailed once; this also happens by itself after every fetch or mine.">
+          <Button icon={<Mail size={14} />} loading={mailing} disabled={!overview.confirmed || running} onClick={() => void emailNow()}>E-mail new findings</Button>
+        </Tooltip>
         <Button icon={<RefreshCw size={14} />} disabled={!overview.confirmed || running} onClick={() => check(true)}>Check everything again</Button>
         <Button type="primary" icon={<ScanSearch size={14} />} loading={running} disabled={!overview.confirmed} onClick={() => check(false)}>Run check</Button>
       </div>

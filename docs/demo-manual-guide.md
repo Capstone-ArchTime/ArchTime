@@ -137,6 +137,21 @@ Về *Component Diagram* → **Confirm diagram** → OK.
   không tới hộp thư được. Muốn xem e-mail thật: ở bước 2 thêm tài khoản của chính bạn (e-mail thật) làm Maintainer, với
   SMTP trong `BE/.env` đang chạy.
 
+### 4.0 Gửi e-mail ngay bằng nút
+
+Trên trang *Conformance Findings* có nút **E-mail new findings** (chỉ maintainer thấy dùng được). Nút gửi ngay e-mail các
+finding **mới, chưa quyết định, chưa từng được báo** — cùng nội dung với e-mail tự động. Thông báo sau khi bấm:
+
+| Thông báo | Nghĩa |
+|---|---|
+| *E-mailed N new findings to M people.* | Đã gửi |
+| *Nothing new to e-mail…* | Mọi finding mở đã được báo trước đó (tự động sau khi mine, hoặc bấm nút rồi), hoặc đã được quyết định |
+| *…but nobody can receive them…* | Chưa có chủ/maintainer nào có tài khoản hoạt động, e-mail đã xác minh; thêm người rồi bấm lại |
+| *…could not be sent. Check the server's e-mail (SMTP) settings…* | SMTP lỗi; cửa sổ backend in lý do (`[conformance] could not e-mail findings…`); finding được giữ lại cho lần sau |
+
+Lưu ý: nếu mine xong hệ thống đã tự gửi thì bấm nút sẽ báo *Nothing new*. Muốn thấy nút gửi được: dùng **Run check**
+(chạy tay không tự gửi e-mail) trên finding mới, rồi bấm **E-mail new findings**.
+
 ### 4.1 Xem findings
 
 *Maintain → Conformance Findings* → *Shop Demo*. Mở trang này là đánh dấu đã xem: số trên menu biến mất (chỉ với Eve; Bob
