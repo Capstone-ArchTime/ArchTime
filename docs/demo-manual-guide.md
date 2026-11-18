@@ -154,7 +154,8 @@ Repo demo nhỏ nên check chỉ mất chưa tới một giây: thông báo *don
 
 ### 4.0 Gửi e-mail ngay bằng nút
 
-Trên trang *Conformance Findings* có nút **E-mail new findings** (chỉ maintainer thấy dùng được). Nút gửi ngay e-mail các
+Nút **E-mail new findings** (chỉ chủ/maintainer dùng được) có ở hai chỗ: trang *Conformance Findings* (cạnh **Run check**)
+và cuối hộp thoại **Manage mining** (mục *Conformance findings*, kèm nút **Open findings** mở thẳng trang findings). Nút gửi ngay e-mail các
 finding **mới, chưa quyết định, chưa từng được báo** — cùng nội dung với e-mail tự động. Thông báo sau khi bấm:
 
 | Thông báo | Nghĩa |
