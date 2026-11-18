@@ -16,6 +16,8 @@ export class ConformanceController {
     private readonly explain: ExplainFindingUseCase,
     private readonly unreadFindings?: UnreadFindingsUseCase,
     private readonly notifier?: Pick<FindingNotifier, "notify">,
+    /** Queues the check as a background job (MiningService); without it the check runs in the request. */
+    private readonly startCheckJob?: (projectId: string, userId: string, force: boolean) => Promise<string>,
   ) {}
 
   /**
@@ -70,10 +72,22 @@ export class ConformanceController {
     } catch (error) { next(error); }
   };
 
+  /**
+   * POST /api/projects/:id/conformance — starts the check as a background job and answers at once with its id (202);
+   * the page follows it through the overview. `?wait=1` checks right away and answers with the summary (scripts, tests).
+   */
   run = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      this.user(req);
-      sendSuccess(res, await this.check.execute(req.params.id, { force: req.body?.force === true }), { message: "Conformance check finished." });
+      const userId = this.user(req);
+      const force = req.body?.force === true;
+      if (req.query.wait === "1" || req.query.wait === "true" || !this.startCheckJob) {
+        sendSuccess(res, await this.check.execute(req.params.id, { force }), { message: "Conformance check finished." });
+        return;
+      }
+      // Nothing to check against: say so now rather than through a failed job.
+      await this.list.assertCheckable(req.params.id);
+      const jobId = await this.startCheckJob(req.params.id, userId, force);
+      sendSuccess(res, { jobId }, { statusCode: 202, message: "Conformance check started in the background." });
     } catch (error) { next(error); }
   };
 

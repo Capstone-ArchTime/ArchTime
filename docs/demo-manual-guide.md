@@ -137,6 +137,21 @@ Về *Component Diagram* → **Confirm diagram** → OK.
   không tới hộp thư được. Muốn xem e-mail thật: ở bước 2 thêm tài khoản của chính bạn (e-mail thật) làm Maintainer, với
   SMTP trong `BE/.env` đang chạy.
 
+### 4.0a Chạy ngầm: scan, mine và check
+
+Scan, mine và **Run check** / **Check everything again** đều chạy **trên server**. Bấm xong có thể đóng hộp thoại *Mining*
+hoặc rời trang *Conformance Findings* để làm việc khác.
+
+| Thử | Mong đợi |
+|---|---|
+| Bấm **Mine entire history**, đóng hộp thoại *Mining* | Góc phải trên thanh đầu trang hiện nút **1 running**; bấm vào thấy *Mining · Shop Demo*, bước hiện tại và thanh tiến độ |
+| Chờ job xong (ở bất kỳ trang nào) | Thông báo góc phải dưới *Mining · Shop Demo: done* kèm nút **Open**; nút *running* biến mất |
+| Trên *Conformance Findings* bấm **Run check** | Báo *The check is running in the background…*; khi còn chạy trang hiện khung **Checking in the background** có thanh tiến độ, nút đổi thành *Checking…*; xong thì findings tự cập nhật và có thông báo *Conformance check · Shop Demo: done — Checked N commits: M findings* |
+| Bấm **Run check** trong lúc đang mine | Báo *Another job (mining, a scan or a check) is running for this workspace…* (mine xong sẽ tự check) |
+
+Chỉ người bấm mới nhận thông báo khi job xong; người khác trong workspace vẫn thấy nút *running* trên thanh đầu trang.
+Repo demo nhỏ nên check chỉ mất chưa tới một giây: thông báo *done* có thể hiện ngay, không kịp thấy khung tiến độ.
+
 ### 4.0 Gửi e-mail ngay bằng nút
 
 Trên trang *Conformance Findings* có nút **E-mail new findings** (chỉ maintainer thấy dùng được). Nút gửi ngay e-mail các
@@ -285,6 +300,7 @@ npm run seed:test -- --remove      # xoá tài khoản @archtime.test và mọi 
 | 2 | MSG24 | Gán trùng prefix bị từ chối |
 | 3 | Xác nhận sơ đồ | Canonical map, bị khoá, vẫn *Map paths* được |
 | 4 | Check tự động | Sau khi mine: finding Forbidden + Undeclared (+ convention), thông báo MSG26, số trên menu |
+| 4a | Chạy ngầm | Nút *N running* trên thanh đầu trang; đóng hộp thoại/rời trang vẫn nhận thông báo *done* có nút **Open** |
 | 5 | Quyết định | Accept cần lý do; áp dụng sang commit sau; member không quyết định được |
 | 6 | Agent | Context đúng; README → null; API khác 401; Revoke → 401 ngay |
 | 7 | Learning path | Sai: *Not quite*; đúng: 100 %; mentor thấy *Finished 1* |

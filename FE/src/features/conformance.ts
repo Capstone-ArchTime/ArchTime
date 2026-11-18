@@ -38,11 +38,16 @@ export interface Check {
   stale: boolean;
 }
 
+/** The latest background check of the workspace. */
+export interface CheckJob { id: string; status: string; progress: number; stage: string; error: string | null; finishedAt: string | null }
+
 export interface Overview {
   confirmed: boolean;
   baselineCommit: string | null;
   componentsWithoutPaths: string[];
   checks: Check[];
+  /** Null when no background check was ever started (or the server is older). */
+  job?: CheckJob | null;
 }
 
 export const FINDING_TYPES: Record<FindingType, { label: string; help: string }> = {
@@ -88,10 +93,22 @@ export async function fetchFindings(projectId: string, query: { snapshotId?: str
   return res.data.findings;
 }
 
-/** Checking many snapshots can take a while: allow two minutes. */
-export async function runCheck(projectId: string, force = false): Promise<{ checked: { hash: string; findings: number }[]; skipped: number }> {
-  const res = await apiRequest<{ data: { checked: { hash: string; findings: number }[]; skipped: number } }>(base(projectId), { method: 'POST', ...json({ force }) }, 120_000);
+/** Starts the check as a background job on the server and answers at once; follow it through `Overview.job`. */
+export async function runCheck(projectId: string, force = false): Promise<{ jobId: string }> {
+  const res = await apiRequest<{ data: { jobId: string } }>(base(projectId), { method: 'POST', ...json({ force }) });
   return res.data;
+}
+
+export const isRunning = (job: CheckJob | null | undefined): job is CheckJob => !!job && (job.status === 'queued' || job.status === 'running');
+
+/** Why a check could not start, in words: another job for the workspace is the usual reason. */
+export function startProblem(error: unknown): string {
+  const status = (error as { status?: number })?.status;
+  const message = error instanceof Error ? error.message : '';
+  if (status === 409 && /already queued or running/i.test(message)) {
+    return 'Another job (mining, a scan or a check) is running for this workspace. Mining runs the check by itself when it finishes; otherwise try again then.';
+  }
+  return message || 'The check could not start.';
 }
 
 /** `problems`: what the e-mail lists (the same finding in several commits counts once). */

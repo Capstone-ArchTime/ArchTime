@@ -7,6 +7,7 @@ import {
 import { getAIModelsConfig } from '@/features/admin-api';
 import type { AIModelConfig } from '@/features/admin-api';
 import { coverageRows, describeBatchProgress, monthBounds } from '@/features/mining-coverage';
+import { trackJobs } from '@/features/background-jobs';
 
 type Range = { since: string; until: string };
 
@@ -85,7 +86,7 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
 
   async function run(action: () => Promise<unknown>, success: string) {
     setBusy(true);
-    try { await action(); message.success(success); await refresh(); }
+    try { const result = await action(); message.success(success); trackJobs((result as { data?: { jobId?: unknown } } | undefined)?.data?.jobId); await refresh(); }
     catch (cause) { message.error(cause instanceof Error ? cause.message : 'The request failed.'); }
     finally { setBusy(false); }
   }
@@ -106,6 +107,7 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
         <div className="flex justify-between text-sm"><span>{active.kind === 'scan' ? 'Scanning repository' : 'Mining'}</span><span className="text-[var(--at-muted)]">{active.status}</span></div>
         <Progress percent={active.progress} status="active" />
         <p className="text-xs text-[var(--at-muted)]">{active.kind === 'mine' ? `${describeBatchProgress(active)} · ` : ''}{active.stage}{active.failedCommits ? ` · ${active.failedCommits} unreadable` : ''}</p>
+        <p className="text-xs text-[var(--at-muted)]">This runs on the server: you can close this window and keep working. The header shows its progress, and you will be told when it ends.</p>
         <Button danger size="small" loading={busy} onClick={() => run(() => cancelMiningJob(active.id), 'Stopping — finished batches are kept.')}>Stop after current commit</Button>
       </div>}
 

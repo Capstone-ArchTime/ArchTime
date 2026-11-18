@@ -342,6 +342,7 @@ import { CheckConformanceUseCase, DecideFindingUseCase, ExplainFindingUseCase, L
 import { FindingNotifier, conformanceAfterMining } from "./application/use-cases/conformance/FindingNotifier.js";
 import { mongoConformanceDirectory } from "./infrastructure/services/ConformanceDirectory.js";
 import { MiningService } from "./infrastructure/services/MiningService.js";
+import { JobKind, MiningJobModel } from "./infrastructure/database/models/MiningJobModel.js";
 import { AgentContextUseCases, AgentTokenUseCases } from "./application/use-cases/agent/AgentUseCases.js";
 import { MongoAgentTokenRepository } from "./infrastructure/repositories/MongoAgentTokenRepository.js";
 import { AgentController } from "./presentation/controllers/AgentController.js";
@@ -378,15 +379,27 @@ export const findingNotifier = new FindingNotifier(
   (to, mail) => emailService.sendNotification(to, mail),
   env.corsOrigin.split(",")[0].trim(),
 );
+/** The latest background check of a project, for the findings page to follow. */
+const latestCheckJob = async (projectId: string) => {
+  const job = await MiningJobModel.findOne({ projectId, kind: JobKind.CONFORMANCE }).sort({ createdAt: -1 })
+    .select("status progress stage error finishedAt").lean<{ _id: unknown; status: string; progress?: number; stage?: string; error?: string; finishedAt?: Date }>();
+  return job ? { id: String(job._id), status: job.status, progress: job.progress ?? 0, stage: job.stage ?? "", error: job.error ?? null, finishedAt: job.finishedAt ?? null } : null;
+};
 export const conformanceController = new ConformanceController(
   checkConformanceUseCase,
-  new ListConformanceUseCase(workspaceRepository, conformanceRepository),
+  new ListConformanceUseCase(workspaceRepository, conformanceRepository, latestCheckJob),
   new DecideFindingUseCase(conformanceRepository),
   new ExplainFindingUseCase(conformanceRepository, workspaceRepository, explainModel),
   new UnreadFindingsUseCase(projectAccessPolicy, conformanceRepository),
   findingNotifier,
+  (projectId, userId, force) => MiningService.startConformanceJob(projectId, userId, force),
 );
 MiningService.onHistoryChanged = conformanceAfterMining(checkConformanceUseCase, findingNotifier);
+// "Run check" runs as a background job: the page answers at once, progress shows on the page and in the header.
+MiningService.conformanceRunner = async (projectId, options) => {
+  const summary = await checkConformanceUseCase.execute(projectId, options);
+  return { checked: summary.checked.length, skipped: summary.skipped, findings: summary.checked.reduce((n, c) => n + c.findings, 0) };
+};
 
 // ── Agent access (RF-09, UC-42 – UC-44) ──
 // ── Moving a personal workspace into an organization (RF-11, UC-29) ──
