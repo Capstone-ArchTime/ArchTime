@@ -9,8 +9,11 @@ import { NotFoundError, ValidationError } from "../../../shared/errors/AppError.
 // Task tracking (F-13, RF-07, UC-36 – UC-39, SDD §3.14): import tasks and sprints from a Jira export, link mined commits
 // to the tasks they name, and show sprints with their progress.
 
-/** A Jira export is read whole in memory; 2 MB of JSON is several thousand issues (the JSON body limit of the API). */
-export const MAX_EXPORT_CHARS = 2_000_000;
+/**
+ * A Jira export is read whole in memory. 20 MB of JSON is tens of thousands of issues; the import route reads bodies up
+ * to 25 MB (app.ts) so the file fits with the escaping of its text.
+ */
+export const MAX_EXPORT_CHARS = 20_000_000;
 
 export interface LinkSummary {
   commits: number;
