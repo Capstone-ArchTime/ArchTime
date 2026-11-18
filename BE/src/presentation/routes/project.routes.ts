@@ -1552,7 +1552,7 @@ export function createProjectRouter(
      *         description: Yêu cầu xét duyệt đã tạo
      */
     router.get("/:id/approvals", checkRole("read"), pmController.getApprovals);
-    router.post("/:id/approvals", checkRole("write"), pmController.createApproval);
+    router.post("/:id/approvals", checkRole("propose"), pmController.createApproval);
 
     /**
      * @swagger
