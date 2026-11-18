@@ -93,6 +93,18 @@ export class MiningService {
 
   // ---------- public API ----------
 
+  /**
+   * Runs the conformance check for a background job (set by the container): reports progress, stops between two commits
+   * when asked. Throws a ConflictError when there is nothing to check against (no confirmed diagram, baseline gone).
+   */
+  public static conformanceRunner: ((projectId: string, options: { force: boolean; onProgress: (done: number, total: number) => Promise<void>; shouldStop: () => boolean }) => Promise<{ checked: number; skipped: number; findings: number }>) | null = null;
+
+  /** The conformance check as a background job, so the page does not wait for it (it can take a while on a long history). */
+  public static async startConformanceJob(projectId: string, userId: string, force = false): Promise<string> {
+    if (!this.conformanceRunner) throw new Error("The conformance check is not configured.");
+    return this.enqueue(projectId, userId, { kind: JobKind.CONFORMANCE, force, stage: "Queued for the conformance check" });
+  }
+
   public static async startScanJob(projectId: string, userId: string): Promise<string> {
     return this.enqueue(projectId, userId, { kind: JobKind.SCAN, stage: 'Queued for scan' });
   }
@@ -283,6 +295,34 @@ export class MiningService {
         id: jobId, projectId: String(job.projectId), target: job.target, requestedBy: String(job.requestedBy), modelId: job.modelId,
         purpose: job.purpose, benchmarkId: job.benchmarkId, benchmarkModels: job.benchmarkModels,
       }, () => this.cancelled.has(jobId));
+      return;
+    }
+
+    if (job.kind === JobKind.CONFORMANCE) {
+      // Not a repository job either: it reads what was mined. Findings are kept per commit as they are checked.
+      try {
+        await set({ status: JobStatus.RUNNING, startedAt: new Date(), stage: "Checking commits after the baseline", progress: 1 });
+        const result = await this.conformanceRunner!(String(job.projectId), {
+          force: !!job.force,
+          shouldStop: () => this.cancelled.has(jobId),
+          onProgress: async (done, total) => {
+            await set({ processed: done, total, progress: total ? Math.max(1, Math.round((done / total) * 100)) : 100, stage: total ? `Checked ${done} of ${total} commits` : "No commit after the baseline" });
+          },
+        });
+        if (this.cancelled.has(jobId)) {
+          await set({ status: JobStatus.CANCELLED, stage: `Stopped after ${result.checked + result.skipped} commits - their findings were kept`, finishedAt: new Date() });
+          return;
+        }
+        await set({
+          status: JobStatus.COMPLETED, progress: 100, finishedAt: new Date(),
+          stage: result.checked
+            ? `Checked ${result.checked} commit${result.checked === 1 ? "" : "s"}: ${result.findings} finding${result.findings === 1 ? "" : "s"}`
+            : "Nothing new to check: every commit after the baseline was already checked against this diagram and these rules",
+        });
+      } catch (error: any) {
+        const message = String(error?.message ?? error);
+        await set({ status: JobStatus.FAILED, stage: "Failed: " + message, error: message, finishedAt: new Date() });
+      }
       return;
     }
 

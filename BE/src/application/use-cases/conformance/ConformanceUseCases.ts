@@ -51,8 +51,12 @@ export class CheckConformanceUseCase {
     private readonly now: () => Date = () => new Date(),
   ) {}
 
-  /** `force`: check again even snapshots already checked against the same diagram and rules. */
-  async execute(projectId: string, options: { force?: boolean } = {}): Promise<CheckSummary> {
+  /**
+   * `force`: check again even snapshots already checked against the same diagram and rules. `onProgress` is told after
+   * each snapshot (done of total), for a check that runs as a background job; `shouldStop` ends it early between two
+   * snapshots (what was checked so far is kept).
+   */
+  async execute(projectId: string, options: { force?: boolean; onProgress?: (done: number, total: number) => Promise<void> | void; shouldStop?: () => boolean } = {}): Promise<CheckSummary> {
     const workspace = await this.workspaces.findByProjectId(projectId);
     const confirmation = confirmationOf(workspace?.diagram);
     if (!workspace || !confirmation.confirmedAt) {
@@ -70,10 +74,15 @@ export class CheckConformanceUseCase {
     const names = new Map(components.map(c => [c.id, c.name]));
     const summary: CheckSummary = { baselineCommit: confirmation.baselineCommit, checked: [], skipped: 0 };
 
-    for (const snapshot of await this.snapshots.after(projectId, after)) {
-      if (!options.force && (await this.store.checkOf(projectId, snapshot.id))?.fingerprint === fingerprint) { summary.skipped++; continue; }
+    const snapshots = await this.snapshots.after(projectId, after);
+    let done = 0;
+    const progressed = async () => { done++; await options.onProgress?.(done, snapshots.length); };
+    await options.onProgress?.(0, snapshots.length);
+    for (const snapshot of snapshots) {
+      if (options.shouldStop?.()) break;
+      if (!options.force && (await this.store.checkOf(projectId, snapshot.id))?.fingerprint === fingerprint) { summary.skipped++; await progressed(); continue; }
       const graph = await this.snapshots.graph(snapshot.id);
-      if (!graph) continue;
+      if (!graph) { await progressed(); continue; }
       const { files, edges } = fileDependencies(graph);
       const result = checkConformance({
         files, imports: edges, components,
@@ -106,29 +115,44 @@ export class CheckConformanceUseCase {
       };
       await this.store.recordCheck({ check, findings: findings.map((f, i) => ({ ...f, importCount: all[i].imports.length })), inherited });
       summary.checked.push({ snapshotId: snapshot.id, hash: snapshot.hash, findings: findings.length });
+      await progressed();
     }
     return summary;
   }
 }
 
+/** The latest background check of a project (a job of kind "conformance"), as the page shows it. */
+export interface CheckJob { id: string; status: string; progress: number; stage: string; error: string | null; finishedAt: Date | null }
+
 export class ListConformanceUseCase {
   constructor(
     private readonly workspaces: Pick<IWorkspaceRepository, "findByProjectId">,
     private readonly store: IConformanceRepository,
+    private readonly latestCheckJob?: (projectId: string) => Promise<CheckJob | null>,
   ) {}
 
   /** The state of the check: is there a confirmed diagram, its baseline, and the latest checked snapshots. */
   async overview(projectId: string) {
     const workspace = await this.workspaces.findByProjectId(projectId);
     const confirmation = confirmationOf(workspace?.diagram);
-    const checks = await this.store.checksOf(projectId, 100);
+    const [checks, job] = await Promise.all([this.store.checksOf(projectId, 100), this.latestCheckJob?.(projectId) ?? Promise.resolve(null)]);
     const current = workspace && confirmation.confirmedAt ? conformanceFingerprint(workspace) : null;
     return {
       confirmed: !!confirmation.confirmedAt,
       baselineCommit: confirmation.baselineCommit,
       componentsWithoutPaths: (workspace?.diagram?.components ?? []).filter(c => !(c.pathPrefixes ?? []).length).map(c => c.name),
       checks: checks.map(c => ({ ...c, stale: current !== null && c.fingerprint !== current })),
+      /** The latest background check, running or finished; null when none was ever started. */
+      job,
     };
+  }
+
+  /** 409 when there is nothing to check against yet, so a background check is not started to fail. */
+  async assertCheckable(projectId: string): Promise<void> {
+    const workspace = await this.workspaces.findByProjectId(projectId);
+    if (!confirmationOf(workspace?.diagram).confirmedAt) {
+      throw new ConflictError("Confirm the component diagram before checking conformance: the check compares the code with the confirmed diagram.", "CONFLICT");
+    }
   }
 
   findings(projectId: string, query: FindingQuery): Promise<IConformanceFinding[]> {
