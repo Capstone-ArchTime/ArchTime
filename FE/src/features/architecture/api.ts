@@ -1,5 +1,7 @@
 import { apiRequest } from '@/api/client';
 import type { ArchitectureView, ValidationResult } from './types';
+import { parseLineage } from './evolution';
+import type { LineagePayload } from './evolution';
 
 export interface SnapshotSummary { id: string; hash: string; title: string; date: string }
 export interface RefineReceipt {
@@ -79,6 +81,12 @@ export async function refineArchitecture(projectId: string, snapshotId?: string,
   });
   if (typeof body?.data?.jobId !== 'string') throw new Error('The server did not start the job.');
   return body.data.jobId;
+}
+
+/** Components followed through the snapshots that have them (GET /architecture/lineage), for the evolution marks on the map. */
+export async function getLineage(projectId: string, signal?: AbortSignal): Promise<LineagePayload> {
+  const body = await apiRequest<{ data?: unknown }>(`${base(projectId)}/architecture/lineage`, { signal });
+  return parseLineage(body?.data);
 }
 
 export async function getReference(projectId: string, signal?: AbortSignal): Promise<ReferenceComponent[]> {

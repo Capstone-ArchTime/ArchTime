@@ -73,7 +73,8 @@ test('lineage follows components through every mapped snapshot in date order', a
   if (unavailable) return t.skip(unavailable);
   await SnapshotModel.deleteMany({ projectId });
   await ArchitectureMappingModel.deleteMany({ projectId });
-  const s3 = await snapshot('e3', '2026-07-01', { Catalog: shop.slice(2), Cart: shop.slice(0, 2), Accounts: user });
+  // Cart gains a new file, the evidence a split needs (Compare's rule); every part holds at least 3 files.
+  const s3 = await snapshot('e3', '2026-07-01', { Catalog: shop.slice(2), Cart: [...shop.slice(0, 2), 'src/shop/Checkout.java'], Accounts: user });
   const s1 = await snapshot('e1', '2026-05-01', { Shop: shop, Users: user });
   await snapshot('e2x', '2026-05-15', { Shop: shop }, { mapped: false });
   const s2 = await snapshot('e2', '2026-06-01', { Shop: shop, Accounts: user });
@@ -86,6 +87,18 @@ test('lineage follows components through every mapped snapshot in date order', a
   assert.equal(res.byComponent[s3].cart, `${s3}:cart`);
   assert.equal(res.byComponent[s2].accounts, `${s1}:users`);
   assert.deepEqual(res.steps[1].summary.split, 1);
+});
+
+test('lineage applies the evidence rule: the same files grouped differently are kept, not split', async t => {
+  if (unavailable) return t.skip(unavailable);
+  await SnapshotModel.deleteMany({ projectId });
+  await ArchitectureMappingModel.deleteMany({ projectId });
+  await snapshot('f1', '2026-05-01', { Shop: shop, Users: user });
+  await snapshot('f2', '2026-06-01', { Catalog: shop.slice(2), Cart: shop.slice(0, 2), Users: user });
+
+  const res = await ArchitectureService.lineage(projectId);
+  assert.equal(res.steps[0].summary.split, 0);
+  assert.deepEqual(res.steps[0].changes.find(c => c.before.includes('shop')), { kind: 'kept', before: ['shop'], after: ['cart', 'catalog'], reason: 'regrouped' });
 });
 
 test('evaluation compares the recovered architecture with the directory baseline over the mapped snapshots', async t => {

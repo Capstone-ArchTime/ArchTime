@@ -18,6 +18,7 @@ code is tested under Node (`npm test`) and can be reused by the backend pipeline
 | `issues.ts` | Turns the quality measures, verifier warnings, layout check and mapping state into a ranked list of issues (severity, what it means, what to do, what to highlight). Same data, same text |
 | `panels.ts` | Which side panels are open at which width, in-page full screen, the remembered choice (localStorage, always guarded), Esc and Shift+F rules |
 | `export-file.ts` | File names (`workspace-hash-date`), image title and subtitle, PNG scale limit and the standalone HTML page of an export. Never uses the view's own title (it is the commit title) |
+| `evolution.ts` | How each component came about since the previous snapshot with components (NEW, SPLIT, MERGED, RENAMED, REGROUPED marks on the cards, removed components, a component's names through the snapshots), read from `GET /architecture/lineage`. Same evidence rule as Compare |
 
 UI lives in `src/components/architecture/` and `src/pages/developer-analyst/ArchitectureMap.tsx` (route `/architecture`).
 
@@ -32,7 +33,7 @@ number of evidence entries. `layer` is an optional tier hint (0 = top); without 
 - The layout is written in-house instead of using elkjs: elkjs is over 1 MB and the project enforces a 500 kB chunk budget (`npm run check:bundle`).
 - Exports (SVG, PNG, standalone HTML, JSON) render the whole diagram without viewer state. PNG goes through a canvas, so it needs a browser.
 - Arrows are not keyboard focusable (there can be dozens); keyboard users reach a dependency from the component's "Depends on / Used by" lists.
-- Not done yet: stable component identity across revisions, time slider, diff and drift overlays (phase 4).
+- Component identity across revisions comes from the lineage (files shared between snapshots, `evolution.ts`). Not done yet: time slider and drift overlays (phase 4).
 
 ## Real data (phase 2)
 
