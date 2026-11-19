@@ -23,7 +23,7 @@ jobs:
         working-directory: BE
     services:
       mongodb:
-        image: mongo:7
+        image: mongo:8
         ports: ["27017:27017"]
         options: >-
           --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"

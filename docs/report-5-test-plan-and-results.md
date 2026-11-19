@@ -7,7 +7,7 @@
 | Nguồn | BM04 §6.2 (WF-02), §6.7 (WF-07), §7, §8; danh sách việc T10, T12 |
 | Kế hoạch chung | [report5-test-plan.md](report5-test-plan.md) (mức kiểm thử, môi trường, tiêu chí pass/fail dùng chung); [system-test-report.md](system-test-report.md) (S01–S12); [d11-test-cases-wf05-wf08-wf09.md](d11-test-cases-wf05-wf08-wf09.md) (phần của Đức) |
 | Môi trường | Windows 11, Node.js 22.15.0, MongoDB cục bộ `127.0.0.1:27017` (test tạo database tạm và xoá sau khi chạy), git 2.50 |
-| CI | `.github/workflows/ci.yml` chạy toàn bộ test BE (MongoDB 7) và FE ở mỗi lần push; job BE fail nếu có test bị bỏ qua. **Các nhánh của đợt này chưa được push, nên CI chưa chạy trên chúng** (mục 6) |
+| CI | `.github/workflows/ci.yml` chạy toàn bộ test BE (MongoDB 8) và FE ở mỗi lần push; job BE fail nếu có test bị bỏ qua. **Các nhánh của đợt này chưa được push, nên CI chưa chạy trên chúng** (mục 6) |
 
 ## 1. Phạm vi
 
