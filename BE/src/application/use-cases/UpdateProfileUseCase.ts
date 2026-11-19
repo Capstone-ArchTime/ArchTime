@@ -14,8 +14,9 @@ const NAME_MAX = 100;
 const USERNAME_PATTERN = /^[a-z0-9](?:[a-z0-9._-]{1,30})[a-z0-9]$/;
 
 /**
- * Changes the signed-in user's own display name and username. Email is not editable here: changing it needs a new
- * verification. Role and status are changed by an administrator.
+ * Changes the signed-in user's own display name, and sets their username once (it cannot be changed or cleared
+ * afterwards). Email is not editable here: changing it needs a new verification. Role and status are changed by an
+ * administrator.
  */
 export class UpdateProfileUseCase {
   constructor(private readonly userRepo: IUserRepository) {}
@@ -53,6 +54,16 @@ export class UpdateProfileUseCase {
 
     if (patch.name === undefined && patch.username === undefined) {
       throw new BadRequestError("Nothing to update: send name and/or username.", "VALIDATION_ERROR");
+    }
+
+    // A username is chosen once: after that it can be sent again unchanged, but not changed or cleared.
+    if (patch.username !== undefined) {
+      const current = await this.userRepo.findById(input.userId);
+      if (!current) throw new NotFoundError("User not found.");
+      if (current.username && patch.username !== current.username) {
+        throw new ConflictError("Your username is set and cannot be changed.", "USERNAME_LOCKED");
+      }
+      if (current.username) delete patch.username; // the same value: nothing to change
     }
 
     if (patch.username && (await this.userRepo.existsByUsername(patch.username, input.userId))) {
