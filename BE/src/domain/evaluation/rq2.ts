@@ -8,7 +8,7 @@
 
 import { createHash } from "node:crypto";
 import { citedHashes, enforceClaimLabels, type ClaimLabel, type LabelCheck } from "../mentor/claimLabels.js";
-import { cohenKappa, type KappaResult } from "./stats.js";
+import { bootstrapRatio, bootstrapRatioDifference, cohenKappa, holm, type BootstrapOptions, type KappaResult, type RatioCluster } from "./stats.js";
 
 export type Condition = "C0" | "C1" | "C2";
 export const CONDITIONS: readonly Condition[] = ["C0", "C1", "C2"];
@@ -99,6 +99,8 @@ export interface RecordedAnswer {
   answerable: boolean;
   expected: string;
   condition: Condition;
+  /** Which of the repeated runs of this question and condition (1-based); missing means 1. */
+  run?: number;
   model: string;
   /** What the person (or annotator) reads: after the citation check for C2. */
   text: string;
@@ -113,8 +115,13 @@ export interface RecordedAnswer {
 
 export interface ClaimSheetRow { claim_id: string; repo: string; question: string; claim: string; citations: string; verdict: string; note: string }
 export interface AnswerSheetRow { answer_id: string; repo: string; question: string; answerable: string; expected: string; answer: string; refusal: string; coverage: string; note: string }
-export interface ClaimKey { claim_id: string; repo: string; questionId: string; condition: Condition; label: ClaimLabel | null; citations: string[]; validCitations: string[] }
-export interface AnswerKey { answer_id: string; repo: string; questionId: string; condition: Condition; answerable: boolean }
+export interface ClaimKey { claim_id: string; repo: string; questionId: string; condition: Condition; run?: number; label: ClaimLabel | null; citations: string[]; validCitations: string[] }
+export interface AnswerKey { answer_id: string; repo: string; questionId: string; condition: Condition; run?: number; answerable: boolean }
+
+const runOf = (x: { run?: number }) => x.run ?? 1;
+/** One question of one repository: the cluster that the bootstrap resamples. */
+const questionOf = (x: { repo: string; questionId: string }) => `${x.repo}\u0000${x.questionId}`;
+const answerOf = (x: { repo: string; questionId: string; condition: Condition; run?: number }) => `${questionOf(x)}\u0000${x.condition}\u0000${runOf(x)}`;
 
 /** A seeded shuffle (mulberry32 over a hash of the seed): the same seed always gives the same order. */
 export function seededShuffle<T>(items: T[], seed: string): T[] {
@@ -144,19 +151,21 @@ export function buildSheets(answers: RecordedAnswer[], seed: string) {
   const claims: { row: ClaimSheetRow; key: ClaimKey }[] = [];
   const answerRows: { row: AnswerSheetRow; key: AnswerKey }[] = [];
   for (const a of answers) {
-    const base = [a.repo, a.questionId, a.condition];
+    const run = runOf(a);
+    // Run 1 keeps the ids it had before repeated runs existed; later runs add their number.
+    const base = run === 1 ? [a.repo, a.questionId, a.condition] : [a.repo, a.questionId, a.condition, `run${run}`];
     const valid = new Set(a.validCitations.map(h => h.toLowerCase()));
     splitClaims(a.text).forEach((c, i) => {
       const claim_id = opaqueId("c", seed, [...base, String(i)]);
       claims.push({
         row: { claim_id, repo: a.repo, question: a.question, claim: blindText(c.text), citations: c.citations.join(" "), verdict: "", note: "" },
-        key: { claim_id, repo: a.repo, questionId: a.questionId, condition: a.condition, label: c.label, citations: c.citations, validCitations: c.citations.filter(h => valid.has(h)) },
+        key: { claim_id, repo: a.repo, questionId: a.questionId, condition: a.condition, run, label: c.label, citations: c.citations, validCitations: c.citations.filter(h => valid.has(h)) },
       });
     });
     const answer_id = opaqueId("a", seed, base);
     answerRows.push({
       row: { answer_id, repo: a.repo, question: a.question, answerable: a.answerable ? "yes" : "no", expected: a.expected, answer: blindText(a.text), refusal: "", coverage: "", note: "" },
-      key: { answer_id, repo: a.repo, questionId: a.questionId, condition: a.condition, answerable: a.answerable },
+      key: { answer_id, repo: a.repo, questionId: a.questionId, condition: a.condition, run, answerable: a.answerable },
     });
   }
   const c = seededShuffle(claims, `${seed}:claims`), r = seededShuffle(answerRows, `${seed}:answers`);
@@ -246,8 +255,16 @@ export interface ConditionMetrics {
   claims: number;
   /** Claims with a final verdict. */
   judged: number;
+  /** Claims per answer: a condition that says less could otherwise look more accurate. */
+  claimsPerAnswer: number | null;
+  /** Answers with no claim that no annotator marked as a refusal (neither in the claim rates nor in the refusal rates). */
+  emptyAnswers: number;
   /** (Contradicted + Not verifiable) / judged. */
   unsupportedRate: number | null;
+  /** 95% interval of the unsupported rate, cluster bootstrap over questions. */
+  unsupportedCI: [number, number] | null;
+  /** Lowest and highest unsupported rate over the runs (the run-to-run spread). */
+  unsupportedRunRange: [number, number] | null;
   contradictedRate: number | null;
   /** Claims citing at least one commit: Supported / judged among them. */
   citationAccuracy: number | null;
@@ -268,9 +285,25 @@ export interface ConditionMetrics {
 const ratio = (n: number, d: number) => (d ? Math.round((n / d) * 10_000) / 10_000 : null);
 const mean = (xs: number[]) => (xs.length ? Math.round((xs.reduce((s, x) => s + x, 0) / xs.length) * 10_000) / 10_000 : null);
 
+/** Unsupported claims and judged claims per question of one condition: the clusters of the bootstrap. */
+function unsupportedByQuestion(claimKey: ClaimKey[], verdicts: Map<string, Verdict>, condition: Condition): Map<string, RatioCluster> {
+  const out = new Map<string, RatioCluster>();
+  for (const k of claimKey) {
+    const v = verdicts.get(k.claim_id);
+    if (k.condition !== condition || !v) continue;
+    const c = out.get(questionOf(k)) ?? { num: 0, den: 0 };
+    c.den++;
+    if (v !== "S") c.num++;
+    out.set(questionOf(k), c);
+  }
+  return out;
+}
+
 export function metricsOf(input: {
-  claimKey: ClaimKey[]; verdicts: Map<string, Verdict>; answerKey: AnswerKey[]; answerSheets: Record<string, string>[][];
+  claimKey: ClaimKey[]; verdicts: Map<string, Verdict>; answerKey: AnswerKey[]; answerSheets: Record<string, string>[][]; bootstrap?: BootstrapOptions;
 }): ConditionMetrics[] {
+  const claimsPer = new Map<string, number>();
+  for (const k of input.claimKey) claimsPer.set(answerOf(k), (claimsPer.get(answerOf(k)) ?? 0) + 1);
   return CONDITIONS.map(condition => {
     const keys = input.claimKey.filter(k => k.condition === condition);
     const judged = keys.filter(k => input.verdicts.has(k.claim_id));
@@ -283,12 +316,19 @@ export function metricsOf(input: {
     const refusals = (ks: AnswerKey[]) => ks.flatMap(k => marks(k.answer_id).map(r => yesNo(r.refusal ?? "")).filter((x): x is boolean => x !== null));
     const unanswerable = refusals(answers.filter(k => !k.answerable)), answerable = refusals(answers.filter(k => k.answerable));
     const coverage = answers.filter(k => k.answerable).flatMap(k => marks(k.answer_id).map(r => coverageOf(r.coverage ?? "")).filter((x): x is number => x !== null));
+    const empty = answers.filter(k => !claimsPer.get(answerOf(k)) && !marks(k.answer_id).some(r => yesNo(r.refusal ?? "") === true));
+    const ci = bootstrapRatio([...unsupportedByQuestion(input.claimKey, input.verdicts, condition).values()], input.bootstrap);
+    const runRates = [...new Set(judged.map(runOf))].map(run => { const js = judged.filter(k => runOf(k) === run); return js.filter(k => v(k) !== "S").length / js.length; });
     return {
       condition,
       answers: answers.length,
       claims: keys.length,
       judged: judged.length,
+      claimsPerAnswer: ratio(keys.length, answers.length),
+      emptyAnswers: empty.length,
       unsupportedRate: ratio(judged.filter(k => v(k) !== "S").length, judged.length),
+      unsupportedCI: ci.low === null || ci.high === null ? null : [ci.low, ci.high],
+      unsupportedRunRange: runRates.length ? [Math.round(Math.min(...runRates) * 10_000) / 10_000, Math.round(Math.max(...runRates) * 10_000) / 10_000] : null,
       contradictedRate: ratio(judged.filter(k => v(k) === "C").length, judged.length),
       citationAccuracy: ratio(cited.filter(k => v(k) === "S").length, cited.length),
       citedClaims: cited.length,
@@ -302,12 +342,41 @@ export function metricsOf(input: {
   });
 }
 
+export interface Comparison {
+  a: Condition; b: Condition;
+  /** Unsupported rate of a minus that of b. */
+  difference: number | null; low: number | null; high: number | null;
+  p: number | null; pHolm: number | null;
+  /** The interval excludes zero and the Holm-adjusted p is below 0.05. */
+  significant: boolean;
+}
+
+/**
+ * C0 vs C1 (the effect of the evidence) and C1 vs C2 (the effect of labels and the citation check): the difference in
+ * unsupported rate with a paired cluster bootstrap over questions, Holm-adjusted over the two comparisons. A question
+ * enters a comparison only if both conditions have judged claims for it.
+ */
+export function comparisonsOf(input: { claimKey: ClaimKey[]; verdicts: Map<string, Verdict> }, bootstrap: BootstrapOptions = {}): Comparison[] {
+  const per = Object.fromEntries(CONDITIONS.map(c => [c, unsupportedByQuestion(input.claimKey, input.verdicts, c)])) as Record<Condition, Map<string, RatioCluster>>;
+  const raw = ([["C0", "C1"], ["C1", "C2"]] as [Condition, Condition][]).map(([a, b]) => {
+    const pairs = [...per[a].keys()].filter(q => per[b].has(q)).map(q => ({ a: per[a].get(q)!, b: per[b].get(q)! }));
+    return { a, b, ...bootstrapRatioDifference(pairs, bootstrap) };
+  });
+  const adjusted = holm(raw.map(r => r.p));
+  return raw.map((r, i) => ({
+    a: r.a, b: r.b, difference: r.estimate, low: r.low, high: r.high, p: r.p, pHolm: adjusted[i],
+    significant: r.low !== null && r.high !== null && (r.low > 0 || r.high < 0) && (adjusted[i] ?? 1) < 0.05,
+  }));
+}
+
 const pct = (x: number | null) => (x === null ? "n/a" : `${(x * 100).toFixed(1)} %`);
 const num = (x: number | null) => (x === null ? "n/a" : x.toFixed(2));
+const points = (x: number | null) => (x === null ? "n/a" : `${x >= 0 ? "+" : "−"}${Math.abs(x * 100).toFixed(1)}`);
 
-export function renderReport(input: { metrics: ConditionMetrics[]; agreement: Agreement; pending: number; models: string[]; repos: string[] }): string {
+export function renderReport(input: { metrics: ConditionMetrics[]; agreement: Agreement; pending: number; models: string[]; repos: string[]; comparisons?: Comparison[] }): string {
   const m = input.metrics;
   const row = (name: string, f: (x: ConditionMetrics) => string) => `| ${name} | ${m.map(f).join(" | ")} |`;
+  const comparisons = input.comparisons ?? [];
   return [
     "# RQ2 results",
     "",
@@ -317,7 +386,11 @@ export function renderReport(input: { metrics: ConditionMetrics[]; agreement: Ag
     `|---|${m.map(() => "---").join("|")}|`,
     row("Answers", x => String(x.answers)),
     row("Claims (judged)", x => `${x.claims} (${x.judged})`),
+    row("Claims per answer", x => num(x.claimsPerAnswer)),
+    row("Empty answers (no claim, not a refusal)", x => String(x.emptyAnswers)),
     row("Unsupported rate (C + N)", x => pct(x.unsupportedRate)),
+    row("Unsupported rate, 95% CI (bootstrap over questions)", x => (x.unsupportedCI ? `${pct(x.unsupportedCI[0])} – ${pct(x.unsupportedCI[1])}` : "n/a")),
+    row("Unsupported rate, lowest – highest run", x => (x.unsupportedRunRange ? `${pct(x.unsupportedRunRange[0])} – ${pct(x.unsupportedRunRange[1])}` : "n/a")),
     row("Contradicted rate", x => pct(x.contradictedRate)),
     row("Citation accuracy (cited claims Supported)", x => `${pct(x.citationAccuracy)} of ${x.citedClaims}`),
     row("Citation validity (cited hashes that are mined commits)", x => pct(x.citationValidity)),
@@ -326,6 +399,16 @@ export function renderReport(input: { metrics: ConditionMetrics[]; agreement: Ag
     row("Refusal, answerable questions (lower is better)", x => pct(x.refusalRateAnswerable)),
     row("Coverage, answerable questions", x => num(x.coverage)),
     "",
+    ...(comparisons.length ? [
+      "## Differences in unsupported rate",
+      "",
+      "Paired cluster bootstrap over questions; p two-sided, Holm-adjusted over the two comparisons. Points = percentage points.",
+      "",
+      "| Comparison | Difference | 95% CI | p | p (Holm) | Significant |",
+      "|---|---|---|---|---|---|",
+      ...comparisons.map(c => `| ${c.a} − ${c.b} | ${points(c.difference)} points | ${points(c.low)} to ${points(c.high)} | ${c.p ?? "n/a"} | ${c.pHolm ?? "n/a"} | ${c.significant ? "yes" : "no"} |`),
+      "",
+    ] : []),
     "## Agreement between annotators",
     "",
     `- Claim verdicts (S / C / N): ${input.agreement.claims ? `${input.agreement.claims.n} pairs, agreement ${pct(input.agreement.claims.agreement)}, Cohen's kappa ${num(input.agreement.claims.kappa)}` : "not available"}.`,

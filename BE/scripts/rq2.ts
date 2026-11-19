@@ -4,13 +4,16 @@
  * Protocol: docs/rq2-protocol.md. Questions: docs/rq2/questions.json.
  *
  *   npm run rq2 -- list                                         workspaces with mined snapshots (id, name, snapshots)
- *   npm run rq2 -- run --project <id> --repo <axios|nest|archtime> [--questions Q1,Q2] [--conditions C0,C1,C2]
- *                      [--model <registry id>] [--force]         asks the model; an answer already saved is not asked again
+ *   npm run rq2 -- run --project <id> --repo <react-router|docusaurus|actual> [--questions Q1,Q2] [--conditions C0,C1,C2]
+ *                      [--runs 3] [--model <registry id>] [--force]   asks the model each question --runs times per condition
+ *                                                                     (default 3); an answer already saved is not asked again
  *   npm run rq2 -- sheet [--seed <text>]                         blind sheets for the annotators + the keys
  *   npm run rq2 -- score --a <name> --b <name>                   agreement, adjudication list, report.md, metrics.csv
+ *                                                                (rates with 95% CI and C0-C1, C1-C2 differences, Holm)
  *   any command: --out <dir>                                     output folder (default rq2-results)
  *
- * Output in <out>: answers/<repo>.<question>.<condition>.json; sheets/claims.csv and sheets/answers.csv (templates:
+ * Output in <out>: answers/<repo>.<question>.<condition>.json (run 1) and <repo>.<question>.<condition>.r<n>.json (runs
+ * 2 and later); sheets/claims.csv and sheets/answers.csv (templates:
  * each annotator copies them to claims.<name>.csv / answers.<name>.csv and fills verdict, refusal, coverage);
  * keys/*.json (which condition each row came from: never show to annotators); sheets/claims.adjudicate.csv (claims the
  * two annotators disagree on; fill the verdict together and save as claims.adjudicated.csv); report.md, metrics.csv.
@@ -25,17 +28,17 @@ import { LlmModelRegistry } from "../src/infrastructure/llm/registry.js";
 import { mentorProjectData, SYSTEM_PROMPT } from "../src/application/use-cases/llm/ProjectChatUseCase.js";
 import { citedHashes, minedCommitMatcher } from "../src/domain/mentor/claimLabels.js";
 import {
-  agreementOf, buildSheets, CONDITIONS, finalVerdicts, messagesFor, metricsOf, parseCsv, postProcess, renderReport, toCsv,
+  agreementOf, buildSheets, comparisonsOf, CONDITIONS, finalVerdicts, messagesFor, metricsOf, parseCsv, postProcess, renderReport, toCsv,
   type AnswerKey, type ClaimKey, type Condition, type Question, type RecordedAnswer,
 } from "../src/domain/evaluation/rq2.js";
 
 const QUESTIONS_FILE = path.resolve(import.meta.dirname, "../../docs/rq2/questions.json");
 
-interface Args { command: string; out: string; project?: string; repo?: string; questions?: string[]; conditions: Condition[]; model?: string; force: boolean; seed: string; a?: string; b?: string }
+interface Args { command: string; out: string; project?: string; repo?: string; questions?: string[]; conditions: Condition[]; runs: number; model?: string; force: boolean; seed: string; a?: string; b?: string }
 
 function args(argv: string[]): Args {
   const [command = "", ...rest] = argv;
-  const a: Args = { command, out: "rq2-results", conditions: [...CONDITIONS], force: false, seed: "archtime-rq2" };
+  const a: Args = { command, out: "rq2-results", conditions: [...CONDITIONS], runs: 3, force: false, seed: "archtime-rq2" };
   for (let i = 0; i < rest.length; i++) {
     const next = () => { if (!rest[i + 1]) throw new Error(`${rest[i]} needs a value`); return rest[++i]; };
     switch (rest[i]) {
@@ -49,6 +52,7 @@ function args(argv: string[]): Args {
         a.conditions = list as Condition[];
         break;
       }
+      case "--runs": a.runs = Number(next()); if (!Number.isInteger(a.runs) || a.runs < 1 || a.runs > 10) throw new Error("--runs takes a whole number from 1 to 10"); break;
       case "--model": a.model = next(); break;
       case "--force": a.force = true; break;
       case "--seed": a.seed = next(); break;
@@ -93,12 +97,12 @@ async function run(a: Args) {
   const mined = await SnapshotModel.find({ projectId: project.id }).select("hash fullHash").lean<{ hash: string; fullHash?: string }[]>();
   const isMined = minedCommitMatcher(mined);
   const model = await LlmModelRegistry.resolve(a.model ?? null);
-  console.log(`Model: ${model.client.info.provider} ${model.client.info.model} (${model.client.info.external ? "external" : "local"}). ${questions.length} questions x ${a.conditions.length} conditions.`);
+  console.log(`Model: ${model.client.info.provider} ${model.client.info.model} (${model.client.info.external ? "external" : "local"}). ${questions.length} questions x ${a.conditions.length} conditions x ${a.runs} runs.`);
 
   for (const q of questions) {
-    for (const condition of a.conditions) {
-      const file = path.join(a.out, "answers", `${a.repo}.${q.id}.${condition}.json`);
-      if (fs.existsSync(file) && !a.force) { console.log(`  ${q.id} ${condition}: already answered, kept (use --force to ask again)`); continue; }
+    for (const condition of a.conditions) for (let run = 1; run <= a.runs; run++) {
+      const file = path.join(a.out, "answers", `${a.repo}.${q.id}.${condition}${run === 1 ? "" : `.r${run}`}.json`);
+      if (fs.existsSync(file) && !a.force) { console.log(`  ${q.id} ${condition} run ${run}: already answered, kept (use --force to ask again)`); continue; }
       const usage = { inputTokens: 0, outputTokens: 0 };
       let seen = false;
       const started = performance.now();
@@ -108,13 +112,13 @@ async function run(a: Args) {
       );
       const { text, check } = postProcess(condition, raw, isMined);
       const answer: RecordedAnswer = {
-        repo: a.repo, questionId: q.id, question: q.text, answerable: q.answerable, expected: q.expected, condition,
+        repo: a.repo, questionId: q.id, question: q.text, answerable: q.answerable, expected: q.expected, condition, run,
         model: `${model.client.info.provider}/${model.client.info.model}`, text, raw: raw.trim(), check,
         validCitations: citedHashes(text).filter(isMined), usage: seen ? usage : null,
         latencyMs: Math.round(performance.now() - started), askedAt: new Date().toISOString(),
       };
       writeJson(file, answer);
-      console.log(`  ${q.id} ${condition}: ${text.length} chars, ${answer.validCitations.length} valid citations${check ? `, ${check.downgraded} FACT downgraded, ${check.removedCitations.length} citations removed` : ""}`);
+      console.log(`  ${q.id} ${condition} run ${run}: ${text.length} chars, ${answer.validCitations.length} valid citations${check ? `, ${check.downgraded} FACT downgraded, ${check.removedCitations.length} citations removed` : ""}`);
     }
   }
 }
@@ -156,8 +160,11 @@ function score(a: Args) {
     })), ["claim_id", "claim", "citations", `verdict_${a.a}`, `verdict_${a.b}`, "verdict"]));
   }
   const metrics = metricsOf({ claimKey, verdicts, answerKey, answerSheets: [answersA, answersB] });
+  const comparisons = comparisonsOf({ claimKey, verdicts });
   const answers = loadAnswers(a.out);
-  const report = renderReport({ metrics, agreement, pending: pending.length, models: [...new Set(answers.map(x => x.model))], repos: [...new Set(answers.map(x => x.repo))] });
+  const report = renderReport({ metrics, agreement, pending: pending.length, models: [...new Set(answers.map(x => x.model))], repos: [...new Set(answers.map(x => x.repo))], comparisons });
+  writeText(path.join(a.out, "comparisons.csv"), toCsv(comparisons.map(c => Object.fromEntries(Object.entries(c).map(([k, v]) => [k, v === null ? "" : String(v)]))) as Record<string, string>[],
+    Object.keys(comparisons[0]) as string[]));
   writeText(path.join(a.out, "report.md"), report);
   writeText(path.join(a.out, "metrics.csv"), toCsv(metrics.map(m => Object.fromEntries(Object.entries(m).map(([k, v]) => [k, v === null ? "" : String(v)]))) as Record<string, string>[],
     Object.keys(metrics[0]) as string[]));
