@@ -10,6 +10,7 @@ import {
   DEFAULT_BATCH_SIZE,
   GIT_LOG_FORMAT,
   analysisProgress,
+  capPatch,
   chunk,
   monthlyHistogram,
   orderForMining,
@@ -546,7 +547,7 @@ export class MiningService {
     let patch = '';
     let changedFiles: string[] = [];
     try {
-      patch = await git.show([commit.hash, '--patch']);
+      patch = capPatch(await git.show([commit.hash, '--patch']));
       changedFiles = (await git.show([commit.hash, '--name-only', '--format='])).split('\n').map(f => f.trim()).filter(Boolean);
     } catch { /* evidence is best-effort */ }
     let type = 'DEPENDENCY CHANGE';
