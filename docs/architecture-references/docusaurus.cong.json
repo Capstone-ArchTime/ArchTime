@@ -1,0 +1,127 @@
+{
+  "repo": "docusaurus",
+  "commit": "4c4ec4aaabc6d70288d53e10203c6d271f0cac7a",
+  "author": "Nguyễn Duy Công",
+  "writtenAt": "2026-11-18",
+  "sources": [
+    "website/docs/advanced/architecture.mdx (architecture overview: plugins collect content and emit JSON; themes provide layout components; bundler emits server/client bundles; plugins and themes communicate through JSON temp files and addRoute)",
+    "Git tree/package boundaries at commit 4c4ec4aaabc6d70288d53e10203c6d271f0cac7a"
+  ],
+  "components": [
+    {
+      "name": "Framework lõi Docusaurus",
+      "responsibility": "Cung cấp nền tảng runtime và API cốt lõi để cấu hình, khởi chạy và kết hợp các tính năng của website Docusaurus.",
+      "prefixes": [
+        "packages/docusaurus/"
+      ],
+      "evidence": [
+        "website/docs/advanced/architecture.mdx: mô tả pipeline plugin → JSON data → theme route modules → bundler tạo server/client bundles.",
+        "Git tree: packages/docusaurus/ là package framework lõi."
+      ]
+    },
+    {
+      "name": "Giao diện theme mặc định",
+      "responsibility": "Cung cấp theme classic mặc định và các thành phần giao diện phổ biến cho website Docusaurus.",
+      "prefixes": [
+        "packages/docusaurus-theme-classic/"
+      ],
+      "evidence": [
+        "website/docs/advanced/architecture.mdx: theme cung cấp layout components nhận JSON data dưới dạng route modules.",
+        "Git tree: packages/docusaurus-theme-classic/ là package theme mặc định."
+      ]
+    },
+    {
+      "name": "Hạ tầng theme dùng chung",
+      "responsibility": "Cung cấp các tiện ích và thành phần nền dùng chung giữa các theme Docusaurus.",
+      "prefixes": [
+        "packages/docusaurus-theme-common/"
+      ],
+      "evidence": [
+        "website/docs/advanced/architecture.mdx: theme code được bundler build theo quy ước React/ESM.",
+        "Git tree: packages/docusaurus-theme-common/ là package hạ tầng theme dùng chung."
+      ]
+    },
+    {
+      "name": "Quản lý nội dung tài liệu",
+      "responsibility": "Cung cấp plugin xử lý nội dung docs, bao gồm tích hợp nội dung tài liệu vào website Docusaurus.",
+      "prefixes": [
+        "packages/docusaurus-plugin-content-docs/"
+      ],
+      "evidence": [
+        "website/docs/advanced/architecture.mdx: plugins thu thập content và phát JSON data; plugin và theme giao tiếp qua JSON temp files và addRoute, không import trực tiếp lẫn nhau.",
+        "Git tree: packages/docusaurus-plugin-content-docs/ là plugin xử lý nội dung docs."
+      ]
+    },
+    {
+      "name": "Hệ sinh thái plugin nội dung và tích hợp",
+      "responsibility": "Cung cấp các plugin mở rộng để thu thập nội dung, tích hợp dịch vụ và bổ sung khả năng cho website Docusaurus.",
+      "prefixes": [
+        "packages/docusaurus-plugin-client-redirects/",
+        "packages/docusaurus-plugin-content-blog/",
+        "packages/docusaurus-plugin-content-pages/",
+        "packages/docusaurus-plugin-css-cascade-layers/",
+        "packages/docusaurus-plugin-debug/",
+        "packages/docusaurus-plugin-google-gtag/",
+        "packages/docusaurus-plugin-google-tag-manager/",
+        "packages/docusaurus-plugin-ideal-image/",
+        "packages/docusaurus-plugin-pwa/",
+        "packages/docusaurus-plugin-rsdoctor/",
+        "packages/docusaurus-plugin-sitemap/",
+        "packages/docusaurus-plugin-svgr/",
+        "packages/docusaurus-plugin-vercel-analytics/"
+      ],
+      "evidence": [
+        "website/docs/advanced/architecture.mdx: plugin lifecycle methods chạy trong Node, thu thập content và phát JSON data cho theme thông qua protocol.",
+        "Git tree: các package docusaurus-plugin-* tạo thành nhóm plugin mở rộng; package content-docs được tách riêng thành component cụ thể hơn."
+      ]
+    },
+    {
+      "name": "Compiler, bundler và tiện ích nền",
+      "responsibility": "Cung cấp loader, bundler, tiện ích xử lý file, validation và logging dùng trong pipeline build Docusaurus.",
+      "prefixes": [
+        "packages/docusaurus-mdx-loader/",
+        "packages/docusaurus-bundler/",
+        "packages/docusaurus-utils/",
+        "packages/docusaurus-utils-validation/",
+        "packages/docusaurus-babel/",
+        "packages/docusaurus-fs/",
+        "packages/docusaurus-glob/",
+        "packages/docusaurus-logger/",
+        "packages/eslint-plugin/",
+        "packages/docusaurus-utils-common/",
+        "packages/docusaurus-remark-plugin-npm2yarn/",
+        "packages/lqip-loader/",
+        "packages/stylelint-copyright/"
+      ],
+      "evidence": [
+        "website/docs/advanced/architecture.mdx: bundler tạo server bundle và client bundle; plugin code và theme code được chạy ở môi trường khác nhau.",
+        "Git tree: các package loader, bundler, utils, babel, filesystem và lint được tách thành package riêng."
+      ]
+    },
+    {
+      "name": "Khởi tạo dự án Docusaurus",
+      "responsibility": "Tạo cấu trúc và cấu hình ban đầu cho website mới sử dụng Docusaurus.",
+      "prefixes": [
+        "packages/create-docusaurus/"
+      ],
+      "evidence": [
+        "Git tree: packages/create-docusaurus/ là package riêng dành cho việc tạo dự án."
+      ]
+    },
+    {
+      "name": "Theme mở rộng và preset giao diện",
+      "responsibility": "Cung cấp các theme mở rộng, theme tích hợp dịch vụ và preset để lắp ghép giao diện website Docusaurus.",
+      "prefixes": [
+        "packages/docusaurus-theme-live-codeblock/",
+        "packages/docusaurus-theme-search-algolia/",
+        "packages/docusaurus-theme-mermaid/",
+        "packages/docusaurus-theme-translations/",
+        "packages/docusaurus-preset-classic/"
+      ],
+      "evidence": [
+        "website/docs/advanced/architecture.mdx: themes cung cấp layout components nhận dữ liệu route do plugins phát ra.",
+        "Git tree: các package docusaurus-theme-* và docusaurus-preset-classic là các gói mở rộng theme/preset riêng."
+      ]
+    }
+  ]
+}

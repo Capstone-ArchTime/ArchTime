@@ -1,0 +1,10 @@
+Lõi quản trị và điều phối dữ liệu: packages/
+Giao diện quản trị Material UI: packages/ra-ui-materialui/
+Bộ chuyển đổi truy cập dữ liệu: packages/ra-data-fakerest/, packages/ra-data-graphql-simple/, packages/ra-data-graphql/, packages/ra-data-json-server/, packages/ra-data-local-forage/, packages/ra-data-local-storage/, packages/ra-data-simple-rest/
+Tích hợp định tuyến: packages/ra-router-tanstack/
+Quốc tế hóa: packages/ra-i18n-i18next/, packages/ra-i18n-polyglot/
+Soạn thảo nội dung phong phú: packages/ra-input-rich-text/
+Xây dựng ứng dụng quản trị không cần code: packages/ra-no-code/
+Khởi tạo dự án quản trị: packages/create-react-admin/
+API công khai của framework: packages/react-admin/
+Bản dịch ngôn ngữ: packages/ra-language-english/, packages/ra-language-french/

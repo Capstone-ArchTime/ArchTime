@@ -9,13 +9,19 @@
 
 ## 1. Hiện trạng
 
-| Repo | Bản A | Bản B | MoJoFM A↔B | Bản cuối | Đã nhập (Công) |
+> **Quyết định 18/11/2026:** Reference A do **Công tự viết** (khung `<repo>.cong.json`, các bước ở
+> [CONG-WRITING-STEPS.md](CONG-WRITING-STEPS.md)). Các bản do AI viết (`*.claude.json`) **không dùng** trong paper và phép đo.
+> Reference B do một thành viên khác viết, bổ sung sau; trong lúc chờ, C11 chấm bằng bản của Công.
+
+| Repo | Bản A (Công) | Bản B | MoJoFM A↔B | Bản cuối | Đã nhập (Công) |
 |---|---|---|---|---|---|
-| react-router | ✅ AI (Claude), 13 component | ⬜ | ⬜ | ⬜ | ⬜ |
-| docusaurus | ✅ AI, 15 component | ⬜ | ⬜ | ⬜ | ⬜ |
-| actual | ✅ AI, 19 component | ⬜ | ⬜ | ⬜ | ⬜ |
-| react-admin | ✅ AI, 16 component | ⬜ | ⬜ | ⬜ | ⬜ |
-| outline | ✅ AI, 16 component (gán từng file) | ⬜ | ⬜ | ⬜ | ⬜ |
+| react-router | ⬜ đang viết | ⬜ | ⬜ | ⬜ | ⬜ |
+| docusaurus | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| react-admin | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| actual | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| outline | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+
+Bản cũ do AI viết (không dùng): react-router 13, docusaurus 15, actual 19, react-admin 16, outline 16 component.
 
 Công cụ đã sẵn và có test: `reference-check` (kiểm một bản), `reference-agreement` (MoJoFM hai chiều), `reference-export` (nén không mất thông tin + kiểm giới hạn, ra file để nhập). Bản A của cả 5 repo đã thử qua `reference-export`: cách gán từng file giữ nguyên, và đều nhập được. Riêng outline (633 tiền tố) đã nhập thử thành công vào workspace demo rồi xoá đi.
 

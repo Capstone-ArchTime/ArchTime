@@ -1,0 +1,8 @@
+Ứng dụng ngân sách phía người dùng: packages/desktop-client/
+Thư viện thành phần giao diện: packages/component-library/
+Lõi nghiệp vụ và cơ sở dữ liệu ngân sách: packages/loot-core/
+Dịch vụ đồng bộ từ xa: packages/crdt/, packages/sync-server/
+API công khai cho script bên ngoài: packages/api/
+Tích hợp ứng dụng di động: packages/mobile-client/
+CLI và tiến trình desktop: packages/cli/, packages/desktop-electron/
+Dịch vụ plugin và tích hợp mở rộng: packages/plugins-service/, packages/vite-plugin-peggy/
