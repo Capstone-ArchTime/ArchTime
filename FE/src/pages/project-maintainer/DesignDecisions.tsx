@@ -66,5 +66,6 @@ function DecisionEditor({ project }: { project: string }) {
 }
 
 export default function DesignDecisions() {
-  return <WorkspacePage title="Design Decisions" description="Preserve architectural context, the chosen approach, and its trade-offs in a design decision record.">{project => <DecisionEditor project={project} />}</WorkspacePage>;
+  return <WorkspacePage title="Design Decisions" description="Why the architecture is the way it is."
+    details={<p>Each record keeps the context of a decision, the approach chosen, the alternatives considered and its trade-offs.</p>}>{project => <DecisionEditor project={project} />}</WorkspacePage>;
 }

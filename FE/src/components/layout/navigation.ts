@@ -2,7 +2,8 @@ import type { ElementType } from 'react';
 import { LayoutDashboard, FolderKanban, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, Users2, SlidersHorizontal, ScrollText, Activity, Boxes, Cpu, Gauge, Coins, GraduationCap, UserRound, ChartNetwork, Briefcase, Building2, ScanSearch, Bot, ListChecks } from 'lucide-react';
 import type { Role } from '@/auth/permissions';
 
-export type NavItem = { path: string; label: string; icon: ElementType };
+/** `tab` is a shorter label for the tab bar of a group, where the group already says what the page belongs to. */
+export type NavItem = { path: string; label: string; icon: ElementType; tab?: string };
 /** A run of sidebar links; a labelled group can be folded away (see DashboardLayout). */
 export type NavGroup = { label?: string; icon?: ElementType; items: readonly NavItem[] };
 
@@ -17,12 +18,12 @@ export const analyzeNavItems: readonly NavItem[] = [
 
 /** Pages for the workspaces this account maintains; the server decides which those are. Reports live under Reports. */
 export const maintainNavItems: readonly NavItem[] = [
-  { path: '/project-maintainer', label: 'Maintainer overview', icon: ShieldCheck },
+  { path: '/project-maintainer', label: 'Maintainer overview', tab: 'Overview', icon: ShieldCheck },
   { path: '/project-maintainer/approvals', label: 'Approval Queue', icon: GitPullRequest },
   { path: '/project-maintainer/team', label: 'Team', icon: Users },
   { path: '/project-maintainer/component-diagram', label: 'Component Diagram', icon: Network },
   { path: '/project-maintainer/architecture-rules', label: 'Architecture Rules', icon: ShieldCheck },
-  { path: '/project-maintainer/conformance', label: 'Conformance Findings', icon: ScanSearch },
+  { path: '/project-maintainer/conformance', label: 'Conformance Findings', tab: 'Conformance', icon: ScanSearch },
   { path: '/project-maintainer/agent-access', label: 'Agent Access', icon: Bot },
   { path: '/project-maintainer/design-decisions', label: 'Design Decisions', icon: BookOpen },
 ];

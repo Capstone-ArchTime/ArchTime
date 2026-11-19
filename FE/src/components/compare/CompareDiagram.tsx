@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { KeyboardEvent } from 'react';
 import type { CompareGraph, CompareGroup, CompareLink } from '@/features/compare-graph';
 import { shortLabel } from '@/features/compare-graph';
@@ -32,7 +33,8 @@ function linkTone(l: CompareLink, side: Side): Tone {
  * One revision of the comparison: folders as boxes, imports between them as arrows (thicker for more imports). Folders
  * that exist only in the other revision stay as dashed outlines, so both drawings line up box for box.
  */
-export default function CompareDiagram({ graph, layout, side, label, selected, onOpen }: {
+export default memo(CompareDiagram);
+function CompareDiagram({ graph, layout, side, label, selected, onOpen }: {
   graph: CompareGraph; layout: GraphLayout; side: Side; label: string;
   /** The folder whose files are open, outlined on both drawings. */
   selected?: string | null;

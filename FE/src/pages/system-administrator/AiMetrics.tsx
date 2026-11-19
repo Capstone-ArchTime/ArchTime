@@ -10,6 +10,7 @@ import {
 import type { AdminModel, BenchmarkDetail, BenchmarkSummary, BenchmarkTarget, Leaderboard, LeaderboardRow, ScorePreset, UsageReport, UsageRow } from '@/features/llm-api';
 import { drawingStats } from '@/features/llm-run-view';
 import { sectionTitle, statCard, statLabel } from './admin-ui';
+import { Details } from '@/components/PageHeader';
 
 const RANGES = [{ value: 7, label: '7 days' }, { value: 30, label: '30 days' }, { value: 90, label: '90 days' }];
 const PRESETS: { value: ScorePreset; label: string }[] = [{ value: 'balanced', label: 'Balanced' }, { value: 'quality', label: 'Quality first' }, { value: 'budget', label: 'Budget' }];
@@ -81,8 +82,10 @@ const leaderboardColumns: ColumnsType<LeaderboardRow> = [
 
 function Weights({ board }: { board: Leaderboard }) {
   const w = board.weights;
-  return <p className="text-xs text-[var(--at-muted)]">Score = 100 × ({w.quality.toFixed(2)}·Quality + {w.stability.toFixed(2)}·Stability + {w.latency.toFixed(2)}·Latency + {w.cost.toFixed(2)}·Cost + {w.tokens.toFixed(2)}·Tokens).
-    Latency, cost and tokens are relative to the best model (1 = best). Models need at least 3 runs and 50% success to be recommended (benchmarks: 1 run). Questions asked in AI Insights are included in the runs, tokens and cost figures but not in success, speed or scores.</p>;
+  return <Details label="How the score is computed" bodyClassName="text-xs">
+    <p>Score = 100 × ({w.quality.toFixed(2)}·Quality + {w.stability.toFixed(2)}·Stability + {w.latency.toFixed(2)}·Latency + {w.cost.toFixed(2)}·Cost + {w.tokens.toFixed(2)}·Tokens).
+    Latency, cost and tokens are relative to the best model (1 = best). Models need at least 3 runs and 50% success to be recommended (benchmarks: 1 run). Questions asked in AI Insights are included in the runs, tokens and cost figures but not in success, speed or scores.</p>
+  </Details>;
 }
 
 function BenchmarkPanel({ models }: { models: AdminModel[] }) {

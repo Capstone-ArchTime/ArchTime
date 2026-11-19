@@ -4,6 +4,7 @@ import { Alert, App, Button, Empty, Input, Progress as Bar, Segmented, Select, S
 import type { ColumnsType } from 'antd/es/table';
 import { FileSearch, GitCommitHorizontal, Link2, Upload } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { Details } from '@/components/PageHeader';
 import { getManagedProjects, getReadableProjects, type ProjectSummary } from '@/features/project-data';
 import {
   STATUS_COLORS, edgeLabel, fetchTaskBoard, fetchTaskImpact, filterTasks, impactSummary, importJiraExport, importSummary, progressLabel, relinkCommits,
@@ -203,8 +204,9 @@ export default function TasksSprints() {
     <div className="max-w-[1400px] mx-auto space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Tasks & Sprints</h1>
-          <p className="text-sm text-[var(--at-muted)] max-w-2xl">Work imported from Jira, the commits that name each task, and how far each sprint has come (Done / all tasks of the sprint; removed tasks are not counted).</p>
+          <h2 className="text-3xl font-bold tracking-tight">Tasks & Sprints</h2>
+          <p className="mt-2 text-sm text-[var(--at-muted)] max-w-2xl">Jira tasks, the commits that name them, and sprint progress.</p>
+          <Details className="mt-2"><p>Tasks come from a Jira JSON export (the issue search format). A commit is linked to a task when its message names the task key. Sprint progress is Done / all tasks of the sprint; removed tasks are not counted.</p></Details>
         </div>
         {projects && projects.length > 0 && <div className="w-full sm:w-72">
           <label htmlFor="tasks-workspace" className="block text-xs text-[var(--at-muted)] mb-1">Workspace</label>

@@ -7,6 +7,7 @@ import {
   DEFAULT_EXPIRY, EXPIRY_CHOICES, STATUS_LABEL, contextCommand, createToken, downloadAgentsMd, listTokens, revokeToken, sortTokens,
 } from '@/features/agent-access';
 import type { AgentToken } from '@/features/agent-access';
+import { Details } from '@/components/PageHeader';
 
 const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString() : '—');
 
@@ -71,7 +72,8 @@ function Access({ project }: { project: string }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-2xl">
           <h3 className="text-lg font-semibold">AGENTS.md</h3>
-          <p className="text-sm text-[var(--at-muted)] mt-1">Architecture rules for coding agents, generated from the confirmed component diagram: components and their paths, allowed dependencies, rules, design decisions and the commit convention. Put it at the root of the repository; download it again after the diagram changes.</p>
+          <p className="text-sm text-[var(--at-muted)] mt-1">Put it at the root of the repository; download it again after the diagram changes.</p>
+          <Details className="mt-2"><p>Generated from the confirmed component diagram: components and their paths, allowed dependencies, rules, design decisions and the commit convention.</p></Details>
         </div>
         <Button type="primary" icon={<Download size={14} />} loading={downloading} onClick={download}>Download AGENTS.md</Button>
       </div>
@@ -82,7 +84,8 @@ function Access({ project }: { project: string }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-2xl">
           <h3 className="text-lg font-semibold">Project tokens</h3>
-          <p className="text-sm text-[var(--at-muted)] mt-1">A token lets an agent read this workspace's architecture context: never its source code, and nothing else of ArchTime. A token is shown once, lasts at most 90 days and can be revoked at any time.</p>
+          <p className="text-sm text-[var(--at-muted)] mt-1">One token per agent or machine. Shown once, lasts up to 90 days.</p>
+          <Details className="mt-2"><p>A token lets an agent read this workspace's architecture context: never its source code, and nothing else of ArchTime. It can be revoked at any time.</p></Details>
         </div>
         <Button icon={<Plus size={14} />} onClick={() => { form.setFieldsValue({ name: '', expiresInDays: DEFAULT_EXPIRY }); setCreating(true); }}>New token</Button>
       </div>
@@ -106,7 +109,7 @@ function Access({ project }: { project: string }) {
 
     <section className={`${panel} space-y-2`}>
       <h3 className="text-lg font-semibold">How an agent asks</h3>
-      <p className="text-sm text-[var(--at-muted)]">Before changing a file, the agent asks which component it belongs to, which components it may and may not depend on, the design decisions about it and the commit convention.</p>
+      <Details><p>Before changing a file, the agent asks which component it belongs to, which components it may and may not depend on, the design decisions about it and the commit convention.</p></Details>
       <Typography.Paragraph copyable={{ text: contextCommand() }} className="!mb-0"><code className="break-all text-xs">{contextCommand()}</code></Typography.Paragraph>
     </section>
 
@@ -127,7 +130,8 @@ function Access({ project }: { project: string }) {
 }
 
 export default function AgentAccess() {
-  return <WorkspacePage title="Agent Access" description="Let coding agents follow this workspace's architecture: tokens for the context API and an AGENTS.md generated from the confirmed diagram.">
+  return <WorkspacePage title="Agent Access" description="Let coding agents follow this workspace's architecture."
+    details={<p>An agent reads the architecture through the context API with a project token, or from an AGENTS.md file generated from the confirmed diagram.</p>}>
     {project => <Access key={project} project={project} />}
   </WorkspacePage>;
 }

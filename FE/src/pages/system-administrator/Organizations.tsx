@@ -138,7 +138,7 @@ export default function Organizations() {
   const total = answer?.total ?? 0;
   const error = answer?.error ?? null;
 
-  return <FeaturePage title="Organizations" description="Every organization on the platform: who owns it, how many members and workspaces it has, and whether it is suspended." error={error}
+  return <FeaturePage title="Organizations" description="Every organization on the platform, its owner and its size." error={error}
     actions={<Button loading={loading} onClick={() => setRevision(v => v + 1)}>Refresh</Button>}>
     <Input.Search className="max-w-sm" aria-label="Search organizations" placeholder="Organization name" allowClear
       onSearch={value => { setPage(1); setSearch(value); }} />

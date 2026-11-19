@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { backTo } from '@/components/layout/back-link';
 import { Box, GitCommit, Clock, Layers, ArrowRight, SearchCode, Loader2, ExternalLink, FolderGit2 } from 'lucide-react';
 import { getMiningOverview, type MiningOverview } from '@/features/mining-api';
 import { getSnapshotPage, getWorkspace, nextStep, STATUS_LABELS, structuralChanges, type SnapshotRow, type Workspace } from '@/features/workspace-summary';
@@ -112,7 +113,7 @@ const ProjectDetail: React.FC = () => {
             <nav aria-label="Workspace views" className="mt-8 border-b border-[var(--at-line)] flex gap-8 overflow-x-auto custom-scrollbar">
               <span aria-current="page" className="pb-3 border-b-2 border-[var(--at-accent)] text-[var(--at-link)] font-bold text-xs tracking-wider uppercase whitespace-nowrap">Overview</span>
               {tabs.map(t => (
-                <Link key={t.label} to={t.to} className="pb-3 border-b-2 border-transparent hover:border-[#5f636b] text-[var(--at-muted)] hover:text-[var(--at-text)] font-bold text-xs tracking-wider uppercase whitespace-nowrap transition-colors">{t.label}</Link>
+                <Link key={t.label} to={t.to} state={backTo(`/project?${q}`, w.name)} className="pb-3 border-b-2 border-transparent hover:border-[#5f636b] text-[var(--at-muted)] hover:text-[var(--at-text)] font-bold text-xs tracking-wider uppercase whitespace-nowrap transition-colors">{t.label}</Link>
               ))}
             </nav>
 

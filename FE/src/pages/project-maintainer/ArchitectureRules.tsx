@@ -61,5 +61,6 @@ function RulesEditor({ project }: { project: string }) {
 }
 
 export default function ArchitectureRules() {
-  return <WorkspacePage title="Architecture Rules" description="Define allowed boundaries, document their rationale, and check the saved component model for violations.">{project => <RulesEditor project={project} />}</WorkspacePage>;
+  return <WorkspacePage title="Architecture Rules" description="Which components may depend on which, and why."
+    details={<p>Each rule records an allowed or forbidden boundary with its rationale. Checking the rules compares them with the saved component diagram and lists the violations.</p>}>{project => <RulesEditor project={project} />}</WorkspacePage>;
 }

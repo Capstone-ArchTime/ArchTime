@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Button, Drawer, Empty, Input, Tag } from 'antd';
+import { useMemo, useState } from 'react';
+import { Button, ConfigProvider, Drawer, Empty, Input, Tag } from 'antd';
 import { ArrowLeft, ArrowRight, FileCode2, Search } from 'lucide-react';
 import type { CompareFile, FileLink, FileStatus } from '@/features/compare-graph';
 import { OTHER, filesOfGroup } from '@/features/compare-graph';
@@ -15,6 +15,10 @@ const LINK_MARK: Record<FileLink['status'], { mark: string; className: string; l
   removed: { mark: '−', className: 'text-red-300', label: 'removed in the newer revision' },
   same: { mark: '·', className: 'text-[var(--at-muted)]', label: 'in both revisions' },
 };
+/** Files rendered at a time; a folder can hold hundreds. */
+const PAGE = 100;
+/** The drawer slides in faster than antd's default 0.3 s, so a click on a folder answers at once (nested: the page theme is kept). */
+const FAST = { token: { motionDurationSlow: '0.15s', motionDurationMid: '0.1s' } };
 const nameOf = (path: string) => path.split('/').pop() ?? path;
 const dirOf = (path: string) => path.split('/').slice(0, -1).join('/');
 
@@ -60,13 +64,19 @@ export default function CompareFilesDrawer({ group, file, files, onFile, onClose
   onFile: (path: string | null) => void; onClose: () => void;
 }) {
   const [query, setQuery] = useState('');
+  // How many files are shown, per folder: another folder starts again at one page.
+  const [paging, setPaging] = useState<{ group: string | null; limit: number }>({ group, limit: PAGE });
+  const limit = paging.group === group ? paging.limit : PAGE;
+  const setLimit = (next: (n: number) => number) => setPaging({ group, limit: next(limit) });
   const open = !!group;
-  const list = group ? filesOfGroup(files, group, query) : [];
-  const total = group ? filesOfGroup(files, group).length : 0;
+  // The folder's files are sorted once per folder; typing only filters that list. A big folder renders a page at a time.
+  const all = useMemo(() => (group ? filesOfGroup(files, group) : []), [files, group]);
+  const list = useMemo(() => { const q = query.trim().toLowerCase(); return q ? all.filter(f => f.path.toLowerCase().includes(q)) : all; }, [all, query]);
+  const total = all.length;
   const current = file ? files.get(file) : undefined;
   const folderName = group === OTHER ? 'Other folders' : group ?? '';
   const known = (path: string) => files.has(path);
-  return <Drawer open={open} onClose={() => { setQuery(''); onClose(); }} size={520} destroyOnHidden
+  return <ConfigProvider theme={FAST}><Drawer open={open} onClose={() => { setQuery(''); setLimit(() => PAGE); onClose(); }} size={520} destroyOnHidden
     title={current ? <span className="flex items-center gap-2"><FileCode2 size={16} aria-hidden="true" />{nameOf(current.path)}</span> : <span>{folderName} <span className="text-sm font-normal text-[var(--at-muted)]">· {total} file{total === 1 ? '' : 's'}</span></span>}>
     {current ? <div className="space-y-4">
       <Button size="small" icon={<ArrowLeft size={14} />} onClick={() => onFile(null)}>All files in {current.group === OTHER ? 'other folders' : current.group}</Button>
@@ -74,7 +84,7 @@ export default function CompareFilesDrawer({ group, file, files, onFile, onClose
     </div> : <div className="space-y-3">
       <Input allowClear prefix={<Search size={14} aria-hidden="true" />} placeholder="Find a file" aria-label="Find a file in this folder" value={query} onChange={e => setQuery(e.target.value)} />
       {list.length ? <ul className="space-y-1" aria-label={`Files in ${folderName}`}>
-        {list.map(f => { const s = STATUS[f.status]; return <li key={f.path}>
+        {list.slice(0, limit).map(f => { const s = STATUS[f.status]; return <li key={f.path}>
           <button type="button" onClick={() => onFile(f.path)} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-[var(--at-panel-2)]">
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm text-[var(--at-text)]">{nameOf(f.path)}</span>
@@ -85,6 +95,7 @@ export default function CompareFilesDrawer({ group, file, files, onFile, onClose
           </button>
         </li>; })}
       </ul> : <Empty description={query ? 'No file matches.' : 'No files.'} />}
+      {list.length > limit && <Button block onClick={() => setLimit(n => n + PAGE)}>Show {Math.min(PAGE, list.length - limit)} more of {list.length - limit}</Button>}
     </div>}
-  </Drawer>;
+  </Drawer></ConfigProvider>;
 }

@@ -27,6 +27,7 @@ import {
   pathToContinue, plural, workspaceOverview,
 } from '@/features/profile-view';
 import type { SetPasswordForm, SetPasswordProblems } from '@/features/profile-view';
+import { Details } from '@/components/PageHeader';
 
 const label = 'mb-1 block text-xs text-[var(--at-muted)]';
 const link = 'text-[var(--at-link)] hover:text-[var(--at-link-hover)]';
@@ -85,7 +86,8 @@ function PasswordField({ id, text, autoComplete, value, error, rules, onChange }
     <Input.Password id={id} value={value} autoComplete={autoComplete} status={error ? 'error' : undefined} aria-describedby={error ? `${id}-problem` : undefined}
       onChange={e => onChange(e.target.value)} />
     {problem(`${id}-problem`, error)}
-    {rules && <PasswordRequirements id={`${id}-rules`} password={value} />}
+    {/* The checklist appears once typing starts, so an empty form stays short. */}
+    {rules && value && <PasswordRequirements id={`${id}-rules`} password={value} />}
   </div>;
 }
 
@@ -111,6 +113,8 @@ export default function Profile() {
   const [passwords, setPasswords] = useState<PasswordForm>({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
   const [passwordProblems, setPasswordProblems] = useState<PasswordProblems & { general?: string }>({});
   const [changing, setChanging] = useState(false);
+  // The change-password form stays folded behind its button until asked for (or while it shows a problem).
+  const [changeOpen, setChangeOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
   const [firstPassword, setFirstPassword] = useState<SetPasswordForm>(noPasswords);
@@ -176,6 +180,20 @@ export default function Profile() {
     const found = { name: patch.name !== undefined ? checkName(form.name) ?? undefined : undefined, username: patch.username !== undefined ? checkUsername(form.username) ?? undefined : undefined };
     if (found.name || found.username) { setFormProblems(found); return; }
     setFormProblems({});
+    // A username is set once (the server refuses to change it afterwards), so choosing one is confirmed first.
+    if (patch.username && !user?.username) {
+      modal.confirm({
+        title: `Set your username to "${patch.username.trim().toLowerCase()}"?`,
+        content: 'You can sign in with it instead of your email. It cannot be changed or removed later.',
+        okText: 'Set username', cancelText: 'Not yet', onOk: () => persistProfile(),
+      });
+      return;
+    }
+    await persistProfile();
+  }
+
+  async function persistProfile() {
+    if (!patch) return;
     setSaving(true);
     try {
       const saved = await updateProfile(patch);
@@ -266,7 +284,7 @@ export default function Profile() {
 
   const iconClass = 'text-[var(--at-link)]';
 
-  return <FeaturePage title="My profile" description="Who you are in ArchTime, what you are part of, and how you sign in." demo={false}>
+  return <FeaturePage title="My profile" description="Your account, memberships and sign-in." demo={false}>
     <section aria-label="Your account" className={`${featurePanel} flex flex-wrap items-center gap-5`}>
       <span aria-hidden="true" className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[var(--at-fill)] text-xl font-semibold text-[var(--at-on-fill)]">{initials(user.name)}</span>
       <div className="min-w-0 flex-1 space-y-1">
@@ -337,22 +355,23 @@ export default function Profile() {
           {problem('profile-name-problem', formProblems.name)}
         </div>
         <div>
-          <label htmlFor="profile-username" className={label}>Username (optional)</label>
-          <Input id="profile-username" value={form.username} maxLength={40} autoComplete="username" status={formProblems.username ? 'error' : undefined}
-            aria-describedby={formProblems.username ? 'profile-username-problem' : 'profile-username-hint'} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} />
-          <p id="profile-username-hint" className="mt-1 text-xs text-[var(--at-muted)]">You can sign in with it instead of your email. {USERNAME_HINT}</p>
+          {user.username ? <>
+            <label htmlFor="profile-username" className={label}>Username</label>
+            <Input id="profile-username" value={user.username} readOnly aria-describedby="profile-username-hint" />
+            <p id="profile-username-hint" className="mt-1 text-xs text-[var(--at-muted)]">You sign in with it or your email. A username cannot be changed.</p>
+          </> : <>
+            <label htmlFor="profile-username" className={label}>Username (optional)</label>
+            <Input id="profile-username" value={form.username} maxLength={40} autoComplete="username" status={formProblems.username ? 'error' : undefined}
+              aria-describedby={formProblems.username ? 'profile-username-problem' : 'profile-username-hint'} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} />
+            <p id="profile-username-hint" className="mt-1 text-xs text-[var(--at-muted)]">You can sign in with it instead of your email. You set it once: it cannot be changed later.</p>
+            <Details label="Rules" className="mt-1" bodyClassName="text-xs"><p>{USERNAME_HINT}</p></Details>
+          </>}
           {problem('profile-username-problem', formProblems.username)}
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="profile-email" className={label}>Email</label>
-            <Input id="profile-email" value={user.email} readOnly aria-describedby="profile-email-hint" />
-            <p id="profile-email-hint" className="mt-1 text-xs text-[var(--at-muted)]">The email cannot be changed here.</p>
-          </div>
-          <div>
-            <label htmlFor="profile-type" className={label}>Account type</label>
-            <Input id="profile-type" value={accountTypeLabel(role)} readOnly />
-          </div>
+        <div>
+          <label htmlFor="profile-email" className={label}>Email</label>
+          <Input id="profile-email" value={user.email} readOnly aria-describedby="profile-email-hint" />
+          <p id="profile-email-hint" className="mt-1 text-xs text-[var(--at-muted)]">The email cannot be changed here.</p>
         </div>
         <div className="flex gap-2">
           <Button type="primary" htmlType="submit" loading={saving} disabled={!patch}>Save changes</Button>
@@ -394,27 +413,37 @@ export default function Profile() {
             </p>
           </form>
         ) : (
-          <form onSubmit={e => void submitPassword(e)} className="space-y-4 border-t border-[var(--at-line)] pt-5" aria-labelledby="password-heading" noValidate>
-            <h4 id="password-heading" tabIndex={-1} className="text-base font-semibold outline-none"
-              ref={el => { if (el && focusChangeForm.current) { focusChangeForm.current = false; el.focus(); } }}>Change password</h4>
-            <p className="text-sm text-[var(--at-muted)]">
-              Changing it signs you out of every device, this one included.
-              {!methods && ' If you signed up with GitHub and never set a password, this form cannot change it.'}
-            </p>
-            {passwordProblems.general && <Alert type="error" showIcon title={passwordProblems.general} />}
-            {(['oldPassword', 'newPassword', 'confirmNewPassword'] as const).map(field => {
-              const copy = { oldPassword: ['Current password', 'current-password'], newPassword: ['New password', 'off'], confirmNewPassword: ['Repeat the new password', 'off'] }[field];
-              return <PasswordField key={field} id={`pw-${field}`} text={copy[0]} autoComplete={copy[1]} value={passwords[field]} error={passwordProblems[field]} rules={field === 'newPassword'}
-                onChange={value => setPasswords(p => ({ ...p, [field]: value }))} />;
-            })}
-            <Button type="primary" htmlType="submit" loading={changing}>Change password</Button>
-          </form>
+          <div className="border-t border-[var(--at-line)] pt-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h4 id="password-heading" tabIndex={-1} className="text-base font-semibold outline-none"
+                  ref={el => { if (el && focusChangeForm.current) { focusChangeForm.current = false; el.focus(); } }}>Password</h4>
+                <p className="text-sm text-[var(--at-muted)]">Changing it signs you out of every device.</p>
+              </div>
+              {!changeOpen && <Button onClick={() => setChangeOpen(true)} aria-controls="change-password-form" aria-expanded={false}>Change password</Button>}
+            </div>
+            {changeOpen && <form id="change-password-form" onSubmit={e => void submitPassword(e)} className="mt-4 space-y-4" aria-labelledby="password-heading" noValidate>
+              {!methods && <p className="text-xs text-[var(--at-muted)]">If you signed up with GitHub and never set a password, this form cannot change it.</p>}
+              {passwordProblems.general && <Alert type="error" showIcon title={passwordProblems.general} />}
+              {(['oldPassword', 'newPassword', 'confirmNewPassword'] as const).map(field => {
+                const copy = { oldPassword: ['Current password', 'current-password'], newPassword: ['New password', 'off'], confirmNewPassword: ['Repeat the new password', 'off'] }[field];
+                return <PasswordField key={field} id={`pw-${field}`} text={copy[0]} autoComplete={copy[1]} value={passwords[field]} error={passwordProblems[field]} rules={field === 'newPassword'}
+                  onChange={value => setPasswords(p => ({ ...p, [field]: value }))} />;
+              })}
+              <div className="flex gap-2">
+                <Button type="primary" htmlType="submit" loading={changing}>Change password</Button>
+                <Button disabled={changing} onClick={() => { setChangeOpen(false); setPasswords({ oldPassword: '', newPassword: '', confirmNewPassword: '' }); setPasswordProblems({}); }}>Cancel</Button>
+              </div>
+            </form>}
+          </div>
         )}
 
-        <div className="space-y-3 border-t border-[var(--at-line)] pt-5" role="group" aria-labelledby="sessions-heading">
-          <h4 id="sessions-heading" className="text-base font-semibold">Sign out of all devices</h4>
-          <p className="text-sm text-[var(--at-muted)]">Use this if you lost a device or think someone else has your session. Every session of your account ends, including this one.</p>
-          <Button danger loading={signingOut} onClick={confirmSignOutEverywhere}>Sign out of all devices</Button>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--at-line)] pt-5" role="group" aria-labelledby="sessions-heading">
+          <div className="min-w-0">
+            <h4 id="sessions-heading" className="text-base font-semibold">Sign out of all devices</h4>
+            <p className="text-sm text-[var(--at-muted)]">Ends every session of your account, this one included.</p>
+          </div>
+          <Button danger loading={signingOut} onClick={confirmSignOutEverywhere}>Sign out everywhere</Button>
         </div>
       </section>
     </div>

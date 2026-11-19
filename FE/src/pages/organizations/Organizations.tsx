@@ -62,7 +62,8 @@ export default function Organizations() {
   return (
     <FeaturePage
       title="Organizations"
-      description="Share workspaces and repository credentials with a team. Owners add members and workspaces; members see the workspaces they are given a role in."
+      description="Share workspaces and repository credentials with a team."
+      details={<p>Owners add members and workspaces. Members see only the workspaces they are given a role in.</p>}
       demo={false}
       actions={<Button type="primary" icon={<Plus size={14} />} onClick={() => setCreating(true)}>New organization</Button>}
     >

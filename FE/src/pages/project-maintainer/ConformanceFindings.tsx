@@ -215,7 +215,8 @@ function Findings({ project }: { project: string }) {
 }
 
 export default function ConformanceFindings() {
-  return <WorkspacePage title="Conformance Findings" description="Where the code of each new commit departs from the confirmed component diagram: forbidden, missing and undeclared dependencies, and commits that break the commit convention (type(scope): summary, Task:, Arch-Change:), with the files behind each.">
+  return <WorkspacePage title="Conformance Findings" description="Where new commits break the confirmed component diagram."
+    details={<p>Each new commit is checked for forbidden, missing and undeclared dependencies, and for messages that break the commit convention (<code>type(scope): summary</code>, <code>Task:</code>, <code>Arch-Change:</code>). Every finding lists the files behind it.</p>}>
     {project => <Findings key={project} project={project} />}
   </WorkspacePage>;
 }

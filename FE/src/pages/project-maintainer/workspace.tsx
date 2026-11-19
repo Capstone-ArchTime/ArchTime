@@ -2,14 +2,17 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Alert, App, Button, Select } from 'antd';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import PageHeader from '@/components/PageHeader';
 import { useSearchParams } from 'react-router-dom';
 import type { ProjectSummary } from '@/features/project-data';
 import { ManagedWorkspaces } from './managed';
 import { pickWorkspace } from './managed-access';
 
+/** `description` is one short line under the title; `details` holds the longer explanation, folded behind "Details". */
 export function WorkspacePage(props: {
   title: string;
   description: string;
+  details?: ReactNode;
   children: (project: string, onDirtyChange: (dirty: boolean) => void) => ReactNode;
 }) {
   return <ManagedWorkspaces title={props.title}>{projects => <WorkspaceView {...props} projects={projects} />}</ManagedWorkspaces>;
@@ -18,11 +21,13 @@ export function WorkspacePage(props: {
 function WorkspaceView({
   title,
   description,
+  details,
   children,
   projects,
 }: {
   title: string;
   description: string;
+  details?: ReactNode;
   children: (project: string, onDirtyChange: (dirty: boolean) => void) => ReactNode;
   projects: ProjectSummary[];
 }) {
@@ -58,15 +63,8 @@ function WorkspaceView({
   return (
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-6">
-        <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 border-b border-[var(--at-line)] pb-6">
-          <div>
-            <p className="text-xs uppercase tracking-widest text-[var(--at-link)] mb-3">
-              Project maintainer / Architecture governance
-            </p>
-            <h2 className="text-3xl font-bold mb-2">{title}</h2>
-            <p className="text-sm text-[var(--at-muted)] max-w-2xl">{description}</p>
-          </div>
-          <div className="w-full lg:w-64 shrink-0">
+        <PageHeader title={title} summary={description} details={details} actions={
+          <div className="w-full lg:w-64">
             <label htmlFor="maintainer-project" className="block text-xs text-[var(--at-muted)] mb-2">
               Workspace
             </label>
@@ -78,7 +76,7 @@ function WorkspaceView({
               options={options}
             />
           </div>
-        </header>
+        } />
         {notMaintained && project !== requested && (
           <Alert type="warning" showIcon title="You do not maintain the workspace in this link, so one you maintain is shown instead." />
         )}

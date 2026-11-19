@@ -131,5 +131,5 @@ function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyCha
 }
 
 export default function ComponentDiagram() {
-  return <WorkspacePage title="Component Diagram" description="Review the component boundaries and dependencies, refine the model, and confirm the architecture.">{(project, onDirtyChange) => <DiagramEditor project={project} onDirtyChange={onDirtyChange} />}</WorkspacePage>;
+  return <WorkspacePage title="Component Diagram" description="Review, edit and confirm this workspace's components.">{(project, onDirtyChange) => <DiagramEditor project={project} onDirtyChange={onDirtyChange} />}</WorkspacePage>;
 }

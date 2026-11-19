@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import React, { useCallback, useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { FolderKanban, Activity, GitCommit, Layers, FolderGit2, ArrowRight, Loader2, Plus, ScanSearch, Pickaxe, Boxes, Eye } from 'lucide-react';
+import { FolderGit2, ArrowRight, Loader2, Plus, ScanSearch, Pickaxe, Boxes, Eye } from 'lucide-react';
 import { useAuth } from '@/auth/auth-context';
 import { byRecent, getRecentJobs, getWorkspaces, nextStep, STATUS_LABELS, workspaceStats, type Workspace, type WorkspaceStats } from '@/features/workspace-summary';
 import type { MiningJob } from '@/features/mining-jobs';
@@ -9,26 +9,37 @@ import { getMyPaths } from '@/features/onboarding-api';
 import { pathToContinue } from '@/features/onboarding-context';
 import ContinueLearning from './learning/ContinueLearning';
 
-const mono = { fontFamily: '"JetBrains Mono", monospace' };
-
 type Loaded = { workspaces: Workspace[]; jobs: MiningJob[]; stats: WorkspaceStats };
 
 const GET_STARTED = [
   { icon: Plus, title: 'Create a workspace', text: 'Connect a GitHub repository by its URL.' },
-  { icon: ScanSearch, title: 'Scan the history', text: 'ArchTime reads the commit list so you can pick what to analyze.' },
-  { icon: Pickaxe, title: 'Mine commits', text: 'Analyze a date range or every commit to rebuild each revision.' },
-  { icon: Boxes, title: 'Group files into components', text: 'Name the parts of the system and follow how they change.' },
+  { icon: ScanSearch, title: 'Scan the history', text: 'Read the commit list.' },
+  { icon: Pickaxe, title: 'Mine commits', text: 'Rebuild each revision.' },
+  { icon: Boxes, title: 'Group into components', text: 'Name the parts and follow them.' },
 ];
 
-function StatCard({ icon: Icon, label, value, note }: { icon: React.ElementType; label: string; value: number | null; note: string }) {
-  return (
-    <div className="bg-[var(--at-panel-2)] border border-[var(--at-line)] p-5 relative overflow-hidden">
-      <div className="absolute top-0 right-0 p-4 opacity-10"><Icon size={48} className="text-[var(--at-text)]" /></div>
-      <h3 className="text-[10px] font-mono font-semibold text-[var(--at-muted)] tracking-widest uppercase mb-4" style={mono}>{label}</h3>
-      <div className="text-4xl font-bold text-[var(--at-text)] mb-1">{value === null ? <Loader2 size={32} className="animate-spin" aria-label="Loading" /> : value}</div>
-      <p className="text-xs text-[var(--at-muted)]">{note}</p>
-    </div>
-  );
+const panel = 'rounded-2xl border border-[var(--at-line)] bg-[var(--at-panel)]';
+const sectionTitle = 'text-base font-semibold text-[var(--at-text)]';
+
+/** Colour of a job's status dot: green done, red failed, honey still going, grey stopped. */
+const JOB_DOT: Record<string, string> = { completed: 'bg-[#4ade80]', failed: 'bg-[#f87171]', running: 'bg-[#f0c27e] animate-pulse', queued: 'bg-[#f0c27e]' };
+
+/** "just now", "5 min ago", "3 h ago", "2 days ago", then the date. */
+function ago(iso: string): string {
+  const minutes = Math.round((Date.now() - Date.parse(iso)) / 60000);
+  if (!Number.isFinite(minutes)) return '';
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes} min ago`;
+  if (minutes < 60 * 24) return `${Math.round(minutes / 60)} h ago`;
+  if (minutes < 60 * 24 * 7) return `${Math.round(minutes / 1440)} days ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+function Metric({ label, value }: { label: string; value: number | null }) {
+  return <div className="px-5 py-4">
+    <p className="text-xs text-[var(--at-muted)]">{label}</p>
+    <p className="mt-1 text-2xl font-bold text-[var(--at-text)]">{value === null ? <Loader2 size={20} className="animate-spin" aria-label="Loading" /> : value.toLocaleString()}</p>
+  </div>;
 }
 
 const Dashboard: React.FC = () => {
@@ -60,95 +71,85 @@ const Dashboard: React.FC = () => {
   const displayName = user?.name?.split(' ')[0] || 'there';
   const stats = data?.stats;
   const isEmpty = data !== null && data.workspaces.length === 0;
+  const metric = (value: number | undefined) => value ?? (error ? 0 : null);
 
   return (
     <DashboardLayout>
-      <div className="max-w-[1400px] mx-auto space-y-10">
-        <div>
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)] mb-2">{greeting}, <span className="at-script">{displayName}</span></h2>
-              <p className="text-[var(--at-muted)] text-sm max-w-xl leading-relaxed">
-                Reconstruct and trace how your software architecture evolves across repository history.
-              </p>
-            </div>
-            <Link to="/projects" className="shrink-0 h-10 px-5 bg-[var(--at-panel-2)] hover:bg-[var(--at-line)] border border-[var(--at-line)] text-[var(--at-text)] font-medium text-xs transition-colors flex items-center gap-2">
-              <FolderGit2 size={16} className="text-[var(--at-link)]" aria-hidden="true" />
-              {isEmpty ? 'Create a workspace' : 'Open workspaces'}
-            </Link>
+      <div className="max-w-[1400px] mx-auto space-y-8">
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)]">{greeting}, <span className="at-script">{displayName}</span></h2>
+            <p className="mt-2 text-sm text-[var(--at-muted)]">Here is where your workspaces stand.</p>
           </div>
-          <div className="h-[1px] w-full bg-gradient-to-r from-[var(--at-line)] to-transparent mt-8"></div>
-        </div>
+          {!isEmpty && <Link to="/projects" className="shrink-0 h-10 px-5 rounded-full bg-[var(--at-panel-2)] hover:bg-[var(--at-line)] border border-[var(--at-line)] text-[var(--at-text)] text-sm font-medium transition-colors flex items-center gap-2">
+            <FolderGit2 size={16} className="text-[var(--at-link)]" aria-hidden="true" /> Open workspaces
+          </Link>}
+        </header>
 
         {error && (
-          <div role="alert" className="border border-[#ef4444]/40 bg-[#ef4444]/5 p-4 text-sm text-[#fca5a5] flex flex-wrap items-center justify-between gap-3">
+          <div role="alert" className="rounded-xl border border-[#f87171]/40 bg-[#f87171]/5 p-4 text-sm text-[#fca5a5] flex flex-wrap items-center justify-between gap-3">
             <span>{error}</span>
-            <button type="button" onClick={() => { setError(null); load(); }} className="h-8 px-3 border border-[#ef4444]/40 text-xs font-semibold">Try again</button>
+            <button type="button" onClick={() => { setError(null); load(); }} className="h-8 px-3 rounded-full border border-[#f87171]/40 text-xs font-semibold">Try again</button>
           </div>
         )}
 
         {learning && <ContinueLearning path={learning.path} others={learning.others} />}
 
         {isEmpty ? (
-          <section aria-labelledby="get-started-title" className="bg-[var(--at-panel)] border border-[var(--at-line)] p-8">
+          <section aria-labelledby="get-started-title" className={`${panel} p-8`}>
             <h3 id="get-started-title" className="text-xl font-bold text-[var(--at-text)] tracking-tight">Get started</h3>
-            <p className="text-sm text-[var(--at-muted)] mt-1 mb-6 max-w-2xl">You have no workspaces yet. Four steps take a repository from its URL to a component map you can follow through time.</p>
-            <ol className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+            <p className="text-sm text-[var(--at-muted)] mt-1 mb-6">Four steps from a repository URL to a component map.</p>
+            <ol className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-8">
               {GET_STARTED.map(({ icon: Icon, title, text }, i) => (
-                <li key={title} className="bg-[var(--at-panel-2)] border border-[var(--at-line)] p-5">
-                  <div className="flex items-center gap-2 mb-3 text-[var(--at-link)]">
-                    <span className="text-[10px] font-mono font-bold" style={mono}>{String(i + 1).padStart(2, '0')}</span>
-                    <Icon size={16} aria-hidden="true" />
+                <li key={title} className="flex items-start gap-3 rounded-xl border border-[var(--at-line)] p-4">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--at-panel-2)] text-[var(--at-link)]"><Icon size={15} aria-hidden="true" /></span>
+                  <div>
+                    <h4 className="text-sm font-semibold text-[var(--at-text)]">{i + 1}. {title}</h4>
+                    <p className="text-xs text-[var(--at-muted)] mt-0.5">{text}</p>
                   </div>
-                  <h4 className="text-sm font-bold text-[var(--at-text)] mb-1">{title}</h4>
-                  <p className="text-xs text-[var(--at-muted)] leading-relaxed">{text}</p>
                 </li>
               ))}
             </ol>
             <div className="flex flex-wrap gap-3">
-              <Link to="/projects" className="h-10 px-5 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] font-bold text-xs flex items-center gap-2">
+              <Link to="/projects" className="h-10 px-5 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] font-semibold text-sm flex items-center gap-2">
                 <Plus size={16} aria-hidden="true" /> Create your first workspace
               </Link>
-              <Link to="/workspace/sample/shophub" className="h-10 px-5 bg-[var(--at-panel-2)] hover:bg-[var(--at-line)] border border-[var(--at-line)] text-[var(--at-text)] text-xs font-medium flex items-center gap-2">
-                <Eye size={16} className="text-[var(--at-link)]" aria-hidden="true" /> Explore a sample workspace
+              <Link to="/workspace/sample/shophub" className="h-10 px-5 rounded-full bg-[var(--at-panel-2)] hover:bg-[var(--at-line)] border border-[var(--at-line)] text-[var(--at-text)] text-sm flex items-center gap-2">
+                <Eye size={16} className="text-[var(--at-link)]" aria-hidden="true" /> Explore a sample
               </Link>
             </div>
           </section>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard icon={FolderKanban} label="My workspaces" value={stats?.workspaces ?? (error ? 0 : null)} note="Workspaces you can open" />
-              <StatCard icon={GitCommit} label="Commits found" value={stats?.commitsFound ?? (error ? 0 : null)} note="Across scanned repositories" />
-              <StatCard icon={Layers} label="Mined workspaces" value={stats?.mined ?? (error ? 0 : null)} note="With an architecture history" />
-              <StatCard icon={Activity} label="Mining jobs" value={stats?.jobs ?? (error ? 0 : null)} note={stats ? `${stats.activeJobs} queued or running` : 'Scans and mining runs'} />
-            </div>
+            {/* The four figures in one strip: what you have, how much is mined, and whether anything is running. */}
+            <section aria-label="Summary" className={`${panel} grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-[var(--at-line)] overflow-hidden`}>
+              <Metric label="Workspaces" value={metric(stats?.workspaces)} />
+              <Metric label="Mined" value={metric(stats?.mined)} />
+              <Metric label="Commits found" value={metric(stats?.commitsFound)} />
+              <Metric label="Jobs in progress" value={metric(stats?.activeJobs)} />
+            </section>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <section aria-labelledby="next-steps-title" className="lg:col-span-2">
-                <div className="mb-6 flex items-end justify-between">
-                  <div>
-                    <h3 id="next-steps-title" className="text-xl font-bold text-[var(--at-text)] tracking-tight">Your workspaces</h3>
-                    <p className="text-sm text-[var(--at-muted)] mt-1">Each one shows what to do next.</p>
-                  </div>
-                  <Link to="/projects" className="text-xs text-[var(--at-link)] hover:underline">View all</Link>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <section aria-labelledby="workspaces-title" className="lg:col-span-2">
+                <div className="mb-3 flex items-baseline justify-between">
+                  <h3 id="workspaces-title" className={sectionTitle}>Your workspaces</h3>
+                  <Link to="/projects" className="text-sm text-[var(--at-link)] hover:underline">View all</Link>
                 </div>
                 {data === null ? (
                   !error && <div className="flex items-center justify-center p-8"><Loader2 size={24} className="animate-spin text-[var(--at-link)]" aria-label="Loading" /></div>
                 ) : (
-                  <ul className="space-y-3">
+                  <ul className={`${panel} divide-y divide-[var(--at-line)]`}>
                     {data.workspaces.slice(0, 5).map(w => {
                       const step = nextStep(w);
                       return (
-                        <li key={w.id} className="bg-[var(--at-panel)] border border-[var(--at-line)] p-4 flex flex-col sm:flex-row sm:items-center gap-4">
-                          <div className="flex-1 min-w-0">
-                            <Link to={`/project?projectId=${encodeURIComponent(w.id)}`} className="text-[var(--at-text)] text-sm font-bold hover:text-[var(--at-link)] truncate block">{w.name}</Link>
-                            <div className="flex flex-wrap items-center gap-3 text-[10px] font-mono text-[var(--at-muted)] mt-1" style={mono}>
-                              <span>{STATUS_LABELS[w.status]}</span>
-                              {w.totalCommits !== null && <><span aria-hidden="true">•</span><span>{w.totalCommits} commits</span></>}
-                            </div>
-                            <p className="text-xs text-[var(--at-muted)] mt-2">{step.hint}</p>
+                        <li key={w.id} className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-3 px-5 py-4">
+                          <div className="w-full sm:w-auto sm:flex-1 min-w-0">
+                            <Link to={`/project?projectId=${encodeURIComponent(w.id)}`} className="block truncate text-sm font-semibold text-[var(--at-text)] hover:text-[var(--at-link)]">{w.name}</Link>
+                            <p className="mt-0.5 text-xs text-[var(--at-muted)]">
+                              {STATUS_LABELS[w.status]}{w.totalCommits !== null && ` · ${w.totalCommits.toLocaleString()} commits`}
+                            </p>
                           </div>
-                          <Link to={step.to} className="shrink-0 h-9 px-4 bg-[var(--at-panel-2)] hover:bg-[var(--at-line)] border border-[var(--at-line)] text-[var(--at-link)] text-xs font-semibold flex items-center gap-2">
+                          <Link to={step.to} title={step.hint} className="shrink-0 self-start sm:self-auto h-9 px-4 rounded-full border border-[var(--at-line)] hover:bg-[var(--at-panel-2)] text-[var(--at-link)] text-sm flex items-center gap-2">
                             {step.label} <ArrowRight size={14} aria-hidden="true" />
                           </Link>
                         </li>
@@ -158,23 +159,22 @@ const Dashboard: React.FC = () => {
                 )}
               </section>
 
-              <section aria-labelledby="recent-jobs-title">
-                <div className="mb-6">
-                  <h3 id="recent-jobs-title" className="text-xl font-bold text-[var(--at-text)] tracking-tight">Recent mining jobs</h3>
-                  <p className="text-sm text-[var(--at-muted)] mt-1">Scans and mining runs you started.</p>
-                </div>
+              <section aria-labelledby="activity-title">
+                <h3 id="activity-title" className={`${sectionTitle} mb-3`}>Recent activity</h3>
                 {data && data.jobs.length === 0 ? (
-                  <p className="bg-[var(--at-panel)] border border-[var(--at-line)] p-6 text-sm text-[var(--at-muted)]">No jobs yet. Open <Link to="/projects" className="text-[var(--at-link)] hover:underline">Workspaces</Link> and choose Manage mining.</p>
+                  <p className={`${panel} p-5 text-sm text-[var(--at-muted)]`}>Nothing yet. Scans and mining runs you start show here.</p>
                 ) : (
-                  <ul className="space-y-3">
+                  <ul className={`${panel} divide-y divide-[var(--at-line)]`}>
                     {data?.jobs.map(job => (
-                      <li key={job.id} className="bg-[var(--at-panel)] border border-[var(--at-line)] p-4">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-sm font-bold text-[var(--at-text)] truncate">{job.project}</span>
-                          <span className="text-[10px] font-mono uppercase text-[var(--at-muted)]" style={mono}>{job.status}</span>
+                      <li key={job.id} className="flex items-start gap-3 px-5 py-3">
+                        <span aria-hidden="true" className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${JOB_DOT[job.status] ?? 'bg-[var(--at-muted)]'}`} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-[var(--at-text)]">{job.project}</p>
+                          <p className="truncate text-xs text-[var(--at-muted)]" title={job.error}>
+                            <span className="sr-only">{job.status}: </span>{job.kind === 'scan' ? 'Scan' : 'Mining'} · {job.stage}
+                          </p>
                         </div>
-                        <p className="text-xs text-[var(--at-muted)] mt-1">{job.kind === 'scan' ? 'Scan' : 'Mining'} · {job.stage}</p>
-                        {job.createdAt && <p className="text-[10px] font-mono text-[var(--at-muted)] mt-1" style={mono}>{new Date(job.createdAt).toLocaleString()}</p>}
+                        {job.createdAt && <time dateTime={job.createdAt} title={new Date(job.createdAt).toLocaleString()} className="shrink-0 text-xs text-[var(--at-muted)]">{ago(job.createdAt)}</time>}
                       </li>
                     ))}
                   </ul>
@@ -183,7 +183,6 @@ const Dashboard: React.FC = () => {
             </div>
           </>
         )}
-        <div className="h-10"></div>
       </div>
     </DashboardLayout>
   );

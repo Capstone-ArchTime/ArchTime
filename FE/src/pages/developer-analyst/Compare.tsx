@@ -1,7 +1,7 @@
 import { apiRequest } from '@/api/client';
 import { getWorkspaces, mayHaveSnapshots, type Workspace } from '@/features/workspace-summary';
 import { Link, useLocation } from 'react-router-dom';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   GitCommit,
@@ -117,7 +117,8 @@ const Compare: React.FC = () => {
   const files = useMemo(() => (compareData && graph ? compareFiles(compareData.baseSnapshot, compareData.targetSnapshot, graph.fileGroup) : new Map()), [compareData, graph]);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [openFile, setOpenFile] = useState<string | null>(null);
-  const openFolder = (group: string) => { setOpenGroup(group); setOpenFile(null); };
+  // Stable, so the two drawings (memoised) only redraw when the outlined folder changes.
+  const openFolder = useCallback((group: string) => { setOpenGroup(group); setOpenFile(null); }, []);
   const showFile = (path: string | null) => {
     if (path) { const f = files.get(path); if (f) setOpenGroup(f.group); }
     setOpenFile(path);
@@ -139,14 +140,9 @@ const Compare: React.FC = () => {
         
         {/* HEADER */}
         <div className="shrink-0">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--at-panel-2)] border border-[var(--at-line)] mb-4">
-            <div className="w-1.5 h-1.5 rounded-full bg-[var(--at-accent)] shadow-[0_0_5px_#3b82f6]"></div>
-            <span className="text-[10px] font-mono text-[var(--at-link)] tracking-wider font-semibold uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Architecture Diff</span>
-          </div>
-          <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)] mb-2">Compare Architecture</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)] mb-2">Compare</h2>
           <p className="text-[var(--at-muted)] text-sm max-w-xl leading-relaxed">
-            Compare two repository revisions and identify structural changes.
+            What changed in the structure between two revisions.
           </p>
 
           <div className="mt-6 mb-2 flex items-center gap-4">
