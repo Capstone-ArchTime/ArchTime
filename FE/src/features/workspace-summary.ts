@@ -72,7 +72,7 @@ export function nextStep(w: Pick<Workspace, 'id' | 'status' | 'totalCommits'> & 
   }
   if (hasMinedHistory(w)) return { action: 'open', label: 'Group files into components', hint: 'Mined commits are ready. Open the architecture to name its components.', to: `/workspace/${id}` };
   if (w.status === 'ANALYZING') return { action: 'wait', label: 'Mining in progress', hint: 'Commits are being analyzed. This page shows them once the first batch is stored.', to: '/projects' };
-  if (w.status === 'FAILED') return { action: 'mine', label: 'Try mining again', hint: 'The last mining run stored no commits. Open Manage mining to see the error and retry.', to: '/projects' };
+  if (w.status === 'FAILED') return { action: 'mine', label: 'Try mining again', hint: 'The last mining run stored no commits. Open Mining to see the error and retry.', to: '/projects' };
   if (w.totalCommits === null) return { action: 'scan', label: 'Read the commit history', hint: 'Scan the repository so you can choose which commits to mine.', to: '/projects' };
   return { action: 'mine', label: 'Mine commits', hint: `${w.totalCommits} commits found. Mine a date range or all of them to build the history.`, to: '/projects' };
 }

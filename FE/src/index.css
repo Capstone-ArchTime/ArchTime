@@ -141,6 +141,8 @@
   --at-chrome: #0d1116;
   --at-panel: #11161b;
   --at-panel-2: #161d24;
+  /* An opaque surface for what floats over the page (drawers): the frost panels are translucent and would let the page show through. */
+  --at-solid: #11161b;
   --at-line: #242527;
   --at-text: #f4f4f6;
   --at-muted: #94a3b8;
@@ -166,6 +168,7 @@ html[data-theme="frost"], .at-frost-scope {
   --at-chrome: rgb(14 19 24 / 0.78);
   --at-panel: rgb(214 225 240 / 0.07);
   --at-panel-2: rgb(214 225 240 / 0.11);
+  --at-solid: #222a32;
   --at-line: rgb(220 230 245 / 0.17);
   --at-text: #eef2f8;
   --at-muted: #b4c0ce;
@@ -291,6 +294,25 @@ a.at-404-glass:hover { background: rgb(214 225 240 / 0.12); border-color: #d3def
   :is(.at-404-mist, .at-404-art, .at-404-portal-glow, .at-404-lantern-glow, .at-404-star) { animation: none; }
 }
 
+/* The sidebar's ArchTime name (DashboardLayout): clicked, two streaks of light chase across it before the sidebar folds.
+   A white, glowing copy of the word sits over it and a moving mask shows it only where the streaks are: a faint one leads,
+   a bright one follows. The copy shares the word's markup, so it fits the letters while "ArchTime" folds into "AT". */
+.at-brand-glint {
+  position: absolute; inset: 0; pointer-events: none; color: #ffffff !important;
+  text-shadow: 0 0 4px #ffffff, 0 0 12px rgb(200 222 255), 0 0 24px rgb(150 188 255 / 0.95), 0 0 42px rgb(120 165 255 / 0.7);
+  -webkit-mask-image: linear-gradient(100deg, transparent 0%, transparent 33%, #000 41%, #000 44%, transparent 51%, transparent 55%, rgb(0 0 0 / 0.65) 60%, transparent 66%, transparent 100%);
+  mask-image: linear-gradient(100deg, transparent 0%, transparent 33%, #000 41%, #000 44%, transparent 51%, transparent 55%, rgb(0 0 0 / 0.65) 60%, transparent 66%, transparent 100%);
+  -webkit-mask-size: 320% 100%; mask-size: 320% 100%;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  animation: at-brand-glint 700ms cubic-bezier(0.45, 0, 0.25, 1) forwards;
+}
+.at-brand-glint * { color: #ffffff !important;
+}
+@keyframes at-brand-glint {
+  from { -webkit-mask-position: 100% 0; mask-position: 100% 0; }
+  to { -webkit-mask-position: 0% 0; mask-position: 0% 0; }
+}
+
 /* Folder boxes of the Compare drawing: a lighter box on hover, an outline on keyboard focus. */
 .compare-node { outline: none; }
 .compare-node:hover > rect { filter: brightness(1.25); }
@@ -301,6 +323,9 @@ a.at-404-glass:hover { background: rgb(214 225 240 / 0.12); border-color: #d3def
   outline: 2px solid var(--at-accent);
   outline-offset: 3px;
 }
+
+/* An input inside an antd field with an icon (password, search): the field draws the focus ring, not the inner input. */
+.ant-input-affix-wrapper > input:focus-visible { outline: none; }
 
 :where(button, a, [role="button"]) { touch-action: manipulation; }
 button:disabled { cursor: not-allowed; opacity: 0.55; }

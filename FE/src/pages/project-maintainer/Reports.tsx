@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Alert, App, Button, Empty, Input, Modal, Select, Spin, Tag } from 'antd';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import PageHeader from '@/components/PageHeader';
 import { Download, Eye, FileText } from 'lucide-react';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationBar from '@/components/PaginationBar';
@@ -93,27 +94,19 @@ function ReportsView({ projects, managed }: { projects: ProjectSummary[]; manage
   return (
     <DashboardLayout>
       <div className="max-w-[1100px] mx-auto space-y-10">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)] mb-2">Reports</h2>
-          <p className="text-slate-300 text-sm max-w-xl leading-relaxed">
-            Architecture reports of a workspace for maintenance handoff and onboarding: its components, dependencies, rules,
-            design decisions and the stretch of history mined. Open one here or download it as a PDF.
-          </p>
-          <div className="h-[1px] w-full bg-gradient-to-r from-[var(--at-line)] to-transparent mt-8"></div>
-        </div>
-
-        <div className="flex flex-wrap gap-3 items-center">
-          <Select aria-label="Select workspace" value={selectedProject} onChange={setSelectedProject} className="min-w-60"
-            options={projects.map(p => ({ value: p.id, label: p.name }))} placeholder="Select a workspace" />
-          <Button loading={loading} onClick={() => setRevision(v => v + 1)}>Refresh</Button>
-        </div>
+        <PageHeader title="Reports" summary="A snapshot of a workspace's architecture, to read here or download as a PDF."
+          details={<p>A report is made for maintenance handoff and onboarding. It records the components, dependencies, rules, design decisions and the stretch of history mined, as they are when it is created: later changes to the map do not change it.</p>}
+          actions={<>
+            <Select aria-label="Select workspace" value={selectedProject} onChange={setSelectedProject} className="min-w-60"
+              options={projects.map(p => ({ value: p.id, label: p.name }))} placeholder="Select a workspace" />
+            <Button loading={loading} onClick={() => setRevision(v => v + 1)}>Refresh</Button>
+          </>} />
 
         {error && <Alert type="error" showIcon title={error} />}
 
         {canGenerate ? <section aria-labelledby="new-report">
           <h3 id="new-report" className="text-sm font-bold text-[var(--at-text)] tracking-tight uppercase mb-4" style={mono}>New report</h3>
           <div className={`${panel} space-y-4`}>
-            <p className="text-sm text-slate-300">A report records {currentProject?.name ?? 'the workspace'} as it is now. Later changes to the map do not change it.</p>
             <div>
               <label htmlFor="report-title" className={label} style={mono}>Title (optional)</label>
               <Input id="report-title" value={title} maxLength={200} onChange={e => setTitle(e.target.value)} placeholder={`${currentProject?.name ?? 'Workspace'} architecture report`} />

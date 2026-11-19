@@ -53,7 +53,8 @@ export default function AiUsage() {
   ];
 
   const t = result?.totals;
-  return <FeaturePage title="AI Usage" description="Each time you asked an AI model to draw an architecture or asked a question in AI Insights: the model used, tokens sent and received, time taken and cost." demo={false}
+  return <FeaturePage title="AI Usage" description="Your AI runs: model, tokens, time and cost."
+    details={<p>A run is each time you asked an AI model to draw an architecture or asked a question in AI Insights. Costs use the prices your administrator set.</p>} demo={false}
     actions={<div className="flex gap-2">
       <Select allowClear placeholder="All workspaces" aria-label="Filter by workspace" className="min-w-56" value={projectId} onChange={(v?: string) => { setProjectId(v); setPage(1); }} options={projects.map(p => ({ value: p.id, label: p.name }))} />
       <Button loading={loading} onClick={() => setRevision(v => v + 1)}>Refresh</Button>

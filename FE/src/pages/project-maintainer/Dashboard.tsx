@@ -4,7 +4,6 @@ import { Button, Empty, Select, Spin, Tag } from 'antd';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   ShieldCheck,
-  ArrowRight,
   UserPlus,
   CheckCircle2,
   XCircle,
@@ -86,18 +85,11 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-10">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[var(--at-panel-2)] border border-[var(--at-line)] mb-4">
-            <div className="w-1.5 h-1.5 rounded-full bg-[var(--at-accent)] shadow-[0_0_5px_#3b82f6]"></div>
-            <span className="text-[10px] text-[var(--at-link)] tracking-wider font-semibold uppercase" style={{ fontFamily: fontFamily.mono }}>
-              Project Maintainer Workspace
-            </span>
-          </div>
-
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)] mb-2">Workspace &amp; architecture overview</h2>
+              <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)] mb-2">Maintainer overview</h2>
               <p className="text-[var(--at-muted)] text-sm max-w-xl leading-relaxed">
-                Track architecture health, review changes, manage teams, and document diagrams, rules, and design decisions.
+                The health of a workspace you maintain, and what waits for you.
               </p>
             </div>
             <div className="flex gap-2">
@@ -117,26 +109,6 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
 
         <UnreadFindingsNotice />
         {error && <p className="text-red-400">{error}</p>}
-
-        <section aria-label="Architecture maintenance" className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {[
-            { path: 'component-diagram', title: 'Confirm & edit component diagram', description: 'Refine components and dependencies, then confirm the reviewed model.' },
-            { path: 'architecture-rules', title: 'Define architecture rules', description: 'Set dependency constraints and check the saved diagram for violations.' },
-            { path: 'design-decisions', title: 'Record design decisions', description: 'Capture context, alternatives, and the consequences of each decision.' },
-          ].map(item => (
-            <Link
-              key={item.path}
-              to={`/project-maintainer/${item.path}${selectedProject ? `?project=${selectedProject}` : ''}`}
-              className="group border border-[var(--at-line)] bg-[var(--at-panel)] p-5 hover:border-[var(--at-accent)] focus-visible:outline focus-visible:outline-[var(--at-accent)] transition-colors"
-            >
-              <div className="flex justify-between gap-3">
-                <h3 className="font-semibold text-sm group-hover:text-[var(--at-link)]">{item.title}</h3>
-                <ArrowRight size={16} className="text-[var(--at-link)] shrink-0" />
-              </div>
-              <p className="text-xs text-[var(--at-muted)] leading-relaxed mt-3">{item.description}</p>
-            </Link>
-          ))}
-        </section>
 
         {loading ? (
           <div className="p-12 text-center"><Spin /><p className="mt-3 text-[var(--at-muted)]">Loading dashboard...</p></div>

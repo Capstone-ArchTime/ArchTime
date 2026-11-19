@@ -150,7 +150,8 @@ export default function AiModels() {
   ];
 
   const hint = PROVIDERS.find(p => p.value === provider)?.hint;
-  return <FeaturePage title="AI Models" description="Models users can choose from to draw architectures. API keys are stored encrypted and never shown again." demo={false}
+  return <FeaturePage title="AI Models" description="The AI models users can choose from."
+    details={<p>Models draw architectures and answer questions in AI Insights. API keys are stored encrypted and never shown again.</p>} demo={false}
     actions={<Space wrap>
       <Button loading={busy === 'all'} icon={<Activity size={14} />} onClick={() => void testAll()}>Check all</Button>
       <Button icon={<Plus size={14} />} onClick={() => openForm(null)}>Add manually</Button>

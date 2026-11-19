@@ -102,7 +102,7 @@ export default function MyWork() {
   const roleBreakdown = workspaceRoleBreakdown(list);
 
   return (
-    <FeaturePage title="My work" description="The organizations you belong to, the workspaces you can open, and how far you are in the learning paths given to you." demo={false}>
+    <FeaturePage title="My work" description="Your organizations, workspaces and learning progress." demo={false}>
       <div className="grid gap-3 sm:grid-cols-3">
         <Tile label="Organizations" value={organizations.data ? orgs.length : '–'}
           detail={organizations.data ? `${orgs.filter(o => o.myRole === 'owner').length} you own` : null} />

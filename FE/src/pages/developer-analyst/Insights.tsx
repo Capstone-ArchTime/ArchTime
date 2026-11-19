@@ -1,15 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { Select } from 'antd';
 import {
   Sparkles,
-  Bot,
   Loader2,
-  Box,
   Send,
-  User,
   Plus,
-  MessageSquare,
   AlertTriangle,
   History,
   Trash2,
@@ -47,7 +44,6 @@ async function fetchConversations(projectId: string, signal: AbortSignal): Promi
 interface ProjectOption { id: string; name: string }
 
 const CHAT_TIMEOUT_MS = 120_000;
-const mono = { fontFamily: '"JetBrains Mono", monospace' };
 
 const WELCOME = 'Hello! I\'m ArchTime AI, your evidence-grounded architecture assistant. Pick a workspace, then ask about its architectural changes, coupling patterns, or why specific decisions were made. I only answer from the snapshots and change evidence stored for that workspace, and I label each claim FACT, INFERENCE or UNKNOWN.';
 
@@ -270,130 +266,81 @@ const Insights: React.FC = () => {
 
   const noProjects = !projectsLoading && projects.length === 0;
   const canChat = Boolean(selectedProjectId) && !noProjects;
+  const workspaceName = projects.find(p => p.id === selectedProjectId)?.name;
+  // A chat holding only the greeting shows a start screen (what to ask) instead of a long greeting bubble.
+  const fresh = messages.length === 1 && messages[0].id === 'welcome' && !isTyping;
+  const time = (d: Date) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const pill = 'flex h-9 items-center gap-2 rounded-full border px-4 text-sm transition-colors disabled:cursor-not-allowed';
 
   return (
     <DashboardLayout>
-      <div className="max-w-[1400px] mx-auto flex flex-col h-[calc(100vh-120px)]">
+      <div className="max-w-[1200px] mx-auto flex h-full min-h-[560px] flex-col gap-5">
 
-        {/* HEADER */}
-        <div className="shrink-0 mb-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--at-accent)]/10 border border-[var(--at-accent)]/30 mb-4">
-                <Sparkles size={12} className="text-[var(--at-link)]" />
-                <span className="text-[10px] font-mono text-[var(--at-link)] tracking-wider font-semibold uppercase" style={mono}>Evidence-Grounded AI</span>
-              </div>
-              <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)] mb-2">AI Architectural Insights</h2>
-              <p className="text-[var(--at-muted)] text-sm max-w-xl leading-relaxed">
-                Chat with ArchTime AI to understand architectural changes through evidence-grounded explanations.
-              </p>
-            </div>
-            <div className="flex items-end gap-3">
-              <div className="flex flex-col gap-1">
-                <label htmlFor="insights-project" className="text-[10px] uppercase tracking-wider text-[var(--at-muted)]" style={mono}>Workspace</label>
-                <select
-                  id="insights-project"
-                  value={selectedProjectId}
-                  onChange={(e) => handleProjectChange(e.target.value)}
-                  disabled={projectsLoading || noProjects}
-                  className="h-9 min-w-[200px] bg-[var(--at-page)] border border-[var(--at-line)] focus:border-[var(--at-accent)]/50 px-3 text-sm text-[var(--at-text)] focus:outline-none disabled:opacity-50"
-                >
-                  {projectsLoading && <option value="">Loading workspaces...</option>}
-                  {noProjects && <option value="">No workspaces</option>}
-                  {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-              </div>
-              <button
-                type="button"
-                onClick={() => setHistoryOpen(open => !open)}
-                aria-expanded={historyOpen}
-                aria-controls="chat-history"
-                disabled={!canChat}
-                className={`flex items-center gap-2 h-9 px-3 text-xs border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${historyOpen ? 'text-[var(--at-link)] border-[var(--at-accent)]/50 bg-[var(--at-accent)]/10' : 'text-[var(--at-muted)] hover:text-[var(--at-text)] border-[var(--at-line)] hover:border-[var(--at-accent)]/30'}`}
-              >
-                <History size={14} />
-                History{conversations.length > 0 ? ` (${conversations.length})` : ''}
-              </button>
-              <button
-                type="button"
-                onClick={() => resetConversation('New chat started. How can I help you understand your architecture?')}
-                className="flex items-center gap-2 h-9 px-3 text-xs text-[var(--at-muted)] hover:text-[var(--at-text)] border border-[var(--at-line)] hover:border-[var(--at-accent)]/30 transition-colors"
-              >
-                <Plus size={14} />
-                New chat
-              </button>
-            </div>
+        <header className="shrink-0 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)]">AI Insights</h2>
+            <p className="mt-2 text-sm text-[var(--at-muted)]">Ask about a workspace&apos;s architecture; every answer cites its evidence.</p>
           </div>
-          {openNote && <p role="status" className="mt-3 text-xs text-amber-300">{openNote}</p>}
-        </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select aria-label="Workspace" className="min-w-56" showSearch optionFilterProp="label"
+              value={selectedProjectId || undefined} onChange={handleProjectChange} loading={projectsLoading}
+              disabled={projectsLoading || noProjects} placeholder={noProjects ? 'No workspaces' : 'Choose a workspace'}
+              options={projects.map(p => ({ value: p.id, label: p.name }))} />
+            <button type="button" onClick={() => setHistoryOpen(open => !open)} aria-expanded={historyOpen} aria-controls="chat-history" disabled={!canChat}
+              className={`${pill} ${historyOpen ? 'border-[var(--at-link)]/50 bg-[var(--at-panel-2)] text-[var(--at-text)]' : 'border-[var(--at-line)] text-[var(--at-muted)] hover:text-[var(--at-text)] hover:bg-[var(--at-panel-2)]'}`}>
+              <History size={15} aria-hidden="true" />History{conversations.length > 0 ? ` (${conversations.length})` : ''}
+            </button>
+            <button type="button" onClick={() => resetConversation('New chat started. How can I help you understand your architecture?')} disabled={!canChat}
+              className={`${pill} border-[var(--at-line)] text-[var(--at-text)] hover:bg-[var(--at-panel-2)]`}>
+              <Plus size={15} aria-hidden="true" />New chat
+            </button>
+          </div>
+        </header>
+        {openNote && <p role="status" className="-mt-2 text-xs text-[var(--at-warn)]">{openNote}</p>}
 
-        {/* CHAT CONTAINER */}
-        <div className="relative flex-1 flex bg-[var(--at-page)] border border-[var(--at-line)] overflow-hidden min-h-0">
+        <div className="relative flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-[var(--at-line)] bg-[var(--at-solid)]">
 
           {/* Saved chats */}
           {historyOpen && (
-            <aside
-              id="chat-history"
-              aria-label="Saved chats"
-              className="absolute inset-y-0 left-0 z-20 w-72 max-w-full md:static md:z-auto shrink-0 flex flex-col min-h-0 bg-[#0b0f13] border-r border-[var(--at-line)]"
-            >
+            <aside id="chat-history" aria-label="Saved chats"
+              className="absolute inset-y-0 left-0 z-20 flex w-72 max-w-full shrink-0 flex-col min-h-0 border-r border-[var(--at-line)] bg-[var(--at-solid)] md:static md:z-auto">
               <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-[var(--at-line)]">
-                <h3 className="text-[10px] font-mono font-bold text-[var(--at-muted)] uppercase tracking-widest" style={mono}>Saved chats</h3>
-                <button
-                  type="button"
-                  onClick={() => setHistoryOpen(false)}
-                  aria-label="Close saved chats"
-                  className="w-6 h-6 flex items-center justify-center text-[var(--at-muted)] hover:text-[var(--at-text)] hover:bg-[var(--at-line)] focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--at-accent)]"
-                >
+                <h3 className="text-sm font-semibold text-[var(--at-text)]">Saved chats</h3>
+                <button type="button" onClick={() => setHistoryOpen(false)} aria-label="Close saved chats"
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--at-muted)] hover:bg-[var(--at-panel-2)] hover:text-[var(--at-text)]">
                   <X size={14} />
                 </button>
               </div>
 
               {historyNotice && <p role="alert" className="shrink-0 px-4 py-2 text-xs text-red-300 bg-red-500/10 border-b border-red-500/30">{historyNotice}</p>}
 
-              <div className="flex-1 overflow-y-auto min-h-0">
+              <div className="flex-1 overflow-y-auto min-h-0 py-1">
                 {historyStatus === 'loading' && (
-                  <p className="px-4 py-4 text-xs text-[var(--at-muted)] flex items-center gap-2"><Loader2 size={12} className="animate-spin" /> Loading saved chats...</p>
+                  <p className="px-4 py-4 text-xs text-[var(--at-muted)] flex items-center gap-2"><Loader2 size={12} className="animate-spin" /> Loading saved chats…</p>
                 )}
                 {historyStatus === 'error' && (
                   <div className="px-4 py-4 text-xs text-[var(--at-muted)] space-y-2">
                     <p>Saved chats could not be loaded.</p>
-                    <button
-                      type="button"
-                      onClick={() => { setHistoryStatus('loading'); loadHistory(selectedProjectId); }}
-                      className="px-3 py-1.5 border border-[var(--at-line)] hover:border-[var(--at-accent)]/50 text-[var(--at-link)]"
-                    >
-                      Try again
-                    </button>
+                    <button type="button" onClick={() => { setHistoryStatus('loading'); loadHistory(selectedProjectId); }}
+                      className="rounded-full border border-[var(--at-line)] px-3 py-1.5 text-[var(--at-link)] hover:bg-[var(--at-panel-2)]">Try again</button>
                   </div>
                 )}
                 {historyStatus === 'ready' && conversations.length === 0 && (
-                  <p className="px-4 py-4 text-xs text-[var(--at-muted)] leading-relaxed">No saved chats for this workspace yet. Ask a question and it will appear here.</p>
+                  <p className="px-4 py-4 text-xs text-[var(--at-muted)] leading-relaxed">No saved chats yet. Ask a question and it appears here.</p>
                 )}
                 {historyStatus === 'ready' && conversations.length > 0 && (
-                  <ul className="divide-y divide-[var(--at-line)]">
+                  <ul>
                     {conversations.map(conversation => {
                       const current = conversation.id === conversationId;
                       return (
-                        <li key={conversation.id} className={`flex items-stretch ${current ? 'bg-[var(--at-accent)]/10' : ''}`}>
-                          <button
-                            type="button"
-                            onClick={() => void openConversation(conversation)}
-                            disabled={isTyping || opening}
-                            aria-current={current ? 'true' : undefined}
-                            className="flex-1 min-w-0 text-left px-4 py-3 hover:bg-[var(--at-line)]/40 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--at-accent)]"
-                          >
-                            <span className="block text-xs text-[var(--at-text)] line-clamp-2 break-words">{conversation.title}</span>
-                            <span className="block mt-1 text-[10px] text-[var(--at-muted)] font-mono" style={mono}>
-                              {describeWhen(conversation.updatedAt)} · {conversation.messageCount} messages
-                            </span>
+                        <li key={conversation.id} className={`group mx-2 flex items-stretch rounded-lg ${current ? 'bg-[var(--at-panel-2)]' : 'hover:bg-[var(--at-panel)]'}`}>
+                          <button type="button" onClick={() => void openConversation(conversation)} disabled={isTyping || opening} aria-current={current ? 'true' : undefined}
+                            className="flex-1 min-w-0 text-left px-3 py-2.5 disabled:opacity-60">
+                            <span className="block text-sm text-[var(--at-text)] truncate">{conversation.title}</span>
+                            <span className="block mt-0.5 text-[11px] text-[var(--at-muted)]">{describeWhen(conversation.updatedAt)} · {conversation.messageCount} messages</span>
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => void removeConversation(conversation)}
-                            aria-label={`Delete saved chat: ${conversation.title}`}
-                            className="shrink-0 w-10 flex items-center justify-center text-[var(--at-muted)] hover:text-red-400 hover:bg-[var(--at-line)]/40 focus:outline-none focus-visible:text-red-400 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-red-400"
-                          >
+                          <button type="button" onClick={() => void removeConversation(conversation)} aria-label={`Delete saved chat: ${conversation.title}`}
+                            className="shrink-0 w-9 flex items-center justify-center rounded-lg text-[var(--at-muted)] opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-red-400">
                             <Trash2 size={14} />
                           </button>
                         </li>
@@ -403,166 +350,108 @@ const Insights: React.FC = () => {
                 )}
               </div>
 
-              <p className="shrink-0 px-4 py-3 border-t border-[var(--at-line)] text-[10px] text-[var(--at-muted)] leading-relaxed">
-                Chats are saved to your account for this workspace. Only you can see them.
-              </p>
+              <p className="shrink-0 px-4 py-3 border-t border-[var(--at-line)] text-[11px] text-[var(--at-muted)]">Only you can see your saved chats.</p>
             </aside>
           )}
 
           <div className="flex-1 flex flex-col min-w-0 min-h-0">
-
-          {/* Chat Header */}
-          <div className="shrink-0 p-4 border-b border-[var(--at-line)] bg-[var(--at-panel)] flex items-center gap-3">
-            <div className="w-8 h-8 bg-[var(--at-accent)]/20 flex items-center justify-center rounded-full">
-              <Bot size={16} className="text-[var(--at-link)]" />
-            </div>
-            <div>
-              <span className="text-sm font-semibold text-[var(--at-text)]">ArchTime AI</span>
-              <span className="text-xs text-[var(--at-muted)] ml-2">Evidence-Grounded Architecture Assistant</span>
-            </div>
-            <div className="ml-auto flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${canChat ? 'bg-[#22c55e] animate-pulse' : 'bg-[#5f636b]'}`} />
-              <span className="text-xs text-[var(--at-muted)]">{canChat ? 'Ready' : 'No workspace selected'}</span>
-            </div>
-          </div>
-
-          {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 min-h-0" aria-live="polite">
-            {noProjects && (
-              <div className="p-4 border border-[var(--at-warn)]/30 bg-[var(--at-warn)]/10 text-sm text-[var(--at-warn)]">
-                You have no workspaces yet. <Link to="/projects" className="underline">Add a workspace</Link> and let it finish mining before asking questions.
-              </div>
-            )}
-
-            <AnimatePresence>
-              {messages.map((message) => (
-                <motion.div
-                  key={message.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className={`flex gap-4 ${message.role === 'user' ? 'justify-end' : ''}`}
-                >
-                  {message.role === 'assistant' && (
-                    <div className={`shrink-0 w-8 h-8 flex items-center justify-center rounded-full ${message.isError ? 'bg-red-500/20' : 'bg-[var(--at-accent)]/20'}`}>
-                      {message.isError
-                        ? <AlertTriangle size={14} className="text-red-400" />
-                        : <Sparkles size={14} className="text-[var(--at-link)]" />}
-                    </div>
-                  )}
-
-                  <div className={`max-w-[70%] ${message.role === 'user' ? 'order-first' : ''}`}>
-                    <div
-                      className={`p-4 ${
-                        message.role === 'user'
-                          ? 'bg-[var(--at-accent)]/10 border border-[var(--at-accent)]/30'
-                          : message.isError
-                            ? 'bg-red-500/10 border border-red-500/30'
-                            : 'bg-[var(--at-panel)] border border-[var(--at-line)]'
-                      }`}
-                    >
-                      {message.role === 'assistant' && !message.isError ? (
-                        <AssistantMessage content={message.content} evidence={message.evidence} projectId={selectedProjectId} />
-                      ) : (
-                        <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${message.isError ? 'text-red-300' : 'text-[var(--at-text)]'}`}>
-                          {message.content}
-                        </p>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-[var(--at-muted)] mt-1 font-mono" style={mono}>
-                      {message.timestamp.toLocaleTimeString()}
-                    </p>
-                    {labelCheckNote(message.labelCheck) && (
-                      <p className="text-[10px] text-[var(--at-muted)] mt-1">{labelCheckNote(message.labelCheck)}</p>
-                    )}
-                    {message.unsaved && (
-                      <p role="status" className="text-[10px] text-[var(--at-warn)] mt-1">This answer could not be saved to your history.</p>
-                    )}
-                  </div>
-
-                  {message.role === 'user' && (
-                    <div className="shrink-0 w-8 h-8 bg-[var(--at-line)] flex items-center justify-center rounded-full">
-                      <User size={14} className="text-[var(--at-muted)]" />
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </AnimatePresence>
-
-            {isTyping && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-4">
-                <div className="shrink-0 w-8 h-8 bg-[var(--at-accent)]/20 flex items-center justify-center rounded-full">
-                  <Sparkles size={14} className="text-[var(--at-link)]" />
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 min-h-0" aria-live="polite">
+              {noProjects && (
+                <div className="mx-auto max-w-xl rounded-xl border border-[var(--at-warn)]/30 bg-[var(--at-warn)]/10 p-4 text-sm text-[var(--at-warn)]">
+                  You have no workspaces yet. <Link to="/projects" className="underline">Add a workspace</Link> and let it finish mining before asking questions.
                 </div>
-                <div className="p-4 bg-[var(--at-panel)] border border-[var(--at-line)]">
-                  <div className="flex items-center gap-2">
-                    <Loader2 size={14} className="text-[var(--at-link)] animate-spin" />
-                    <span className="text-xs text-[var(--at-muted)] font-mono" style={mono}>Analyzing repository evidence...</span>
+              )}
+              {fresh && !canChat && !noProjects && <div className="flex h-full items-center justify-center"><Loader2 size={20} className="animate-spin text-[var(--at-link)]" aria-label="Loading workspaces" /></div>}
+
+              {fresh && canChat ? (
+                <div className="flex min-h-full flex-col items-center justify-center text-center">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--at-panel-2)] text-[var(--at-link)]"><Sparkles size={20} aria-hidden="true" /></span>
+                  <h3 className="mt-4 text-xl font-semibold text-[var(--at-text)]">What do you want to know about {workspaceName ?? 'this workspace'}?</h3>
+                  <p className="mt-2 max-w-md text-sm text-[var(--at-muted)]">Answers come only from its mined snapshots and evidence; each claim is labelled FACT, INFERENCE or UNKNOWN.</p>
+                  <div className="mt-6 grid w-full max-w-2xl grid-cols-1 gap-2 sm:grid-cols-2">
+                    {SUGGESTED_QUESTIONS.map(question => (
+                      <button key={question} type="button" onClick={() => void handleSend(question)} disabled={isTyping || opening}
+                        className="rounded-xl border border-[var(--at-line)] px-4 py-3 text-left text-sm text-[var(--at-text)] transition-colors hover:border-[var(--at-link)]/40 hover:bg-[var(--at-panel-2)]">
+                        {question}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              </motion.div>
-            )}
+              ) : !fresh && (
+                <div className="mx-auto max-w-3xl space-y-6">
+                  <AnimatePresence>
+                    {messages.map(message => {
+                      const user = message.role === 'user';
+                      return (
+                        <motion.div key={message.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                          className={`flex gap-3 ${user ? 'justify-end' : ''}`}>
+                          {!user && (
+                            <span className={`mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${message.isError ? 'bg-red-500/20' : 'bg-[var(--at-panel-2)]'}`}>
+                              {message.isError ? <AlertTriangle size={13} className="text-red-400" /> : <Sparkles size={13} className="text-[var(--at-link)]" />}
+                            </span>
+                          )}
+                          <div className={`flex max-w-[85%] flex-col ${user ? 'items-end' : 'min-w-0'}`}>
+                            <div className={`rounded-2xl px-4 py-3 ${user
+                              ? 'rounded-br-md border border-[var(--at-line)] bg-[var(--at-panel-2)]'
+                              : message.isError ? 'border border-red-500/30 bg-red-500/10' : 'rounded-tl-md border border-[var(--at-line)] bg-[var(--at-panel)]'}`}>
+                              {!user && !message.isError
+                                ? <AssistantMessage content={message.content} evidence={message.evidence} projectId={selectedProjectId} />
+                                : <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${message.isError ? 'text-red-300' : 'text-[var(--at-text)]'}`}>{message.content}</p>}
+                            </div>
+                            <p className="mt-1 px-1 text-[11px] text-[var(--at-muted)]">
+                              {time(message.timestamp)}{labelCheckNote(message.labelCheck) ? ` · ${labelCheckNote(message.labelCheck)}` : ''}
+                            </p>
+                            {message.unsaved && <p role="status" className="px-1 text-[11px] text-[var(--at-warn)]">This answer could not be saved to your history.</p>}
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
 
-            <div ref={messagesEndRef} />
-          </div>
+                  {isTyping && (
+                    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3">
+                      <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--at-panel-2)]"><Sparkles size={13} className="text-[var(--at-link)]" /></span>
+                      <div className="flex items-center gap-2 rounded-2xl rounded-tl-md border border-[var(--at-line)] bg-[var(--at-panel)] px-4 py-3 text-sm text-[var(--at-muted)]">
+                        <Loader2 size={14} className="animate-spin text-[var(--at-link)]" /> Reading the evidence…
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
 
-          {/* Suggested Questions */}
-          {messages.length === 1 && canChat && (
-            <div className="shrink-0 px-6 pb-4">
-              <p className="text-xs text-[var(--at-muted)] mb-3 flex items-center gap-2">
-                <MessageSquare size={12} />
-                Suggested questions
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {SUGGESTED_QUESTIONS.map((question) => (
-                  <button
-                    key={question}
-                    onClick={() => void handleSend(question)}
-                    disabled={isTyping || opening}
-                    className="px-3 py-2 bg-[var(--at-panel)] border border-[var(--at-line)] hover:border-[var(--at-accent)]/50 text-xs text-[var(--at-muted)] hover:text-[var(--at-link)] transition-colors disabled:opacity-50"
-                  >
-                    {question}
+            {/* Input */}
+            <div className="shrink-0 border-t border-[var(--at-line)] px-4 py-4 sm:px-6">
+              <div className="mx-auto max-w-3xl">
+                <div className="flex items-center gap-2 rounded-full border border-[var(--at-line)] bg-[var(--at-panel)] pl-5 pr-1.5 focus-within:border-[var(--at-link)]">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    maxLength={4000}
+                    aria-label="Ask about this workspace's architecture"
+                    placeholder={canChat ? 'Ask about changes, coupling or decisions…' : 'Choose a workspace to start'}
+                    className="h-12 min-w-0 flex-1 bg-transparent text-sm text-[var(--at-text)] outline-none focus-visible:outline-none placeholder:text-[var(--at-muted)]"
+                    disabled={isTyping || opening || !canChat}
+                  />
+                  <button type="button" onClick={() => void handleSend(inputValue)} aria-label="Send"
+                    disabled={!inputValue.trim() || isTyping || opening || !canChat}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--at-fill)] text-[var(--at-on-fill)] transition-colors hover:bg-[var(--at-fill-hover)]">
+                    <Send size={15} aria-hidden="true" />
                   </button>
-                ))}
+                </div>
+                <p className="mt-2 text-center text-[11px] text-[var(--at-muted)]">
+                  Uses this workspace&apos;s snapshots and evidence.
+                  {modelNote
+                    ? ` Model: ${modelNote.name}${modelNote.external ? ` — workspace data is sent to ${modelNote.host}.` : ` (hosted on ${modelNote.host}).`}`
+                    : ' Workspace data is sent to the configured AI provider.'}
+                </p>
               </div>
             </div>
-          )}
-
-          {/* Input Area */}
-          <div className="shrink-0 p-4 border-t border-[var(--at-line)] bg-[var(--at-panel)]">
-            <div className="flex items-center gap-3">
-              <div className="flex-1 relative">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  maxLength={4000}
-                  aria-label="Ask about this workspace's architecture"
-                  placeholder={canChat ? 'Ask about architectural changes, patterns, or decisions...' : 'Select a workspace to start'}
-                  className="w-full h-12 bg-[var(--at-page)] border border-[var(--at-line)] focus:border-[var(--at-accent)]/50 px-4 pr-12 text-sm text-[var(--at-text)] placeholder-[#5f636b] focus:outline-none transition-colors font-mono"
-                  style={mono}
-                  disabled={isTyping || opening || !canChat}
-                />
-              </div>
-              <button
-                onClick={() => void handleSend(inputValue)}
-                disabled={!inputValue.trim() || isTyping || opening || !canChat}
-                className="h-12 px-6 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] disabled:bg-[var(--at-line)] disabled:cursor-not-allowed text-[var(--at-on-fill)] disabled:text-[#5f636b] font-semibold text-sm transition-colors flex items-center gap-2"
-              >
-                <Send size={16} />
-                Send
-              </button>
-            </div>
-            <p className="text-[10px] text-[var(--at-muted)] mt-2 font-mono" style={mono}>
-              <Box size={10} className="inline mr-1" />
-              Answers use this workspace&apos;s stored snapshots and change evidence.
-              {modelNote
-                ? ` Model: ${modelNote.name}${modelNote.external ? ` — workspace data is sent to ${modelNote.host}.` : ` (hosted on ${modelNote.host}).`}`
-                : ' Workspace data is sent to the configured AI provider.'}
-            </p>
-          </div>
           </div>
         </div>
       </div>
