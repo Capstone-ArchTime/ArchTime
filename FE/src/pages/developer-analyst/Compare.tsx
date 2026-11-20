@@ -21,9 +21,50 @@ import { OTHER, buildCompareGraph, compareFiles } from '@/features/compare-graph
 import { layoutGraph } from '@/features/architecture/layout';
 import { getComponentMatch } from '@/features/component-matching';
 import type { ComponentMatchResult } from '@/features/component-matching';
+import { formatDate } from '@/i18n/format';
+import { defineMessages, useMessages } from '@/i18n/define';
+
+const MSG = defineMessages({
+  loadFailed: 'Could not load your workspaces.', pickBoth: 'Please select a workspace and two revisions to compare.', compareFailed: 'Failed to compare revisions.',
+  chooseTwo: 'Choose two different revisions to match their components.', matchFailed: 'Could not match components.', pressCompare: 'Choose two revisions and press Compare.',
+  noData: 'No architecture data', noFiles: 'This revision has no recorded files.', title: 'Compare', intro: 'What changed in the structure between two revisions.',
+  workspace: 'Workspace:', noMined: 'No mined workspaces', nothingTitle: 'Nothing to compare yet',
+  nothingBody: 'Comparing needs a workspace with at least two mined commits. Create a workspace or mine more of its history.', goWorkspaces: 'Go to workspaces',
+  noCommits: 'This workspace has no mined commits. Mine more of its history from {link} to compare two revisions.',
+  oneCommit: 'This workspace has only one mined commit. Mine more of its history from {link} to compare two revisions.', workspaces: 'Workspaces',
+  baseRevision: 'Base Revision', baseLabel: 'Base revision', targetRevision: 'Target Revision', targetLabel: 'Target revision', searchRevision: 'Search by version, hash or message',
+  comparing: 'Comparing...', compare: 'Compare', modules: 'Modules', dependencies: 'Dependencies', files: 'Files', totalTarget: 'total in target', structural: 'Structural changes',
+  changes: '{count} changes', changes_one: '1 change', noChanges: 'No changes', before: 'Before', after: 'After', selectBase: 'Select Base', selectTarget: 'Select Target',
+  folderHelp: 'Click a folder to see its files. Files grouped by folder', levels: ' ({n} levels deep)', arrowsHelp: '; arrows are imports between folders, thicker for more imports.',
+  folded: ' The {n} smallest folders share the "{other}" box.', dashed: ' Dashed outlines are folders that exist only in the other revision.',
+  added: 'Added', removed: 'Removed', unchanged: 'Unchanged', changed: 'Changed', changeLog: 'Detailed Change Log',
+  moduleAdded: 'Module Added', moduleAddedBody: 'New module introduced in the target revision. This component adds new functionality to the system architecture.', impact: 'Impact', plusComponent: '+1 Component',
+  moduleRemoved: 'Module Removed', moduleRemovedBody: 'Module was removed or refactored out of the architecture. Check if functionality was merged into other components.', minusComponent: '-1 Component',
+  depAdded: 'Dependency Added', depAddedBody: 'New dependency relationship established. This may indicate coupling or integration between components.',
+  depRemoved: 'Dependency Removed', depRemovedBody: 'Dependency was removed. This may indicate decoupling or refactoring of module relationships.', report: 'GENERATE REPORT',
+}, {
+  loadFailed: 'Không tải được các không gian làm việc của bạn.', pickBoth: 'Hãy chọn một không gian làm việc và hai phiên bản để so sánh.', compareFailed: 'Không so sánh được hai phiên bản.',
+  chooseTwo: 'Hãy chọn hai phiên bản khác nhau để đối chiếu thành phần.', matchFailed: 'Không đối chiếu được thành phần.', pressCompare: 'Chọn hai phiên bản rồi bấm So sánh.',
+  noData: 'Không có dữ liệu kiến trúc', noFiles: 'Phiên bản này không có tệp nào được ghi nhận.', title: 'So sánh', intro: 'Cấu trúc đã thay đổi những gì giữa hai phiên bản.',
+  workspace: 'Không gian làm việc:', noMined: 'Chưa có không gian làm việc nào đã mining', nothingTitle: 'Chưa có gì để so sánh',
+  nothingBody: 'Cần một không gian làm việc có ít nhất hai commit đã mining. Hãy tạo không gian làm việc hoặc chạy mining thêm lịch sử.', goWorkspaces: 'Tới không gian làm việc',
+  noCommits: 'Không gian làm việc này chưa có commit nào đã mining. Hãy chạy mining thêm lịch sử ở {link} để so sánh hai phiên bản.',
+  oneCommit: 'Không gian làm việc này mới có một commit đã mining. Hãy chạy mining thêm lịch sử ở {link} để so sánh hai phiên bản.', workspaces: 'Không gian làm việc',
+  baseRevision: 'Phiên bản gốc', baseLabel: 'Phiên bản gốc', targetRevision: 'Phiên bản đích', targetLabel: 'Phiên bản đích', searchRevision: 'Tìm theo phiên bản, hash hoặc thông điệp',
+  comparing: 'Đang so sánh...', compare: 'So sánh', modules: 'Module', dependencies: 'Phụ thuộc', files: 'Tệp', totalTarget: 'tổng ở bản đích', structural: 'Thay đổi cấu trúc',
+  changes: '{count} thay đổi', noChanges: 'Không có thay đổi', before: 'Trước', after: 'Sau', selectBase: 'Chọn bản gốc', selectTarget: 'Chọn bản đích',
+  folderHelp: 'Bấm vào một thư mục để xem các tệp. Tệp được nhóm theo thư mục', levels: ' (sâu {n} cấp)', arrowsHelp: '; mũi tên là các import giữa thư mục, càng dày càng nhiều import.',
+  folded: ' {n} thư mục nhỏ nhất dùng chung ô "{other}".', dashed: ' Viền nét đứt là thư mục chỉ có ở phiên bản còn lại.',
+  added: 'Thêm', removed: 'Xoá', unchanged: 'Không đổi', changed: 'Thay đổi', changeLog: 'Nhật ký thay đổi chi tiết',
+  moduleAdded: 'Thêm module', moduleAddedBody: 'Module mới xuất hiện ở phiên bản đích, bổ sung chức năng mới cho kiến trúc hệ thống.', impact: 'Ảnh hưởng', plusComponent: '+1 thành phần',
+  moduleRemoved: 'Xoá module', moduleRemovedBody: 'Module đã bị xoá hoặc tách khỏi kiến trúc. Hãy kiểm tra xem chức năng có được gộp vào thành phần khác không.', minusComponent: '-1 thành phần',
+  depAdded: 'Thêm phụ thuộc', depAddedBody: 'Có quan hệ phụ thuộc mới. Điều này có thể cho thấy sự gắn kết hoặc tích hợp giữa các thành phần.',
+  depRemoved: 'Xoá phụ thuộc', depRemovedBody: 'Phụ thuộc đã bị xoá. Điều này có thể cho thấy việc tách rời hoặc tái cấu trúc quan hệ giữa các module.', report: 'TẠO BÁO CÁO',
+});
 
 const Compare: React.FC = () => {
   const { message } = App.useApp();
+  const m = useMessages(MSG);
   const location = useLocation();
   const [projectsList, setProjectsList] = useState<Workspace[] | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
@@ -43,8 +84,9 @@ const Compare: React.FC = () => {
       setProjectsList(pList);
       const pId = new URLSearchParams(location.search).get('projectId');
       setSelectedProjectId(pList.find(p => p.id === pId)?.id ?? pList[0]?.id ?? '');
-    }).catch(e => { if (!controller.signal.aborted) { setProjectsList([]); message.error(e instanceof Error ? e.message : 'Could not load your workspaces.'); } });
+    }).catch(e => { if (!controller.signal.aborted) { setProjectsList([]); message.error(e instanceof Error ? e.message : m('loadFailed')); } });
     return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the message function changes with the language; reloading then is not needed
   }, [location.search, message]);
 
   useEffect(() => {
@@ -79,7 +121,7 @@ const Compare: React.FC = () => {
 
   const handleCompare = async () => {
     if (!selectedProjectId || !baseId || !targetId) {
-      message.warning('Please select a workspace and two revisions to compare.');
+      message.warning(m('pickBoth'));
       return;
     }
     setLoading(true);
@@ -88,7 +130,7 @@ const Compare: React.FC = () => {
       const data = await apiRequest<{ data?: unknown }>(`/projects/${selectedProjectId}/snapshots/compare?baseId=${encodeURIComponent(baseId)}&targetId=${encodeURIComponent(targetId)}`);
       setCompareData(data.data);
     } catch (e) {
-      message.error(e instanceof Error ? e.message : 'Failed to compare revisions.');
+      message.error(e instanceof Error ? e.message : m('compareFailed'));
     } finally {
       setLoading(false);
     }
@@ -97,19 +139,19 @@ const Compare: React.FC = () => {
   // Component matching runs next to the file comparison; its failure (e.g. no components yet) does not hide the file diff.
   const loadMatch = (projectId: string, base: string, target: string) => {
     if (base === target) {
-      setMatch({ result: null, error: 'Choose two different revisions to match their components.', loading: false, baseId: base, targetId: target });
+      setMatch({ result: null, error: m('chooseTwo'), loading: false, baseId: base, targetId: target });
       return;
     }
     setMatch({ result: null, error: null, loading: true, baseId: base, targetId: target });
     getComponentMatch(projectId, base, target)
-      .then(result => setMatch(m => (m && m.baseId === base && m.targetId === target ? { ...m, result, loading: false } : m)))
-      .catch(err => setMatch(m => (m && m.baseId === base && m.targetId === target ? { ...m, error: err instanceof Error ? err.message : 'Could not match components.', loading: false } : m)));
+      .then(result => setMatch(cur => (cur && cur.baseId === base && cur.targetId === target ? { ...cur, result, loading: false } : cur)))
+      .catch(err => setMatch(cur => (cur && cur.baseId === base && cur.targetId === target ? { ...cur, error: err instanceof Error ? err.message : m('matchFailed'), loading: false } : cur)));
   };
 
   const revisionOptions = useMemo(() => snapshots.map(s => ({
     value: s.id as string,
-    label: `${s.version || s.hash.substring(0, 7)} · ${new Date(s.date).toLocaleDateString()}${s.title ? ` · ${s.title}` : ''}`,
-  })), [snapshots]);
+    label: `${s.version || s.hash.substring(0, 7)} · ${formatDate(s.date)}${s.title ? ` · ${s.title}` : ''}`,
+  })), [snapshots, m.language]);
   const getBaseSnapshot = () => snapshots.find(s => s.id === baseId);
   const getTargetSnapshot = () => snapshots.find(s => s.id === targetId);
 
@@ -129,11 +171,11 @@ const Compare: React.FC = () => {
   };
 
   const drawing = (side: 'base' | 'target', label: string) => {
-    if (!graph || !graphLayout) return <div className="flex h-full items-center justify-center text-sm text-[var(--at-muted)]">Choose two revisions and press Compare.</div>;
+    if (!graph || !graphLayout) return <div className="flex h-full items-center justify-center text-sm text-[var(--at-muted)]">{m('pressCompare')}</div>;
     const files = side === 'base' ? graph.totals.baseFiles : graph.totals.targetFiles;
     if (!files) return <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-      <p className="text-sm text-[var(--at-muted)]">No architecture data</p>
-      <p className="text-xs text-[var(--at-muted)]">This revision has no recorded files.</p>
+      <p className="text-sm text-[var(--at-muted)]">{m('noData')}</p>
+      <p className="text-xs text-[var(--at-muted)]">{m('noFiles')}</p>
     </div>;
     return <CompareDiagram graph={graph} layout={graphLayout} side={side} label={label} selected={openGroup} onOpen={openFolder} />;
   };
@@ -144,15 +186,15 @@ const Compare: React.FC = () => {
         
         {/* HEADER */}
         <div className="shrink-0">
-          <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)] mb-2">Compare</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)] mb-2">{m('title')}</h2>
           <p className="text-[var(--at-muted)] text-sm max-w-xl leading-relaxed">
-            What changed in the structure between two revisions.
+            {m('intro')}
           </p>
 
           <div className="mt-6 mb-2 flex items-center gap-4">
             <div className="relative group flex items-center h-10 rounded-[10px] bg-[var(--at-panel-2)] border border-[var(--at-line)] hover:border-[var(--at-line-strong)] transition-colors">
               <FolderKanban size={16} className="text-[var(--at-muted)] ml-4" />
-              <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase pl-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>Workspace:</span>
+              <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase pl-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('workspace')}</span>
               <select 
                 value={selectedProjectId} 
                 onChange={(e) => { setSelectedProjectId(e.target.value); setCompareData(null); setMatch(null); }}
@@ -160,7 +202,7 @@ const Compare: React.FC = () => {
               >
                 {projectsList?.length ? projectsList.map(p => (
                   <option key={p.id} value={p.id} className="bg-[var(--at-panel-2)]">{p.name}</option>
-                )) : <option value="" className="bg-[var(--at-panel-2)]">No mined workspaces</option>}
+                )) : <option value="" className="bg-[var(--at-panel-2)]">{m('noMined')}</option>}
               </select>
               <ChevronDown size={14} className="text-[var(--at-muted)] absolute right-3 pointer-events-none group-hover:text-[var(--at-text)]" />
             </div>
@@ -171,14 +213,14 @@ const Compare: React.FC = () => {
 
         {projectsList?.length === 0 ? (
           <section className="bg-[var(--at-panel)] border border-dashed border-[var(--at-line)] p-10 text-center" aria-labelledby="no-compare-title">
-            <h3 id="no-compare-title" className="text-lg font-bold text-[var(--at-text)] mb-2">Nothing to compare yet</h3>
-            <p className="text-sm text-[var(--at-muted)] max-w-md mx-auto mb-6">Comparing needs a workspace with at least two mined commits. Create a workspace or mine more of its history.</p>
-            <Link to="/projects" className="inline-flex h-10 px-5 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] font-bold text-xs items-center">Go to workspaces</Link>
+            <h3 id="no-compare-title" className="text-lg font-bold text-[var(--at-text)] mb-2">{m('nothingTitle')}</h3>
+            <p className="text-sm text-[var(--at-muted)] max-w-md mx-auto mb-6">{m('nothingBody')}</p>
+            <Link to="/projects" className="inline-flex h-10 px-5 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] font-bold text-xs items-center">{m('goWorkspaces')}</Link>
           </section>
         ) : <>
         {snapshotsLoaded && snapshots.length < 2 && (
           <p role="status" className="bg-[var(--at-panel)] border border-[var(--at-line)] p-4 text-sm text-[var(--at-muted)]">
-            This workspace has {snapshots.length === 0 ? 'no mined commits' : 'only one mined commit'}. Mine more of its history from <Link to="/projects" className="text-[var(--at-link)] hover:underline">Workspaces</Link> to compare two revisions.
+            {m.rich(snapshots.length === 0 ? 'noCommits' : 'oneCommit', { link: <Link key="l" to="/projects" className="text-[var(--at-link)] hover:underline">{m('workspaces')}</Link> })}
           </p>
         )}
         {/* REVISION SELECTORS */}
@@ -190,13 +232,13 @@ const Compare: React.FC = () => {
               <GitCommit size={64} className="text-[var(--at-muted)]" />
             </div>
             <h3 className="text-[10px] font-mono font-semibold text-[var(--at-muted)] tracking-widest uppercase mb-4"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Base Revision</h3>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('baseRevision')}</h3>
             <div className="flex items-center gap-4 relative z-10">
               <Select
                 showSearch
                 optionFilterProp="label"
-                aria-label="Base revision"
-                placeholder="Search by version, hash or message"
+                aria-label={m('baseLabel')}
+                placeholder={m('searchRevision')}
                 value={baseId || undefined}
                 onChange={(value: string) => setBaseId(value)}
                 options={revisionOptions}
@@ -222,7 +264,7 @@ const Compare: React.FC = () => {
               disabled={loading || snapshots.length < 2}
               className="h-10 px-6 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Comparing...' : 'Compare'}
+              {loading ? m('comparing') : m('compare')}
             </button>
           </div>
 
@@ -232,13 +274,13 @@ const Compare: React.FC = () => {
               <GitCommit size={64} className="text-[var(--at-link)]" />
             </div>
             <h3 className="text-[10px] font-mono font-semibold text-[var(--at-link)] tracking-widest uppercase mb-4"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Target Revision</h3>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('targetRevision')}</h3>
             <div className="flex items-center gap-4 relative z-10">
               <Select
                 showSearch
                 optionFilterProp="label"
-                aria-label="Target revision"
-                placeholder="Search by version, hash or message"
+                aria-label={m('targetLabel')}
+                placeholder={m('searchRevision')}
                 value={targetId || undefined}
                 onChange={(value: string) => setTargetId(value)}
                 options={revisionOptions}
@@ -261,7 +303,7 @@ const Compare: React.FC = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 shrink-0">
             <div className="bg-[var(--at-panel-2)] border border-[var(--at-line)] p-4 flex flex-col justify-between">
               <h4 className="text-[10px] font-mono font-semibold text-[var(--at-muted)] tracking-widest uppercase mb-2"
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}>Modules</h4>
+              style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('modules')}</h4>
               <div className="text-xl font-bold font-mono flex items-center gap-2"
               style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                 <span className="text-[var(--at-success)]">+{compareData.diff.nodesAdded.length}</span>
@@ -272,7 +314,7 @@ const Compare: React.FC = () => {
             
             <div className="bg-[var(--at-panel-2)] border border-[var(--at-line)] p-4 flex flex-col justify-between">
               <h4 className="text-[10px] font-mono font-semibold text-[var(--at-muted)] tracking-widest uppercase mb-2"
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}>Dependencies</h4>
+              style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('dependencies')}</h4>
               <div className="flex items-center gap-2 text-xl font-bold font-mono"
               style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                 <span className="text-[var(--at-success)]">+{compareData.diff.edgesAdded.length}</span>
@@ -283,19 +325,19 @@ const Compare: React.FC = () => {
 
             <div className="bg-[var(--at-panel-2)] border border-[var(--at-line)] p-4 flex flex-col justify-between">
               <h4 className="text-[10px] font-mono font-semibold text-[var(--at-muted)] tracking-widest uppercase mb-2"
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}>Files</h4>
+              style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('files')}</h4>
               <div className="text-xl font-bold text-[var(--at-text)] flex items-center gap-2">
-                {compareData.targetSnapshot.files} <span className="text-xs font-sans text-[var(--at-muted)] font-normal">total in target</span>
+                {compareData.targetSnapshot.files} <span className="text-xs font-sans text-[var(--at-muted)] font-normal">{m('totalTarget')}</span>
               </div>
             </div>
 
             <div className="bg-[var(--at-panel-2)] border border-[var(--at-warn)]/30 p-4 flex flex-col justify-between relative overflow-hidden">
               <div className="absolute inset-0 bg-[var(--at-warn)]/5 pointer-events-none"></div>
               <h4 className="text-[10px] font-mono font-semibold text-[var(--at-warn)] tracking-widest uppercase mb-2 z-10"
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}>Structural changes</h4>
+              style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('structural')}</h4>
               <div className="text-xl font-bold font-mono text-[var(--at-warn)] flex items-center gap-1 z-10"
               style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                {(() => { const n = compareData.diff.nodesAdded.length + compareData.diff.nodesRemoved.length + compareData.diff.edgesAdded.length + compareData.diff.edgesRemoved.length; return n ? `${n} change${n === 1 ? '' : 's'}` : 'No changes'; })()}
+                {(() => { const n = compareData.diff.nodesAdded.length + compareData.diff.nodesRemoved.length + compareData.diff.edgesAdded.length + compareData.diff.edgesRemoved.length; return n ? m('changes', { count: n }) : m('noChanges'); })()}
               </div>
             </div>
           </div>
@@ -313,14 +355,14 @@ const Compare: React.FC = () => {
             <div className="p-4 border-b border-[var(--at-line)] flex items-center justify-between z-10">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-[var(--at-line-strong)]"></div>
-                <span className="text-xs font-bold text-[var(--at-text)] tracking-wide uppercase">Before</span>
+                <span className="text-xs font-bold text-[var(--at-text)] tracking-wide uppercase">{m('before')}</span>
               </div>
               <div className="text-[10px] font-mono text-[var(--at-muted)]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{getBaseSnapshot()?.version || getBaseSnapshot()?.hash.substring(0, 7) || 'Select Base'}</div>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{getBaseSnapshot()?.version || getBaseSnapshot()?.hash.substring(0, 7) || m('selectBase')}</div>
             </div>
             
             <div className="relative w-full h-[420px] p-3">
-              {drawing('base', 'Before')}
+              {drawing('base', m('before'))}
             </div>
           </div>
 
@@ -329,14 +371,14 @@ const Compare: React.FC = () => {
             <div className="p-4 border-b border-[var(--at-line)] flex items-center justify-between z-10">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-[var(--at-accent)] animate-pulse motion-reduce:animate-none shadow-[0_0_8px_var(--at-glow)]"></div>
-                <span className="text-xs font-bold text-[var(--at-text)] tracking-wide uppercase">After</span>
+                <span className="text-xs font-bold text-[var(--at-text)] tracking-wide uppercase">{m('after')}</span>
               </div>
               <div className="text-[10px] font-mono text-[var(--at-muted)]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{getTargetSnapshot()?.version || getTargetSnapshot()?.hash.substring(0, 7) || 'Select Target'}</div>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{getTargetSnapshot()?.version || getTargetSnapshot()?.hash.substring(0, 7) || m('selectTarget')}</div>
             </div>
             
             <div className="relative w-full h-[420px] p-3">
-              {drawing('target', 'After')}
+              {drawing('target', m('after'))}
             </div>
           </div>
           
@@ -345,29 +387,29 @@ const Compare: React.FC = () => {
         {/* CHANGE LEGEND */}
         <CompareFilesDrawer group={openGroup} file={openFile} files={files} onFile={showFile} onClose={() => { setOpenGroup(null); setOpenFile(null); }} />
         {graph && <p className="text-center text-xs text-[var(--at-muted)]">
-          Click a folder to see its files. Files grouped by folder{graph.depth > 1 ? ` (${graph.depth} levels deep)` : ''}; arrows are imports between folders, thicker for more imports.
-          {graph.folded > 0 ? ` The ${graph.folded} smallest folders share the "${OTHER}" box.` : ''} Dashed outlines are folders that exist only in the other revision.
+          {m('folderHelp')}{graph.depth > 1 ? m('levels', { n: graph.depth }) : ''}{m('arrowsHelp')}
+          {graph.folded > 0 ? m('folded', { n: graph.folded, other: OTHER }) : ''}{m('dashed')}
         </p>}
         <div className="flex flex-wrap items-center justify-center gap-6 py-2">
           <div className="flex items-center gap-2">
              <div className="w-2.5 h-2.5 bg-[var(--at-success)] shadow-[0_0_5px_var(--at-success)]"></div>
              <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Added</span>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('added')}</span>
           </div>
           <div className="flex items-center gap-2">
              <div className="w-2.5 h-2.5 bg-[var(--at-danger)] shadow-[0_0_5px_var(--at-danger)]"></div>
              <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Removed</span>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('removed')}</span>
           </div>
           <div className="flex items-center gap-2">
              <div className="w-2.5 h-2.5 bg-[var(--at-muted)]"></div>
              <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Unchanged</span>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('unchanged')}</span>
           </div>
           <div className="flex items-center gap-2">
              <div className="w-2.5 h-2.5 bg-[var(--at-warn)]"></div>
              <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Changed</span>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('changed')}</span>
           </div>
         </div>
 
@@ -376,7 +418,7 @@ const Compare: React.FC = () => {
           <div className="shrink-0 space-y-4">
             <h3 className="text-sm font-bold text-[var(--at-text)] tracking-wide uppercase mb-4 flex items-center gap-2">
               <FileDiff size={16} className="text-[var(--at-link)]" />
-              Detailed Change Log
+              {m('changeLog')}
             </h3>
 
             <div className="bg-[var(--at-panel)] border border-[var(--at-line)] overflow-hidden divide-y divide-[var(--at-line)]">
@@ -386,14 +428,14 @@ const Compare: React.FC = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="px-2 py-0.5 bg-[var(--at-success)]/10 border border-[var(--at-success)]/20 text-[var(--at-success)] text-[11px] font-mono font-bold uppercase tracking-widest"
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}>Module Added</span>
+              style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('moduleAdded')}</span>
                     </div>
                     <div className="text-sm font-bold text-[var(--at-text)] mb-1">{node.name}</div>
-                    <p className="text-xs text-[var(--at-muted)]">New module introduced in the target revision. This component adds new functionality to the system architecture.</p>
+                    <p className="text-xs text-[var(--at-muted)]">{m('moduleAddedBody')}</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs text-[var(--at-muted)]">Impact</div>
-                    <div className="text-sm font-mono text-[var(--at-success)]">+1 Component</div>
+                    <div className="text-xs text-[var(--at-muted)]">{m('impact')}</div>
+                    <div className="text-sm font-mono text-[var(--at-success)]">{m('plusComponent')}</div>
                   </div>
                 </div>
               ))}
@@ -403,14 +445,14 @@ const Compare: React.FC = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="px-2 py-0.5 bg-[var(--at-danger)]/10 border border-[var(--at-danger)]/20 text-[var(--at-danger)] text-[11px] font-mono font-bold uppercase tracking-widest"
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}>Module Removed</span>
+              style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('moduleRemoved')}</span>
                     </div>
                     <div className="text-sm font-bold text-[var(--at-text)] mb-1">{node.name}</div>
-                    <p className="text-xs text-[var(--at-muted)]">Module was removed or refactored out of the architecture. Check if functionality was merged into other components.</p>
+                    <p className="text-xs text-[var(--at-muted)]">{m('moduleRemovedBody')}</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs text-[var(--at-muted)]">Impact</div>
-                    <div className="text-sm font-mono text-[var(--at-danger)]">-1 Component</div>
+                    <div className="text-xs text-[var(--at-muted)]">{m('impact')}</div>
+                    <div className="text-sm font-mono text-[var(--at-danger)]">{m('minusComponent')}</div>
                   </div>
                 </div>
               ))}
@@ -423,12 +465,12 @@ const Compare: React.FC = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="px-2 py-0.5 bg-[var(--at-accent)]/10 border border-[var(--at-accent)]/20 text-[var(--at-link)] text-[11px] font-mono font-bold uppercase tracking-widest"
-                style={{ fontFamily: '"JetBrains Mono", monospace' }}>Dependency Added</span>
+                style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('depAdded')}</span>
                         <span className="px-2 py-0.5 bg-[var(--at-panel-2)] border border-[var(--at-line)] text-[var(--at-muted)] text-[11px] font-mono"
                 style={{ fontFamily: '"JetBrains Mono", monospace' }}>{edge.type || 'imports'}</span>
                       </div>
                       <div className="text-sm font-bold text-[var(--at-text)] mb-1 flex items-center gap-2">{src} <ArrowRight size={14} className="text-[var(--at-link)]" /> {tgt}</div>
-                      <p className="text-xs text-[var(--at-muted)]">New dependency relationship established. This may indicate coupling or integration between components.</p>
+                      <p className="text-xs text-[var(--at-muted)]">{m('depAddedBody')}</p>
                     </div>
                   </div>
                 );
@@ -442,12 +484,12 @@ const Compare: React.FC = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="px-2 py-0.5 bg-[var(--at-danger)]/10 border border-[var(--at-danger)]/20 text-[var(--at-danger)] text-[11px] font-mono font-bold uppercase tracking-widest"
-                style={{ fontFamily: '"JetBrains Mono", monospace' }}>Dependency Removed</span>
+                style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('depRemoved')}</span>
                         <span className="px-2 py-0.5 bg-[var(--at-panel-2)] border border-[var(--at-line)] text-[var(--at-muted)] text-[11px] font-mono"
                 style={{ fontFamily: '"JetBrains Mono", monospace' }}>{edge.type || 'imports'}</span>
                       </div>
                       <div className="text-sm font-bold text-[var(--at-text)] mb-1 flex items-center gap-2 line-through opacity-70">{src} <ArrowRight size={14} className="text-[var(--at-danger)]" /> {tgt}</div>
-                      <p className="text-xs text-[var(--at-muted)]">Dependency was removed. This may indicate decoupling or refactoring of module relationships.</p>
+                      <p className="text-xs text-[var(--at-muted)]">{m('depRemovedBody')}</p>
                     </div>
                   </div>
                 );
@@ -461,7 +503,7 @@ const Compare: React.FC = () => {
         <div className="shrink-0 flex items-center justify-end gap-4 py-8">
            <Link to="/reports" className="h-10 px-5 bg-[var(--at-panel-2)] border border-[var(--at-line)] hover:border-[var(--at-accent)]/50 text-[var(--at-link)] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.05)]">
               <Download size={16} />
-              GENERATE REPORT
+              {m('report')}
            </Link>
         </div>
         </>}
