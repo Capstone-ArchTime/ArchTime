@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { apiRequest } from '../api/client.ts';
+import { translate, translateOr } from '../i18n/index.ts';
 
 // Work that runs on the server while the person does something else: reading the commit history, mining, the
 // architecture map, the conformance check. One shared copy for the whole app: the header shows what is running, and
@@ -28,7 +29,8 @@ export const KIND_LABEL: Record<string, string> = {
   abstract: 'Building the architecture map',
   conformance: 'Conformance check',
 };
-export const kindLabel = (kind: string) => KIND_LABEL[kind] ?? 'Background job';
+/** The kind of job in the page language (KIND_LABEL keeps the English names). */
+export const kindLabel = (kind: string) => translateOr(`job.kind.${kind}`, KIND_LABEL[kind] ?? translate('job.kind.other'));
 
 const text = (v: unknown) => (typeof v === 'string' ? v : '');
 const idOf = (v: unknown) => (v && typeof v === 'object' ? text((v as { _id?: unknown; id?: unknown })._id ?? (v as { id?: unknown }).id) : text(v));
@@ -72,9 +74,9 @@ export function jobLink(job: Pick<TrackedJob, 'kind' | 'projectId'>): string {
 /** The notice for a job that ended. */
 export function jobNotice(job: TrackedJob): { kind: 'success' | 'warning' | 'error'; title: string; description: string } {
   const what = `${kindLabel(job.kind)} · ${job.project}`;
-  if (job.status === 'completed') return { kind: 'success', title: `${what}: done`, description: job.stage || 'Finished.' };
-  if (job.status === 'cancelled') return { kind: 'warning', title: `${what}: stopped`, description: job.stage || 'Stopped. What was finished is kept.' };
-  return { kind: 'error', title: `${what}: failed`, description: job.stage.replace(/^Failed:\s*/, '') || 'The job failed.' };
+  if (job.status === 'completed') return { kind: 'success', title: translate('job.done', { what }), description: job.stage || translate('job.finished') };
+  if (job.status === 'cancelled') return { kind: 'warning', title: translate('job.stopped', { what }), description: job.stage || translate('job.stoppedKept') };
+  return { kind: 'error', title: translate('job.failed', { what }), description: job.stage.replace(/^Failed:\s*/, '') || translate('job.failedBody') };
 }
 
 // ── The shared store ─────────────────────────────────────────────────────────────────────────────────────────────────

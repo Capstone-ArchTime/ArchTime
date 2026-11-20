@@ -6,11 +6,14 @@ export class ApiError extends Error {
   code?: string;
   /** Problems with single fields of the request, when the server sent them (for example "steps[2].title"). */
   fields?: Record<string, string>;
-  constructor(message: string, status: number, code?: string, fields?: Record<string, string>) {
+  /** The server's own sentence before translation, for code that tells problems apart by their English wording. */
+  raw?: string;
+  constructor(message: string, status: number, code?: string, fields?: Record<string, string>, raw?: string) {
     super(message);
     this.status = status;
     this.code = code;
     this.fields = fields;
+    this.raw = raw ?? message;
   }
 }
 
@@ -101,7 +104,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, tim
             : translate('err.requestFailed', { status: response.status });
       const sent = typeof body?.error === 'object' && body?.error !== null ? body.error.fields : undefined;
       const fields = sent && typeof sent === 'object' ? Object.fromEntries(Object.entries(sent).filter(([, problem]) => typeof problem === 'string')) as Record<string, string> : undefined;
-      throw new ApiError(detail, response.status, code, fields);
+      throw new ApiError(detail, response.status, code, fields, typeof serverMsg === 'string' ? serverMsg : undefined);
     }
     if (body === null) throw new Error(translate('err.invalidResponse'));
     return body as T;

@@ -1,4 +1,5 @@
 import { apiRequest } from '../api/client.ts';
+import { translate, translateOr, type MessageKey } from '../i18n/index.ts';
 
 // The signed-in person's organizations, workspaces and learning progress, in one place.
 // Server: GET /organizations, GET /projects, GET /onboarding/me. Each call returns only what this account may see.
@@ -68,7 +69,11 @@ export const STATUS_VIEW: Record<WorkspaceStatus, { label: string; color: string
   COMPLETED: { label: 'Mined', color: 'green' },
   FAILED: { label: 'Failed', color: 'red' },
 };
-export const statusView = (status: string) => STATUS_VIEW[status as WorkspaceStatus] ?? { label: status || 'Unknown', color: 'default' };
+/** The tag of a status, labelled in the page language. */
+export const statusView = (status: string) => {
+  const view = STATUS_VIEW[status as WorkspaceStatus];
+  return view ? { ...view, label: translateOr(`tag.${status}`, view.label) } : { label: status || translate('common.unknown'), color: 'default' };
+};
 
 export interface WorkspaceGroup {
   key: string;
@@ -92,7 +97,7 @@ export function groupWorkspaces(workspaces: MyWorkspace[], organizations: MyOrga
     // Organizations whose names are not known share one group: several groups with the same title would read as duplicates.
     const key = !w.organizationId ? 'personal' : org ? org.id : 'other';
     if (!groups.has(key)) {
-      groups.set(key, { key, organization: org, title: key === 'personal' ? 'Personal space' : org?.name ?? 'Other organizations', workspaces: [] });
+      groups.set(key, { key, organization: org, title: key === 'personal' ? translate('mywork.personalSpace') : org?.name ?? translate('mywork.otherOrgs'), workspaces: [] });
     }
     groups.get(key)!.workspaces.push(w);
   }
@@ -110,14 +115,14 @@ export function workspacesPerOrganization(workspaces: MyWorkspace[]): Map<string
   return out;
 }
 
-const BREAKDOWN: [WorkspaceRole, string][] = [
-  ['owner', 'owned'], ['project-maintainer', 'maintained'], ['developer-analyst', 'as member'], ['viewer', 'view only'], ['system-administrator', 'as administrator'],
+const BREAKDOWN: [WorkspaceRole, MessageKey][] = [
+  ['owner', 'mywork.owned'], ['project-maintainer', 'mywork.maintained'], ['developer-analyst', 'mywork.asMember'], ['viewer', 'mywork.viewOnly'], ['system-administrator', 'mywork.asAdmin'],
 ];
 
 /** "2 owned · 1 maintained · 1 view only": every role the account has in some workspace, so the parts add up to the total. */
 export function workspaceRoleBreakdown(workspaces: MyWorkspace[]): string {
   return BREAKDOWN.map(([role, label]) => [workspaces.filter(w => w.userRole === role).length, label] as const)
-    .filter(([n]) => n > 0).map(([n, label]) => `${n} ${label}`).join(' · ') || 'none yet';
+    .filter(([n]) => n > 0).map(([n, label]) => translate(label, { n })).join(' · ') || translate('mywork.noneYet');
 }
 
 export interface LearningSummary { assigned: number; finished: number; inProgress: number; notStarted: number; percent: number }

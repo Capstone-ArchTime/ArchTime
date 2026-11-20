@@ -8,12 +8,15 @@ export class AuthRequestError extends Error {
   code?: string;
   /** Only on a rate limit: when the same request may be tried again. */
   retryAfterSeconds?: number;
-  constructor(message: string, status: number, code?: string, retryAfterSeconds?: number) {
+  /** The server's own sentence before translation, for code that tells problems apart by their English wording. */
+  raw: string;
+  constructor(message: string, status: number, code?: string, retryAfterSeconds?: number, raw?: string) {
     super(message);
     this.name = 'AuthRequestError';
     this.status = status;
     this.code = code;
     this.retryAfterSeconds = retryAfterSeconds;
+    this.raw = raw ?? message;
   }
 }
 

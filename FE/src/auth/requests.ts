@@ -27,7 +27,7 @@ export async function authRequest(endpoint: 'login' | 'register' | 'verify-email
       }
       // BE errors look like { success: false, error: { code, message } }
       const detail = result?.message ?? (typeof result?.error === 'string' ? result.error : result?.error?.message);
-      throw new AuthRequestError(typeof detail === 'string' ? localizeServerMessage(detail, code) : translate('err.requestFailedTry', { status: response.status }), response.status, code);
+      throw new AuthRequestError(typeof detail === 'string' ? localizeServerMessage(detail, code) : translate('err.requestFailedTry', { status: response.status }), response.status, code, undefined, typeof detail === 'string' ? detail : undefined);
     }
     if (!result || typeof result !== 'object' || Array.isArray(result)) throw new Error(translate('err.invalidResponseTry'));
     // BE wraps response in { success, data, message } - unwrap if needed
