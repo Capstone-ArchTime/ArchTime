@@ -6,7 +6,8 @@ import { CompareSnapshotsUseCase } from "../src/application/use-cases/projects/C
 import { RegisterProjectUseCase } from "../src/application/use-cases/projects/RegisterProjectUseCase.ts";
 import { MiningJobModel } from "../src/infrastructure/database/models/MiningJobModel.ts";
 import { SnapshotModel } from "../src/infrastructure/database/models/SnapshotModel.ts";
-import { validateRepoUrl, RepoUrlError } from "../src/domain/mining/repoUrl.ts";
+import { validateRepoUrl, assertPublicRepoAddress, RepoUrlError } from "../src/domain/mining/repoUrl.ts";
+import { sealProjectToken, unsealProjectToken } from "../src/infrastructure/services/projectToken.ts";
 import { UserRole } from "../src/domain/entities/User.ts";
 import { MemberStatus, ProjectMemberRole } from "../src/domain/entities/ProjectMember.ts";
 import { AppError } from "../src/shared/errors/AppError.ts";
@@ -149,6 +150,31 @@ test("Repo URL: ARCHTIME_ALLOW_LOCAL_REPOS relaxes the rule for tests and local 
   assert.equal(validateRepoUrl("file:///tmp/repo", true), "file:///tmp/repo");
   assert.equal(validateRepoUrl("http://localhost:3000/a.git", true), "http://localhost:3000/a.git");
   assert.throws(() => validateRepoUrl("ext::sh -c id", true), RepoUrlError, "ext:: is never allowed");
+});
+
+test("Repo URL: a public-looking name that resolves to a private address is refused before cloning", async () => {
+  const resolvesTo = (...addresses) => async () => addresses.map(address => ({ address }));
+  await assertPublicRepoAddress("https://github.com/a/b.git", resolvesTo("140.82.112.3"), false);
+  await assertPublicRepoAddress("https://github.com/a/b.git", resolvesTo("2606:50c0:8000::153"), false);
+  for (const addresses of [["127.0.0.1"], ["169.254.169.254"], ["10.1.2.3"], ["140.82.112.3", "192.168.0.9"], ["::1"], ["::ffff:127.0.0.1"], ["fd00::1"], []]) {
+    await assert.rejects(assertPublicRepoAddress("https://evil.example.com/a.git", resolvesTo(...addresses), false), RepoUrlError, addresses.join(","));
+  }
+  await assert.rejects(assertPublicRepoAddress("https://nx.example.com/a.git", async () => { throw new Error("ENOTFOUND"); }, false), RepoUrlError);
+  // Local development keeps working without DNS.
+  await assertPublicRepoAddress("http://localhost:3000/a.git", async () => { throw new Error("must not resolve"); }, true);
+});
+
+test("Project token: stored encrypted, read back, and older plaintext tokens still work", () => {
+  const sealed = sealProjectToken("ghp_secretvalue1234");
+  assert.ok(sealed.startsWith("enc:v1:"));
+  assert.ok(!sealed.includes("ghp_secretvalue1234"));
+  assert.notEqual(sealProjectToken("ghp_secretvalue1234"), sealed, "a fresh IV each time");
+  assert.equal(unsealProjectToken(sealed), "ghp_secretvalue1234");
+  assert.equal(unsealProjectToken("ghp_legacyplaintext"), "ghp_legacyplaintext");
+  assert.equal(sealProjectToken(undefined), undefined);
+  assert.equal(unsealProjectToken(undefined), undefined);
+  const [iv, tag, data] = sealed.slice("enc:v1:".length).split(":");
+  assert.throws(() => unsealProjectToken(`enc:v1:${iv}:${tag}:${data.slice(0, -4)}AAAA`), /could not be decrypted/);
 });
 
 test("Register: a file:// repository is refused with 400", async () => {

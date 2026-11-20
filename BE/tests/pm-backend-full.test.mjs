@@ -505,7 +505,14 @@ test("ProjectInvitations: generates token, prevents duplicate member, accepts in
     });
     assert.ok(inv.token);
 
-    // 3. Accepting invitation adds member
+    // 3. The link alone is not enough: signed out is 401, another account (even an existing one) is 403
+    await assert.rejects(() => acceptUC.execute("secret-token-123", undefined),
+      (err) => err instanceof AppError && err.statusCode === 401);
+    await assert.rejects(() => acceptUC.execute("secret-token-123", "u-existing"),
+      (err) => err instanceof AppError && err.statusCode === 403);
+    assert.equal(await memberRepo.findByProjectAndUserId("p1", "u-new"), null);
+
+    // 4. Accepting invitation as the invited account adds member
     const acceptRes = await acceptUC.execute("secret-token-123", "u-new");
     assert.equal(acceptRes.success, true);
     assert.equal(acceptRes.projectId, "p1");

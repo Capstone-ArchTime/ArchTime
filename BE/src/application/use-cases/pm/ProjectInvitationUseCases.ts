@@ -12,7 +12,9 @@ import type { IEmailService } from "../../../domain/interfaces/IEmailService.js"
 import {
   BadRequestError,
   ConflictError,
+  ForbiddenError,
   NotFoundError,
+  UnauthorizedError,
 } from "../../../shared/errors/AppError.js";
 import { requireOrganizationMember, type OrganizationMembershipLookup } from "../../services/organizationGate.js";
 
@@ -117,6 +119,10 @@ export class AcceptProjectInvitationUseCase {
   ) {}
 
   async execute(token: string, userId?: string): Promise<{ success: boolean; projectId: string; role: string }> {
+    // Only the signed-in owner of the invited address may accept: the emailed link alone must not add an account to a
+    // workspace (links get forwarded, logged and opened by mail scanners).
+    if (!userId) throw new UnauthorizedError("Sign in with the invited email address to accept this invitation.");
+
     const invitation = await ProjectInvitationModel.findOne({
       token,
       status: InvitationStatus.PENDING,
@@ -132,15 +138,13 @@ export class AcceptProjectInvitationUseCase {
       throw new BadRequestError("Invitation has expired.");
     }
 
-    // Determine target user
-    let user = userId ? await this.userRepository.findById(userId) : null;
+    const user = await this.userRepository.findById(userId);
     if (!user) {
-      user = await this.userRepository.findByEmail(invitation.email);
+      throw new UnauthorizedError("Sign in with the invited email address to accept this invitation.");
     }
-
-    if (!user) {
-      throw new BadRequestError(
-        "Please register or log in with the invited email address to accept this invitation.",
+    if (user.email.trim().toLowerCase() !== invitation.email.trim().toLowerCase()) {
+      throw new ForbiddenError(
+        "This invitation was sent to a different email address. Sign in with that address to accept it.",
       );
     }
 

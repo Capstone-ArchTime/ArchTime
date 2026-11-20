@@ -60,9 +60,9 @@ export default function ResetPassword() {
         {sent && <>
           <p className="text-sm text-slate-400">Paste the reset code from your email. It expires after 10 minutes.</p>
           <label className="block">Reset code<input className={inputClass} autoComplete="one-time-code" value={token} disabled={busy} onChange={e => setToken(e.target.value)} /></label>
-          <div><label className="block">New password<input className={inputClass} type="password" autoComplete="off" aria-describedby="reset-password-rules" value={password} disabled={busy} onChange={e => setPassword(e.target.value)} /></label>
+          <div><label className="block">New password<input className={inputClass} type="password" autoComplete="new-password" aria-describedby="reset-password-rules" value={password} disabled={busy} onChange={e => setPassword(e.target.value)} /></label>
           <PasswordRequirements id="reset-password-rules" password={password} /></div>
-          <label className="block">Confirm new password<input className={inputClass} type="password" autoComplete="off" value={confirmPassword} disabled={busy} onChange={e => setConfirmPassword(e.target.value)} /></label>
+          <label className="block">Confirm new password<input className={inputClass} type="password" autoComplete="new-password" value={confirmPassword} disabled={busy} onChange={e => setConfirmPassword(e.target.value)} /></label>
         </>}
         <button disabled={busy} className="w-full rounded bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] p-3 font-bold text-[var(--at-on-fill)] disabled:opacity-50">{busy ? 'Please wait...' : sent ? 'Update password' : 'Send reset code'}</button>
         {sent && <button type="button" disabled={busy} className="text-sm text-[var(--at-link)]" onClick={() => { setSent(false); setToken(''); setError(''); setNotice(''); }}>Use another email or request a new code</button>}

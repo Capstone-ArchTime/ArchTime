@@ -345,9 +345,9 @@ export default function Profile() {
               Set one to also sign in with your email and a password. You stay signed in.
             </p>
             {firstPasswordProblems.general && <Alert type="error" showIcon title={firstPasswordProblems.general} />}
-            <PasswordField id="setpw-newPassword" text="New password" autoComplete="off" value={firstPassword.newPassword} error={firstPasswordProblems.newPassword} rules
+            <PasswordField id="setpw-newPassword" text="New password" autoComplete="new-password" value={firstPassword.newPassword} error={firstPasswordProblems.newPassword} rules
               onChange={value => setFirstPassword(p => ({ ...p, newPassword: value }))} />
-            <PasswordField id="setpw-confirmNewPassword" text="Repeat the new password" autoComplete="off" value={firstPassword.confirmNewPassword} error={firstPasswordProblems.confirmNewPassword}
+            <PasswordField id="setpw-confirmNewPassword" text="Repeat the new password" autoComplete="new-password" value={firstPassword.confirmNewPassword} error={firstPasswordProblems.confirmNewPassword}
               onChange={value => setFirstPassword(p => ({ ...p, confirmNewPassword: value }))} />
             <Button type="primary" htmlType="submit" loading={settingPassword}>Set password</Button>
             <p className="text-xs text-[var(--at-muted)]">
@@ -364,7 +364,7 @@ export default function Profile() {
             </p>
             {passwordProblems.general && <Alert type="error" showIcon title={passwordProblems.general} />}
             {(['oldPassword', 'newPassword', 'confirmNewPassword'] as const).map(field => {
-              const copy = { oldPassword: ['Current password', 'current-password'], newPassword: ['New password', 'off'], confirmNewPassword: ['Repeat the new password', 'off'] }[field];
+              const copy = { oldPassword: ['Current password', 'current-password'], newPassword: ['New password', 'new-password'], confirmNewPassword: ['Repeat the new password', 'new-password'] }[field];
               return <PasswordField key={field} id={`pw-${field}`} text={copy[0]} autoComplete={copy[1]} value={passwords[field]} error={passwordProblems[field]} rules={field === 'newPassword'}
                 onChange={value => setPasswords(p => ({ ...p, [field]: value }))} />;
             })}

@@ -12,6 +12,7 @@ import { ArchitectureReferenceModel } from "../database/models/ArchitectureRefer
 import { ApprovalRequestModel } from "../database/models/ApprovalRequestModel.js";
 import { ProjectReportModel } from "../database/models/ProjectReportModel.js";
 import { ProjectInvitationModel } from "../database/models/ProjectInvitationModel.js";
+import { sealProjectToken } from "../services/projectToken.js";
 
 export class MongoProjectRepository implements IProjectRepository {
   private toEntity(doc: Record<string, unknown>): IProject {
@@ -56,7 +57,7 @@ export class MongoProjectRepository implements IProjectRepository {
   }
 
   async create(data: Omit<IProject, "id" | "createdAt" | "updatedAt">): Promise<IProject> {
-    const doc = await ProjectModel.create(data);
+    const doc = await ProjectModel.create({ ...data, token: sealProjectToken(data.token) });
     return this.toEntity(doc.toObject() as unknown as Record<string, unknown>);
   }
 

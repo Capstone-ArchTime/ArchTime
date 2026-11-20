@@ -259,7 +259,7 @@ const AuthPage: React.FC = () => {
                       <input
                         id="auth-password"
                           name="password"
-                          autoComplete={isRegister ? 'off' : 'current-password'}
+                          autoComplete={isRegister ? 'new-password' : 'current-password'}
                         type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -297,7 +297,7 @@ const AuthPage: React.FC = () => {
                         <input
                           id="auth-confirm-password"
                           name="confirmPassword"
-                          autoComplete="off"
+                          autoComplete="new-password"
                           type={showPassword ? "text" : "password"}
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}

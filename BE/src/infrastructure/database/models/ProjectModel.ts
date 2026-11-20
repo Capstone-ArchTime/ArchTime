@@ -13,7 +13,7 @@ const ProjectSchema = new Schema<IProjectDocument>(
       enum: Object.values(RepoVisibility),
       required: true,
     },
-    token: { type: String }, // In MVP, stored directly. In prod, this should be encrypted.
+    token: { type: String }, // Encrypted ("enc:v1:..."), see services/projectToken.ts; older projects may hold the bare token.
     status: {
       type: String,
       enum: Object.values(ProjectStatus),

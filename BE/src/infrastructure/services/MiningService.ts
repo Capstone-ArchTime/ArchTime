@@ -27,7 +27,9 @@ import {
 import { runArchitectureJob } from './ArchitectureJob.js';
 import { firstParentBase, type ParentIndex } from '../../domain/mining/baseline.js';
 import { MongoOrganizationCredentialRepository } from '../repositories/MongoOrganizationCredentialRepository.js';
-import { allowLocalRepos, validateRepoUrl } from '../../domain/mining/repoUrl.js';
+import { allowLocalRepos, assertPublicRepoAddress, validateRepoUrl } from '../../domain/mining/repoUrl.js';
+import { lookup as dnsLookup } from 'node:dns/promises';
+import { unsealProjectToken } from './projectToken.js';
 import { ConflictError, NotFoundError } from '../../shared/errors/AppError.js';
 import { edgeKey, extractDependencies, type Graph, type GraphEdge, type GraphNode } from './DependencyExtractor.js';
 
@@ -390,7 +392,7 @@ export class MiningService {
       if (!token) throw new Error('The organization credential for this workspace was deleted. Ask an organization owner to attach another one.');
       return token;
     }
-    return project.visibility === 'private' && project.token ? project.token : undefined;
+    return project.visibility === 'private' && project.token ? unsealProjectToken(project.token) : undefined;
   }
 
   private static async ensureRepo(project: any, token: string | undefined, report: (stage: string, progress: number) => Promise<void>): Promise<SimpleGit> {
@@ -403,6 +405,10 @@ export class MiningService {
     // Projects registered before URLs were checked are checked here too, and git itself is limited to the allowed
     // transports, so no URL (or redirect, or submodule) can make the server read local paths or run ext:: commands.
     const remoteUrl = validateRepoUrl(project.repoUrl);
+    // The host's resolved addresses must be public as well, and git must not follow a redirect to another host,
+    // which would skip both checks (and carry the token header there).
+    await assertPublicRepoAddress(remoteUrl, host => dnsLookup(host, { all: true, verbatim: true }));
+    if (!allowLocalRepos()) config.push('http.followRedirects=false');
     const remote = (baseDir: string) => simpleGit({ baseDir, config, allowEnvironment: GIT_ENV_ALLOWED })
       .env({ ...gitSafeEnv(), GIT_ALLOW_PROTOCOL: allowLocalRepos() ? 'https:http:file' : 'https', GIT_TERMINAL_PROMPT: '0' });
 

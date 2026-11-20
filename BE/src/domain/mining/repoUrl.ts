@@ -27,6 +27,28 @@ function isPrivateHost(hostname: string): boolean {
   return !host.includes(".");
 }
 
+/** Resolves a host name to its addresses (node:dns/promises lookup with { all: true }, or a stub in tests). */
+export type HostLookup = (hostname: string) => Promise<Array<{ address: string }>>;
+
+/**
+ * The name check above only sees the URL's text: a public-looking name can still resolve to 127.0.0.1, 10.x or the cloud
+ * metadata address. Right before git connects, every address the host resolves to must be public too.
+ */
+export async function assertPublicRepoAddress(repoUrl: string, lookup: HostLookup, allowLocal = allowLocalRepos()): Promise<void> {
+  if (allowLocal) return;
+  const { protocol, hostname } = new URL(repoUrl);
+  if (protocol === "file:") return;
+  let addresses: Array<{ address: string }>;
+  try {
+    addresses = await lookup(hostname.replace(/^\[|\]$/g, ""));
+  } catch {
+    throw new RepoUrlError(`The repository host ${hostname} could not be found.`);
+  }
+  if (addresses.length === 0 || addresses.some(({ address }) => isPrivateHost(address))) {
+    throw new RepoUrlError("The repository host must be a public address.");
+  }
+}
+
 /** Returns the URL to store, or throws RepoUrlError with a message meant for the user. */
 export function validateRepoUrl(value: unknown, allowLocal = allowLocalRepos()): string {
   if (typeof value !== "string" || !value.trim()) throw new RepoUrlError("repoUrl is required.");
