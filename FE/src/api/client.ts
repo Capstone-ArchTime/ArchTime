@@ -1,4 +1,5 @@
 import { API_BASE_URL, InvalidSessionError, readTokens, tokenStorage, verifySession } from '../auth/session.ts';
+import { localizeServerMessage, translate } from '../i18n/index.ts';
 
 export class ApiError extends Error {
   status: number;
@@ -28,7 +29,7 @@ async function renewToken() {
   if (!renewal) {
     const tokens = readTokens();
     renewal = verifySession(tokens, new AbortController().signal).then(result => {
-      if (readTokens().refreshToken !== tokens.refreshToken) throw new Error('Your account changed. Reload this page.');
+      if (readTokens().refreshToken !== tokens.refreshToken) throw new Error(translate('err.accountChanged'));
       tokenStorage().setItem('accessToken', result.accessToken);
       return result.accessToken;
     }).catch(error => {
@@ -64,7 +65,8 @@ export async function apiDownload(path: string, options: RequestInit = {}, timeo
     const response = await sendAuthorized(path, options, signal);
     if (!response.ok) {
       const body = await response.json().catch(() => null);
-      const message = typeof body?.error?.message === 'string' ? body.error.message : response.status === 403 ? 'You do not have permission to download this file.' : `Download failed (${response.status}). Please retry.`;
+      const code = typeof body?.error?.code === 'string' ? body.error.code : undefined;
+      const message = typeof body?.error?.message === 'string' ? localizeServerMessage(body.error.message, code) : response.status === 403 ? translate('err.noPermissionDownload') : translate('err.downloadFailed', { status: response.status });
       throw new ApiError(message, response.status, typeof body?.error?.code === 'string' ? body.error.code : undefined);
     }
     const disposition = response.headers.get('Content-Disposition') ?? '';
@@ -72,8 +74,8 @@ export async function apiDownload(path: string, options: RequestInit = {}, timeo
     return { blob: await response.blob(), filename };
   } catch (error) {
     if (options.signal?.aborted) throw error;
-    if (timeout.aborted) throw new Error('The download timed out. Please retry.');
-    if (error instanceof TypeError) throw new Error('Cannot reach the server. Check your connection and retry.');
+    if (timeout.aborted) throw new Error(translate('err.downloadTimeout'));
+    if (error instanceof TypeError) throw new Error(translate('err.unreachable'));
     throw error;
   }
 }
@@ -89,23 +91,24 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, tim
       const serverMsg = typeof body?.error === 'object' && body?.error !== null
         ? body.error.message
         : (typeof body?.error === 'string' ? body.error : body?.message);
+      // The server's sentence in the page language when there is a translation (see localizeServerMessage).
       const detail = typeof serverMsg === 'string' && serverMsg.trim()
-        ? serverMsg
+        ? localizeServerMessage(serverMsg, code)
         : response.status === 403
-          ? 'You do not have permission to view this data.'
+          ? translate('err.noPermissionView')
           : response.status === 409
-            ? 'Revision conflict: This workspace has been modified by someone else. Please reload before saving.'
-            : `Request failed (${response.status}). Please retry.`;
+            ? translate('err.revisionConflict')
+            : translate('err.requestFailed', { status: response.status });
       const sent = typeof body?.error === 'object' && body?.error !== null ? body.error.fields : undefined;
       const fields = sent && typeof sent === 'object' ? Object.fromEntries(Object.entries(sent).filter(([, problem]) => typeof problem === 'string')) as Record<string, string> : undefined;
       throw new ApiError(detail, response.status, code, fields);
     }
-    if (body === null) throw new Error('The server returned an invalid response.');
+    if (body === null) throw new Error(translate('err.invalidResponse'));
     return body as T;
   } catch (error) {
     if (options.signal?.aborted) throw error;
-    if (timeout.aborted) throw new Error('The request timed out. Please retry.');
-    if (error instanceof TypeError) throw new Error('Cannot reach the server. Check your connection and retry.');
+    if (timeout.aborted) throw new Error(translate('err.timeout'));
+    if (error instanceof TypeError) throw new Error(translate('err.unreachable'));
     throw error;
   }
 }

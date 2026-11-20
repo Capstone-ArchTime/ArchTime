@@ -1,6 +1,7 @@
 import { API_BASE_URL } from './session.ts';
 import type { Tokens } from './session.ts';
 import { AuthRequestError, readRetryAfter, tooManyAttemptsMessage } from './rate-limit.ts';
+import { localizeServerMessage, translate } from '../i18n/index.ts';
 
 export { AuthRequestError } from './rate-limit.ts';
 
@@ -17,7 +18,7 @@ export async function authRequest(endpoint: 'login' | 'register' | 'verify-email
     if (!response.ok) {
       const code = typeof result?.error?.code === 'string' ? result.error.code : undefined;
       if (endpoint === 'login' && (response.status === 401 || code === 'INVALID_CREDENTIALS')) {
-        throw new AuthRequestError('Incorrect username/email or password.', response.status, code);
+        throw new AuthRequestError(translate('err.invalidCredentials'), response.status, code);
       }
       // Too many requests: the answer says when to try again. (A locked verification code is a 429 too, but there is nothing to wait for: its own message says to ask for a new one.)
       if (response.status === 429 && code !== 'OTP_LOCKED') {
@@ -26,9 +27,9 @@ export async function authRequest(endpoint: 'login' | 'register' | 'verify-email
       }
       // BE errors look like { success: false, error: { code, message } }
       const detail = result?.message ?? (typeof result?.error === 'string' ? result.error : result?.error?.message);
-      throw new AuthRequestError(typeof detail === 'string' ? detail : `Request failed (${response.status}). Please try again.`, response.status, code);
+      throw new AuthRequestError(typeof detail === 'string' ? localizeServerMessage(detail, code) : translate('err.requestFailedTry', { status: response.status }), response.status, code);
     }
-    if (!result || typeof result !== 'object' || Array.isArray(result)) throw new Error('The server returned an invalid response. Please try again.');
+    if (!result || typeof result !== 'object' || Array.isArray(result)) throw new Error(translate('err.invalidResponseTry'));
     // BE wraps response in { success, data, message } - unwrap if needed
     if (result.success && result.data) {
       return { ...result.data, message: result.message };
@@ -36,8 +37,8 @@ export async function authRequest(endpoint: 'login' | 'register' | 'verify-email
     return result;
   } catch (error) {
     if (signal?.aborted) throw error;
-    if (timeout.aborted) throw new Error('The request timed out. Check your connection and try again.');
-    if (error instanceof TypeError) throw new Error('Cannot reach the server. Check your connection and try again.');
+    if (timeout.aborted) throw new Error(translate('err.timeoutCheck'));
+    if (error instanceof TypeError) throw new Error(translate('err.unreachableTry'));
     throw error;
   }
 }
@@ -56,7 +57,7 @@ export async function exchangeGitHubTicket(code: string): Promise<Tokens> {
   const tokens = result?.data ?? result;
   if (!response.ok || typeof tokens?.accessToken !== 'string' || typeof tokens?.refreshToken !== 'string') {
     const detail = result?.error?.message ?? result?.message;
-    throw new AuthRequestError(typeof detail === 'string' ? detail : 'Sign-in expired. Please try again.', response.status, result?.error?.code);
+    throw new AuthRequestError(typeof detail === 'string' ? localizeServerMessage(detail, result?.error?.code) : translate('err.signInExpired'), response.status, result?.error?.code);
   }
   return { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken };
 }
