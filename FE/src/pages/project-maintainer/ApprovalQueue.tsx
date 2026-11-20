@@ -17,21 +17,45 @@ const fontFamily = { mono: '"JetBrains Mono", monospace' };
 
 type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 
-const statusMeta: Record<ApprovalStatus, { label: string; color: string; icon: typeof Clock }> = {
+import { formatDate, formatDateTime } from '@/i18n/format';
+import { defineMessages, message as translate, useMessages } from '@/i18n/define';
+
+const MSG = defineMessages({
+  PENDING: 'PENDING', APPROVED: 'APPROVED', REJECTED: 'REJECTED', all: 'All', pendingF: 'Pending', approvedF: 'Approved', rejectedF: 'Rejected', pending: 'pending', approved: 'approved', rejected: 'rejected',
+  title: 'Approval Queue', loadFailed: 'This workspace could not be loaded.', created: 'Proposal created.', createFailed: 'Failed to create proposal.', approvedMsg: 'Proposal approved.', rejectedMsg: 'Proposal rejected.',
+  reviewFailed: 'Failed to process review.', intro: 'Review architectural changes proposed across the workspaces you maintain', awaiting: '{n} awaiting your review',
+  selectWorkspace: 'Select workspace', selectPlaceholder: 'Select a workspace', newProposal: 'New proposal', refresh: 'Refresh', loading: 'Loading approvals...', noMatch: 'No proposals match this filter',
+  requestedBy: 'requested by {name}', details: 'Details', reject: 'REJECT', approve: 'APPROVE', proposal: 'Proposal', close: 'Close', commit: '{project} · Commit {commit}',
+  requestedOn: 'Requested by {name} on {date}', reviewedOn: 'Reviewed by {name} on {date}', reason: 'Reason: {reason}', approveTitle: 'Approve this proposal?', rejectTitle: 'Reject this proposal?',
+  submit: 'Submit', rejectReason: 'Reason for rejection', comment: 'Comment (optional)', createTitle: 'Create proposal', create: 'Create', titleLabel: 'Title', sha: 'Commit SHA',
+  shaInvalid: 'Enter a 7–40 character hexadecimal commit SHA.', description: 'Description',
+}, {
+  PENDING: 'ĐANG CHỜ', APPROVED: 'ĐÃ DUYỆT', REJECTED: 'BỊ TỪ CHỐI', all: 'Tất cả', pendingF: 'Đang chờ', approvedF: 'Đã duyệt', rejectedF: 'Bị từ chối', pending: 'đang chờ', approved: 'đã duyệt', rejected: 'bị từ chối',
+  title: 'Hàng đợi phê duyệt', loadFailed: 'Không tải được không gian làm việc này.', created: 'Đã tạo đề xuất.', createFailed: 'Không tạo được đề xuất.', approvedMsg: 'Đã duyệt đề xuất.', rejectedMsg: 'Đã từ chối đề xuất.',
+  reviewFailed: 'Không xử lý được việc duyệt.', intro: 'Duyệt các thay đổi kiến trúc được đề xuất trong các không gian làm việc bạn bảo trì', awaiting: '{n} đang chờ bạn duyệt',
+  selectWorkspace: 'Chọn không gian làm việc', selectPlaceholder: 'Chọn không gian làm việc', newProposal: 'Đề xuất mới', refresh: 'Làm mới', loading: 'Đang tải phê duyệt...', noMatch: 'Không có đề xuất nào khớp bộ lọc',
+  requestedBy: 'do {name} yêu cầu', details: 'Chi tiết', reject: 'TỪ CHỐI', approve: 'DUYỆT', proposal: 'Đề xuất', close: 'Đóng', commit: '{project} · Commit {commit}',
+  requestedOn: '{name} yêu cầu lúc {date}', reviewedOn: '{name} duyệt lúc {date}', reason: 'Lý do: {reason}', approveTitle: 'Duyệt đề xuất này?', rejectTitle: 'Từ chối đề xuất này?',
+  submit: 'Gửi', rejectReason: 'Lý do từ chối', comment: 'Nhận xét (không bắt buộc)', createTitle: 'Tạo đề xuất', create: 'Tạo', titleLabel: 'Tiêu đề', sha: 'SHA của commit',
+  shaInvalid: 'Hãy nhập SHA commit dạng thập lục phân dài 7–40 ký tự.', description: 'Mô tả',
+});
+
+const statusMeta: Record<ApprovalStatus, { label: 'PENDING' | 'APPROVED' | 'REJECTED'; color: string; icon: typeof Clock }> = {
   pending: { label: 'PENDING', color: 'var(--at-warn)', icon: Clock },
   approved: { label: 'APPROVED', color: 'var(--at-success)', icon: CheckCircle2 },
   rejected: { label: 'REJECTED', color: 'var(--at-danger)', icon: XCircle },
 };
 
-const filterOptions: { key: 'all' | ApprovalStatus; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'pending', label: 'Pending' },
-  { key: 'approved', label: 'Approved' },
-  { key: 'rejected', label: 'Rejected' },
+const filterOptions: { key: 'all' | ApprovalStatus; label: 'all' | 'pendingF' | 'approvedF' | 'rejectedF' }[] = [
+  { key: 'all', label: 'all' },
+  { key: 'pending', label: 'pendingF' },
+  { key: 'approved', label: 'approvedF' },
+  { key: 'rejected', label: 'rejectedF' },
 ];
 
 export default function ApprovalQueue() {
-  return <ManagedWorkspaces title="Approval Queue">{projects => <ApprovalQueueView projects={projects} />}</ManagedWorkspaces>;
+  const m = useMessages(MSG);
+  return <ManagedWorkspaces title={m('title')}>{projects => <ApprovalQueueView projects={projects} />}</ManagedWorkspaces>;
 }
 
 function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
@@ -48,6 +72,7 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
   const [form] = Form.useForm();
   const [reviewForm] = Form.useForm<{ reason: string }>();
   const [revision, setRevision] = useState(0);
+  const m = useMessages(MSG);
 
   useEffect(() => {
     if (!selectedProject) return;
@@ -59,7 +84,7 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
         setError(null);
       })
       .catch(e => {
-        if (!controller.signal.aborted) setError(describeAccessError(e, 'This workspace could not be loaded.'));
+        if (!controller.signal.aborted) setError(describeAccessError(e, translate(MSG, 'loadFailed')));
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -83,12 +108,12 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
         description: values.description.trim(),
         commit: values.commit.trim(),
       });
-      message.success('Proposal created.');
+      message.success(m('created'));
       setCreating(false);
       form.resetFields();
       refresh();
     } catch (e) {
-      message.error(describeAccessError(e, 'Failed to create proposal.'));
+      message.error(describeAccessError(e, m('createFailed')));
     } finally {
       setSubmitting(false);
     }
@@ -100,16 +125,16 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
     try {
       if (review.action === 'approve') {
         await approveRequest(selectedProject, review.approval.id, values.reason?.trim());
-        message.success('Proposal approved.');
+        message.success(m('approvedMsg'));
       } else {
         await rejectRequest(selectedProject, review.approval.id, values.reason.trim());
-        message.success('Proposal rejected.');
+        message.success(m('rejectedMsg'));
       }
       setReview(null);
       reviewForm.resetFields();
       refresh();
     } catch (e) {
-      message.error(describeAccessError(e, 'Failed to process review.'));
+      message.error(describeAccessError(e, m('reviewFailed')));
     } finally {
       setSubmitting(false);
     }
@@ -124,11 +149,11 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
     <DashboardLayout>
       <div className="max-w-[1100px] mx-auto space-y-8">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)] mb-2">Approval Queue</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)] mb-2">{m('title')}</h2>
           <p className="text-[var(--at-muted)] text-sm max-w-xl leading-relaxed">
-            Review architectural changes proposed across the workspaces you maintain
+            {m('intro')}
             {pendingCount > 0 && (
-              <> &mdash; <span className="text-[var(--at-warn)] font-semibold">{pendingCount} awaiting your review</span></>
+              <> &mdash; <span className="text-[var(--at-warn)] font-semibold">{m('awaiting', { n: pendingCount })}</span></>
             )}.
           </p>
           <div className="h-[1px] w-full bg-gradient-to-r from-[var(--at-line)] to-transparent mt-8"></div>
@@ -136,17 +161,17 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
 
         <div className="flex flex-wrap items-center gap-4">
           <Select
-            aria-label="Select workspace"
+            aria-label={m('selectWorkspace')}
             value={selectedProject}
             onChange={setSelectedProject}
             className="min-w-60"
             options={projects.map(p => ({ value: p.id, label: p.name }))}
-            placeholder="Select a workspace"
+            placeholder={m('selectPlaceholder')}
           />
           <Button type="primary" onClick={() => { form.resetFields(); setCreating(true); }} disabled={!selectedProject}>
-            New proposal
+            {m('newProposal')}
           </Button>
-          <Button loading={loading} onClick={refresh}>Refresh</Button>
+          <Button loading={loading} onClick={refresh}>{m('refresh')}</Button>
         </div>
 
         {error && <p className="text-red-400">{error}</p>}
@@ -164,15 +189,15 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
               }`}
               style={{ fontFamily: fontFamily.mono }}
             >
-              {opt.label}
+              {m(opt.label)}
             </button>
           ))}
         </div>
 
         {loading && !approvals.length ? (
-          <div className="p-12 text-center"><Spin /><p className="mt-3 text-[var(--at-muted)]">Loading approvals...</p></div>
+          <div className="p-12 text-center"><Spin /><p className="mt-3 text-[var(--at-muted)]">{m('loading')}</p></div>
         ) : filtered.length === 0 ? (
-          <Empty description="No proposals match this filter" />
+          <Empty description={m('noMatch')} />
         ) : (
           <div className="space-y-3">
             {filtered.map(item => {
@@ -188,10 +213,10 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
                           style={{ fontFamily: fontFamily.mono, color: meta.color, borderColor: `color-mix(in srgb, ${meta.color} 20%, transparent)`, backgroundColor: `color-mix(in srgb, ${meta.color} 10%, transparent)` }}
                         >
                           <StatusIcon size={11} />
-                          {meta.label}
+                          {m(meta.label)}
                         </span>
                         <span className="text-[10px] text-[var(--at-muted)]" style={{ fontFamily: fontFamily.mono }}>
-                          {new Date(item.requestedAt).toLocaleDateString()}
+                          {formatDate(item.requestedAt)}
                         </span>
                       </div>
                       <h4 className="text-[var(--at-text)] font-bold text-sm mb-2">{item.title}</h4>
@@ -201,11 +226,11 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
                         <span>&middot;</span>
                         <span>{item.commit}</span>
                         <span>&middot;</span>
-                        <span>requested by {item.requestedBy}</span>
+                        <span>{m('requestedBy', { name: item.requestedBy })}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Button size="small" onClick={() => setViewing(item)}>Details</Button>
+                      <Button size="small" onClick={() => setViewing(item)}>{m('details')}</Button>
                       {item.status === 'pending' && (
                         <>
                           <Button
@@ -214,7 +239,7 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
                             onClick={() => startReview(item, 'reject')}
                             style={{ fontFamily: fontFamily.mono }}
                           >
-                            REJECT
+                            {m('reject')}
                           </Button>
                           <Button
                             size="small"
@@ -222,7 +247,7 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
                             onClick={() => startReview(item, 'approve')}
                             style={{ fontFamily: fontFamily.mono, background: 'var(--at-success)', borderColor: 'var(--at-success)' }}
                           >
-                            APPROVE
+                            {m('approve')}
                           </Button>
                         </>
                       )}
@@ -230,7 +255,7 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
                   </div>
                   {item.reviewedAt && (
                     <p className="text-xs text-[var(--at-muted)] pt-3 border-t border-[var(--at-line)]">
-                      {item.reviewedBy} · {new Date(item.reviewedAt).toLocaleString()}
+                      {item.reviewedBy} · {formatDateTime(item.reviewedAt)}
                       {item.reason && ` · ${item.reason}`}
                     </p>
                   )}
@@ -241,21 +266,21 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
         )}
 
         <Modal
-          title={viewing?.title ?? 'Proposal'}
+          title={viewing?.title ?? m('proposal')}
           open={!!viewing}
           onCancel={() => setViewing(null)}
-          footer={<Button onClick={() => setViewing(null)}>Close</Button>}
+          footer={<Button onClick={() => setViewing(null)}>{m('close')}</Button>}
         >
           {viewing && (
             <div className="space-y-4">
-              <Tag color={statusMeta[viewing.status].color}>{viewing.status}</Tag>
-              <p>{viewing.project} · Commit {viewing.commit}</p>
+              <Tag color={statusMeta[viewing.status].color}>{m(viewing.status)}</Tag>
+              <p>{m('commit', { project: viewing.project, commit: viewing.commit })}</p>
               <p className="whitespace-pre-wrap break-words">{viewing.description}</p>
-              <p>Requested by {viewing.requestedBy} on {new Date(viewing.requestedAt).toLocaleString()}</p>
+              <p>{m('requestedOn', { name: viewing.requestedBy, date: formatDateTime(viewing.requestedAt) })}</p>
               {viewing.reviewedAt && (
                 <p className="text-sm text-[var(--at-muted)]">
-                  Reviewed by {viewing.reviewedBy} on {new Date(viewing.reviewedAt).toLocaleString()}
-                  {viewing.reason && <><br />Reason: {viewing.reason}</>}
+                  {m('reviewedOn', { name: viewing.reviewedBy ?? '', date: formatDateTime(viewing.reviewedAt) })}
+                  {viewing.reason && <><br />{m('reason', { reason: viewing.reason })}</>}
                 </p>
               )}
             </div>
@@ -263,17 +288,17 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
         </Modal>
 
         <Modal
-          title={review?.action === 'approve' ? 'Approve this proposal?' : 'Reject this proposal?'}
+          title={review?.action === 'approve' ? m('approveTitle') : m('rejectTitle')}
           open={!!review}
           onCancel={() => setReview(null)}
           onOk={() => reviewForm.submit()}
-          okText="Submit"
+          okText={m('submit')}
           confirmLoading={submitting}
         >
           <Form form={reviewForm} layout="vertical" onFinish={handleReview}>
             <Form.Item
               name="reason"
-              label={review?.action === 'reject' ? 'Reason for rejection' : 'Comment (optional)'}
+              label={review?.action === 'reject' ? m('rejectReason') : m('comment')}
               rules={[{ required: review?.action === 'reject', whitespace: true }]}
             >
               <Input.TextArea rows={4} maxLength={2000} showCount />
@@ -282,28 +307,28 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
         </Modal>
 
         <Modal
-          title="Create proposal"
+          title={m('createTitle')}
           open={creating}
           onCancel={() => setCreating(false)}
           onOk={() => form.submit()}
-          okText="Create"
+          okText={m('create')}
           confirmLoading={submitting}
         >
           <Form form={form} layout="vertical" onFinish={handleCreate}>
-            <Form.Item name="title" label="Title" rules={[{ required: true, whitespace: true }]}>
+            <Form.Item name="title" label={m('titleLabel')} rules={[{ required: true, whitespace: true }]}>
               <Input maxLength={160} />
             </Form.Item>
             <Form.Item
               name="commit"
-              label="Commit SHA"
+              label={m('sha')}
               rules={[
                 { required: true },
-                { pattern: /^[a-f\d]{7,40}$/i, message: 'Enter a 7–40 character hexadecimal commit SHA.' },
+                { pattern: /^[a-f\d]{7,40}$/i, message: m('shaInvalid') },
               ]}
             >
               <Input maxLength={40} />
             </Form.Item>
-            <Form.Item name="description" label="Description" rules={[{ required: true, whitespace: true }]}>
+            <Form.Item name="description" label={m('description')} rules={[{ required: true, whitespace: true }]}>
               <Input.TextArea rows={4} maxLength={5000} />
             </Form.Item>
           </Form>
