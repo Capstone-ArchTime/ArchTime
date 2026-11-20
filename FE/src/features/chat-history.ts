@@ -1,4 +1,6 @@
 import type { ChatEvidence } from './chat-answer';
+import { hx } from './helper-messages.ts';
+import { formatDate } from '../i18n/format.ts';
 
 export interface ChatModelNote { name: string; host: string; external: boolean }
 
@@ -46,14 +48,11 @@ export function readLabelCheck(value: unknown): LabelCheck | null {
 export function labelCheckNote(check: LabelCheck | null | undefined): string | null {
   if (!check || (!check.downgraded && !check.removedCitations.length)) return null;
   const parts: string[] = [];
-  if (check.downgraded) {
-    parts.push(`${check.downgraded} claim${check.downgraded === 1 ? ' was' : 's were'} marked FACT without citing a mined commit, so ${check.downgraded === 1 ? 'it now reads' : 'they now read'} INFERENCE`);
-  }
+  if (check.downgraded) parts.push(hx('downgraded', { count: check.downgraded }));
   if (check.removedCitations.length) {
-    const n = check.removedCitations.length;
-    parts.push(`${n} cited commit${n === 1 ? ' is' : 's are'} not in this workspace's mined history and ${n === 1 ? 'was' : 'were'} removed (${check.removedCitations.join(', ')})`);
+    parts.push(hx('removed', { count: check.removedCitations.length, list: check.removedCitations.join(', ') }));
   }
-  return `Checked by ArchTime: ${parts.join('; ')}.`;
+  return hx('checked', { parts: parts.join('; ') });
 }
 
 const isStored = (value: unknown): value is StoredMessage => {
@@ -92,5 +91,5 @@ export function describeWhen(iso: string, now: Date = new Date()): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
   const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  return date.toDateString() === now.toDateString() ? `Today ${time}` : `${date.toLocaleDateString()} ${time}`;
+  return date.toDateString() === now.toDateString() ? hx('today', { time }) : `${formatDate(date)} ${time}`;
 }

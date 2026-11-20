@@ -25,14 +25,32 @@ import { filterTeamRows, teamRows, type TeamRow } from './team-rows';
 
 const fontFamily = { mono: '"JetBrains Mono", monospace' };
 
+import { formatDate } from '@/i18n/format';
+import { defineMessages, message as translate, useMessages } from '@/i18n/define';
+
+const MSG = defineMessages({
+  pending: 'PENDING', approved: 'APPROVED', rejected: 'REJECTED', title: 'Maintainer overview', loadFailed: 'This workspace could not be loaded.',
+  intro: 'The health of a workspace you maintain, and what waits for you.', selectWorkspace: 'Select workspace', selectPlaceholder: 'Select a workspace', refresh: 'Refresh', loading: 'Loading dashboard...',
+  components: 'Components', confirmed: 'Confirmed', draft: 'Draft', rules: 'Rules', violations: '{count} violations', violations_one: '1 violation', decisions: 'Decisions', pendingApprovals: 'Pending Approvals',
+  noData: 'Dashboard data not available for this workspace', selectToView: 'Select a workspace to view dashboard', recent: 'Recent architectural change requests.', viewAll: 'View all →',
+  noPending: 'No pending approvals', requestedBy: '{project} · requested by {name}', team: 'Team', members: 'Members on this workspace.', manage: 'Manage →', noTeam: 'No team members', invite: 'Invite',
+}, {
+  pending: 'ĐANG CHỜ', approved: 'ĐÃ DUYỆT', rejected: 'BỊ TỪ CHỐI', title: 'Tổng quan người bảo trì', loadFailed: 'Không tải được không gian làm việc này.',
+  intro: 'Tình trạng của không gian làm việc bạn bảo trì, và những việc đang chờ bạn.', selectWorkspace: 'Chọn không gian làm việc', selectPlaceholder: 'Chọn không gian làm việc', refresh: 'Làm mới', loading: 'Đang tải tổng quan...',
+  components: 'Thành phần', confirmed: 'Đã xác nhận', draft: 'Nháp', rules: 'Quy tắc', violations: '{count} vi phạm', decisions: 'Quyết định', pendingApprovals: 'Chờ phê duyệt',
+  noData: 'Không có dữ liệu tổng quan cho không gian làm việc này', selectToView: 'Chọn một không gian làm việc để xem tổng quan', recent: 'Các yêu cầu thay đổi kiến trúc gần đây.', viewAll: 'Xem tất cả →',
+  noPending: 'Không có yêu cầu chờ duyệt', requestedBy: '{project} · do {name} yêu cầu', team: 'Nhóm', members: 'Thành viên của không gian làm việc này.', manage: 'Quản lý →', noTeam: 'Không có thành viên', invite: 'Mời',
+});
+
 const statusMeta = {
-  pending: { label: 'PENDING', color: 'var(--at-warn)', icon: Clock },
-  approved: { label: 'APPROVED', color: 'var(--at-success)', icon: CheckCircle2 },
-  rejected: { label: 'REJECTED', color: 'var(--at-danger)', icon: XCircle },
-};
+  pending: { label: 'pending', color: 'var(--at-warn)', icon: Clock },
+  approved: { label: 'approved', color: 'var(--at-success)', icon: CheckCircle2 },
+  rejected: { label: 'rejected', color: 'var(--at-danger)', icon: XCircle },
+} as const;
 
 export default function ProjectMaintainerDashboard() {
-  return <ManagedWorkspaces title="Maintainer overview">{projects => <ProjectMaintainerDashboardView projects={projects} />}</ManagedWorkspaces>;
+  const m = useMessages(MSG);
+  return <ManagedWorkspaces title={m('title')}>{projects => <ProjectMaintainerDashboardView projects={projects} />}</ManagedWorkspaces>;
 }
 
 function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary[] }) {
@@ -43,6 +61,7 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
+  const m = useMessages(MSG);
 
   useEffect(() => {
     if (!selectedProject) {
@@ -68,7 +87,7 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
         setError(null);
       })
       .catch(e => {
-        if (!controller.signal.aborted) setError(describeAccessError(e, 'This workspace could not be loaded.'));
+        if (!controller.signal.aborted) setError(describeAccessError(e, translate(MSG, 'loadFailed')));
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -87,21 +106,21 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
         <div>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)] mb-2">Maintainer overview</h2>
+              <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)] mb-2">{m('title')}</h2>
               <p className="text-[var(--at-muted)] text-sm max-w-xl leading-relaxed">
-                The health of a workspace you maintain, and what waits for you.
+                {m('intro')}
               </p>
             </div>
             <div className="flex gap-2">
               <Select
-                aria-label="Select workspace"
+                aria-label={m('selectWorkspace')}
                 value={selectedProject}
                 onChange={setSelectedProject}
                 className="min-w-60"
                 options={projects.map(p => ({ value: p.id, label: p.name }))}
-                placeholder="Select a workspace"
+                placeholder={m('selectPlaceholder')}
               />
-              <Button loading={loading} onClick={refresh}>Refresh</Button>
+              <Button loading={loading} onClick={refresh}>{m('refresh')}</Button>
             </div>
           </div>
           <div className="h-[1px] w-full bg-gradient-to-r from-[var(--at-line)] to-transparent mt-8"></div>
@@ -111,7 +130,7 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
         {error && <p className="text-red-400">{error}</p>}
 
         {loading ? (
-          <div className="p-12 text-center"><Spin /><p className="mt-3 text-[var(--at-muted)]">Loading dashboard...</p></div>
+          <div className="p-12 text-center"><Spin /><p className="mt-3 text-[var(--at-muted)]">{m('loading')}</p></div>
         ) : dashboard ? (
           <>
             <section>
@@ -122,48 +141,48 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-[var(--at-panel-2)] border border-[var(--at-line)] p-5">
-                  <p className="text-xs text-[var(--at-muted)] uppercase tracking-wider mb-2" style={{ fontFamily: fontFamily.mono }}>Components</p>
+                  <p className="text-xs text-[var(--at-muted)] uppercase tracking-wider mb-2" style={{ fontFamily: fontFamily.mono }}>{m('components')}</p>
                   <p className="text-3xl font-bold text-[var(--at-text)]" style={{ fontFamily: fontFamily.mono }}>{dashboard.diagram.componentsCount}</p>
                   <Tag className="mt-2" color={dashboard.diagram.confirmedAt ? 'green' : 'gold'}>
-                    {dashboard.diagram.confirmedAt ? 'Confirmed' : 'Draft'}
+                    {dashboard.diagram.confirmedAt ? m('confirmed') : m('draft')}
                   </Tag>
                 </div>
                 <div className="bg-[var(--at-panel-2)] border border-[var(--at-line)] p-5">
-                  <p className="text-xs text-[var(--at-muted)] uppercase tracking-wider mb-2" style={{ fontFamily: fontFamily.mono }}>Rules</p>
+                  <p className="text-xs text-[var(--at-muted)] uppercase tracking-wider mb-2" style={{ fontFamily: fontFamily.mono }}>{m('rules')}</p>
                   <p className="text-3xl font-bold text-[var(--at-text)]" style={{ fontFamily: fontFamily.mono }}>{dashboard.rules.enabled}/{dashboard.rules.total}</p>
                   {dashboard.rules.violations > 0 && (
-                    <Tag className="mt-2" color="red">{dashboard.rules.violations} violations</Tag>
+                    <Tag className="mt-2" color="red">{m('violations', { count: dashboard.rules.violations })}</Tag>
                   )}
                 </div>
                 <div className="bg-[var(--at-panel-2)] border border-[var(--at-line)] p-5">
-                  <p className="text-xs text-[var(--at-muted)] uppercase tracking-wider mb-2" style={{ fontFamily: fontFamily.mono }}>Decisions</p>
+                  <p className="text-xs text-[var(--at-muted)] uppercase tracking-wider mb-2" style={{ fontFamily: fontFamily.mono }}>{m('decisions')}</p>
                   <p className="text-3xl font-bold text-[var(--at-text)]" style={{ fontFamily: fontFamily.mono }}>{dashboard.decisions.total}</p>
                 </div>
                 <div className="bg-[var(--at-panel-2)] border border-[var(--at-line)] p-5">
-                  <p className="text-xs text-[var(--at-muted)] uppercase tracking-wider mb-2" style={{ fontFamily: fontFamily.mono }}>Pending Approvals</p>
+                  <p className="text-xs text-[var(--at-muted)] uppercase tracking-wider mb-2" style={{ fontFamily: fontFamily.mono }}>{m('pendingApprovals')}</p>
                   <p className="text-3xl font-bold text-[var(--at-warn)]" style={{ fontFamily: fontFamily.mono }}>{dashboard.approvals.pending}</p>
                 </div>
               </div>
             </section>
           </>
         ) : selectedProject ? (
-          <Empty description="Dashboard data not available for this workspace" />
+          <Empty description={m('noData')} />
         ) : (
-          <Empty description="Select a workspace to view dashboard" />
+          <Empty description={m('selectToView')} />
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           <section className="lg:col-span-3">
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-[var(--at-text)] tracking-tight">Pending Approvals</h3>
-                <p className="text-sm text-[var(--at-muted)] mt-1">Recent architectural change requests.</p>
+                <h3 className="text-xl font-bold text-[var(--at-text)] tracking-tight">{m('pendingApprovals')}</h3>
+                <p className="text-sm text-[var(--at-muted)] mt-1">{m('recent')}</p>
               </div>
-              <Link to="/project-maintainer/approvals" className="text-sm text-[var(--at-link)]">View all →</Link>
+              <Link to="/project-maintainer/approvals" className="text-sm text-[var(--at-link)]">{m('viewAll')}</Link>
             </div>
 
             {approvals.length === 0 ? (
-              <Empty description="No pending approvals" />
+              <Empty description={m('noPending')} />
             ) : (
               <div className="relative pl-6 space-y-6">
                 <div className="absolute left-[3px] top-1 bottom-1 w-px bg-[var(--at-line)]"></div>
@@ -184,15 +203,15 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
                               style={{ fontFamily: fontFamily.mono, color: meta.color }}
                             >
                               <StatusIcon size={11} />
-                              {meta.label}
+                              {m(meta.label)}
                             </span>
                             <span className="text-[10px] text-[var(--at-muted)]" style={{ fontFamily: fontFamily.mono }}>
-                              {new Date(item.requestedAt).toLocaleDateString()}
+                              {formatDate(item.requestedAt)}
                             </span>
                           </div>
                           <h4 className="text-[var(--at-text)] text-sm font-bold mb-1">{item.title}</h4>
                           <div className="text-xs text-[var(--at-muted)]" style={{ fontFamily: fontFamily.mono }}>
-                            {item.project} · requested by {item.requestedBy}
+                            {m('requestedBy', { project: item.project, name: item.requestedBy })}
                           </div>
                         </div>
                       </div>
@@ -206,14 +225,14 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
           <section className="lg:col-span-2">
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-[var(--at-text)] tracking-tight">Team</h3>
-                <p className="text-sm text-[var(--at-muted)] mt-1">Members on this workspace.</p>
+                <h3 className="text-xl font-bold text-[var(--at-text)] tracking-tight">{m('team')}</h3>
+                <p className="text-sm text-[var(--at-muted)] mt-1">{m('members')}</p>
               </div>
-              <Link to="/project-maintainer/team" className="text-sm text-[var(--at-link)]">Manage →</Link>
+              <Link to="/project-maintainer/team" className="text-sm text-[var(--at-link)]">{m('manage')}</Link>
             </div>
 
             {team.length === 0 ? (
-              <Empty description="No team members" />
+              <Empty description={m('noTeam')} />
             ) : (
               <div className="grid grid-cols-2 gap-3">
                 {team.map(member => (
@@ -238,7 +257,7 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
                   className="border border-dashed border-[var(--at-line)] hover:border-[var(--at-accent)]/50 p-4 flex flex-col items-center justify-center gap-2 text-[var(--at-muted)] hover:text-[var(--at-link)] transition-colors"
                 >
                   <UserPlus size={18} />
-                  <span className="text-[10px] uppercase tracking-widest" style={{ fontFamily: fontFamily.mono }}>Invite</span>
+                  <span className="text-[10px] uppercase tracking-widest" style={{ fontFamily: fontFamily.mono }}>{m('invite')}</span>
                 </Link>
               </div>
             )}

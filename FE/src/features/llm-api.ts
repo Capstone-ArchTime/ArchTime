@@ -1,4 +1,5 @@
 import { apiRequest } from '@/api/client';
+import { hx } from './helper-messages.ts';
 
 // Models for drawing architectures, their usage and how they compare. Server: BE/src/presentation/routes/llm.routes.ts
 // (users) and admin.routes.ts (/admin/llm-*). Formulas: docs/ai-model-metrics-design.md.
@@ -188,4 +189,6 @@ export const formatMs = (ms: number | undefined | null) => (typeof ms !== 'numbe
 export const formatPercent = (x: number | undefined | null) => (typeof x === 'number' && Number.isFinite(x) ? `${Math.round(x * 100)}%` : '–');
 export const healthColor: Record<HealthStatus, string> = { up: 'green', degraded: 'orange', down: 'red', unknown: 'default' };
 export const statusColor: Record<LlmRun['status'], string> = { accepted: 'green', fallback: 'orange', failed: 'red', cancelled: 'default' };
-export const statusLabel: Record<LlmRun['status'], string> = { accepted: 'Accepted', fallback: 'Fell back', failed: 'Failed', cancelled: 'Cancelled' };
+// Read when shown, so the words follow the chosen language.
+export const statusLabel: Record<LlmRun['status'], string> = Object.defineProperties({} as Record<LlmRun['status'], string>,
+  Object.fromEntries((['accepted', 'fallback', 'failed', 'cancelled'] as const).map(k => [k, { enumerable: true, get: () => hx(k) }])));

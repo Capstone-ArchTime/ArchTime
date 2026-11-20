@@ -1,4 +1,21 @@
 import { apiRequest } from '@/api/client';
+import { defineMessages, message } from '../i18n/define.ts';
+import type { Params } from '../i18n/index.ts';
+
+const TEXT = defineMessages({
+  note: 'INFERENCE: computed by comparing mined snapshots.', commitNotGrouped: 'This commit has not been grouped into components yet.',
+  snapshotNotGrouped: 'This snapshot has not been grouped into components yet.', deps: '+{added} / -{removed} dependencies', deps_one: '+{added} / -{removed} dependency',
+  first: 'First mined commit: there is nothing earlier to compare with', notGrouped: 'Not grouped into components yet · {deps}', changed: 'Changed {count} components · {deps}',
+  changed_one: 'Changed 1 component · {deps}', noneChanged: 'No component changed · {deps}', more: 'and {n} more', noComponent: 'files in no component', inside: 'Inside {name}',
+}, {
+  note: 'INFERENCE: tính bằng cách so sánh các ảnh chụp đã mining.', commitNotGrouped: 'Commit này chưa được nhóm thành thành phần.',
+  snapshotNotGrouped: 'Ảnh chụp này chưa được nhóm thành thành phần.', deps: '+{added} / -{removed} phụ thuộc',
+  first: 'Commit đầu tiên đã mining: không có gì trước đó để so sánh', notGrouped: 'Chưa được nhóm thành thành phần · {deps}', changed: 'Thay đổi {count} thành phần · {deps}',
+  noneChanged: 'Không thành phần nào thay đổi · {deps}', more: 'và {n} mục nữa', noComponent: 'tệp không thuộc thành phần nào', inside: 'Bên trong {name}',
+});
+const tx = (key: Parameters<typeof message<typeof TEXT.en>>[1], params?: Params) => message(TEXT, key, params);
+/** IMPACT_NOTE in the chosen language. */
+export const impactNote = (): string => tx('note');
 
 /**
  * The front end of the evidence-to-component bridge. Evidence is commit-level and components are a computed grouping of one
@@ -111,7 +128,7 @@ export function parseEvidenceImpact(body: unknown): EvidenceImpact | null {
     evidence: { id: text(e.id), commit: e.commit.slice(0, MAX_TEXT), title: text(e.title), date: stamp(e.date), type: text(e.type), depsAdded: count(e.depsAdded), depsRemoved: count(e.depsRemoved) },
     snapshot, baseline: snapshotRef(data.baseline), hasBaseline: data.hasBaseline === true, fileChanges: fileChanges(data.fileChanges),
   };
-  if (!data.grouped) return { ...head, grouped: false, reason: text(data.reason, 'This commit has not been grouped into components yet.') };
+  if (!data.grouped) return { ...head, grouped: false, reason: text(data.reason, tx('commitNotGrouped')) };
 
   const components = list(data.components, MAX_COMPONENTS).flatMap((c): TouchedComponent[] => isRec(c) && typeof c.id === 'string' && c.id
     ? [{ id: c.id.slice(0, MAX_TEXT), filesAdded: count(c.filesAdded), filesRemoved: count(c.filesRemoved), pairsAdded: count(c.pairsAdded), pairsRemoved: count(c.pairsRemoved) }] : []);
@@ -137,7 +154,7 @@ export function parseCommitImpacts(body: unknown): CommitImpacts | null {
   const snapshot = snapshotRef(data.snapshot);
   if (!snapshot) return null;
   const head = { label: IMPACT_LABEL, note: text(data.note), snapshot, limit: count(data.limit) };
-  if (!data.grouped) return { ...head, grouped: false, reason: text(data.reason, 'This snapshot has not been grouped into components yet.'), commits: [] };
+  if (!data.grouped) return { ...head, grouped: false, reason: text(data.reason, tx('snapshotNotGrouped')), commits: [] };
 
   const commits = list(data.commits, MAX_COMMITS).flatMap((c): CommitImpact[] => {
     if (!isRec(c) || typeof c.commit !== 'string' || !c.commit) return [];
@@ -177,7 +194,6 @@ export async function getCommitImpacts(projectId: string, snapshotId?: string, l
 
 // ---- view helpers -----------------------------------------------------------------------------------------------------------
 
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /** The commits that changed one component, in the order given (newest first), at most `max`. Commits that could not be compared never count. */
 export function commitsTouchingComponent(impacts: Pick<CommitImpacts, 'commits'> | null | undefined, componentId: string, max = Infinity): CommitImpact[] {
@@ -196,22 +212,22 @@ export function componentDelta(commit: Pick<CommitImpact, 'componentEdges'>, com
 
 /** "+3 / -1 dependencies", or '' when the commit changed none of them. */
 export function deltaText(delta: { added: number; removed: number }): string {
-  return delta.added || delta.removed ? `+${delta.added} / -${delta.removed} ${delta.added + delta.removed === 1 ? 'dependency' : 'dependencies'}` : '';
+  return delta.added || delta.removed ? tx('deps', { added: delta.added, removed: delta.removed, count: delta.added + delta.removed }) : '';
 }
 
 /** One line for the head of an impact: "Changed 2 components · +3 / -1 dependencies". File-level dependency counts, as the server compares them. */
 export function impactSummary(impact: EvidenceImpact): string {
-  if (!impact.hasBaseline) return 'First mined commit: there is nothing earlier to compare with';
+  if (!impact.hasBaseline) return tx('first');
   const { pairsAdded, pairsRemoved } = impact.fileChanges;
-  const deps = `+${pairsAdded} / -${pairsRemoved} ${pairsAdded + pairsRemoved === 1 ? 'dependency' : 'dependencies'}`;
-  if (!impact.grouped) return `Not grouped into components yet · ${deps}`;
-  return `${impact.components.length ? `Changed ${plural(impact.components.length, 'component')}` : 'No component changed'} · ${deps}`;
+  const deps = tx('deps', { added: pairsAdded, removed: pairsRemoved, count: pairsAdded + pairsRemoved });
+  if (!impact.grouped) return tx('notGrouped', { deps });
+  return impact.components.length ? tx('changed', { count: impact.components.length, deps }) : tx('noneChanged', { deps });
 }
 
 /** "and 3 more" when a list shows `shown` of `total`; '' otherwise. */
 export function andMore(total: number, shown: number): string {
   const rest = Math.floor(total) - Math.floor(shown);
-  return Number.isFinite(rest) && rest > 0 ? `and ${rest} more` : '';
+  return Number.isFinite(rest) && rest > 0 ? tx('more', { n: rest }) : '';
 }
 
 /** A commit hash that is safe to print and to put in a link: letters, digits and a few separators only, at most `length` characters. */
@@ -243,7 +259,7 @@ export function linkedCommitMissing(list: readonly { commit?: unknown }[], commi
 
 /** What a changed dependency reads like: "Orders → Store", "Inside Orders", or "Orders → files in no component". */
 export function changeLabel(change: Pick<ComponentChange, 'kind' | 'source' | 'target'>, nameOf: (id: string) => string): string {
-  const none = 'files in no component';
-  if (change.kind === 'internal') return `Inside ${change.source ? nameOf(change.source) : none}`;
+  const none = tx('noComponent');
+  if (change.kind === 'internal') return tx('inside', { name: change.source ? nameOf(change.source) : none });
   return `${change.source ? nameOf(change.source) : none} → ${change.target ? nameOf(change.target) : none}`;
 }

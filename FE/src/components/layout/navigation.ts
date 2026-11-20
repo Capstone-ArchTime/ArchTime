@@ -1,5 +1,5 @@
 import type { ElementType } from 'react';
-import { LayoutDashboard, FolderKanban, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, Users2, SlidersHorizontal, ScrollText, Activity, Boxes, Cpu, Gauge, Coins, GraduationCap, UserRound, ChartNetwork, Briefcase, Building2, ScanSearch, Bot, ListChecks } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, Users2, SlidersHorizontal, ScrollText, Activity, Boxes, Cpu, Gauge, Coins, GraduationCap, UserRound, ChartNetwork, Briefcase, Building2, ScanSearch, Bot, ListChecks, Settings } from 'lucide-react';
 import type { Role } from '@/auth/permissions';
 
 /** `tab` is a shorter label for the tab bar of a group, where the group already says what the page belongs to. */
@@ -45,10 +45,12 @@ export const accountMenuItems: Record<Role, readonly NavItem[]> = {
     { path: '/my-work', label: 'My work', icon: Briefcase },
     { path: '/profile', label: 'My profile', icon: UserRound },
     { path: '/ai-usage', label: 'AI Usage', icon: Coins },
+    { path: '/settings', label: 'Settings', icon: Settings },
   ],
   'system-administrator': [
     { path: '/my-work', label: 'My work', icon: Briefcase },
     { path: '/profile', label: 'My profile', icon: UserRound },
+    { path: '/settings', label: 'Settings', icon: Settings },
   ],
 };
 

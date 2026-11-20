@@ -1,14 +1,17 @@
 import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { useT } from '@/i18n';
 
 /**
  * Text a reader only needs now and then (how a page works, rules, formulas) stays folded behind a small "Details"
  * button, so a page shows what matters first. `label` names the button; `defaultOpen` starts it unfolded.
  */
-export function Details({ children, label = 'Details', defaultOpen = false, className = '', bodyClassName = 'text-sm' }: {
+export function Details({ children, label, defaultOpen = false, className = '', bodyClassName = 'text-sm' }: {
   children: ReactNode; label?: string; defaultOpen?: boolean; className?: string; bodyClassName?: string;
 }) {
+  const t = useT();
+  label ??= t('common.details');
   const [open, setOpen] = useState(defaultOpen);
   const id = useId();
   return <div className={className}>

@@ -58,7 +58,8 @@ export const STATUS_LABELS: Record<WorkspaceStatus, string> = {
   PENDING: 'Not mined yet', ANALYZING: 'Mining', PARTIAL: 'Partly mined', COMPLETED: 'Fully mined', FAILED: 'Mining failed', UNKNOWN: 'Unknown',
 };
 
-export type NextStep = { label: string; hint: string; to: string; action: 'scan' | 'mine' | 'open' | 'wait' };
+/** `id` names the step for translations (step.<id>.label / .hint); `label` and `hint` are the English text. */
+export type NextStep = { id: string; label: string; hint: string; to: string; action: 'scan' | 'mine' | 'open' | 'wait' };
 /**
  * The one thing to do next with a workspace, following create → scan → mine → group files into components. Members who
  * only read a workspace cannot scan or mine it (the server refuses), so they are told to wait for a maintainer instead.
@@ -68,15 +69,15 @@ export function nextStep(w: Pick<Workspace, 'id' | 'status' | 'totalCommits'> & 
   // Steps that need the Mining dialog lead to the workspace's own page, which opens it; the list would make them search again.
   const detail = `/project?projectId=${id}`;
   if (w.canMaintain === false) {
-    if (hasMinedHistory(w)) return { action: 'open', label: 'Open the architecture', hint: 'Mined commits are ready. Open the architecture to explore its components.', to: `/workspace/${id}` };
-    if (w.status === 'ANALYZING') return { action: 'wait', label: 'Mining in progress', hint: 'A maintainer is mining this workspace. Its history appears once the first batch is stored.', to: detail };
-    return { action: 'wait', label: 'Waiting for a maintainer', hint: 'Only maintainers of this workspace can scan and mine its history. Its architecture appears here once they have.', to: detail };
+    if (hasMinedHistory(w)) return { id: 'viewer-open', action: 'open', label: 'Open the architecture', hint: 'Mined commits are ready. Open the architecture to explore its components.', to: `/workspace/${id}` };
+    if (w.status === 'ANALYZING') return { id: 'viewer-mining', action: 'wait', label: 'Mining in progress', hint: 'A maintainer is mining this workspace. Its history appears once the first batch is stored.', to: detail };
+    return { id: 'viewer-wait', action: 'wait', label: 'Waiting for a maintainer', hint: 'Only maintainers of this workspace can scan and mine its history. Its architecture appears here once they have.', to: detail };
   }
-  if (hasMinedHistory(w)) return { action: 'open', label: 'Group files into components', hint: 'Mined commits are ready. Open the architecture to name its components.', to: `/workspace/${id}` };
-  if (w.status === 'ANALYZING') return { action: 'wait', label: 'Mining in progress', hint: 'Commits are being analyzed. This page shows them once the first batch is stored.', to: detail };
-  if (w.status === 'FAILED') return { action: 'mine', label: 'Try mining again', hint: 'The last mining run stored no commits. Open Mining to see the error and retry.', to: detail };
-  if (w.totalCommits === null) return { action: 'scan', label: 'Read the commit history', hint: 'Scan the repository so you can choose which commits to mine.', to: detail };
-  return { action: 'mine', label: 'Mine commits', hint: `${w.totalCommits} commits found. Mine a date range or all of them to build the history.`, to: detail };
+  if (hasMinedHistory(w)) return { id: 'group', action: 'open', label: 'Group files into components', hint: 'Mined commits are ready. Open the architecture to name its components.', to: `/workspace/${id}` };
+  if (w.status === 'ANALYZING') return { id: 'mining', action: 'wait', label: 'Mining in progress', hint: 'Commits are being analyzed. This page shows them once the first batch is stored.', to: detail };
+  if (w.status === 'FAILED') return { id: 'retry', action: 'mine', label: 'Try mining again', hint: 'The last mining run stored no commits. Open Mining to see the error and retry.', to: detail };
+  if (w.totalCommits === null) return { id: 'scan', action: 'scan', label: 'Read the commit history', hint: 'Scan the repository so you can choose which commits to mine.', to: detail };
+  return { id: 'mine', action: 'mine', label: 'Mine commits', hint: `${w.totalCommits} commits found. Mine a date range or all of them to build the history.`, to: detail };
 }
 
 export type WorkspaceStats = { workspaces: number; commitsFound: number; mined: number; jobs: number; activeJobs: number };

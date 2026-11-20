@@ -7,6 +7,9 @@ import Minimap from './Minimap';
 import { isFrameKey } from '@/features/architecture/panels';
 import { boundsOf, centerOn, fitAll, frame, visibleRect, wheel, zoomAt } from '@/features/architecture/viewport';
 import type { Size, Transform } from '@/features/architecture/viewport';
+import { message } from '@/i18n/define';
+import { ARCH } from './messages';
+const m = (key: 'minimapLabel' | 'diagramLabel') => message(ARCH, key);
 
 const isTyping = (target: EventTarget | null) => target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 
@@ -155,7 +158,7 @@ export default function ArchitectureDiagram(props: Omit<DiagramSvgProps, 'intera
           backgroundPosition: `${t.tx}px ${t.ty}px`,
         }}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
-        role="application" aria-label="Architecture diagram. Scroll to pan, Ctrl and scroll to zoom.">
+        role="application" aria-label={m('diagramLabel')}>
         <div style={{ transform: `translate(${t.tx}px, ${t.ty}px) scale(${t.k})`, transformOrigin: '0 0', width: layout.width, height: layout.height }}>
           <DiagramSvg {...svgProps} interactive />
         </div>

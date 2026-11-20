@@ -22,6 +22,7 @@ import {
 } from '@/features/chat-history';
 import { openingWorkspace, readMentorParams } from '@/features/onboarding-context';
 import { getWorkspace } from '@/features/workspace-summary';
+import { defineMessages, message as translate, useMessages } from '@/i18n/define';
 
 interface ChatResponse {
   data: {
@@ -45,22 +46,45 @@ interface ProjectOption { id: string; name: string }
 
 const CHAT_TIMEOUT_MS = 120_000;
 
-const WELCOME = 'Hello! I\'m ArchTime AI, your evidence-grounded architecture assistant. Pick a workspace, then ask about its architectural changes, coupling patterns, or why specific decisions were made. I only answer from the snapshots and change evidence stored for that workspace, and I label each claim FACT, INFERENCE or UNKNOWN.';
-
-const SUGGESTED_QUESTIONS = [
-  'What were the most important architectural changes?',
-  'Which commits changed the most files?',
-  'How did the dependencies change over time?',
-  'Which modules look the most coupled?'
-];
+const MSG = defineMessages({
+  welcome: 'Hello! I\'m ArchTime AI, your evidence-grounded architecture assistant. Pick a workspace, then ask about its architectural changes, coupling patterns, or why specific decisions were made. I only answer from the snapshots and change evidence stored for that workspace, and I label each claim FACT, INFERENCE or UNKNOWN.',
+  q1: 'What were the most important architectural changes?', q2: 'Which commits changed the most files?', q3: 'How did the dependencies change over time?', q4: 'Which modules look the most coupled?',
+  switched: 'Switched workspace. Ask me anything about its architecture.', openFailed: 'Could not open this chat.', deleteTitle: 'Delete the saved chat "{title}"?', cannotUndo: 'This cannot be undone.',
+  deleteChat: 'Delete chat', deleted: 'Chat deleted. How can I help you understand your architecture?', deleteFailed: 'Could not delete this chat.', wentWrong: 'Something went wrong. Please try again.',
+  title: 'AI Insights', intro: "Ask about a workspace's architecture; every answer cites its evidence.", workspace: 'Workspace', noWorkspaces: 'No workspaces', choose: 'Choose a workspace',
+  history: 'History', newStarted: 'New chat started. How can I help you understand your architecture?', newChat: 'New chat', saved: 'Saved chats', closeSaved: 'Close saved chats',
+  loadingSaved: 'Loading saved chats…', savedFailed: 'Saved chats could not be loaded.', tryAgain: 'Try again', noSaved: 'No saved chats yet. Ask a question and it appears here.',
+  messages: '{count} messages', messages_one: '1 message', deleteSaved: 'Delete saved chat: {title}', onlyYou: 'Only you can see your saved chats.',
+  noProjects: 'You have no workspaces yet. {link} and let it finish mining before asking questions.', addWorkspace: 'Add a workspace', loadingWorkspaces: 'Loading workspaces',
+  whatKnow: 'What do you want to know about {name}?', thisWorkspace: 'this workspace', answersFrom: 'Answers come only from its mined snapshots and evidence; each claim is labelled FACT, INFERENCE or UNKNOWN.',
+  unsaved: 'This answer could not be saved to your history.', reading: 'Reading the evidence…', askLabel: "Ask about this workspace's architecture", askPlaceholder: 'Ask about changes, coupling or decisions…',
+  chooseStart: 'Choose a workspace to start', send: 'Send', uses: "Uses this workspace's snapshots and evidence.", modelExternal: ' Model: {name} — workspace data is sent to {host}.', modelHosted: ' Model: {name} (hosted on {host}).',
+  providerNote: ' Workspace data is sent to the configured AI provider.',
+}, {
+  welcome: 'Xin chào! Tôi là ArchTime AI, trợ lý kiến trúc dựa trên bằng chứng. Hãy chọn một không gian làm việc, rồi hỏi về các thay đổi kiến trúc, kiểu gắn kết, hoặc lý do của các quyết định. Tôi chỉ trả lời từ các ảnh chụp và bằng chứng thay đổi đã lưu cho không gian làm việc đó, và gắn nhãn mỗi khẳng định là FACT, INFERENCE hoặc UNKNOWN.',
+  q1: 'Những thay đổi kiến trúc quan trọng nhất là gì?', q2: 'Commit nào thay đổi nhiều tệp nhất?', q3: 'Các phụ thuộc đã thay đổi thế nào theo thời gian?', q4: 'Module nào có vẻ gắn kết chặt nhất?',
+  switched: 'Đã đổi không gian làm việc. Hãy hỏi tôi bất cứ điều gì về kiến trúc của nó.', openFailed: 'Không mở được cuộc trò chuyện này.', deleteTitle: 'Xoá cuộc trò chuyện đã lưu "{title}"?', cannotUndo: 'Không thể hoàn tác.',
+  deleteChat: 'Xoá cuộc trò chuyện', deleted: 'Đã xoá cuộc trò chuyện. Tôi có thể giúp bạn hiểu kiến trúc thế nào?', deleteFailed: 'Không xoá được cuộc trò chuyện này.', wentWrong: 'Đã có lỗi. Vui lòng thử lại.',
+  title: 'Phân tích AI', intro: 'Hỏi về kiến trúc của một không gian làm việc; mọi câu trả lời đều dẫn bằng chứng.', workspace: 'Không gian làm việc', noWorkspaces: 'Chưa có không gian làm việc', choose: 'Chọn không gian làm việc',
+  history: 'Lịch sử', newStarted: 'Đã bắt đầu cuộc trò chuyện mới. Tôi có thể giúp bạn hiểu kiến trúc thế nào?', newChat: 'Trò chuyện mới', saved: 'Cuộc trò chuyện đã lưu', closeSaved: 'Đóng danh sách đã lưu',
+  loadingSaved: 'Đang tải các cuộc trò chuyện đã lưu…', savedFailed: 'Không tải được các cuộc trò chuyện đã lưu.', tryAgain: 'Thử lại', noSaved: 'Chưa có cuộc trò chuyện nào được lưu. Hãy đặt câu hỏi và nó sẽ xuất hiện ở đây.',
+  messages: '{count} tin nhắn', deleteSaved: 'Xoá cuộc trò chuyện đã lưu: {title}', onlyYou: 'Chỉ bạn mới thấy các cuộc trò chuyện đã lưu của mình.',
+  noProjects: 'Bạn chưa có không gian làm việc nào. {link} và đợi mining xong rồi hãy đặt câu hỏi.', addWorkspace: 'Thêm không gian làm việc', loadingWorkspaces: 'Đang tải không gian làm việc',
+  whatKnow: 'Bạn muốn biết gì về {name}?', thisWorkspace: 'không gian làm việc này', answersFrom: 'Câu trả lời chỉ lấy từ các ảnh chụp và bằng chứng đã mining; mỗi khẳng định được gắn nhãn FACT, INFERENCE hoặc UNKNOWN.',
+  unsaved: 'Không lưu được câu trả lời này vào lịch sử.', reading: 'Đang đọc bằng chứng…', askLabel: 'Hỏi về kiến trúc của không gian làm việc này', askPlaceholder: 'Hỏi về thay đổi, gắn kết hoặc quyết định…',
+  chooseStart: 'Chọn một không gian làm việc để bắt đầu', send: 'Gửi', uses: 'Dùng các ảnh chụp và bằng chứng của không gian làm việc này.', modelExternal: ' Mô hình: {name} — dữ liệu không gian làm việc được gửi tới {host}.', modelHosted: ' Mô hình: {name} (chạy trên {host}).',
+  providerNote: ' Dữ liệu không gian làm việc được gửi tới nhà cung cấp AI đã cấu hình.',
+});
+const SUGGESTED_QUESTIONS = ['q1', 'q2', 'q3', 'q4'] as const;
 
 const Insights: React.FC = () => {
   const { modal } = App.useApp();
+  const m = useMessages(MSG);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: 'welcome', role: 'assistant', content: WELCOME, timestamp: new Date() }
+    { id: 'welcome', role: 'assistant', content: translate(MSG, 'welcome'), timestamp: new Date() }
   ]);
   const location = useLocation();
   // A learning step can open this page with ?projectId=&q=: that workspace is chosen and the question filled in, not sent.
@@ -161,7 +185,7 @@ const Insights: React.FC = () => {
     setOpenNote('');
     setConversations([]);
     setHistoryStatus('loading');
-    resetConversation('Switched workspace. Ask me anything about its architecture.');
+    resetConversation(m('switched'));
   };
 
   /** Puts a saved chat back on screen; asking again continues it. */
@@ -181,7 +205,7 @@ const Insights: React.FC = () => {
       setModelNote(lastModel(stored));
       setConversationId(summary.id);
     } catch (error) {
-      if (!controller.signal.aborted) setHistoryNotice(error instanceof Error ? error.message : 'Could not open this chat.');
+      if (!controller.signal.aborted) setHistoryNotice(error instanceof Error ? error.message : m('openFailed'));
     } finally {
       if (activeRequest.current === controller) {
         activeRequest.current = null;
@@ -195,18 +219,18 @@ const Insights: React.FC = () => {
     if (!selectedProjectId) return;
     const projectId = selectedProjectId;
     modal.confirm({
-      title: `Delete the saved chat "${summary.title}"?`,
-      content: 'This cannot be undone.',
-      okText: 'Delete chat',
+      title: m('deleteTitle', { title: summary.title }),
+      content: m('cannotUndo'),
+      okText: m('deleteChat'),
       okButtonProps: { danger: true },
       onOk: async () => {
         setHistoryNotice('');
         try {
           await apiRequest(`/projects/${projectId}/chat/conversations/${summary.id}`, { method: 'DELETE' });
           setConversations(prev => prev.filter(c => c.id !== summary.id));
-          if (summary.id === conversationId) resetConversation('Chat deleted. How can I help you understand your architecture?');
+          if (summary.id === conversationId) resetConversation(m('deleted'));
         } catch (error) {
-          setHistoryNotice(error instanceof Error ? error.message : 'Could not delete this chat.');
+          setHistoryNotice(error instanceof Error ? error.message : m('deleteFailed'));
         }
       },
     });
@@ -257,7 +281,7 @@ const Insights: React.FC = () => {
       if (controller.signal.aborted) return;
       setMessages(prev => [...prev, {
         id: nextId('error'), role: 'assistant', isError: true, timestamp: new Date(),
-        content: error instanceof Error ? error.message : 'Something went wrong. Please try again.'
+        content: error instanceof Error ? error.message : m('wentWrong')
       }]);
     } finally {
       if (activeRequest.current === controller) {
@@ -289,21 +313,21 @@ const Insights: React.FC = () => {
 
         <header className="shrink-0 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)]">AI Insights</h2>
-            <p className="mt-2 text-sm text-[var(--at-muted)]">Ask about a workspace&apos;s architecture; every answer cites its evidence.</p>
+            <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)]">{m('title')}</h2>
+            <p className="mt-2 text-sm text-[var(--at-muted)]">{m('intro')}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Select aria-label="Workspace" className="min-w-56" showSearch optionFilterProp="label"
+            <Select aria-label={m('workspace')} className="min-w-56" showSearch optionFilterProp="label"
               value={selectedProjectId || undefined} onChange={handleProjectChange} loading={projectsLoading}
-              disabled={projectsLoading || noProjects} placeholder={noProjects ? 'No workspaces' : 'Choose a workspace'}
+              disabled={projectsLoading || noProjects} placeholder={noProjects ? m('noWorkspaces') : m('choose')}
               options={projects.map(p => ({ value: p.id, label: p.name }))} />
             <button type="button" onClick={() => setHistoryOpen(open => !open)} aria-expanded={historyOpen} aria-controls="chat-history" disabled={!canChat}
               className={`${pill} ${historyOpen ? 'border-[var(--at-link)]/50 bg-[var(--at-panel-2)] text-[var(--at-text)]' : 'border-[var(--at-line)] text-[var(--at-muted)] hover:text-[var(--at-text)] hover:bg-[var(--at-panel-2)]'}`}>
-              <History size={15} aria-hidden="true" />History{conversations.length > 0 ? ` (${conversations.length})` : ''}
+              <History size={15} aria-hidden="true" />{m('history')}{conversations.length > 0 ? ` (${conversations.length})` : ''}
             </button>
-            <button type="button" onClick={() => resetConversation('New chat started. How can I help you understand your architecture?')} disabled={!canChat}
+            <button type="button" onClick={() => resetConversation(m('newStarted'))} disabled={!canChat}
               className={`${pill} border-[var(--at-line)] text-[var(--at-text)] hover:bg-[var(--at-panel-2)]`}>
-              <Plus size={15} aria-hidden="true" />New chat
+              <Plus size={15} aria-hidden="true" />{m('newChat')}
             </button>
           </div>
         </header>
@@ -313,11 +337,11 @@ const Insights: React.FC = () => {
 
           {/* Saved chats */}
           {historyOpen && (
-            <aside id="chat-history" aria-label="Saved chats"
+            <aside id="chat-history" aria-label={m('saved')}
               className="absolute inset-y-0 left-0 z-20 flex w-72 max-w-full shrink-0 flex-col min-h-0 border-r border-[var(--at-line)] bg-[var(--at-solid)] md:static md:z-auto">
               <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-[var(--at-line)]">
-                <h3 className="text-sm font-semibold text-[var(--at-text)]">Saved chats</h3>
-                <button type="button" onClick={() => setHistoryOpen(false)} aria-label="Close saved chats"
+                <h3 className="text-sm font-semibold text-[var(--at-text)]">{m('saved')}</h3>
+                <button type="button" onClick={() => setHistoryOpen(false)} aria-label={m('closeSaved')}
                   className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--at-muted)] hover:bg-[var(--at-panel-2)] hover:text-[var(--at-text)]">
                   <X size={14} />
                 </button>
@@ -327,17 +351,17 @@ const Insights: React.FC = () => {
 
               <div className="flex-1 overflow-y-auto min-h-0 py-1">
                 {historyStatus === 'loading' && (
-                  <p className="px-4 py-4 text-xs text-[var(--at-muted)] flex items-center gap-2"><Loader2 size={12} className="animate-spin" /> Loading saved chats…</p>
+                  <p className="px-4 py-4 text-xs text-[var(--at-muted)] flex items-center gap-2"><Loader2 size={12} className="animate-spin" /> {m('loadingSaved')}</p>
                 )}
                 {historyStatus === 'error' && (
                   <div className="px-4 py-4 text-xs text-[var(--at-muted)] space-y-2">
-                    <p>Saved chats could not be loaded.</p>
+                    <p>{m('savedFailed')}</p>
                     <button type="button" onClick={() => { setHistoryStatus('loading'); loadHistory(selectedProjectId); }}
-                      className="rounded-full border border-[var(--at-line)] px-3 py-1.5 text-[var(--at-link)] hover:bg-[var(--at-panel-2)]">Try again</button>
+                      className="rounded-full border border-[var(--at-line)] px-3 py-1.5 text-[var(--at-link)] hover:bg-[var(--at-panel-2)]">{m('tryAgain')}</button>
                   </div>
                 )}
                 {historyStatus === 'ready' && conversations.length === 0 && (
-                  <p className="px-4 py-4 text-xs text-[var(--at-muted)] leading-relaxed">No saved chats yet. Ask a question and it appears here.</p>
+                  <p className="px-4 py-4 text-xs text-[var(--at-muted)] leading-relaxed">{m('noSaved')}</p>
                 )}
                 {historyStatus === 'ready' && conversations.length > 0 && (
                   <ul>
@@ -348,9 +372,9 @@ const Insights: React.FC = () => {
                           <button type="button" onClick={() => void openConversation(conversation)} disabled={isTyping || opening} aria-current={current ? 'true' : undefined}
                             className="flex-1 min-w-0 text-left px-3 py-2.5 disabled:opacity-60">
                             <span className="block text-sm text-[var(--at-text)] truncate">{conversation.title}</span>
-                            <span className="block mt-0.5 text-[11px] text-[var(--at-muted)]">{describeWhen(conversation.updatedAt)} · {conversation.messageCount} messages</span>
+                            <span className="block mt-0.5 text-[11px] text-[var(--at-muted)]">{describeWhen(conversation.updatedAt)} · {m('messages', { count: conversation.messageCount })}</span>
                           </button>
-                          <button type="button" onClick={() => removeConversation(conversation)} aria-label={`Delete saved chat: ${conversation.title}`}
+                          <button type="button" onClick={() => removeConversation(conversation)} aria-label={m('deleteSaved', { title: conversation.title })}
                             className="shrink-0 w-9 flex items-center justify-center rounded-lg text-[var(--at-muted)] opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-red-400">
                             <Trash2 size={14} />
                           </button>
@@ -361,7 +385,7 @@ const Insights: React.FC = () => {
                 )}
               </div>
 
-              <p className="shrink-0 px-4 py-3 border-t border-[var(--at-line)] text-[11px] text-[var(--at-muted)]">Only you can see your saved chats.</p>
+              <p className="shrink-0 px-4 py-3 border-t border-[var(--at-line)] text-[11px] text-[var(--at-muted)]">{m('onlyYou')}</p>
             </aside>
           )}
 
@@ -370,21 +394,21 @@ const Insights: React.FC = () => {
             <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 min-h-0" aria-live="polite">
               {noProjects && (
                 <div className="mx-auto max-w-xl rounded-xl border border-[var(--at-warn)]/30 bg-[var(--at-warn)]/10 p-4 text-sm text-[var(--at-warn)]">
-                  You have no workspaces yet. <Link to="/projects" className="underline">Add a workspace</Link> and let it finish mining before asking questions.
+                  {m.rich('noProjects', { link: <Link key="l" to="/projects" className="underline">{m('addWorkspace')}</Link> })}
                 </div>
               )}
-              {fresh && !canChat && !noProjects && <div className="flex h-full items-center justify-center"><Loader2 size={20} className="animate-spin text-[var(--at-link)]" aria-label="Loading workspaces" /></div>}
+              {fresh && !canChat && !noProjects && <div className="flex h-full items-center justify-center"><Loader2 size={20} className="animate-spin text-[var(--at-link)]" aria-label={m('loadingWorkspaces')} /></div>}
 
               {fresh && canChat ? (
                 <div className="flex min-h-full flex-col items-center justify-center text-center">
                   <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--at-panel-2)] text-[var(--at-link)]"><Sparkles size={20} aria-hidden="true" /></span>
-                  <h3 className="mt-4 text-xl font-semibold text-[var(--at-text)]">What do you want to know about {workspaceName ?? 'this workspace'}?</h3>
-                  <p className="mt-2 max-w-md text-sm text-[var(--at-muted)]">Answers come only from its mined snapshots and evidence; each claim is labelled FACT, INFERENCE or UNKNOWN.</p>
+                  <h3 className="mt-4 text-xl font-semibold text-[var(--at-text)]">{m('whatKnow', { name: workspaceName ?? m('thisWorkspace') })}</h3>
+                  <p className="mt-2 max-w-md text-sm text-[var(--at-muted)]">{m('answersFrom')}</p>
                   <div className="mt-6 grid w-full max-w-2xl grid-cols-1 gap-2 sm:grid-cols-2">
                     {SUGGESTED_QUESTIONS.map(question => (
-                      <button key={question} type="button" onClick={() => void handleSend(question)} disabled={isTyping || opening}
+                      <button key={question} type="button" onClick={() => void handleSend(m(question))} disabled={isTyping || opening}
                         className="rounded-xl border border-[var(--at-line)] px-4 py-3 text-left text-sm text-[var(--at-text)] transition-colors hover:border-[var(--at-link)]/40 hover:bg-[var(--at-panel-2)]">
-                        {question}
+                        {m(question)}
                       </button>
                     ))}
                   </div>
@@ -413,7 +437,7 @@ const Insights: React.FC = () => {
                             <p className="mt-1 px-1 text-[11px] text-[var(--at-muted)]">
                               {time(message.timestamp)}{labelCheckNote(message.labelCheck) ? ` · ${labelCheckNote(message.labelCheck)}` : ''}
                             </p>
-                            {message.unsaved && <p role="status" className="px-1 text-[11px] text-[var(--at-warn)]">This answer could not be saved to your history.</p>}
+                            {message.unsaved && <p role="status" className="px-1 text-[11px] text-[var(--at-warn)]">{m('unsaved')}</p>}
                           </div>
                         </motion.div>
                       );
@@ -424,7 +448,7 @@ const Insights: React.FC = () => {
                     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3">
                       <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--at-panel-2)]"><Sparkles size={13} className="text-[var(--at-link)]" /></span>
                       <div className="flex items-center gap-2 rounded-2xl rounded-tl-md border border-[var(--at-line)] bg-[var(--at-panel)] px-4 py-3 text-sm text-[var(--at-muted)]">
-                        <Loader2 size={14} className="animate-spin text-[var(--at-link)]" /> Reading the evidence…
+                        <Loader2 size={14} className="animate-spin text-[var(--at-link)]" /> {m('reading')}
                       </div>
                     </motion.div>
                   )}
@@ -444,22 +468,22 @@ const Insights: React.FC = () => {
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyDown={handleKeyDown}
                     maxLength={4000}
-                    aria-label="Ask about this workspace's architecture"
-                    placeholder={canChat ? 'Ask about changes, coupling or decisions…' : 'Choose a workspace to start'}
+                    aria-label={m('askLabel')}
+                    placeholder={canChat ? m('askPlaceholder') : m('chooseStart')}
                     className="h-12 min-w-0 flex-1 bg-transparent text-sm text-[var(--at-text)] outline-none focus-visible:outline-none placeholder:text-[var(--at-muted)]"
                     disabled={isTyping || opening || !canChat}
                   />
-                  <button type="button" onClick={() => void handleSend(inputValue)} aria-label="Send"
+                  <button type="button" onClick={() => void handleSend(inputValue)} aria-label={m('send')}
                     disabled={!inputValue.trim() || isTyping || opening || !canChat}
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--at-fill)] text-[var(--at-on-fill)] transition-colors hover:bg-[var(--at-fill-hover)]">
                     <Send size={15} aria-hidden="true" />
                   </button>
                 </div>
                 <p className="mt-2 text-center text-[11px] text-[var(--at-muted)]">
-                  Uses this workspace&apos;s snapshots and evidence.
+                  {m('uses')}
                   {modelNote
-                    ? ` Model: ${modelNote.name}${modelNote.external ? ` — workspace data is sent to ${modelNote.host}.` : ` (hosted on ${modelNote.host}).`}`
-                    : ' Workspace data is sent to the configured AI provider.'}
+                    ? m(modelNote.external ? 'modelExternal' : 'modelHosted', { name: modelNote.name, host: modelNote.host })
+                    : m('providerNote')}
                 </p>
               </div>
             </div>

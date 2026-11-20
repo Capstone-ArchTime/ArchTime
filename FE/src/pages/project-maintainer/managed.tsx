@@ -7,13 +7,17 @@ import { getManagedProjects, getReadableProjects, type ProjectSummary } from '@/
 import { describeAccessError } from './managed-access';
 import { useAuth } from '@/auth/auth-context';
 import { rememberMaintains } from '@/hooks/useMaintainsWorkspaces';
+import { message as translate, useMessages } from '@/i18n/define';
+import { MAINT } from './messages';
 
 export function NoManagedWorkspaces() {
-  return <Empty description={<span>You do not maintain any workspace yet. <Link to="/projects">Create a workspace</Link>, or ask a workspace owner to make you a maintainer.</span>} />;
+  const m = useMessages(MAINT);
+  return <Empty description={<span>{m.rich('noManaged', { link: <Link key="l" to="/projects">{m('createWorkspace')}</Link> })}</span>} />;
 }
 
 function NoWorkspaces() {
-  return <Empty description={<span>You are not in any workspace yet. <Link to="/projects">Create a workspace</Link>, or ask a workspace owner to invite you.</span>} />;
+  const m = useMessages(MAINT);
+  return <Empty description={<span>{m.rich('noWorkspaces', { link: <Link key="l" to="/projects">{m('createWorkspace')}</Link> })}</span>} />;
 }
 
 type LoadState = { status: 'loading' | 'ready' | 'error'; projects: ProjectSummary[]; managed: ReadonlySet<string>; error?: string };
@@ -28,6 +32,7 @@ export function ManagedWorkspaces({ title, scope = 'managed', children }: { titl
   const [state, setState] = useState<LoadState>({ status: 'loading', projects: [], managed: nothing });
   const [attempt, setAttempt] = useState(0);
   const userId = useAuth().user?.id;
+  const m = useMessages(MAINT);
   useEffect(() => {
     const controller = new AbortController();
     Promise.all([getManagedProjects(controller.signal), scope === 'readable' ? getReadableProjects(controller.signal) : null])
@@ -36,15 +41,15 @@ export function ManagedWorkspaces({ title, scope = 'managed', children }: { titl
         if (userId) rememberMaintains(userId, managed.length > 0);
         setState({ status: 'ready', projects: readable ?? managed, managed: new Set(managed.map(p => p.id)) });
       })
-      .catch(error => { if (!controller.signal.aborted) setState({ status: 'error', projects: [], managed: nothing, error: describeAccessError(error, 'Your workspaces could not be loaded.') }); });
+      .catch(error => { if (!controller.signal.aborted) setState({ status: 'error', projects: [], managed: nothing, error: describeAccessError(error, translate(MAINT, 'loadFailed')) }); });
     return () => controller.abort();
   }, [attempt, userId, scope]);
 
   if (state.status === 'ready' && state.projects.length) return <>{children(state.projects, state.managed)}</>;
   return <DashboardLayout><div className="max-w-[1100px] mx-auto space-y-6">
     <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)]">{title}</h2>
-    {state.status === 'loading' && <div className="p-12 text-center" role="status"><Spin /><p className="mt-3 text-[var(--at-muted)]">Loading your workspaces…</p></div>}
-    {state.status === 'error' && <Alert type="error" showIcon title={state.error} action={<Button size="small" onClick={() => { setState({ status: 'loading', projects: [], managed: nothing }); setAttempt(n => n + 1); }}>Retry</Button>} />}
+    {state.status === 'loading' && <div className="p-12 text-center" role="status"><Spin /><p className="mt-3 text-[var(--at-muted)]">{m('loading')}</p></div>}
+    {state.status === 'error' && <Alert type="error" showIcon title={state.error} action={<Button size="small" onClick={() => { setState({ status: 'loading', projects: [], managed: nothing }); setAttempt(n => n + 1); }}>{m('retry')}</Button>} />}
     {state.status === 'ready' && (scope === 'readable' ? <NoWorkspaces /> : <NoManagedWorkspaces />)}
   </div></DashboardLayout>;
 }

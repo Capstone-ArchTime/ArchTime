@@ -1,4 +1,5 @@
 import { apiDownload, apiRequest } from '@/api/client';
+import { getLanguage } from '@/i18n';
 import { fallbackReportFileName, parseReport, parseReportList } from './report-view';
 import type { ReportView } from './report-view';
 
@@ -297,6 +298,7 @@ export async function generateReport(projectId: string, data: { title?: string }
 
 /** The report as a PDF file, with the name the server gave it. */
 export async function downloadReportPdf(projectId: string, report: ReportView, signal?: AbortSignal): Promise<{ blob: Blob; filename: string }> {
-  const { blob, filename } = await apiDownload(`${reportsOf(projectId)}/${encodeURIComponent(report.id)}/pdf`, { signal });
+  // The PDF is written in the language the app is shown in.
+  const { blob, filename } = await apiDownload(`${reportsOf(projectId)}/${encodeURIComponent(report.id)}/pdf?lang=${getLanguage()}`, { signal });
   return { blob, filename: filename ?? fallbackReportFileName(report) };
 }

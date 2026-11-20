@@ -46,9 +46,9 @@ export class AuthController {
   updateProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!this.updateProfileUC) throw new Error("Profile updates are not configured.");
-      const { name, username } = req.body ?? {};
+      const { name, username, language } = req.body ?? {};
       const userId = req.user!.userId;
-      await this.updateProfileUC.execute({ userId, name, username });
+      await this.updateProfileUC.execute({ userId, name, username, language });
       // Answer with the same allow-listed shape as GET /auth/me, so the token version and other internals never go out.
       const user = await this.getMeUC.execute({ userId });
       sendSuccess(res, { user }, { message: "Profile updated." });
@@ -108,11 +108,12 @@ export class AuthController {
 
   register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { name, email, password, confirmPassword } = req.body as {
+      const { name, email, password, confirmPassword, language } = req.body as {
         name?: string;
         email?: string;
         password?: string;
         confirmPassword?: string;
+        language?: unknown;
       };
 
       if (!isText(name) || !isText(email) || !isText(password) || !isText(confirmPassword)) {
@@ -126,7 +127,7 @@ export class AuthController {
       }
 
       validatePassword(password);
-      const result = await this.registerUC.execute({ name, email, password });
+      const result = await this.registerUC.execute({ name, email, password, language });
       sendSuccess(res, result, {
         statusCode: 201,
         message: "Account created. Please check your email for OTP.",

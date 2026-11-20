@@ -29,7 +29,7 @@ export class ResendOtpUseCase {
       await this.otpRepo.create(email, this.otpCodes.hash(email, code), expiresAt);
       // Not awaited: waiting for the mail server would make a real account answer slower than an unknown address.
       void (async () => {
-        try { await this.emailService.sendOtp(email, code); }
+        try { await this.emailService.sendOtp(email, code, user.language); }
         catch (err) { console.error("Verification email delivery failed:", err); }
       })();
     }

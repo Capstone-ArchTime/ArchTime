@@ -4,6 +4,29 @@ import { AlertTriangle, ArrowRight, GitMerge } from 'lucide-react';
 import { CHANGE_KINDS, CHANGE_LABELS, changeRows, hasStructuralChange, linkStrength } from '@/features/component-matching';
 import type { ChangeKind, ChangeRow, ComponentMatchResult, MatchedComponent } from '@/features/component-matching';
 import { serializeHash } from '@/features/architecture/url-state';
+import { defineMessages, useMessages } from '@/i18n/define';
+
+const MSG = defineMessages({
+  split: 'Split', merged: 'Merged', restructured: 'Restructured', added: 'Added', removed: 'Removed', renamed: 'Renamed', kept: 'Kept',
+  files: '({count} files)', files_one: '(1 file)', showFewer: 'Show fewer', showAll: 'Show all {n} files', became: 'became',
+  evidence: 'Evidence: {count} shared files', evidence_one: 'Evidence: 1 shared file', title: 'Component Matching',
+  intro: 'Which component became which. Components are matched through the files they share, not by name, so a component renamed by a new grouping is still recognised.',
+  matching: 'Matching components…', openBase: 'Open base revision in workspace', openTarget: 'Open target revision in workspace', label: 'Component matching',
+  swapped: 'The target revision is older than the base, so it is shown as "before".', stale: 'The components of {list} were grouped from an older analysis; regenerate them in the workspace for an exact match.', and: ' and ',
+  kept_files: '{n} files kept', moved: '{n} moved', noStructural: 'No structural change: every component continues with the same files.',
+  hideKept: 'Hide unchanged components', showKept: 'Show {count} unchanged components', showKept_one: 'Show 1 unchanged component',
+  moves: '{n} files treated as moved (same unique file name in a new folder)',
+}, {
+  split: 'Tách', merged: 'Gộp', restructured: 'Tái cấu trúc', added: 'Thêm', removed: 'Xoá', renamed: 'Đổi tên', kept: 'Giữ nguyên',
+  files: '({count} tệp)', showFewer: 'Thu gọn', showAll: 'Hiện cả {n} tệp', became: 'trở thành',
+  evidence: 'Bằng chứng: {count} tệp dùng chung', title: 'Đối chiếu thành phần',
+  intro: 'Thành phần nào trở thành thành phần nào. Thành phần được đối chiếu qua các tệp dùng chung, không theo tên, nên thành phần bị đổi tên do cách nhóm mới vẫn được nhận ra.',
+  matching: 'Đang đối chiếu thành phần…', openBase: 'Mở phiên bản gốc trong không gian làm việc', openTarget: 'Mở phiên bản đích trong không gian làm việc', label: 'Đối chiếu thành phần',
+  swapped: 'Phiên bản đích cũ hơn bản gốc, nên được hiển thị là "trước".', stale: 'Các thành phần của {list} được nhóm từ một lần phân tích cũ hơn; hãy tạo lại trong không gian làm việc để đối chiếu chính xác.', and: ' và ',
+  kept_files: '{n} tệp giữ nguyên', moved: '{n} chuyển chỗ', noStructural: 'Không có thay đổi cấu trúc: mọi thành phần vẫn giữ các tệp như cũ.',
+  hideKept: 'Ẩn các thành phần không đổi', showKept: 'Hiện {count} thành phần không đổi',
+  moves: '{n} tệp được coi là chuyển chỗ (cùng tên tệp duy nhất ở thư mục mới)',
+});
 
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
 
@@ -15,20 +38,22 @@ const FILES_SHOWN = 20;
 
 function Badge({ kind }: { kind: ChangeKind }) {
   const color = COLORS[kind];
+  const m = useMessages(MSG);
   return (
     <span className="px-2 py-0.5 text-[11px] font-mono font-bold uppercase tracking-widest border" style={{ ...mono, color, borderColor: `color-mix(in srgb, ${color} 20%, transparent)`, background: `color-mix(in srgb, ${color} 10%, transparent)` }}>
-      {CHANGE_LABELS[kind]}
+      {m(kind) || CHANGE_LABELS[kind]}
     </span>
   );
 }
 
 function Names({ list }: { list: MatchedComponent[] }) {
+  const m = useMessages(MSG);
   if (!list.length) return <span className="text-[var(--at-muted)]">—</span>;
   return (
     <span className="inline-flex flex-wrap gap-x-2 gap-y-1">
       {list.map((c, i) => (
         <span key={c.id} className="text-[var(--at-text)]">
-          {c.name} <span className="text-[10px] text-[var(--at-muted)] font-mono" style={mono}>({c.files} files)</span>
+          {c.name} <span className="text-[10px] text-[var(--at-muted)] font-mono" style={mono}>{m('files', { count: c.files })}</span>
           {i < list.length - 1 && <span className="text-[var(--at-muted)]">,</span>}
         </span>
       ))}
@@ -38,6 +63,7 @@ function Names({ list }: { list: MatchedComponent[] }) {
 
 function Files({ files }: { files: string[] }) {
   const [all, setAll] = useState(false);
+  const m = useMessages(MSG);
   const shown = all ? files : files.slice(0, FILES_SHOWN);
   return (
     <>
@@ -46,7 +72,7 @@ function Files({ files }: { files: string[] }) {
       </ul>
       {files.length > FILES_SHOWN && (
         <button type="button" onClick={() => setAll(v => !v)} className="mt-1 text-[11px] text-[var(--at-link)] hover:underline">
-          {all ? 'Show fewer' : `Show all ${files.length} files`}
+          {all ? m('showFewer') : m('showAll', { n: files.length })}
         </button>
       )}
     </>
@@ -55,18 +81,19 @@ function Files({ files }: { files: string[] }) {
 
 function Row({ row }: { row: ChangeRow }) {
   const shared = row.links.reduce((n, l) => n + l.shared.length, 0);
+  const m = useMessages(MSG);
   return (
     <div className="p-5 hover:bg-[var(--at-panel-2)]/50 transition-colors">
       <div className="flex items-center gap-2 mb-2"><Badge kind={row.kind} /></div>
       <div className="text-sm font-bold flex flex-wrap items-center gap-2 mb-1">
         <Names list={row.before} />
-        <ArrowRight size={14} className="text-[var(--at-link)] shrink-0" aria-label="became" />
+        <ArrowRight size={14} className="text-[var(--at-link)] shrink-0" aria-label={m('became')} />
         <Names list={row.after} />
       </div>
       <p className="text-xs text-[var(--at-muted)]">{row.explanation}</p>
       {row.links.length > 0 && (
         <details className="mt-3 group">
-          <summary className="cursor-pointer text-xs text-[var(--at-link)] select-none">Evidence: {shared} shared {shared === 1 ? 'file' : 'files'}</summary>
+          <summary className="cursor-pointer text-xs text-[var(--at-link)] select-none">{m('evidence', { count: shared })}</summary>
           <div className="mt-2 space-y-3 border-l border-[var(--at-line)] pl-3">
             {row.links.map(l => (
               <div key={`${l.before}>${l.after}`}>
@@ -93,22 +120,22 @@ export default function ComponentMatchPanel({ projectId, baseId, targetId, resul
   loading: boolean;
 }) {
   const [showKept, setShowKept] = useState(false);
+  const m = useMessages(MSG);
 
   const header = (
     <div className="mb-4">
       <h3 className="text-sm font-bold text-[var(--at-text)] tracking-wide uppercase flex items-center gap-2">
         <GitMerge size={16} className="text-[var(--at-link)]" />
-        Component Matching
+        {m('title')}
       </h3>
       <p className="text-xs text-[var(--at-muted)] mt-1 max-w-3xl">
-        Which component became which. Components are matched through the files they share, not by name, so a component
-        renamed by a new grouping is still recognised.
+        {m('intro')}
       </p>
     </div>
   );
 
   if (loading) {
-    return <section className="shrink-0">{header}<div className="bg-[var(--at-panel)] border border-[var(--at-line)] p-5 text-xs text-[var(--at-muted)]">Matching components…</div></section>;
+    return <section className="shrink-0">{header}<div className="bg-[var(--at-panel)] border border-[var(--at-line)] p-5 text-xs text-[var(--at-muted)]">{m('matching')}</div></section>;
   }
   if (error) {
     return (
@@ -117,8 +144,8 @@ export default function ComponentMatchPanel({ projectId, baseId, targetId, resul
         <div className="bg-[var(--at-panel)] border border-[var(--at-warn)]/30 p-5 text-xs text-[var(--at-text)] space-y-3" role="status">
           <div className="flex items-start gap-2"><AlertTriangle size={14} className="text-[var(--at-warn)] shrink-0 mt-0.5" /><span>{error}</span></div>
           <div className="flex flex-wrap gap-4">
-            <Link className="text-[var(--at-link)] hover:underline" to={workspaceLink(projectId, baseId)}>Open base revision in workspace</Link>
-            <Link className="text-[var(--at-link)] hover:underline" to={workspaceLink(projectId, targetId)}>Open target revision in workspace</Link>
+            <Link className="text-[var(--at-link)] hover:underline" to={workspaceLink(projectId, baseId)}>{m('openBase')}</Link>
+            <Link className="text-[var(--at-link)] hover:underline" to={workspaceLink(projectId, targetId)}>{m('openTarget')}</Link>
           </div>
         </div>
       </section>
@@ -134,13 +161,13 @@ export default function ComponentMatchPanel({ projectId, baseId, targetId, resul
   const stale = [result.before, result.after].filter(s => s.stale).map(s => s.snapshot.hash);
 
   return (
-    <section className="shrink-0" aria-label="Component matching">
+    <section className="shrink-0" aria-label={m('label')}>
       {header}
 
       {(swapped || stale.length > 0) && (
         <div className="mb-3 space-y-1 text-xs text-[var(--at-warn)]">
-          {swapped && <p>The target revision is older than the base, so it is shown as "before".</p>}
-          {stale.length > 0 && <p>The components of {stale.join(' and ')} were grouped from an older analysis; regenerate them in the workspace for an exact match.</p>}
+          {swapped && <p>{m('swapped')}</p>}
+          {stale.length > 0 && <p>{m('stale', { list: stale.join(m('and')) })}</p>}
         </div>
       )}
 
@@ -152,22 +179,22 @@ export default function ComponentMatchPanel({ projectId, baseId, targetId, resul
           </div>
         ))}
         <div className="flex items-center gap-3 bg-[var(--at-panel-2)] border border-[var(--at-line)] px-3 py-2 text-[11px] text-[var(--at-muted)] font-mono" style={mono}>
-          <span>{files.common} files kept</span>
-          {files.moved > 0 && <span>{files.moved} moved</span>}
+          <span>{m('kept_files', { n: files.common })}</span>
+          {files.moved > 0 && <span>{m('moved', { n: files.moved })}</span>}
           <span className="text-[var(--at-success)]">+{files.added}</span>
           <span className="text-[var(--at-danger)]">-{files.removed}</span>
         </div>
       </div>
 
       {!hasStructuralChange(summary) && (
-        <p className="mb-3 text-xs text-[var(--at-muted)]">No structural change: every component continues with the same files.</p>
+        <p className="mb-3 text-xs text-[var(--at-muted)]">{m('noStructural')}</p>
       )}
 
       <div className="bg-[var(--at-panel)] border border-[var(--at-line)] overflow-hidden divide-y divide-[var(--at-line)]">
         {visible.map(r => <Row key={r.key} row={r} />)}
         {kept > 0 && (
           <button type="button" onClick={() => setShowKept(v => !v)} className="w-full p-3 text-xs text-[var(--at-link)] hover:bg-[var(--at-panel-2)]/50 text-left">
-            {showKept ? 'Hide unchanged components' : `Show ${kept} unchanged ${kept === 1 ? 'component' : 'components'}`}
+            {showKept ? m('hideKept') : m('showKept', { count: kept })}
           </button>
         )}
       </div>
@@ -175,10 +202,10 @@ export default function ComponentMatchPanel({ projectId, baseId, targetId, resul
       {result.matching.moves.length > 0 && (
         <details className="mt-3">
           <summary className="cursor-pointer text-xs text-[var(--at-link)] select-none">
-            {result.matching.moves.length} files treated as moved (same unique file name in a new folder)
+            {m('moves', { n: result.matching.moves.length })}
           </summary>
           <ul className="mt-2 space-y-0.5 text-[11px] font-mono text-[var(--at-muted)] break-all" style={mono}>
-            {result.matching.moves.map(m => <li key={m.from}>{m.from} → {m.to}</li>)}
+            {result.matching.moves.map(mv => <li key={mv.from}>{mv.from} → {mv.to}</li>)}
           </ul>
         </details>
       )}
