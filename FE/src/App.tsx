@@ -1,6 +1,8 @@
 import { lazy, Suspense, useEffect, useLayoutEffect } from 'react';
 import { App as AntApp, ConfigProvider, theme } from 'antd';
 import type { ThemeConfig } from 'antd';
+import { useLanguage } from '@/i18n';
+import { antdLocaleFor } from '@/i18n/antd-locale';
 import { StyleProvider } from '@ant-design/cssinjs';
 import { MotionConfig } from 'motion/react';
 import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, Outlet, Navigate, useLocation } from 'react-router-dom';
@@ -46,6 +48,7 @@ const LearningPath = lazy(() => import("@/pages/developer-analyst/LearningPath")
 const PathEditor = lazy(() => import("@/pages/developer-analyst/PathEditor"));
 const Profile = lazy(() => import("@/pages/Profile"));
 const MyWork = lazy(() => import("@/pages/MyWork"));
+const Settings = lazy(() => import("@/pages/Settings"));
 const ArchitectureWorkspace = lazy(() => import("@/pages/developer-analyst/ArchitectureWorkspace"));
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
@@ -103,6 +106,7 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path="/ai-usage" element={<AiUsage />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/my-work" element={<MyWork />} />
+      <Route path="/settings" element={<Settings />} />
       <Route path="/learning" element={<Learning />} />
       <Route path="/learning/manage/:projectId/new" element={<PathEditor />} />
       <Route path="/learning/manage/:projectId/:pathId" element={<PathEditor />} />
@@ -184,7 +188,9 @@ const FROST_THEME: ThemeConfig = {
 
 export default function App() {
   const uiTheme = useUiTheme();
-  return <PageErrorBoundary><StyleProvider layer><ConfigProvider theme={uiTheme === 'frost' ? FROST_THEME : APP_THEME}>
+  // antd's own texts (date pickers, tables, pagination, "OK"/"Cancel") follow the page language.
+  const language = useLanguage();
+  return <PageErrorBoundary><StyleProvider layer><ConfigProvider locale={antdLocaleFor(language)} theme={uiTheme === 'frost' ? FROST_THEME : APP_THEME}>
     <AntApp><MotionConfig reducedMotion="user"><RouterProvider router={router} /></MotionConfig></AntApp>
   </ConfigProvider></StyleProvider></PageErrorBoundary>;
 }

@@ -32,6 +32,7 @@ import type { SnapshotSummary } from '@/features/architecture/api';
 import { useCommitImpacts } from '@/features/useCommitImpacts';
 import { EVOLUTION_MARK } from '@/features/architecture/evolution';
 import type { EvolutionMark, HistoryEntry } from '@/features/architecture/evolution';
+import { readDiagramTheme } from '@/features/display-prefs';
 
 const isTyping = (target: EventTarget | null) => target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 /** What "Show in diagram" highlights when an issue involves several components; valid only for the URL it was made at. */
@@ -71,7 +72,8 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
   mappingVersion?: string;
 }) {
   const { message } = App.useApp();
-  const [themeName, setThemeName] = useState<'dark' | 'light'>('dark');
+  // Starts in the colours chosen in Settings; the toolbar (or T) switches for this visit only.
+  const [themeName, setThemeName] = useState<'dark' | 'light'>(readDiagramTheme);
   const [weights, setWeights] = useState(false);
   const [hoverEdge, setHoverEdge] = useState<string | undefined>();
   const [helpOpen, setHelpOpen] = useState(false);

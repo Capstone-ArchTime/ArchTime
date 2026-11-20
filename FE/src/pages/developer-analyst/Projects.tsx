@@ -27,8 +27,11 @@ import { Link } from 'react-router-dom';
 import { byRecent, getWorkspaces, hasMinedHistory, nextStep, STATUS_LABELS, type Workspace } from '@/features/workspace-summary';
 import { buildRegistration, listCredentials, listOrganizations, suspensionNotice, workspaceSpaces } from '@/features/organizations-api';
 import type { Credential, Organization } from '@/features/organizations-api';
+import { translateOr, useT } from '@/i18n';
+import { formatNumber } from '@/i18n/format';
 
 const Projects: React.FC = () => {
+  const t = useT();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const closeModal = useCallback(() => setIsModalOpen(false), []);
   const [miningProject, setMiningProject] = useState<{ id: string; name: string } | null>(null);
@@ -114,7 +117,7 @@ const Projects: React.FC = () => {
         // A failed scan is not fatal: Manage mining offers it again.
         await apiRequest(`/projects/${projectId}/scan`, { method: 'POST' }).catch(() => undefined);
 
-        message.success('Repository registered. Choose which part of its history to mine.');
+        message.success(t('ws.registered'));
         setMiningProject({ id: projectId, name: data.data.project.name ?? projectName });
         fetchProjects();
         closeModal();
@@ -127,7 +130,7 @@ const Projects: React.FC = () => {
         setAccess('credential');
       }
     } catch (error) {
-      message.error(error instanceof Error ? error.message : 'Failed to register repository');
+      message.error(error instanceof Error ? error.message : t('ws.registerFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -141,12 +144,12 @@ const Projects: React.FC = () => {
     setDeleteBusy(true);
     try {
       await apiRequest(`/projects/${encodeURIComponent(deleting.id)}`, { method: 'DELETE' });
-      message.success(`Workspace "${deleting.name}" deleted`);
+      message.success(t('ws.deleted', { name: deleting.name }));
       setProjectsList(prev => prev?.filter(p => p.id !== deleting.id) ?? prev);
       setDeleting(null);
       fetchProjects();
     } catch (error) {
-      message.error(error instanceof Error ? error.message : 'Failed to delete workspace');
+      message.error(error instanceof Error ? error.message : t('ws.deleteFailed'));
     } finally {
       setDeleteBusy(false);
     }
@@ -161,13 +164,13 @@ const Projects: React.FC = () => {
         
         {/* HEADER */}
         <div>
-          <PageHeader title="Workspaces" summary="Your repositories and their architecture history." actions={
+          <PageHeader title={t('ws.title')} summary={t('ws.summary')} actions={
             <button
               onClick={() => setIsModalOpen(true)}
               className="shrink-0 h-10 px-5 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] font-semibold text-sm transition-colors flex items-center gap-2"
             >
               <Plus size={16} />
-              New workspace
+              {t('ws.new')}
             </button>
           } />
         </div>
@@ -181,23 +184,23 @@ const Projects: React.FC = () => {
         {loadError && (
           <div role="alert" className="border border-[var(--at-danger)]/40 bg-[var(--at-danger)]/5 p-4 text-sm text-[var(--at-danger-text)] flex flex-wrap items-center justify-between gap-3">
             <span>{loadError}</span>
-            <button type="button" onClick={fetchProjects} className="h-8 px-3 border border-[var(--at-danger)]/40 text-xs font-semibold">Try again</button>
+            <button type="button" onClick={fetchProjects} className="h-8 px-3 border border-[var(--at-danger)]/40 text-xs font-semibold">{t('common.tryAgain')}</button>
           </div>
         )}
 
         {projectsList === null ? (
-          !loadError && <div className="flex items-center justify-center p-12"><Loader2 size={24} className="animate-spin text-[var(--at-link)]" aria-label="Loading workspaces" /></div>
+          !loadError && <div className="flex items-center justify-center p-12"><Loader2 size={24} className="animate-spin text-[var(--at-link)]" aria-label={t('ws.loading')} /></div>
         ) : projectsList.length === 0 ? (
           <section aria-labelledby="first-workspace-title" className="bg-[var(--at-panel)] border border-dashed border-[var(--at-line)] p-10 text-center">
             <FolderGit2 size={28} className="text-[var(--at-link)] mx-auto mb-4" aria-hidden="true" />
-            <h3 id="first-workspace-title" className="text-lg font-bold text-[var(--at-text)] mb-2">Create your first workspace</h3>
-            <p className="text-sm text-[var(--at-muted)] max-w-md mx-auto mb-6">A workspace connects one Git repository. After creating it you scan its history, mine commits and group files into components.</p>
+            <h3 id="first-workspace-title" className="text-lg font-bold text-[var(--at-text)] mb-2">{t('ws.firstTitle')}</h3>
+            <p className="text-sm text-[var(--at-muted)] max-w-md mx-auto mb-6">{t('ws.firstBody')}</p>
             <div className="flex flex-wrap justify-center gap-3">
               <button type="button" onClick={() => setIsModalOpen(true)} className="h-10 px-5 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] font-bold text-xs flex items-center gap-2">
-                <Plus size={16} aria-hidden="true" /> New workspace
+                <Plus size={16} aria-hidden="true" /> {t('ws.new')}
               </button>
               <Link to="/workspace/sample/shophub" className="h-10 px-5 bg-[var(--at-panel-2)] hover:bg-[var(--at-line)] border border-[var(--at-line)] text-[var(--at-text)] text-xs font-medium flex items-center">
-                Explore a sample workspace
+                {t('ws.exploreSample')}
               </Link>
             </div>
           </section>
@@ -205,12 +208,12 @@ const Projects: React.FC = () => {
           <>
             {/* PROJECT LIST: the totals in one line next to the search (the Dashboard shows them as tiles). */}
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <input aria-label="Search workspaces" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search workspaces…" className="h-11 w-full max-w-md px-4 border border-[var(--at-line)] bg-[var(--at-panel)] text-sm" />
+              <input aria-label={t('ws.search')} value={search} onChange={event => setSearch(event.target.value)} placeholder={t('ws.searchPlaceholder')} className="h-11 w-full max-w-md px-4 border border-[var(--at-line)] bg-[var(--at-panel)] text-sm" />
               <p className="text-sm text-[var(--at-muted)]">
-                <span className="text-[var(--at-text)] font-semibold">{projectsList.length}</span> workspaces · <span className="text-[var(--at-text)] font-semibold">{projectsList.filter(hasMinedHistory).length}</span> mined · <span className="text-[var(--at-text)] font-semibold">{projectsList.reduce((sum, p) => sum + (p.totalCommits ?? 0), 0)}</span> commits found
+                {t('ws.totals', { workspaces: formatNumber(projectsList.length), mined: formatNumber(projectsList.filter(hasMinedHistory).length), commits: formatNumber(projectsList.reduce((sum, p) => sum + (p.totalCommits ?? 0), 0)) })}
               </p>
             </div>
-            {!filteredProjects.length && <p role="status" className="text-[var(--at-muted)] text-sm">No workspaces match your search.</p>}
+            {!filteredProjects.length && <p role="status" className="text-[var(--at-muted)] text-sm">{t('ws.noMatch')}</p>}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {pagination.items.map((project) => {
                 const step = nextStep(project);
@@ -219,14 +222,14 @@ const Projects: React.FC = () => {
                     <div className="p-6 flex-1 flex flex-col">
                       <div className="flex items-start justify-between mb-2 gap-2">
                         <h3 className="text-[var(--at-text)] font-bold text-lg tracking-tight break-words">
-                          <Link to={`/project?projectId=${encodeURIComponent(project.id)}`} title="Workspace details" className="hover:text-[var(--at-link)] transition-colors">{project.name}</Link>
+                          <Link to={`/project?projectId=${encodeURIComponent(project.id)}`} title={t('ws.details')} className="hover:text-[var(--at-link)] transition-colors">{project.name}</Link>
                         </h3>
                         {project.role === 'owner' && project.personalPublic && (
                           <button
                             onClick={() => setViewerProject({ id: project.id, name: project.name })}
                             className="text-[var(--at-muted)] hover:text-[var(--at-link)] transition-colors p-1 ml-auto"
-                            title="Viewer settings"
-                            aria-label={`Viewer settings of ${project.name}`}
+                            title={t('ws.viewerSettings')}
+                            aria-label={t('ws.viewerSettingsOf', { name: project.name })}
                           >
                             <Eye size={16} />
                           </button>
@@ -235,8 +238,8 @@ const Projects: React.FC = () => {
                           <button
                             onClick={() => setTransferProject({ id: project.id, name: project.name })}
                             className={`text-[var(--at-muted)] hover:text-[var(--at-link)] transition-colors p-1 ${project.personalPublic ? '' : 'ml-auto'}`}
-                            title="Move into an organization"
-                            aria-label={`Move ${project.name} into an organization`}
+                            title={t('ws.move')}
+                            aria-label={t('ws.moveOf', { name: project.name })}
                           >
                             <Building2 size={16} />
                           </button>
@@ -245,8 +248,8 @@ const Projects: React.FC = () => {
                           <button
                             onClick={() => setDeleting({ id: project.id, name: project.name })}
                             className="text-[var(--at-muted)] hover:text-[var(--at-danger)] transition-colors p-1"
-                            title="Delete workspace"
-                            aria-label={`Delete ${project.name}`}
+                            title={t('ws.delete')}
+                            aria-label={t('ws.deleteOf', { name: project.name })}
                           >
                             <Trash2 size={16} />
                           </button>
@@ -254,29 +257,29 @@ const Projects: React.FC = () => {
                       </div>
 
                       <p className="text-sm text-[var(--at-muted)]">
-                        <span className="text-[var(--at-text)]">{STATUS_LABELS[project.status]}</span>
-                        {' · '}{project.totalCommits == null ? 'not scanned' : `${project.totalCommits} commits`}
-                        {!project.canMaintain && <span title="Only its maintainers can mine it or define its architecture with AI." className="ml-2 rounded-full border border-[var(--at-line)] px-2 py-0.5 text-[11px]">Read only</span>}
+                        <span className="text-[var(--at-text)]">{translateOr(`status.${project.status}`, STATUS_LABELS[project.status])}</span>
+                        {' · '}{project.totalCommits == null ? t('ws.notScanned') : t('ws.commits', { count: project.totalCommits })}
+                        {!project.canMaintain && <span title={t('ws.readOnlyHelp')} className="ml-2 rounded-full border border-[var(--at-line)] px-2 py-0.5 text-[11px]">{t('ws.readOnly')}</span>}
                       </p>
-                      <p className="mt-3 mb-6 flex-1 text-xs leading-relaxed text-[var(--at-muted)] line-clamp-2">{step.hint}</p>
+                      <p className="mt-3 mb-6 flex-1 text-xs leading-relaxed text-[var(--at-muted)] line-clamp-2">{translateOr(`step.${step.id}.hint`, step.hint, { count: project.totalCommits ?? 0 })}</p>
 
                       <div className="mt-auto flex gap-2">
                         {/* Opens the workspace's overview; the full-screen map is one click further (its Architecture tab). */}
                         <Link
                           to={`/project?projectId=${encodeURIComponent(project.id)}`}
-                          aria-label={`Open ${project.name}`}
+                          aria-label={t('ws.openOf', { name: project.name })}
                           className="flex-1 h-10 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] font-semibold text-sm flex items-center justify-center gap-2"
                         >
-                          Open <ArrowRight size={14} aria-hidden="true" />
+                          {t('ws.open')} <ArrowRight size={14} aria-hidden="true" />
                         </Link>
                         {/* Scanning and mining are maintainer work; the server refuses them to members who only read. */}
                         {project.canMaintain && <button
                           type="button"
                           onClick={() => setMiningProject({ id: project.id, name: project.name })}
-                          aria-label={`Manage mining of ${project.name}`}
+                          aria-label={t('ws.miningOf', { name: project.name })}
                           className="h-10 px-4 rounded-full bg-[var(--at-panel-2)] hover:bg-[var(--at-line)] border border-[var(--at-line)] text-[var(--at-text)] text-sm flex items-center justify-center gap-2"
                         >
-                          <Activity size={14} aria-hidden="true" /> Mining
+                          <Activity size={14} aria-hidden="true" /> {t('ws.mining')}
                         </button>}
                       </div>
                     </div>
@@ -327,11 +330,11 @@ const Projects: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-[var(--at-accent)] shadow-[0_0_5px_var(--at-glow)]"></div>
                   <h2 id="create-project-title" className="text-[var(--at-text)] font-bold tracking-tight uppercase text-sm font-mono tracking-widest"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Create Workspace</h2>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t('ws.create.title')}</h2>
                 </div>
                 <button
                   onClick={closeModal}
-                  aria-label="Close dialog"
+                  aria-label={t('ws.create.closeDialog')}
                   className="text-[var(--at-muted)] hover:text-[var(--at-text)] transition-colors"
                 >
                   <X size={20} />
@@ -340,36 +343,36 @@ const Projects: React.FC = () => {
 
               <div className="p-6 space-y-6">
                 <p role="status" className="text-sm text-[var(--at-muted)]">
-                  Connect a Git repository to analyze its architecture evolution. Public and private repositories are supported.
+                  {t('ws.create.intro')}
                 </p>
                 <div className="space-y-1.5">
                   <label htmlFor="project-name" className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider block"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Workspace Name</label>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t('ws.create.name')}</label>
                   <input
                     id="project-name"
                     type="text"
                     value={projectName}
                     onChange={(e) => setProjectName(e.target.value)}
-                    placeholder="e.g. Identity Service"
+                    placeholder={t('ws.create.namePlaceholder')}
                     className="w-full h-10 bg-[var(--at-panel-2)] border border-[var(--at-line)] px-3 text-sm text-[var(--at-text)] placeholder:text-[var(--at-muted)] focus:outline-none focus:border-[var(--at-accent)]/50 focus:ring-1 focus:ring-[var(--at-accent)]/20 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                   />
                 </div>
 
                 <div className="space-y-1.5">
                   <label htmlFor="project-description" className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider block"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Description <span className="text-[var(--at-muted)]">(Optional)</span></label>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t('ws.create.description')} <span className="text-[var(--at-muted)]">{t('common.optional')}</span></label>
                   <textarea
                     id="project-description"
                     value={projectDescription}
                     onChange={(e) => setProjectDescription(e.target.value)}
-                    placeholder="Brief architectural context..."
+                    placeholder={t('ws.create.descriptionPlaceholder')}
                     className="w-full h-20 bg-[var(--at-panel-2)] border border-[var(--at-line)] px-3 py-2 text-sm text-[var(--at-text)] placeholder:text-[var(--at-muted)] focus:outline-none focus:border-[var(--at-accent)]/50 focus:ring-1 focus:ring-[var(--at-accent)]/20 transition-[color,background-color,border-color,box-shadow,opacity,transform] resize-none"
                   ></textarea>
                 </div>
 
                 <div className="space-y-1.5">
                   <label htmlFor="project-space" className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider block"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Space</label>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t('ws.create.space')}</label>
                   <select
                     id="project-space"
                     value={organizationId}
@@ -380,15 +383,15 @@ const Projects: React.FC = () => {
                   </select>
                   <p className="text-[10px] text-[var(--at-muted)]">
                     {organizationId
-                      ? 'Every owner of the organization maintains this workspace. Members see it once given a role.'
-                      : 'Only you, and the people you invite, can open it.'}
-                    {organizations && organizations.some(o => o.myRole === 'member') && ' Only owners can add workspaces to an organization.'}
+                      ? t('ws.create.spaceOrg')
+                      : t('ws.create.spacePersonal')}
+                    {organizations && organizations.some(o => o.myRole === 'member') && t('ws.create.onlyOwners')}
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider block"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository Provider</span>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t('ws.create.provider')}</span>
                   <div className="grid grid-cols-2 gap-3">
                     <label className="flex items-center justify-center gap-2 h-10 bg-[var(--at-panel-2)] border border-[var(--at-line)] cursor-pointer hover:border-[var(--at-muted)] transition-colors has-[:checked]:border-[var(--at-accent)] has-[:checked]:bg-[var(--at-accent)]/5 group">
                       <input type="radio" name="provider" className="sr-only" defaultChecked />
@@ -405,7 +408,7 @@ const Projects: React.FC = () => {
 
                 <div className="space-y-1.5">
                   <label htmlFor="repository-url" className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider block"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository URL</label>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t('ws.create.repoUrl')}</label>
                   <input
                     id="repository-url"
                     type="text"
@@ -419,17 +422,17 @@ const Projects: React.FC = () => {
 
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider block"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Visibility</span>
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t('ws.create.visibility')}</span>
                   <div className="grid grid-cols-2 gap-3">
                     <label className="flex items-center justify-center gap-2 h-10 bg-[var(--at-panel-2)] border border-[var(--at-line)] cursor-pointer hover:border-[var(--at-muted)] transition-colors has-[:checked]:border-[var(--at-accent)] has-[:checked]:bg-[var(--at-accent)]/5 group">
                       <input type="radio" name="visibility" value="public" className="sr-only" checked={visibility === 'public'} onChange={() => setVisibility('public')} />
                       <Icon icon="mdi:earth" width="18" height="18" className="text-[var(--at-text)] group-has-[:checked]:text-[var(--at-link)]" />
-                      <span className="text-xs font-bold text-[var(--at-text)] group-has-[:checked]:text-[var(--at-link)]">Public</span>
+                      <span className="text-xs font-bold text-[var(--at-text)] group-has-[:checked]:text-[var(--at-link)]">{t('ws.create.public')}</span>
                     </label>
                     <label className="flex items-center justify-center gap-2 h-10 bg-[var(--at-panel-2)] border border-[var(--at-line)] cursor-pointer hover:border-[var(--at-muted)] transition-colors has-[:checked]:border-[var(--at-accent)] has-[:checked]:bg-[var(--at-accent)]/5 group">
                       <input type="radio" name="visibility" value="private" className="sr-only" checked={visibility === 'private'} onChange={() => setVisibility('private')} />
                       <Icon icon="mdi:lock" width="18" height="18" className="text-[var(--at-text)] group-has-[:checked]:text-[var(--at-link)]" />
-                      <span className="text-xs font-bold text-[var(--at-text)] group-has-[:checked]:text-[var(--at-link)]">Private</span>
+                      <span className="text-xs font-bold text-[var(--at-text)] group-has-[:checked]:text-[var(--at-link)]">{t('ws.create.private')}</span>
                     </label>
                   </div>
                 </div>
@@ -437,22 +440,22 @@ const Projects: React.FC = () => {
                 {visibility === 'private' && organizationId && (
                   <div className="space-y-1.5">
                     <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider block"
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}>Clone with</span>
+              style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t('ws.create.cloneWith')}</span>
                     {credentials === null ? (
-                      <p className="text-xs text-[var(--at-muted)]">Loading the organization's credentials…</p>
+                      <p className="text-xs text-[var(--at-muted)]">{t('ws.create.loadingCredentials')}</p>
                     ) : credentials.length ? (
                       <>
-                        <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Clone with">
+                        <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label={t('ws.create.cloneWith')}>
                           {(['credential', 'token'] as const).map(kind => (
                             <label key={kind} className="flex items-center justify-center h-10 bg-[var(--at-panel-2)] border border-[var(--at-line)] cursor-pointer hover:border-[var(--at-muted)] transition-colors has-[:checked]:border-[var(--at-accent)] has-[:checked]:bg-[var(--at-accent)]/5">
                               <input type="radio" name="clone-with" className="sr-only" checked={access === kind} onChange={() => setAccess(kind)} />
-                              <span className="text-xs font-bold text-[var(--at-text)]">{kind === 'credential' ? 'Organization credential' : 'Personal token'}</span>
+                              <span className="text-xs font-bold text-[var(--at-text)]">{kind === 'credential' ? t('ws.create.orgCredential') : t('ws.create.personalToken')}</span>
                             </label>
                           ))}
                         </div>
                         {access === 'credential' && (
                           <select
-                            aria-label="Organization credential"
+                            aria-label={t('ws.create.orgCredential')}
                             value={credentialId}
                             onChange={(e) => setCredentialId(e.target.value)}
                             className="w-full h-10 bg-[var(--at-panel-2)] border border-[var(--at-line)] px-3 text-sm text-[var(--at-text)] focus:outline-none focus:border-[var(--at-accent)]/50"
@@ -463,8 +466,7 @@ const Projects: React.FC = () => {
                       </>
                     ) : (
                       <p className="text-xs text-[var(--at-muted)]">
-                        This organization has no credentials yet, so use a personal token below, or{' '}
-                        <Link to={`/organizations/${encodeURIComponent(organizationId)}`} onClick={closeModal} className="text-[var(--at-link)] hover:underline">add one to the organization</Link>.
+                        {t.rich('ws.create.noCredentials', { link: <Link key="link" to={`/organizations/${encodeURIComponent(organizationId)}`} onClick={closeModal} className="text-[var(--at-link)] hover:underline">{t('ws.create.addCredential')}</Link> })}
                       </p>
                     )}
                   </div>
@@ -473,7 +475,7 @@ const Projects: React.FC = () => {
                 {visibility === 'private' && effectiveAccess === 'token' && (
                   <div className="space-y-1.5">
                     <label htmlFor="auth-token" className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider block"
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}>Personal Access Token (PAT) / SSH Key</label>
+              style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t('ws.create.token')}</label>
                     <input
                       id="auth-token"
                       type="password"
@@ -483,7 +485,7 @@ const Projects: React.FC = () => {
                       className="w-full h-10 bg-[var(--at-panel-2)] border border-[var(--at-line)] px-3 text-sm font-mono text-[var(--at-text)] placeholder:text-[var(--at-muted)] focus:outline-none focus:border-[var(--at-accent)]/50 focus:ring-1 focus:ring-[var(--at-accent)]/20 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                       style={{ fontFamily: '"JetBrains Mono", monospace' }}
                     />
-                    <p className="text-[10px] text-[var(--at-muted)]">Required to authenticate and clone private repositories.</p>
+                    <p className="text-[10px] text-[var(--at-muted)]">{t('ws.create.tokenHelp')}</p>
                   </div>
                 )}
               </div>
@@ -495,7 +497,7 @@ const Projects: React.FC = () => {
                   className="w-full h-10 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] font-bold text-xs transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
                 >
                   {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <FolderGit2 size={16} />}
-                  CONNECT REPOSITORY
+                  {t('ws.create.connect')}
                 </button>
               </div>
             </motion.div>

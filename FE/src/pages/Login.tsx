@@ -12,6 +12,8 @@ import { API_BASE_URL, clearSignInNotice, peekSignInNotice } from '@/auth/sessio
 import PasswordRequirements from '@/components/PasswordRequirements';
 import { checkNewPassword } from '@/features/profile-validation';
 import { deadlineFrom, rememberOtpDeadline } from '@/features/otp-countdown';
+import { translate, useLanguage, useT } from '@/i18n';
+import LanguageSwitch from '@/components/LanguageSwitch';
 
 
 const fontFamily = {
@@ -27,6 +29,8 @@ const AuthPage: React.FC = () => {
   const isRegister = location.pathname === '/register';
   const { message } = App.useApp();
   const { signIn } = useAuth();
+  const t = useT();
+  const language = useLanguage();
 
   // Form States
   // Read once and then forgotten, so it shows on the first visit only (the initializer may run twice in development).
@@ -46,10 +50,11 @@ const AuthPage: React.FC = () => {
   const [formError, setFormError] = useState('');
 
   const activeRequest = useRef<AbortController | null>(null);
+  // A request still running is cancelled when the page goes away (only then: `t` changes on every render).
+  useEffect(() => () => activeRequest.current?.abort(), []);
   useEffect(() => {
-    document.title = isRegister ? 'Create account · ArchTime' : 'Sign in · ArchTime';
-    return () => activeRequest.current?.abort();
-  }, [isRegister]);
+    document.title = translate(isRegister ? 'auth.title.register' : 'auth.title.signIn', undefined, language);
+  }, [isRegister, language]);
 
   // Problems of one form do not carry over to the other.
   const clearErrors = () => { setFieldErrors({}); setFormError(''); };
@@ -58,17 +63,17 @@ const AuthPage: React.FC = () => {
     const errors: FieldErrors = {};
 
     if (isRegister && !name.trim()) {
-      errors.name = 'Full name is required.';
+      errors.name = t('auth.error.nameRequired');
     }
 
     if (!email.trim()) {
-      errors.email = isRegister ? 'Email address is required.' : 'Username or email is required.';
+      errors.email = isRegister ? t('auth.error.emailRequired') : t('auth.error.loginRequired');
     } else if (isRegister && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      errors.email = 'Enter a valid email address.';
+      errors.email = t('auth.error.emailInvalid');
     }
 
     if (!password) {
-      errors.password = 'Password is required.';
+      errors.password = t('auth.error.passwordRequired');
     } else if (isRegister) {
       // The server's own rules, so an account is never refused after the form said it was fine.
       const rule = checkNewPassword(password);
@@ -77,9 +82,9 @@ const AuthPage: React.FC = () => {
 
     if (isRegister) {
       if (!confirmPassword) {
-        errors.confirmPassword = 'Please confirm your password.';
+        errors.confirmPassword = t('auth.error.confirmRequired');
       } else if (password !== confirmPassword) {
-        errors.confirmPassword = 'Passwords do not match.';
+        errors.confirmPassword = t('auth.error.mismatch');
       }
     }
 
@@ -114,24 +119,24 @@ const AuthPage: React.FC = () => {
       const result = await authRequest(endpoint, body, controller.signal);
 
       if (isRegister) {
-        message.success(result.message ?? 'Account created. Check your email for the verification OTP.');
+        message.success(t('auth.registered'));
         setPassword('');
         setConfirmPassword('');
         rememberOtpDeadline(email.trim(), deadlineFrom(result.expiresAt));
         navigate('/verify-email', { state: { email: email.trim(), from: location.state?.from } });
       } else {
         if (!result.accessToken || !result.refreshToken) {
-          throw new Error('Login response is missing authentication tokens.');
+          throw new Error(t('auth.error.noTokens'));
         }
 
         const user = await signIn({ accessToken: result.accessToken, refreshToken: result.refreshToken }, rememberMe);
-        message.success('Signed in successfully.');
+        message.success(t('auth.signedIn'));
         const requested = typeof location.state?.from === 'string' ? location.state.from : undefined;
         navigate(loginDestination(user.role, requested), { replace: true });
       }
     } catch (error) {
       if (controller.signal.aborted) return;
-      const text = error instanceof Error ? error.message : 'Unable to complete the request.';
+      const text = error instanceof Error ? error.message : t('auth.error.generic');
       if (isRegister && /^password/i.test(text)) setFieldErrors({ password: text });
       else if (isRegister && /email/i.test(text)) setFieldErrors({ email: text });
       else setFormError(text);
@@ -152,21 +157,21 @@ const AuthPage: React.FC = () => {
         <div className="flex-1 flex flex-col p-6 lg:p-10 xl:px-12 xl:py-8 max-w-xl w-full mx-auto justify-between">
 
           {/* Header & Logo */}
-          <Logo tagline="Architecture Evolution Observatory" className="mb-8 shrink-0" />
+          <div className="mb-8 flex shrink-0 items-start justify-between gap-4"><Logo tagline={t('auth.tagline')} /><LanguageSwitch /></div>
 
           {/* Mobile-only compact value prop (Right Panel's content is md:flex only) */}
           <div className="md:hidden mb-8 shrink-0 border border-[var(--at-line)] bg-[var(--at-panel)]/60 p-4">
             <p className="text-lg font-bold tracking-tight text-white leading-snug">
-              Understand how your architecture{" "}
+              {t('auth.pitch.lead')}{" "}
               <span
                 className="bg-gradient-to-r from-[#ffffff] via-[#d3def3] to-[#9db3dc] bg-clip-text text-transparent"
                 style={{ fontFamily: fontFamily.mono }}
               >
-                evolves.
+                {t('auth.pitch.evolves')}
               </span>
             </p>
             <p className="mt-1.5 text-xs text-[var(--at-muted)] font-light leading-relaxed">
-              Reconstruct architectural changes from Git history and dependency graphs, backed by concrete repository evidence.
+              {t('auth.pitch.mobile')}
             </p>
           </div>
 
@@ -183,12 +188,12 @@ const AuthPage: React.FC = () => {
               >
                 <div className="mb-8">
                   <h2 className="text-3xl font-bold tracking-tight text-white mb-2">
-                    {isRegister ? 'Create your ArchTime account' : 'Welcome back'}
+                    {isRegister ? t('auth.heading.register') : t('auth.heading.signIn')}
                   </h2>
                   <p className="text-[var(--at-muted)] text-sm font-light">
                     {isRegister
-                      ? 'Start reconstructing and understanding your architecture history.'
-                      : 'Trace how your software architecture evolves.'}
+                      ? t('auth.sub.register')
+                      : t('auth.sub.signIn')}
                   </p>
                 </div>
 
@@ -200,7 +205,7 @@ const AuthPage: React.FC = () => {
 
                   {isRegister && (
                     <div className="space-y-1.5">
-                      <label htmlFor="auth-name" className="text-[11px] text-[var(--at-muted)] uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>Full name</label>
+                      <label htmlFor="auth-name" className="text-[11px] text-[var(--at-muted)] uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>{t('auth.field.name')}</label>
                       <div className="relative group">
                         <input
                           id="auth-name"
@@ -226,7 +231,7 @@ const AuthPage: React.FC = () => {
                   )}
 
                   <div className="space-y-1.5">
-                    <label htmlFor="auth-email" className="text-[11px] text-[var(--at-muted)] uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>{isRegister ? 'Email address' : 'Username or Email'}</label>
+                    <label htmlFor="auth-email" className="text-[11px] text-[var(--at-muted)] uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>{isRegister ? t('auth.field.email') : t('auth.field.login')}</label>
                     <div className="relative group">
                       <input
                         id="auth-email"
@@ -237,7 +242,7 @@ const AuthPage: React.FC = () => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         disabled={isLoading}
-                        placeholder={isRegister ? "developer@archtime.io" : "username or email"}
+                        placeholder={isRegister ? "developer@archtime.io" : t('auth.field.loginPlaceholder')}
                         aria-invalid={!!fieldErrors.email}
                         aria-describedby={fieldErrors.email ? 'auth-email-error' : undefined}
                         className={`w-full h-11 bg-[var(--at-panel)] border pl-10 pr-4 text-sm text-white placeholder:text-[var(--at-muted)] focus:outline-none transition-colors disabled:opacity-50 ${
@@ -253,7 +258,7 @@ const AuthPage: React.FC = () => {
 
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <label htmlFor="auth-password" className="text-[11px] text-[var(--at-muted)] uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>Password</label>
+                      <label htmlFor="auth-password" className="text-[11px] text-[var(--at-muted)] uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>{t('auth.field.password')}</label>
                     </div>
                     <div className="relative group">
                       <input
@@ -276,7 +281,7 @@ const AuthPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                         className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--at-muted)] hover:text-slate-300 transition-colors focus:outline-none focus-visible:text-[var(--at-link)]"
                       >
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -292,7 +297,7 @@ const AuthPage: React.FC = () => {
 
                   {isRegister && (
                     <div className="space-y-1.5">
-                      <label htmlFor="auth-confirm-password" className="text-[11px] text-[var(--at-muted)] uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>Confirm password</label>
+                      <label htmlFor="auth-confirm-password" className="text-[11px] text-[var(--at-muted)] uppercase tracking-widest block" style={{ fontFamily: fontFamily.mono }}>{t('auth.field.confirmPassword')}</label>
                       <div className="relative group">
                         <input
                           id="auth-confirm-password"
@@ -324,8 +329,8 @@ const AuthPage: React.FC = () => {
                         id="remember" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)}
                         className="w-3.5 h-3.5 border-[var(--at-line)] bg-[var(--at-panel)] text-[var(--at-link)] focus:ring-[var(--at-accent)] focus:ring-offset-0 focus:ring-offset-[var(--at-page)] cursor-pointer"
                       />
-                      <label htmlFor="remember" className="text-sm text-[var(--at-muted)] cursor-pointer select-none">Remember me</label>
-                      <Link to="/forgot-password" className="ml-auto text-sm text-[var(--at-link)] hover:underline">Forgot password?</Link>
+                      <label htmlFor="remember" className="text-sm text-[var(--at-muted)] cursor-pointer select-none">{t('auth.remember')}</label>
+                      <Link to="/forgot-password" className="ml-auto text-sm text-[var(--at-link)] hover:underline">{t('auth.forgot')}</Link>
                     </div>
                   )}
 
@@ -342,15 +347,15 @@ const AuthPage: React.FC = () => {
                     {isLoading ? (
                       <Loader2 size={16} className="animate-spin motion-reduce:animate-none" />
                     ) : (
-                      isRegister ? 'Create account' : 'Sign in'
+                      isRegister ? t('auth.submit.register') : t('auth.submit.signIn')
                     )}
                   </button>
                 </form>
-                {!isRegister && <Link to="/verify-email" state={{ email: email.trim(), from: location.state?.from }} className="block mt-4 text-center text-xs text-[var(--at-link)]">Have a verification code? Activate your account</Link>}
+                {!isRegister && <Link to="/verify-email" state={{ email: email.trim(), from: location.state?.from }} className="block mt-4 text-center text-xs text-[var(--at-link)]">{t('auth.activate')}</Link>}
 
                 <div className="flex items-center gap-4 my-6 opacity-70">
                   <div className="h-[1px] flex-1 bg-[var(--at-line)]"></div>
-                  <span className="text-xs text-[var(--at-muted)] uppercase tracking-widest" style={{ fontFamily: fontFamily.mono }}>or</span>
+                  <span className="text-xs text-[var(--at-muted)] uppercase tracking-widest" style={{ fontFamily: fontFamily.mono }}>{t('auth.or')}</span>
                   <div className="h-[1px] flex-1 bg-[var(--at-line)]"></div>
                 </div>
 
@@ -360,29 +365,29 @@ const AuthPage: React.FC = () => {
                     try {
                       sessionStorage.setItem('github-login', JSON.stringify({ rememberMe, from: location.state?.from }));
                       window.location.assign(`${API_BASE_URL}/auth/github`);
-                    } catch { message.error('Browser storage is unavailable. Enable it to sign in.'); }
+                    } catch { message.error(t('auth.error.storage')); }
                   }}
                   disabled={isLoading}
                   className="w-full h-11 flex items-center justify-center gap-3 px-4 bg-[var(--at-panel)] hover:bg-[var(--at-panel-2)] border border-[var(--at-line)] transition-colors text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:border-[var(--at-accent)]"
                 >
                   <Icon icon="mdi:github" width="18" height="18" />
-                  Continue with GitHub
+                  {t('auth.github')}
                 </button>
 
                 {/* Account Toggle */}
                 <div className="mt-8 text-center text-sm text-[var(--at-muted)]">
                   {isRegister ? (
                     <>
-                      Already have an account?{' '}
+                      {t('auth.haveAccount')}{' '}
                       <Link to="/login" onClick={clearErrors} className="text-[var(--at-link)] hover:text-[var(--at-glow)] transition-colors font-medium">
-                        Sign in &rarr;
+                        {t('auth.toSignIn')}
                       </Link>
                     </>
                   ) : (
                     <>
-                      Don't have an account?{' '}
+                      {t('auth.noAccount')}{' '}
                       <Link to="/register" onClick={clearErrors} className="text-[var(--at-link)] hover:text-[var(--at-glow)] transition-colors font-medium">
-                        Create account &rarr;
+                        {t('auth.toRegister')}
                       </Link>
                     </>
                   )}
@@ -395,14 +400,14 @@ const AuthPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center justify-between text-[11px] text-[var(--at-muted)] shrink-0 mt-auto pt-6" style={{ fontFamily: fontFamily.mono }}>
             <div className="flex items-center gap-2 mb-4 sm:mb-0">
               <Lock size={12} className="text-[var(--at-link)]" />
-              <span>Grounded in Git history</span>
+              <span>{t('auth.footer.grounded')}</span>
             </div>
-            <div className="flex gap-4" aria-label="Coming soon">
-              <span className="cursor-not-allowed opacity-60" aria-disabled="true" title="Coming soon">Docs</span>
+            <div className="flex gap-4" aria-label={t('common.comingSoon')}>
+              <span className="cursor-not-allowed opacity-60" aria-disabled="true" title={t('common.comingSoon')}>{t('auth.footer.docs')}</span>
               <span>•</span>
-              <span className="cursor-not-allowed opacity-60" aria-disabled="true" title="Coming soon">API Keys</span>
+              <span className="cursor-not-allowed opacity-60" aria-disabled="true" title={t('common.comingSoon')}>{t('auth.footer.apiKeys')}</span>
               <span>•</span>
-              <span className="cursor-not-allowed opacity-60" aria-disabled="true" title="Coming soon">Security</span>
+              <span className="cursor-not-allowed opacity-60" aria-disabled="true" title={t('common.comingSoon')}>{t('auth.footer.security')}</span>
             </div>
           </div>
 
@@ -425,16 +430,16 @@ const AuthPage: React.FC = () => {
             </div>
 
             <h2 className="text-4xl lg:text-5xl font-bold tracking-tight text-white mb-4 leading-[1.1]">
-              Understand how your<br />architecture{" "}
+              {t('auth.pitch.lead')}{" "}
               <span
                 className="bg-gradient-to-r from-[#ffffff] via-[#d3def3] to-[#9db3dc] bg-clip-text text-transparent"
                 style={{ fontFamily: fontFamily.mono }}
               >
-                evolves.
+                {t('auth.pitch.evolves')}
               </span>
             </h2>
             <p className="text-[var(--at-muted)] text-base leading-relaxed max-w-xl font-light">
-              Reconstruct architectural changes from Git history, dependency graphs and concrete repository evidence.
+              {t('auth.pitch.body')}
             </p>
           </div>
 
@@ -448,14 +453,14 @@ const AuthPage: React.FC = () => {
                   <div className="text-[var(--at-link)] flex items-center">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                   </div>
-                  <span className="text-sm text-[var(--at-muted)] font-medium tracking-widest">REVISION RANGE:</span>
+                  <span className="text-sm text-[var(--at-muted)] font-medium tracking-widest">{t('auth.visual.range')}</span>
                   <span className="text-sm text-white font-bold">rev-8e41..HEAD</span>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="px-3 py-1.5 bg-[var(--at-accent)]/10 border border-[var(--at-accent)]/20 text-[var(--at-link)] text-xs font-bold">
                     Java AST Analyzed
                   </div>
-                  <span className="text-sm text-[var(--at-muted)]">4 Architectural Eras</span>
+                  <span className="text-sm text-[var(--at-muted)]">{t('auth.visual.eras')}</span>
                 </div>
               </div>
 
@@ -630,10 +635,10 @@ const AuthPage: React.FC = () => {
               {/* Bottom Info Bar */}
               <div className="flex items-center gap-4 mt-6 z-20" style={{ fontFamily: fontFamily.mono }}>
                 <div className="px-4 py-2 bg-[var(--at-panel)] border border-[var(--at-line)] text-sm text-[var(--at-muted)]">
-                  Delta: +18 modular edges
+                  {t('auth.visual.delta')}
                 </div>
                 <div className="px-4 py-2 bg-[var(--at-accent)]/20 border border-[var(--at-accent)]/30 text-sm text-[var(--at-link)] font-bold">
-                  architecture change detected
+                  {t('auth.visual.detected')}
                 </div>
               </div>
             </div>
@@ -643,18 +648,18 @@ const AuthPage: React.FC = () => {
           <div className="grid grid-cols-3 gap-6 shrink-0 border-t border-[var(--at-line)] pt-6">
             <div className="flex flex-col gap-1.5">
               <span className="text-xs text-[var(--at-link)] font-semibold" style={{ fontFamily: fontFamily.mono }}>01</span>
-              <h4 className="text-white text-sm font-medium">Repository Mining</h4>
-              <p className="text-[var(--at-muted)] text-xs leading-relaxed font-light">Deep commit mining and structural analysis.</p>
+              <h4 className="text-white text-sm font-medium">{t('auth.feature.mining.title')}</h4>
+              <p className="text-[var(--at-muted)] text-xs leading-relaxed font-light">{t('auth.feature.mining.body')}</p>
             </div>
             <div className="flex flex-col gap-1.5">
               <span className="text-xs text-[var(--at-warn)] font-semibold" style={{ fontFamily: fontFamily.mono }}>02</span>
-              <h4 className="text-white text-sm font-medium">Architecture Evolution</h4>
-              <p className="text-[var(--at-muted)] text-xs leading-relaxed font-light">Automated visual dependency reconstruction.</p>
+              <h4 className="text-white text-sm font-medium">{t('auth.feature.evolution.title')}</h4>
+              <p className="text-[var(--at-muted)] text-xs leading-relaxed font-light">{t('auth.feature.evolution.body')}</p>
             </div>
             <div className="flex flex-col gap-1.5">
               <span className="text-xs text-[var(--at-glow)] font-semibold" style={{ fontFamily: fontFamily.mono }}>03</span>
-              <h4 className="text-white text-sm font-medium">Evidence-Based AI</h4>
-              <p className="text-[var(--at-muted)] text-xs leading-relaxed font-light">Grounded architectural explanations linked to PRs.</p>
+              <h4 className="text-white text-sm font-medium">{t('auth.feature.ai.title')}</h4>
+              <p className="text-[var(--at-muted)] text-xs leading-relaxed font-light">{t('auth.feature.ai.body')}</p>
             </div>
           </div>
 

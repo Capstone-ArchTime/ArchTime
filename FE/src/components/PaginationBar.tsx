@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useT } from '@/i18n';
 
 type Props = { 
   current: number; 
@@ -8,6 +9,7 @@ type Props = {
 };
 
 export default function PaginationBar({ current, pageSize, total, onChange }: Props) {
+  const t = useT();
   const totalPages = Math.ceil(total / pageSize);
   
   // Calculate range text
@@ -33,10 +35,10 @@ export default function PaginationBar({ current, pageSize, total, onChange }: Pr
   if (total === 0) return null;
 
   return (
-    <nav aria-label="Pagination" className="flex items-center justify-between border-t border-[var(--at-line)] pt-4 mt-2">
+    <nav aria-label={t('pagination.label')} className="flex items-center justify-between border-t border-[var(--at-line)] pt-4 mt-2">
       {/* Items Range Info */}
       <div className="text-[10px] font-mono text-[var(--at-muted)] uppercase hidden md:block" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-        Showing {startItem}-{endItem} of {total}
+        {t('pagination.range', { start: startItem, end: endItem, total })}
       </div>
 
       <div className="flex items-center gap-2 mx-auto md:mx-0">
@@ -44,6 +46,7 @@ export default function PaginationBar({ current, pageSize, total, onChange }: Pr
         <button 
           onClick={() => current > 1 && onChange(current - 1, pageSize)}
           disabled={current === 1}
+          aria-label={t('pagination.previous')}
           className="h-8 w-8 flex items-center justify-center rounded-sm border border-[var(--at-line)] bg-[var(--at-panel)] text-[var(--at-muted)] transition-colors hover:bg-[var(--at-line)] hover:text-[var(--at-text)] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <ChevronLeft size={14} />
@@ -55,6 +58,8 @@ export default function PaginationBar({ current, pageSize, total, onChange }: Pr
             <button
               key={page}
               onClick={() => onChange(page, pageSize)}
+              aria-label={t('pagination.page', { page })}
+              aria-current={page === current ? 'page' : undefined}
               className={`h-8 w-8 flex items-center justify-center text-xs font-mono font-bold rounded-sm border transition-all duration-200 ${
                 page === current 
                   ? 'bg-[var(--at-accent)]/10 border-[var(--at-accent)] text-[var(--at-link)] shadow-[0_0_10px_rgba(56,189,248,0.2)]' 
@@ -71,6 +76,7 @@ export default function PaginationBar({ current, pageSize, total, onChange }: Pr
         <button 
           onClick={() => current < totalPages && onChange(current + 1, pageSize)}
           disabled={current === totalPages}
+          aria-label={t('pagination.next')}
           className="h-8 w-8 flex items-center justify-center rounded-sm border border-[var(--at-line)] bg-[var(--at-panel)] text-[var(--at-muted)] transition-colors hover:bg-[var(--at-line)] hover:text-[var(--at-text)] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <ChevronRight size={14} />
@@ -79,8 +85,9 @@ export default function PaginationBar({ current, pageSize, total, onChange }: Pr
 
       {/* Page Size Selector (Optional display for larger screens) */}
       <div className="hidden md:flex items-center gap-2">
-        <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase" style={{ fontFamily: '"JetBrains Mono", monospace' }}>Per page</span>
+        <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t('pagination.perPage')}</span>
         <select 
+          aria-label={t('pagination.perPage')}
           value={pageSize}
           onChange={(e) => onChange(1, Number(e.target.value))}
           className="h-8 px-2 bg-[var(--at-panel)] border border-[var(--at-line)] text-xs font-mono text-[var(--at-text)] outline-none cursor-pointer hover:border-[var(--at-line-strong)] transition-colors"
