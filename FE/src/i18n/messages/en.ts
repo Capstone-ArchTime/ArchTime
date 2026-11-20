@@ -132,6 +132,10 @@ export const en = {
   'mywork.asAdmin': '{n} as administrator',
   'mywork.noneYet': 'none yet',
 
+  // ── Component roles in the architecture (features/architecture/scene.ts ROLE_LABEL) ──
+  'archRole.controller': 'Controller', 'archRole.service': 'Service', 'archRole.repository': 'Repository', 'archRole.entity': 'Entity',
+  'archRole.gateway': 'Gateway', 'archRole.config': 'Config', 'archRole.util': 'Utility', 'archRole.external': 'External', 'archRole.other': 'Other',
+
   // ── Short workspace statuses (tags) ──
   'tag.PENDING': 'Not scanned',
   'tag.ANALYZING': 'Mining',

@@ -5,6 +5,9 @@ import type { Scene } from '@/features/architecture/scene';
 import type { Highlight } from '@/features/architecture/highlight';
 import type { DiagramTheme } from '@/features/architecture/theme';
 import type { Rect } from '@/features/architecture/viewport';
+import { message } from '@/i18n/define';
+import { ARCH } from './messages';
+const m = (key: 'minimapLabel' | 'diagramLabel') => message(ARCH, key);
 
 const WIDTH = 200;
 const MAX_HEIGHT = 140;
@@ -23,7 +26,7 @@ export default function Minimap({ scene, layout, theme, highlight, view, onMove 
   };
   return (
     <div data-overlay className="absolute bottom-20 right-3 rounded-md border p-1.5 shadow-lg backdrop-blur" style={{ background: `${theme.card}e6`, borderColor: theme.cardStroke }}>
-      <svg width={w} height={h} viewBox={`0 0 ${layout.width} ${layout.height}`} role="img" aria-label="Minimap: click or drag to move around the diagram" style={{ cursor: 'pointer', display: 'block' }}
+      <svg width={w} height={h} viewBox={`0 0 ${layout.width} ${layout.height}`} role="img" aria-label={m('minimapLabel')} style={{ cursor: 'pointer', display: 'block' }}
         onPointerDown={event => { dragging.current = true; event.currentTarget.setPointerCapture(event.pointerId); move(event); }}
         onPointerMove={event => { if (dragging.current) move(event); }}
         onPointerUp={() => { dragging.current = false; }}>
