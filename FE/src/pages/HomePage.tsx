@@ -464,7 +464,7 @@ export default function HomePage() {
                 icon="ph:brain-light"
                 iconColor="#b4c0ce"
                 title="Evidence-Based Reasoning"
-                description="A local LLM turns diffs, commit messages and code changes into a readable narrative of what changed."
+                description="An LLM of your choice (Claude, Gemini, or a local model) turns diffs, commit messages and code changes into a readable narrative of what changed."
               />
               <IsometricCard
                 icon="ph:shield-check-light"
@@ -693,7 +693,7 @@ export default function HomePage() {
               Follow the ArchTime Build Log
             </h2>
             <p className="mx-auto max-w-xl text-sm font-light leading-relaxed text-[var(--at-muted)] sm:text-base">
-              Get updates on new evaluation benchmarks, pipeline releases and Java/Spring Boot repository support.
+              Get updates on new evaluation benchmarks, pipeline releases and support for more languages.
             </p>
             <form
               onSubmit={handleSubscribe}
@@ -755,7 +755,8 @@ export default function HomePage() {
                   Scope
                 </h4>
                 <ul className="space-y-4 text-xs text-[var(--at-muted)]">
-                  <li>Java / Spring Boot</li>
+                  <li>JavaScript / TypeScript</li>
+                  <li>Java, C#, Python, Go</li>
                   <li>Git History Analysis</li>
                   <li>Knowledge Graph</li>
                   <li>Benchmarks</li>

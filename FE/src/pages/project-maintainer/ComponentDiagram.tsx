@@ -78,7 +78,7 @@ function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyCha
       <div className="flex flex-wrap justify-between gap-3 mb-4"><div><h3 className="text-lg font-semibold">Component map</h3><p className="text-xs text-[var(--at-muted)] mt-1">Dependency arrows point from caller to target. {locked ? 'Select a component to map its paths; unlock the diagram to change it.' : 'Select a component to edit.'}</p></div><Button icon={<Plus size={14} />} disabled={locked} onClick={() => editComponent(null)}>Add component</Button></div>
       {!draft.components.length ? <Empty description="No components yet. Add a component to start your diagram." /> : <div className="overflow-x-auto bg-[var(--at-page)] border border-[var(--at-line)]">
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full min-w-[680px]" aria-label={`Component diagram for ${project}`}>
-          <defs><marker id="dependency-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#3b82f6" /></marker></defs>
+          <defs><marker id="dependency-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" className="fill-[var(--at-accent)]" /></marker></defs>
           {draft.dependencies.map((e, i) => {
             const a = positions.get(e.source), b = positions.get(e.target);
             if (!a || !b) return null;
@@ -88,9 +88,9 @@ function DiagramEditor({ project, onDirtyChange }: { project: string; onDirtyCha
             const tx = sameRow ? b.x + (forward ? 0 : 190) : b.x + 95;
             const ty = sameRow ? b.y + 40 : b.y + (a.y < b.y ? 0 : 80);
             const bend = 25 + (i % 3) * 12;
-            return <g key={e.id}><path d={`M${sx},${sy} Q${(sx + tx) / 2},${(sy + ty) / 2 + bend} ${tx},${ty}`} fill="none" stroke="#3b82f6" strokeWidth="1.5" markerEnd="url(#dependency-arrow)" /><text x={(sx + tx) / 2} y={(sy + ty) / 2 + bend / 2 + 16} textAnchor="middle" fill="#94a3b8" fontSize="10">{e.label.slice(0, 24)}</text></g>;
+            return <g key={e.id}><path d={`M${sx},${sy} Q${(sx + tx) / 2},${(sy + ty) / 2 + bend} ${tx},${ty}`} fill="none" className="stroke-[var(--at-accent)]" strokeWidth="1.5" markerEnd="url(#dependency-arrow)" /><text x={(sx + tx) / 2} y={(sy + ty) / 2 + bend / 2 + 16} textAnchor="middle" className="fill-[var(--at-muted)]" fontSize="10">{e.label.slice(0, 24)}</text></g>;
           })}
-          {draft.components.map(c => { const p = positions.get(c.id)!; return <g key={c.id} transform={`translate(${p.x},${p.y})`} role="button" tabIndex={0} aria-label={`Edit ${c.name}`} onClick={() => editComponent(c)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); editComponent(c); } }} className="cursor-pointer outline-none focus:[&>rect]:stroke-white hover:[&>rect]:stroke-white"><title>{c.name}: {c.description}</title><rect width="190" height="80" rx="4" fill="#161d24" stroke="#3b82f6" /><text x="14" y="25" fill="#93c5fd" fontSize="10">{c.kind.toUpperCase()}</text><text x="14" y="50" fill="#f4f4f6" fontSize="13">{c.name.length > 23 ? `${c.name.slice(0, 22)}…` : c.name}</text></g>; })}
+          {draft.components.map(c => { const p = positions.get(c.id)!; return <g key={c.id} transform={`translate(${p.x},${p.y})`} role="button" tabIndex={0} aria-label={`Edit ${c.name}`} onClick={() => editComponent(c)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); editComponent(c); } }} className="cursor-pointer outline-none focus:[&>rect]:stroke-white hover:[&>rect]:stroke-white"><title>{c.name}: {c.description}</title><rect width="190" height="80" rx="12" className="fill-[var(--at-solid)] stroke-[var(--at-accent)]" /><text x="14" y="25" className="fill-[var(--at-link)]" fontSize="10">{c.kind.toUpperCase()}</text><text x="14" y="50" className="fill-[var(--at-text)]" fontSize="13">{c.name.length > 23 ? `${c.name.slice(0, 22)}…` : c.name}</text></g>; })}
         </svg>
       </div>}
     </div>

@@ -13,7 +13,7 @@ import {
   FolderKanban
 } from 'lucide-react';
 
-import { App } from 'antd';
+import { App, Select } from 'antd';
 import ComponentMatchPanel from '@/components/compare/ComponentMatchPanel';
 import CompareDiagram, { GROUP_HEIGHT, GROUP_WIDTH } from '@/components/compare/CompareDiagram';
 import CompareFilesDrawer from '@/components/compare/CompareFilesDrawer';
@@ -106,6 +106,10 @@ const Compare: React.FC = () => {
       .catch(err => setMatch(m => (m && m.baseId === base && m.targetId === target ? { ...m, error: err instanceof Error ? err.message : 'Could not match components.', loading: false } : m)));
   };
 
+  const revisionOptions = useMemo(() => snapshots.map(s => ({
+    value: s.id as string,
+    label: `${s.version || s.hash.substring(0, 7)} · ${new Date(s.date).toLocaleDateString()}${s.title ? ` · ${s.title}` : ''}`,
+  })), [snapshots]);
   const getBaseSnapshot = () => snapshots.find(s => s.id === baseId);
   const getTargetSnapshot = () => snapshots.find(s => s.id === targetId);
 
@@ -146,7 +150,7 @@ const Compare: React.FC = () => {
           </p>
 
           <div className="mt-6 mb-2 flex items-center gap-4">
-            <div className="relative group flex items-center h-10 bg-[var(--at-page)] border border-[var(--at-line)] hover:border-[#5f636b] transition-colors">
+            <div className="relative group flex items-center h-10 rounded-[10px] bg-[var(--at-panel-2)] border border-[var(--at-line)] hover:border-[var(--at-line-strong)] transition-colors">
               <FolderKanban size={16} className="text-[var(--at-muted)] ml-4" />
               <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase pl-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>Workspace:</span>
               <select 
@@ -188,17 +192,18 @@ const Compare: React.FC = () => {
             <h3 className="text-[10px] font-mono font-semibold text-[var(--at-muted)] tracking-widest uppercase mb-4"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Base Revision</h3>
             <div className="flex items-center gap-4 relative z-10">
-              <select 
-                value={baseId}
-                onChange={(e) => setBaseId(e.target.value)}
-                className="bg-[var(--at-page)] border border-[var(--at-line)] text-lg font-bold text-[var(--at-text)] p-2 outline-none w-full max-w-[250px]"
-              >
-                {snapshots.map(s => (
-                  <option key={s.id} value={s.id}>
-                    {s.version || s.hash.substring(0, 7)} ({new Date(s.date).toLocaleDateString()})
-                  </option>
-                ))}
-              </select>
+              <Select
+                showSearch
+                optionFilterProp="label"
+                aria-label="Base revision"
+                placeholder="Search by version, hash or message"
+                value={baseId || undefined}
+                onChange={(value: string) => setBaseId(value)}
+                options={revisionOptions}
+                size="large"
+                className="w-full max-w-[420px]"
+                popupMatchSelectWidth={false}
+              />
             </div>
             {getBaseSnapshot() && (
               <div className="mt-3 text-xs text-[var(--at-muted)]">
@@ -215,7 +220,7 @@ const Compare: React.FC = () => {
             <button 
               onClick={handleCompare}
               disabled={loading || snapshots.length < 2}
-              className="px-4 py-1.5 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] font-bold text-[10px] tracking-wider transition-colors shadow-[0_0_10px_rgba(56,189,248,0.15)] uppercase disabled:opacity-50"
+              className="h-10 px-6 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Comparing...' : 'Compare'}
             </button>
@@ -229,17 +234,18 @@ const Compare: React.FC = () => {
             <h3 className="text-[10px] font-mono font-semibold text-[var(--at-link)] tracking-widest uppercase mb-4"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Target Revision</h3>
             <div className="flex items-center gap-4 relative z-10">
-              <select 
-                value={targetId}
-                onChange={(e) => setTargetId(e.target.value)}
-                className="bg-[var(--at-page)] border border-[var(--at-line)] text-lg font-bold text-[var(--at-text)] p-2 outline-none w-full max-w-[250px]"
-              >
-                {snapshots.map(s => (
-                  <option key={s.id} value={s.id}>
-                    {s.version || s.hash.substring(0, 7)} ({new Date(s.date).toLocaleDateString()})
-                  </option>
-                ))}
-              </select>
+              <Select
+                showSearch
+                optionFilterProp="label"
+                aria-label="Target revision"
+                placeholder="Search by version, hash or message"
+                value={targetId || undefined}
+                onChange={(value: string) => setTargetId(value)}
+                options={revisionOptions}
+                size="large"
+                className="w-full max-w-[420px]"
+                popupMatchSelectWidth={false}
+              />
             </div>
             {getTargetSnapshot() && (
               <div className="mt-3 text-xs text-[var(--at-muted)]">
@@ -258,9 +264,9 @@ const Compare: React.FC = () => {
               style={{ fontFamily: '"JetBrains Mono", monospace' }}>Modules</h4>
               <div className="text-xl font-bold font-mono flex items-center gap-2"
               style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                <span className="text-[#22c55e]">+{compareData.diff.nodesAdded.length}</span>
+                <span className="text-[var(--at-success)]">+{compareData.diff.nodesAdded.length}</span>
                 <span className="text-[var(--at-muted)]">/</span>
-                <span className="text-[#ef4444]">-{compareData.diff.nodesRemoved.length}</span>
+                <span className="text-[var(--at-danger)]">-{compareData.diff.nodesRemoved.length}</span>
               </div>
             </div>
             
@@ -269,9 +275,9 @@ const Compare: React.FC = () => {
               style={{ fontFamily: '"JetBrains Mono", monospace' }}>Dependencies</h4>
               <div className="flex items-center gap-2 text-xl font-bold font-mono"
               style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                <span className="text-[#22c55e]">+{compareData.diff.edgesAdded.length}</span>
+                <span className="text-[var(--at-success)]">+{compareData.diff.edgesAdded.length}</span>
                 <span className="text-[var(--at-muted)]">/</span>
-                <span className="text-[#ef4444]">-{compareData.diff.edgesRemoved.length}</span>
+                <span className="text-[var(--at-danger)]">-{compareData.diff.edgesRemoved.length}</span>
               </div>
             </div>
 
@@ -286,10 +292,10 @@ const Compare: React.FC = () => {
             <div className="bg-[var(--at-panel-2)] border border-[var(--at-warn)]/30 p-4 flex flex-col justify-between relative overflow-hidden">
               <div className="absolute inset-0 bg-[var(--at-warn)]/5 pointer-events-none"></div>
               <h4 className="text-[10px] font-mono font-semibold text-[var(--at-warn)] tracking-widest uppercase mb-2 z-10"
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}>Arch Changes</h4>
+              style={{ fontFamily: '"JetBrains Mono", monospace' }}>Structural changes</h4>
               <div className="text-xl font-bold font-mono text-[var(--at-warn)] flex items-center gap-1 z-10"
               style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                {compareData.diff.nodesAdded.length + compareData.diff.nodesRemoved.length + compareData.diff.edgesAdded.length + compareData.diff.edgesRemoved.length > 0 ? 'Detected' : 'None'}
+                {(() => { const n = compareData.diff.nodesAdded.length + compareData.diff.nodesRemoved.length + compareData.diff.edgesAdded.length + compareData.diff.edgesRemoved.length; return n ? `${n} change${n === 1 ? '' : 's'}` : 'No changes'; })()}
               </div>
             </div>
           </div>
@@ -300,13 +306,13 @@ const Compare: React.FC = () => {
         )}
 
         {/* SIDE-BY-SIDE GRAPH CONTAINER */}
-        <div className="flex flex-col 2xl:flex-row gap-6 shrink-0">
+        <div className="flex flex-col xl:flex-row gap-6 shrink-0">
           
           {/* LEFT: BEFORE GRAPH */}
           <div className="flex-1 flex flex-col bg-[var(--at-panel)] border border-[var(--at-line)] overflow-hidden shadow-2xl relative">
             <div className="p-4 border-b border-[var(--at-line)] flex items-center justify-between z-10">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[#5f636b]"></div>
+                <div className="w-2 h-2 rounded-full bg-[var(--at-line-strong)]"></div>
                 <span className="text-xs font-bold text-[var(--at-text)] tracking-wide uppercase">Before</span>
               </div>
               <div className="text-[10px] font-mono text-[var(--at-muted)]"
@@ -322,7 +328,7 @@ const Compare: React.FC = () => {
           <div className="flex-1 flex flex-col bg-[var(--at-panel)] border border-[var(--at-line)] overflow-hidden shadow-2xl relative">
             <div className="p-4 border-b border-[var(--at-line)] flex items-center justify-between z-10">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[var(--at-accent)] animate-pulse motion-reduce:animate-none shadow-[0_0_8px_#3b82f6]"></div>
+                <div className="w-2 h-2 rounded-full bg-[var(--at-accent)] animate-pulse motion-reduce:animate-none shadow-[0_0_8px_var(--at-glow)]"></div>
                 <span className="text-xs font-bold text-[var(--at-text)] tracking-wide uppercase">After</span>
               </div>
               <div className="text-[10px] font-mono text-[var(--at-muted)]"
@@ -344,12 +350,12 @@ const Compare: React.FC = () => {
         </p>}
         <div className="flex flex-wrap items-center justify-center gap-6 py-2">
           <div className="flex items-center gap-2">
-             <div className="w-2.5 h-2.5 bg-[#22c55e] shadow-[0_0_5px_#22c55e]"></div>
+             <div className="w-2.5 h-2.5 bg-[var(--at-success)] shadow-[0_0_5px_var(--at-success)]"></div>
              <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Added</span>
           </div>
           <div className="flex items-center gap-2">
-             <div className="w-2.5 h-2.5 bg-[#ef4444] shadow-[0_0_5px_#ef4444]"></div>
+             <div className="w-2.5 h-2.5 bg-[var(--at-danger)] shadow-[0_0_5px_var(--at-danger)]"></div>
              <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Removed</span>
           </div>
@@ -379,7 +385,7 @@ const Compare: React.FC = () => {
                 <div key={`na-${node.id}`} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[var(--at-panel-2)]/50 transition-colors">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="px-2 py-0.5 bg-[#22c55e]/10 border border-[#22c55e]/20 text-[#22c55e] text-[9px] font-mono font-bold uppercase tracking-widest"
+                      <span className="px-2 py-0.5 bg-[var(--at-success)]/10 border border-[var(--at-success)]/20 text-[var(--at-success)] text-[9px] font-mono font-bold uppercase tracking-widest"
               style={{ fontFamily: '"JetBrains Mono", monospace' }}>Module Added</span>
                     </div>
                     <div className="text-sm font-bold text-[var(--at-text)] mb-1">{node.name}</div>
@@ -387,7 +393,7 @@ const Compare: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <div className="text-xs text-[var(--at-muted)]">Impact</div>
-                    <div className="text-sm font-mono text-[#22c55e]">+1 Component</div>
+                    <div className="text-sm font-mono text-[var(--at-success)]">+1 Component</div>
                   </div>
                 </div>
               ))}
@@ -396,7 +402,7 @@ const Compare: React.FC = () => {
                 <div key={`nr-${node.id}`} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[var(--at-panel-2)]/50 transition-colors">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="px-2 py-0.5 bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444] text-[9px] font-mono font-bold uppercase tracking-widest"
+                      <span className="px-2 py-0.5 bg-[var(--at-danger)]/10 border border-[var(--at-danger)]/20 text-[var(--at-danger)] text-[9px] font-mono font-bold uppercase tracking-widest"
               style={{ fontFamily: '"JetBrains Mono", monospace' }}>Module Removed</span>
                     </div>
                     <div className="text-sm font-bold text-[var(--at-text)] mb-1">{node.name}</div>
@@ -404,7 +410,7 @@ const Compare: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <div className="text-xs text-[var(--at-muted)]">Impact</div>
-                    <div className="text-sm font-mono text-[#ef4444]">-1 Component</div>
+                    <div className="text-sm font-mono text-[var(--at-danger)]">-1 Component</div>
                   </div>
                 </div>
               ))}
@@ -435,12 +441,12 @@ const Compare: React.FC = () => {
                   <div key={`er-${i}`} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[var(--at-panel-2)]/50 transition-colors">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2 py-0.5 bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444] text-[9px] font-mono font-bold uppercase tracking-widest"
+                        <span className="px-2 py-0.5 bg-[var(--at-danger)]/10 border border-[var(--at-danger)]/20 text-[var(--at-danger)] text-[9px] font-mono font-bold uppercase tracking-widest"
                 style={{ fontFamily: '"JetBrains Mono", monospace' }}>Dependency Removed</span>
                         <span className="px-2 py-0.5 bg-[var(--at-panel-2)] border border-[var(--at-line)] text-[var(--at-muted)] text-[9px] font-mono"
                 style={{ fontFamily: '"JetBrains Mono", monospace' }}>{edge.type || 'imports'}</span>
                       </div>
-                      <div className="text-sm font-bold text-[var(--at-text)] mb-1 flex items-center gap-2 line-through opacity-70">{src} <ArrowRight size={14} className="text-[#ef4444]" /> {tgt}</div>
+                      <div className="text-sm font-bold text-[var(--at-text)] mb-1 flex items-center gap-2 line-through opacity-70">{src} <ArrowRight size={14} className="text-[var(--at-danger)]" /> {tgt}</div>
                       <p className="text-xs text-[var(--at-muted)]">Dependency was removed. This may indicate decoupling or refactoring of module relationships.</p>
                     </div>
                   </div>

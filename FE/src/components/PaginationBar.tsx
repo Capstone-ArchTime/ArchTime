@@ -83,7 +83,7 @@ export default function PaginationBar({ current, pageSize, total, onChange }: Pr
         <select 
           value={pageSize}
           onChange={(e) => onChange(1, Number(e.target.value))}
-          className="h-8 px-2 bg-[var(--at-panel)] border border-[var(--at-line)] text-xs font-mono text-[var(--at-text)] outline-none cursor-pointer hover:border-[#5f636b] transition-colors"
+          className="h-8 px-2 bg-[var(--at-panel)] border border-[var(--at-line)] text-xs font-mono text-[var(--at-text)] outline-none cursor-pointer hover:border-[var(--at-line-strong)] transition-colors"
           style={{ fontFamily: '"JetBrains Mono", monospace' }}
         >
           <option value={5}>5</option>

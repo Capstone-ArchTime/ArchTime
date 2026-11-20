@@ -12,7 +12,7 @@ import { componentContext, decisionContext, mentorHref, mentorQuestion } from '@
 import type { MentorSubject, Neighbour } from '@/features/onboarding-context';
 import { answerFeedback, assessmentNote, firstOpenStep, kindLabel, progressText, refGone } from '@/features/onboarding-view';
 
-const reference = 'border border-[var(--at-line)] bg-[#0d1217] p-3 text-sm space-y-2';
+const reference = 'border border-[var(--at-line)] bg-[var(--at-panel-2)] p-3 text-sm space-y-2';
 const heading = 'text-[10px] font-mono uppercase tracking-widest text-[var(--at-muted)]';
 const link = 'text-[var(--at-link)] hover:text-[var(--at-link-hover)] hover:underline';
 const anchor = (stepId: string) => `learning-step-${stepId}`;

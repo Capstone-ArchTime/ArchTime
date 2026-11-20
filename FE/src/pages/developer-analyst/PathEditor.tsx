@@ -260,7 +260,7 @@ export default function PathEditor() {
       </div>
     ))}
 
-    <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border border-[var(--at-line)] bg-[#0b0f13] p-3">
+    <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border border-[var(--at-line)] bg-[var(--at-panel-2)] p-3">
       <p className="text-xs text-[var(--at-muted)]">{isNew ? 'Not saved yet.' : `Revision ${serverPath?.revision ?? ''}${dirty ? ' · unsaved changes' : ' · saved'}`}</p>
       <div className="flex gap-2">
         {!isNew && <Button disabled={!dirty || saving} onClick={() => serverPath && adopt(serverPath)}>Discard changes</Button>}

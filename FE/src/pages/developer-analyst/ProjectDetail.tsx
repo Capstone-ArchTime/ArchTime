@@ -75,9 +75,9 @@ const ProjectDetail: React.FC = () => {
     <DashboardLayout title={w?.name}>
       <div className="max-w-[1400px] mx-auto flex flex-col min-h-0 pb-12">
         {error && (
-          <div role="alert" className="border border-[#ef4444]/40 bg-[#ef4444]/5 p-4 text-sm text-[#fca5a5] flex flex-wrap items-center justify-between gap-3">
+          <div role="alert" className="border border-[var(--at-danger)]/40 bg-[var(--at-danger)]/5 p-4 text-sm text-[var(--at-danger-text)] flex flex-wrap items-center justify-between gap-3">
             <span>{error}</span>
-            <button type="button" onClick={() => { setFailure(null); load(projectId); }} className="h-8 px-3 border border-[#ef4444]/40 text-xs font-semibold">Try again</button>
+            <button type="button" onClick={() => { setFailure(null); load(projectId); }} className="h-8 px-3 border border-[var(--at-danger)]/40 text-xs font-semibold">Try again</button>
           </div>
         )}
         {!w ? (
@@ -113,7 +113,7 @@ const ProjectDetail: React.FC = () => {
             <nav aria-label="Workspace views" className="mt-8 border-b border-[var(--at-line)] flex gap-8 overflow-x-auto custom-scrollbar">
               <span aria-current="page" className="pb-3 border-b-2 border-[var(--at-accent)] text-[var(--at-link)] font-bold text-xs tracking-wider uppercase whitespace-nowrap">Overview</span>
               {tabs.map(t => (
-                <Link key={t.label} to={t.to} state={backTo(`/project?${q}`, w.name)} className="pb-3 border-b-2 border-transparent hover:border-[#5f636b] text-[var(--at-muted)] hover:text-[var(--at-text)] font-bold text-xs tracking-wider uppercase whitespace-nowrap transition-colors">{t.label}</Link>
+                <Link key={t.label} to={t.to} state={backTo(`/project?${q}`, w.name)} className="pb-3 border-b-2 border-transparent hover:border-[var(--at-line-strong)] text-[var(--at-muted)] hover:text-[var(--at-text)] font-bold text-xs tracking-wider uppercase whitespace-nowrap transition-colors">{t.label}</Link>
               ))}
             </nav>
 
@@ -173,7 +173,7 @@ const ProjectDetail: React.FC = () => {
                     <p className="p-5 text-sm text-[var(--at-muted)] flex-1">No structural changes found in the mined commits yet.</p>
                   )}
                   <div className="p-4 border-t border-[var(--at-line)] bg-[var(--at-page)]">
-                    <Link to={`/evidence?${q}`} className="inline-flex h-9 px-4 items-center justify-center gap-2 text-[10px] font-mono font-bold text-[var(--at-muted)] border border-[var(--at-line)] hover:border-[#5f636b] hover:text-[var(--at-text)] transition-colors uppercase w-full" style={mono}>
+                    <Link to={`/evidence?${q}`} className="inline-flex h-9 px-4 items-center justify-center gap-2 text-[10px] font-mono font-bold text-[var(--at-muted)] border border-[var(--at-line)] hover:border-[var(--at-line-strong)] hover:text-[var(--at-text)] transition-colors uppercase w-full" style={mono}>
                       View all changes <SearchCode size={14} aria-hidden="true" />
                     </Link>
                   </div>

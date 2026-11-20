@@ -154,6 +154,12 @@
   --at-on-fill: #ffffff;
   --at-warn: #ffb03a;
   --at-glow: #00f0ff;
+  /* Added / removed / failed states only (DESIGN.md: Success and Error). --at-danger-text is for words on a red-tinted alert. */
+  --at-success: #4ade80;
+  --at-danger: #f87171;
+  --at-danger-text: #fca5a5;
+  /* A brighter border for hover on outlined controls; never a text colour. */
+  --at-line-strong: #5f636b;
 }
 
 /*
@@ -180,6 +186,7 @@ html[data-theme="frost"], .at-frost-scope {
   --at-on-fill: #18212c;
   --at-warn: #f0c27e;
   --at-glow: #eaf1ff;
+  --at-line-strong: rgb(225 234 248 / 0.42);
   background-color: #1b2228;
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C13 8 16 11 24 12C16 13 13 16 12 24C11 16 8 13 0 12C8 11 11 8 12 0Z' fill='%23f2f6ff' fill-opacity='0.55'/%3E%3C/svg%3E"),

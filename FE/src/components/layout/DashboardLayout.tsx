@@ -1,8 +1,8 @@
 ﻿import { useEffect, useRef, useState } from 'react';
-import type { ElementType, ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import type { ElementType, KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { App, Button, Drawer, Dropdown, Input, Modal, Tooltip } from 'antd';
-import { ArrowLeft, ArrowUpRight, LogOut, Menu, PanelLeftClose, Search, User } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, LogOut, Menu, PanelLeftClose, Search } from 'lucide-react';
 import { readBack } from './back-link';
 import { useAuth } from '@/auth/auth-context';
 import { accountMenuItems, navGroupsFor, navHeadingByRole } from './navigation';
@@ -63,12 +63,16 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
       setSidebar(false);
       glintTimer.current = window.setTimeout(() => setGlint(n => n + 1), GLINT_UNFOLD_DELAY_MS);
     } else {
+      // Fold at once; the light runs across the name while it narrows, so the click never waits for the animation.
       setGlint(n => n + 1);
-      glintTimer.current = window.setTimeout(() => setSidebar(true), GLINT_MS);
+      setSidebar(true);
     }
   };
+  const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
+  // The highlighted search result: arrow keys move it, Enter opens it.
+  const [activeResult, setActiveResult] = useState(0);
   const mainRef = useRef<HTMLElement>(null);
   const tabsRef = useRef<HTMLElement>(null);
   const maintains = useMaintainsWorkspaces(user?.id, user?.role === 'developer-analyst');
@@ -100,7 +104,21 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
   }, []);
 
   if (!user) return null;
-  const closeNavigation = () => { setMenuOpen(false); setSearchOpen(false); setQuery(''); };
+  const closeNavigation = () => { setMenuOpen(false); setSearchOpen(false); setQuery(''); setActiveResult(0); };
+  const results = items.filter(item => item.label.toLowerCase().includes(query.trim().toLowerCase()));
+  const onSearchKey = (event: ReactKeyboardEvent) => {
+    if (!results.length) return;
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const step = event.key === 'ArrowDown' ? 1 : -1;
+      setActiveResult(i => (i + step + results.length) % results.length);
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      const target = results[Math.min(activeResult, results.length - 1)];
+      closeNavigation();
+      navigate(target.path);
+    }
+  };
   const logout = () => modal.confirm({
     title: 'Sign out of ArchTime?', content: 'Save any edits before signing out. Unsaved changes will be lost.',
     okText: 'Sign out', cancelText: 'Stay signed in', onOk: signOut,
@@ -147,7 +165,7 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
           {glint > 0 && <span key={glint} className="at-brand-glint flex items-baseline" onAnimationEnd={() => setGlint(0)}>{brandWord}</span>}
         </span>
         <span aria-hidden="true" className={`block overflow-hidden whitespace-nowrap text-[10px] uppercase tracking-[0.18em] text-[var(--at-muted)] transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${collapsed ? 'mt-0 max-h-0 opacity-0' : 'mt-2 max-h-6 opacity-100'}`}>Architecture Observatory</span>
-        <PanelLeftClose size={16} aria-hidden="true" className={`absolute right-4 top-8 text-[var(--at-muted)] transition-opacity duration-200 group-hover:text-white ${collapsed ? 'opacity-0' : 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100'}`} />
+        <PanelLeftClose size={16} aria-hidden="true" className={`absolute right-4 top-8 text-[var(--at-muted)] transition-opacity duration-200 group-hover:text-white ${collapsed ? 'opacity-0' : 'opacity-60 group-hover:opacity-100 group-focus-visible:opacity-100'}`} />
       </button>
       <div className="px-3 py-4 flex-1 overflow-y-auto overflow-x-hidden">
         <p className={`px-3 mb-3 text-[10px] uppercase tracking-widest text-[var(--at-muted)] ${fade(collapsed)}`}>{navHeadingByRole[user.role]}</p>
@@ -187,9 +205,14 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
             <kbd className="hidden md:inline-flex items-center rounded-md border border-[var(--at-line)] bg-[var(--at-panel-2)] px-1.5 py-0.5 font-sans text-[11px] text-[var(--at-muted)]">Ctrl K</kbd>
           </button>
           <Dropdown trigger={['click']} placement="bottomRight" menu={{ items: [
+            { key: 'who', disabled: true, label: <span className="block max-w-56 py-0.5"><span className="block truncate text-sm font-medium text-[var(--at-text)]">{user.name}</span><span className="block truncate text-xs text-[var(--at-muted)]">{user.email}</span></span> },
+            { type: 'divider' as const },
             ...accountMenuItems[user.role].map(item => ({ key: item.path, label: <Link to={item.path}>{item.label}</Link> })),
+            { type: 'divider' as const },
+            { key: 'sign-out', icon: <LogOut size={15} aria-hidden="true" />, label: 'Sign out', onClick: logout },
           ] }}>
-            <button type="button" aria-label="Account menu" className="h-11 w-11 flex items-center justify-center rounded-full bg-[var(--at-panel-2)] border border-[var(--at-line)] text-[var(--at-link)] hover:border-[var(--at-accent)]/50 transition-colors"><User size={20} /></button>
+            <button type="button" aria-label="Account menu" title={user.name}
+              className="h-11 w-11 flex items-center justify-center rounded-full bg-[var(--at-fill)] text-sm font-semibold text-[var(--at-on-fill)] hover:bg-[var(--at-fill-hover)] transition-colors">{initials}</button>
           </Dropdown>
         </div>
       </header>
@@ -215,10 +238,18 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
       {renderNav(false)}<div className="mt-6 pt-5 border-t border-[var(--at-line)]"><p className="text-sm mb-3 truncate">{user.name}</p><Button icon={<LogOut size={15} />} onClick={logout}>Sign out</Button></div>
     </Drawer>
     <Modal title="Find a workspace page" open={searchOpen} onCancel={() => setSearchOpen(false)} footer={null}>
-      <Input autoFocus aria-label="Search page names" placeholder="Search page names…" value={query} onChange={event => setQuery(event.target.value)} allowClear />
-      <nav aria-label="Page search results" className="mt-4 space-y-1 max-h-[50dvh] overflow-y-auto">
-        {items.filter(item => item.label.toLowerCase().includes(query.trim().toLowerCase())).map(item => <Link key={item.path} to={item.path} onClick={closeNavigation} className="flex justify-between items-center gap-3 rounded px-3 py-3 text-sm hover:bg-[var(--at-line)]"><span>{item.label}</span><ArrowUpRight size={15} aria-hidden="true" /></Link>)}
-        {!items.some(item => item.label.toLowerCase().includes(query.trim().toLowerCase())) && <p role="status" className="p-4 text-sm text-[var(--at-muted)]">No matching page. Try another name.</p>}
+      <Input autoFocus aria-label="Search page names" aria-describedby="page-search-hint" placeholder="Search page names…" value={query}
+        onChange={event => { setQuery(event.target.value); setActiveResult(0); }} onKeyDown={onSearchKey} allowClear />
+      <p id="page-search-hint" className="mt-2 text-xs text-[var(--at-muted)]">↑ ↓ to move, Enter to open</p>
+      <nav aria-label="Page search results" className="mt-3 space-y-1 max-h-[50dvh] overflow-y-auto">
+        {results.map((item, index) => {
+          const highlighted = index === Math.min(activeResult, results.length - 1);
+          return <Link key={item.path} to={item.path} onClick={closeNavigation} onMouseEnter={() => setActiveResult(index)} aria-current={highlighted ? 'true' : undefined}
+            className={`flex justify-between items-center gap-3 rounded-[10px] px-3 py-3 text-sm ${highlighted ? 'bg-[var(--at-panel-2)] text-[var(--at-link)]' : 'hover:bg-[var(--at-line)]'}`}>
+            <span>{item.label}</span><ArrowUpRight size={15} aria-hidden="true" />
+          </Link>;
+        })}
+        {!results.length && <p role="status" className="p-4 text-sm text-[var(--at-muted)]">No matching page. Try another name.</p>}
       </nav>
     </Modal>
   </div>;

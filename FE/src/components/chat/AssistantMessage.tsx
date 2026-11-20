@@ -10,7 +10,7 @@ import {
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
 
 const LABEL_STYLES = {
-  FACT: 'bg-[#22c55e]/15 text-[#22c55e] border-[#22c55e]/30',
+  FACT: 'bg-[var(--at-success)]/15 text-[var(--at-success)] border-[var(--at-success)]/30',
   INFERENCE: 'bg-[var(--at-warn)]/15 text-[var(--at-warn)] border-[var(--at-warn)]/30',
   UNKNOWN: 'bg-[var(--at-muted)]/15 text-[var(--at-muted)] border-[var(--at-muted)]/30'
 } as const;
@@ -28,7 +28,7 @@ const when = (iso: string) => {
 };
 
 function Deps({ added, removed }: { added: number; removed: number }) {
-  return <><span className="text-[#22c55e]">+{added}</span> / <span className="text-[#ef4444]">-{removed}</span></>;
+  return <><span className="text-[var(--at-success)]">+{added}</span> / <span className="text-[var(--at-danger)]">-{removed}</span></>;
 }
 
 interface ChipButtonProps { expanded: boolean; controls: string; label: string; tone: string; onClick: () => void; children: ReactNode }
@@ -226,8 +226,8 @@ export default function AssistantMessage({ content, evidence, projectId }: Props
       {evidence && (
         <div className="mt-4 pt-4 border-t border-[var(--at-line)]">
           <div className="flex items-center gap-2 mb-3">
-            <CheckCircle2 size={12} className="text-[#22c55e]" />
-            <span className="text-[10px] font-mono font-semibold text-[#22c55e] uppercase tracking-wider" style={mono}>Evidence cited</span>
+            <CheckCircle2 size={12} className="text-[var(--at-success)]" />
+            <span className="text-[10px] font-mono font-semibold text-[var(--at-success)] uppercase tracking-wider" style={mono}>Evidence cited</span>
             {interactive && <span className="text-[10px] text-[var(--at-muted)]">Select a commit, file count or dependency count for details</span>}
           </div>
           <div className="flex flex-wrap gap-2">
