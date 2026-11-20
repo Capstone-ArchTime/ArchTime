@@ -1,4 +1,4 @@
-import { UserRole } from "../../domain/entities/User.js";
+import { normalizeLanguage, UserRole } from "../../domain/entities/User.js";
 import type { IUserRepository } from "../../domain/interfaces/IUserRepository.js";
 import type { IOtpRepository } from "../../domain/interfaces/IOtpRepository.js";
 import type { IEmailService } from "../../domain/interfaces/IEmailService.js";
@@ -22,7 +22,10 @@ export class RegisterUseCase {
     name: string;
     email: string;
     password: string;
+    /** The language the person signed up in ("en" or "vi"); it becomes the account's language. */
+    language?: unknown;
   }): Promise<{ message: string; email: string; expiresAt: string }> {
+    const language = normalizeLanguage(input.language);
     const email = normalizeEmail(input.email);
     const exists = await this.userRepo.existsByEmail(email);
     if (exists) {
@@ -36,6 +39,7 @@ export class RegisterUseCase {
       email,
       passwordHash,
       role: UserRole.USER,
+      language,
     });
 
     const code = this.otpCodes.generate();
@@ -45,7 +49,7 @@ export class RegisterUseCase {
     await this.otpRepo.deleteByEmail(user.email);
     await this.otpRepo.create(user.email, this.otpCodes.hash(user.email, code), expiresAt);
 
-    await this.emailService.sendOtp(user.email, code);
+    await this.emailService.sendOtp(user.email, code, language);
 
     return {
       message: `Verification OTP sent to ${user.email}. It expires in ${OTP_TTL_MINUTES} minutes.`,

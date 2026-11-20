@@ -1843,6 +1843,10 @@ export function createProjectRouter(
      *         name: reportId
      *         required: true
      *         schema: { type: string }
+     *       - in: query
+     *         name: lang
+     *         description: Ngôn ngữ của PDF ("en" mặc định, hoặc "vi")
+     *         schema: { type: string, enum: [en, vi] }
      *     responses:
      *       200:
      *         description: File PDF của báo cáo

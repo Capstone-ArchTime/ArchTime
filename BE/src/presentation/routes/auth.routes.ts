@@ -343,9 +343,10 @@ export function createAuthRouter(
    * /api/auth/me:
    *   patch:
    *     tags: [Auth]
-   *     summary: Cập nhật profile của chính mình (tên hiển thị, username)
+   *     summary: Cập nhật profile của chính mình (tên hiển thị, username, ngôn ngữ)
    *     description: |
    *       Gửi ít nhất một trường. `username` = null hoặc "" để xóa username.
+   *       `language` ("en" | "vi") là ngôn ngữ của giao diện, email và báo cáo PDF.
    *       Email không đổi được ở đây (cần xác minh lại); role và trạng thái do System Administrator thay đổi.
    *     security:
    *       - BearerAuth: []
@@ -362,6 +363,7 @@ export function createAuthRouter(
    *                 nullable: true
    *                 pattern: '^[a-z0-9](?:[a-z0-9._-]{1,30})[a-z0-9]$'
    *                 example: "jane.doe"
+   *               language: { type: string, enum: [en, vi], example: "vi" }
    *     responses:
    *       200:
    *         description: Profile đã cập nhật; `user` có cùng dạng với GET /auth/me (kèm signInMethods)

@@ -19,10 +19,20 @@ export enum UserStatus {
   SUSPENDED = "suspended",
 }
 
+/** Languages the interface, e-mails and reports can be in. English is the default. */
+export const USER_LANGUAGES = ["en", "vi"] as const;
+export type UserLanguage = (typeof USER_LANGUAGES)[number];
+
+export function normalizeLanguage(value: unknown): UserLanguage {
+  return value === "vi" ? "vi" : "en";
+}
+
 export interface IUser {
   id: string;
   name: string;
   username?: string;
+  /** The account's language for the interface, e-mails and reports. */
+  language?: UserLanguage;
   email: string;
   passwordHash: string;
   githubId?: string;

@@ -1,6 +1,9 @@
 import nodemailer, { type Transporter } from "nodemailer";
+import type { UserLanguage } from "../../domain/entities/User.js";
 import type { IEmailService } from "../../domain/interfaces/IEmailService.js";
+import { EMAIL_TEXT, otpEmailHtml, projectInvitationHtml, roleName } from "./email-templates.js";
 
+/** Sends ArchTime's e-mails through SMTP, each in the recipient's language (English when it is not known). */
 export class NodemailerEmailService implements IEmailService {
   private transporter: Transporter;
 
@@ -19,116 +22,30 @@ export class NodemailerEmailService implements IEmailService {
     });
   }
 
-  async sendPasswordReset(to: string, token: string): Promise<void> {
-    await this.transporter.sendMail({ from: this.from, to, subject: "ArchTime - Reset your password",
-      text: "Your password reset code is:\n\n" + token + "\n\nPaste it into the ArchTime password reset form. It expires in 10 minutes and can only be used once. If you did not request this, ignore this email.",
-    });
-  }
-  async sendOtp(to: string, otp: string): Promise<void> {
-    await this.transporter.sendMail({
-      from: this.from,
-      to,
-      subject: "ArchTime — Email Verification",
-      html: this.buildOtpEmail(otp),
-    });
+  async sendPasswordReset(to: string, token: string, language: UserLanguage = "en"): Promise<void> {
+    const t = EMAIL_TEXT[language];
+    await this.transporter.sendMail({ from: this.from, to, subject: t.resetSubject, text: t.resetBody(token) });
   }
 
-  async sendInvitation(to: string, temporaryPassword: string, role: string): Promise<void> {
-    await this.transporter.sendMail({
-      from: this.from,
-      to,
-      subject: "Welcome to ArchTime — Account Invitation",
-      text: `You have been invited to ArchTime as a ${role}.\n\nYour temporary password is:\n${temporaryPassword}\n\nPlease sign in and update your password immediately.`,
-    });
+  async sendOtp(to: string, otp: string, language: UserLanguage = "en"): Promise<void> {
+    await this.transporter.sendMail({ from: this.from, to, subject: EMAIL_TEXT[language].otpSubject, html: otpEmailHtml(otp, language) });
+  }
+
+  async sendInvitation(to: string, temporaryPassword: string, role: string, language: UserLanguage = "en"): Promise<void> {
+    const t = EMAIL_TEXT[language];
+    await this.transporter.sendMail({ from: this.from, to, subject: t.inviteSubject, text: t.inviteBody(roleName(role, language), temporaryPassword) });
   }
 
   async sendNotification(to: string, mail: { subject: string; html: string; text: string }): Promise<void> {
     await this.transporter.sendMail({ from: this.from, to, subject: mail.subject, html: mail.html, text: mail.text });
   }
 
-  async sendProjectInvitation(to: string, projectName: string, role: string, inviteUrl: string): Promise<void> {
+  async sendProjectInvitation(to: string, projectName: string, role: string, inviteUrl: string, language: UserLanguage = "en"): Promise<void> {
     await this.transporter.sendMail({
       from: this.from,
       to,
-      subject: `ArchTime — Invitation to join ${projectName}`,
-      html: `<p>You have been invited to join <strong>${projectName}</strong> as a <strong>${role}</strong>.</p>
-             <p><a href="${inviteUrl}">Click here to accept the invitation</a></p>
-             <p>This invitation will expire in 7 days.</p>`,
+      subject: EMAIL_TEXT[language].projectSubject(projectName),
+      html: projectInvitationHtml(projectName, role, inviteUrl, language),
     });
-  }
-
-  private buildOtpEmail(otp: string): string {
-    return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ArchTime — Email Verification</title>
-</head>
-<body style="margin:0;padding:0;background:#08090a;font-family:'Inter',system-ui,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#08090a;padding:48px 16px;">
-    <tr>
-      <td align="center">
-        <table width="520" cellpadding="0" cellspacing="0"
-               style="background:#111213;border:1px solid #242527;border-radius:12px;overflow:hidden;">
-
-          <!-- Header -->
-          <tr>
-            <td style="padding:32px 40px 24px;border-bottom:1px solid #242527;">
-              <p style="margin:0;font-family:'JetBrains Mono',monospace;font-size:13px;
-                        color:#3b82f6;letter-spacing:1px;text-transform:uppercase;">
-                ArchTime
-              </p>
-              <h1 style="margin:8px 0 0;font-size:22px;font-weight:600;
-                         color:#f4f4f6;letter-spacing:-0.5px;">
-                Verify your email address
-              </h1>
-            </td>
-          </tr>
-
-          <!-- Body -->
-          <tr>
-            <td style="padding:32px 40px;">
-              <p style="margin:0 0 24px;font-size:15px;color:#c9c9cc;line-height:1.6;">
-                Use the verification code below to activate your ArchTime account.
-                This code expires in <strong style="color:#f4f4f6;">10 minutes</strong>.
-              </p>
-
-              <!-- OTP Box -->
-              <div style="background:#161718;border:1px solid #242527;border-radius:8px;
-                          padding:28px;text-align:center;margin-bottom:24px;">
-                <p style="margin:0 0 8px;font-size:12px;font-family:'JetBrains Mono',monospace;
-                           color:#8a8f98;letter-spacing:1.2px;text-transform:uppercase;">
-                  Verification Code
-                </p>
-                <p style="margin:0;font-size:40px;font-weight:700;
-                           font-family:'JetBrains Mono',monospace;
-                           color:#3b82f6;letter-spacing:8px;">
-                  ${otp}
-                </p>
-              </div>
-
-              <p style="margin:0;font-size:13px;color:#5f636b;line-height:1.5;">
-                If you did not create an ArchTime account, you can safely ignore this email.
-              </p>
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="padding:20px 40px;border-top:1px solid #242527;">
-              <p style="margin:0;font-size:12px;color:#5f636b;font-family:'JetBrains Mono',monospace;">
-                ArchTime · Evidence-Based Architecture Evolution
-              </p>
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
   }
 }

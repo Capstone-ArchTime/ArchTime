@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import { UnauthorizedError } from "../../shared/errors/AppError.js";
 import { sendSuccess } from "../../shared/utils/apiResponse.js";
 import { renderReportPdf, reportFileName } from "../../infrastructure/services/ReportPdf.js";
+import { normalizeLanguage } from "../../domain/entities/User.js";
 import type { GetProjectDashboardUseCase } from "../../application/use-cases/pm/GetProjectDashboardUseCase.js";
 import type { GetProjectDiagramUseCase } from "../../application/use-cases/pm/GetProjectDiagramUseCase.js";
 import type {
@@ -569,7 +570,8 @@ export class ProjectMaintainerController {
     try {
       const { id: projectId, reportId } = req.params;
       const report = await this.uc.getReportDetailUseCase.execute(projectId, reportId);
-      const pdf = await renderReportPdf(report);
+      // In the language the person reads the app in (?lang=vi), English otherwise.
+      const pdf = await renderReportPdf(report, undefined, normalizeLanguage(req.query.lang));
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader("Content-Disposition", `attachment; filename="${reportFileName(report)}"`);
       res.setHeader("Content-Length", String(pdf.length));

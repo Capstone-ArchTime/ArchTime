@@ -7,6 +7,8 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import PageHeader from '@/components/PageHeader';
 import { LANGUAGES, setLanguage, translate, useLanguage, useT, type Language } from '@/i18n';
 import { readDiagramTheme, readSidebarCollapsed, resetDiagramPanels, writeDiagramTheme, writeSidebarCollapsed, type DiagramTheme } from '@/features/display-prefs';
+import { saveAccountLanguage } from '@/features/profile-api';
+import { useAuth } from '@/auth/auth-context';
 
 /** One block of the page: an icon, a heading and its controls. */
 function Section({ id, icon, title, children }: { id: string; icon: ReactNode; title: string; children: ReactNode }) {
@@ -38,9 +40,16 @@ export default function Settings() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed);
   const [diagramTheme, setDiagramTheme] = useState<DiagramTheme>(readDiagramTheme);
 
+  const { user, updateUser } = useAuth();
   const chooseLanguage = async (next: Language) => {
     await setLanguage(next);
-    message.success(translate('settings.language.changed', undefined, next));
+    // Saved to the account too, so e-mails, reports and other devices follow; the change here stands either way.
+    try {
+      if (user) { await saveAccountLanguage(next); updateUser({ language: next }); }
+      message.success(translate('settings.language.changed', undefined, next));
+    } catch {
+      message.warning(translate('settings.language.notSaved', undefined, next));
+    }
   };
 
   return <DashboardLayout>

@@ -1,7 +1,7 @@
 import { API_BASE_URL } from './session.ts';
 import type { Tokens } from './session.ts';
 import { AuthRequestError, readRetryAfter, tooManyAttemptsMessage } from './rate-limit.ts';
-import { localizeServerMessage, translate } from '../i18n/index.ts';
+import { getLanguage, localizeServerMessage, translate } from '../i18n/index.ts';
 
 export { AuthRequestError } from './rate-limit.ts';
 
@@ -10,8 +10,10 @@ export type AuthResponse = { accessToken?: string; refreshToken?: string; messag
 export async function authRequest(endpoint: 'login' | 'register' | 'verify-email' | 'resend-otp' | 'forgot-password' | 'reset-password', body: Record<string, string>, signal?: AbortSignal): Promise<AuthResponse> {
   const timeout = AbortSignal.timeout(15_000);
   try {
+    // A new account starts in the language the person signed up in; its e-mails use it too.
+    const payload = endpoint === 'register' ? { ...body, language: getLanguage() } : body;
     const response = await fetch(`${API_BASE_URL}/auth/${endpoint}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
       signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
     });
     const result = await response.json().catch(() => null);

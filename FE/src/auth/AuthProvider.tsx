@@ -5,6 +5,19 @@ import type { AuthUser } from './permissions';
 import { clearTokens, readTokens, saveTokens, tokenStorage, InvalidSessionError, verifySession } from './session';
 import type { Tokens } from './session';
 import { onSessionEnded } from '../api/client';
+import { getLanguage, setLanguage } from '../i18n';
+
+// Whose account language this page has already applied. Kept outside the component, so a remount (or the check that
+// runs every minute) never undoes a language the person chose afterwards.
+let appliedFor: string | null = null;
+
+/** On sign-in, and when the page opens signed in, the account's language wins over the one this browser last used. */
+function applyLanguage(user: AuthUser, signedInNow = false) {
+  if (appliedFor === user.id && !signedInNow) return;
+  appliedFor = user.id;
+  const language = user.language;
+  if ((language === 'en' || language === 'vi') && language !== getLanguage()) void setLanguage(language);
+}
 
 export default function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -30,6 +43,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         saveTokens({ ...tokens, accessToken: verified.accessToken }, rememberMe);
       } catch { clearTokens(); throw new Error('Browser storage is unavailable. Enable it to sign in.'); }
       setUser(verified.user); setError(null); setLoading(false);
+      applyLanguage(verified.user, true);
       return verified.user;
     } finally { if (active.current === controller) signingIn.current = false; }
   }
@@ -56,6 +70,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         controller.signal.throwIfAborted();
         tokenStorage().setItem('accessToken', verified.accessToken);
         setUser(verified.user); setError(null);
+        applyLanguage(verified.user);
       } catch (cause) {
         if (controller.signal.aborted) return;
         setUser(null);

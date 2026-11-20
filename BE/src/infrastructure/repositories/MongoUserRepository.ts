@@ -1,4 +1,4 @@
-import { LEGACY_USER_ROLES, normalizeUserRole, UserRole, UserStatus, type IUser } from "../../domain/entities/User.js";
+import { LEGACY_USER_ROLES, normalizeLanguage, normalizeUserRole, UserRole, UserStatus, type IUser, type UserLanguage } from "../../domain/entities/User.js";
 import type {
   IUserRepository,
   UserFilter,
@@ -13,6 +13,7 @@ export class MongoUserRepository implements IUserRepository {
       id: String(doc._id),
       name: doc.name as string,
       username: doc.username as string | undefined,
+      language: normalizeLanguage(doc.language),
       email: doc.email as string,
       passwordHash: (doc.passwordHash as string) ?? "",
       role: normalizeUserRole(doc.role),
@@ -56,6 +57,7 @@ export class MongoUserRepository implements IUserRepository {
     role: UserRole;
     status?: UserStatus;
     isVerified?: boolean;
+    language?: UserLanguage;
   }): Promise<IUser> {
     const doc = await UserModel.create({
       ...data,
@@ -140,10 +142,11 @@ export class MongoUserRepository implements IUserRepository {
     return !!(await UserModel.exists(query));
   }
 
-  async updateProfile(userId: string, patch: { name?: string; username?: string | null }): Promise<IUser | null> {
+  async updateProfile(userId: string, patch: { name?: string; username?: string | null; language?: UserLanguage }): Promise<IUser | null> {
     const $set: Record<string, unknown> = {};
     const $unset: Record<string, 1> = {};
     if (patch.name !== undefined) $set.name = patch.name;
+    if (patch.language !== undefined) $set.language = patch.language;
     if (patch.username === null) $unset.username = 1;
     else if (patch.username !== undefined) $set.username = patch.username;
     const update: Record<string, unknown> = {};

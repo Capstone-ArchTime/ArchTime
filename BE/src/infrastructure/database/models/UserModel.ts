@@ -1,5 +1,5 @@
 import mongoose, { type Document, type Model, Schema } from "mongoose";
-import { LEGACY_USER_ROLES, UserRole, UserStatus, type IUser } from "../../../domain/entities/User.js";
+import { LEGACY_USER_ROLES, USER_LANGUAGES, UserRole, UserStatus, type IUser } from "../../../domain/entities/User.js";
 
 export interface IUserDocument extends Omit<IUser, "id">, Document {
   resetTokenHash?: string;
@@ -42,6 +42,7 @@ const UserSchema = new Schema<IUserDocument>(
     resetExpiresAt: { type: Date, select: false },
     resetRequestedAt: { type: Date, select: false },
     isVerified: { type: Boolean, default: false },
+    language: { type: String, enum: [...USER_LANGUAGES], default: "en" },
   },
   {
     timestamps: true,
