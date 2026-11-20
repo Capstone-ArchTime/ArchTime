@@ -1,4 +1,5 @@
 import { isAuthUser } from './permissions.ts';
+import { translate } from '../i18n/index.ts';
 
 export const API_BASE_URL = import.meta.env?.VITE_API_URL ?? 'http://localhost:4000/api';
 export type Tokens = { accessToken: string; refreshToken: string };
@@ -42,20 +43,20 @@ export async function verifySession(tokens: Tokens, signal: AbortSignal) {
     const refresh = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken: tokens.refreshToken }), signal,
     });
-    if ([400, 401, 403, 404].includes(refresh.status)) throw new InvalidSessionError('Your session has expired. Please sign in again.');
-    if (!refresh.ok) throw new Error('Unable to renew your session. Please retry.');
+    if ([400, 401, 403, 404].includes(refresh.status)) throw new InvalidSessionError(translate('err.sessionExpired'));
+    if (!refresh.ok) throw new Error(translate('err.sessionRenew'));
     const refreshBody = await refresh.json();
     // BE wraps response in { success, data: { accessToken } }
     const newToken = refreshBody.data?.accessToken ?? refreshBody.accessToken;
-    if (typeof newToken !== 'string' || !newToken) throw new Error('Invalid session response.');
+    if (typeof newToken !== 'string' || !newToken) throw new Error(translate('err.sessionInvalid'));
     accessToken = newToken;
     response = await fetch(`${API_BASE_URL}/auth/me`, { headers: { Authorization: `Bearer ${accessToken}` }, signal });
   }
-  if ([401, 403, 404].includes(response.status)) throw new InvalidSessionError('Your session has expired or access was revoked.');
-  if (!response.ok) throw new Error('Unable to verify your session. Please retry.');
+  if ([401, 403, 404].includes(response.status)) throw new InvalidSessionError(translate('err.sessionRevokedAccess'));
+  if (!response.ok) throw new Error(translate('err.sessionVerify'));
   const body = await response.json();
   // BE wraps response in { success, data: { user } }
   const user = body.data?.user ?? body.user;
-  if (!isAuthUser(user)) throw new InvalidSessionError('This account does not have a supported role.');
+  if (!isAuthUser(user)) throw new InvalidSessionError(translate('err.unsupportedRole'));
   return { user, accessToken };
 }

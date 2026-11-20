@@ -5,6 +5,20 @@ import { getAdminSettings, updateAdminSettings } from '@/features/admin-api';
 import type { AdminSettings } from '@/features/admin-api';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { sectionTitle } from './admin-ui';
+import { formatDateTime } from '@/i18n/format';
+import { defineMessages, useMessages } from '@/i18n/define';
+
+const MSG = defineMessages({
+  saved: 'Settings saved.', saveFailed: 'Failed to save settings.', title: 'Repository & Extraction Config', intro: 'Configure the limits used by the analysis pipeline.', refresh: 'Refresh',
+  authorization: 'Repository authorization', notVerified: 'Not verified', notConnected: 'Not connected', providerNote: 'Provider connections and credential rotation require the administration API.',
+  parameters: 'Extraction parameters', loading: 'Loading settings...', maxJobs: 'Max concurrent analysis jobs', maxSize: 'Max repository size (MB)', save: 'Save settings', reset: 'Reset form',
+  lastUpdated: 'Last updated: {date}', unsaved: 'You have unsaved configuration changes.',
+}, {
+  saved: 'Đã lưu cài đặt.', saveFailed: 'Không lưu được cài đặt.', title: 'Cấu hình repository & trích xuất', intro: 'Cấu hình các giới hạn dùng bởi quy trình phân tích.', refresh: 'Làm mới',
+  authorization: 'Ủy quyền repository', notVerified: 'Chưa xác minh', notConnected: 'Chưa kết nối', providerNote: 'Kết nối nhà cung cấp và xoay vòng thông tin xác thực cần API quản trị.',
+  parameters: 'Tham số trích xuất', loading: 'Đang tải cài đặt...', maxJobs: 'Số việc phân tích chạy đồng thời tối đa', maxSize: 'Kích thước repository tối đa (MB)', save: 'Lưu cài đặt', reset: 'Đặt lại biểu mẫu',
+  lastUpdated: 'Cập nhật lần cuối: {date}', unsaved: 'Bạn có thay đổi cấu hình chưa lưu.',
+});
 
 export default function SystemSettings() {
   const { message } = App.useApp();
@@ -15,6 +29,7 @@ export default function SystemSettings() {
   const [dirty, setDirty] = useState(false);
   const [form] = Form.useForm();
   const [revision, setRevision] = useState(0);
+  const m = useMessages(MSG);
 
   useUnsavedChanges(dirty);
 
@@ -44,9 +59,9 @@ export default function SystemSettings() {
       setSettings(res.data);
       form.setFieldsValue(res.data);
       setDirty(false);
-      message.success('Settings saved.');
+      message.success(m('saved'));
     } catch (e) {
-      message.error(e instanceof Error ? e.message : 'Failed to save settings.');
+      message.error(e instanceof Error ? e.message : m('saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -61,32 +76,32 @@ export default function SystemSettings() {
 
   return (
     <FeaturePage
-      title="Repository & Extraction Config"
-      description="Configure the limits used by the analysis pipeline."
+      title={m('title')}
+      description={m('intro')}
       error={error}
       actions={
         <Button loading={loading} onClick={() => setRevision(v => v + 1)}>
-          Refresh
+          {m('refresh')}
         </Button>
       }
     >
       <section className={featurePanel}>
-        <h3 className={`${sectionTitle} mb-4`}>Repository authorization</h3>
+        <h3 className={`${sectionTitle} mb-4`}>{m('authorization')}</h3>
         <div className="flex flex-wrap gap-4 text-sm">
-          <span className="flex items-center gap-2">GitHub <Tag>Not verified</Tag></span>
-          <span className="flex items-center gap-2">GitLab <Tag>Not connected</Tag></span>
+          <span className="flex items-center gap-2">GitHub <Tag>{m('notVerified')}</Tag></span>
+          <span className="flex items-center gap-2">GitLab <Tag>{m('notConnected')}</Tag></span>
         </div>
         <p className="text-sm text-[var(--at-muted)] mt-4">
-          Provider connections and credential rotation require the administration API.
+          {m('providerNote')}
         </p>
       </section>
 
       <section className={featurePanel}>
-        <h3 className={`${sectionTitle} mb-4`}>Extraction parameters</h3>
+        <h3 className={`${sectionTitle} mb-4`}>{m('parameters')}</h3>
         {loading ? (
           <div className="p-8 text-center">
             <Spin />
-            <p className="mt-3 text-[var(--at-muted)]">Loading settings...</p>
+            <p className="mt-3 text-[var(--at-muted)]">{m('loading')}</p>
           </div>
         ) : (
           <Form
@@ -98,36 +113,36 @@ export default function SystemSettings() {
           >
             <Form.Item
               name="maxConcurrentJobs"
-              label="Max concurrent analysis jobs"
+              label={m('maxJobs')}
               rules={[{ required: true, type: 'integer', min: 1, max: 16 }]}
             >
               <InputNumber min={1} max={16} precision={0} className="w-full max-w-xs" />
             </Form.Item>
             <Form.Item
               name="maxRepoSizeMb"
-              label="Max repository size (MB)"
+              label={m('maxSize')}
               rules={[{ required: true, type: 'integer', min: 1, max: 51200 }]}
             >
               <InputNumber min={1} max={51200} precision={0} className="w-full max-w-xs" />
             </Form.Item>
             <div className="flex gap-3">
               <Button type="primary" htmlType="submit" loading={saving} disabled={!dirty}>
-                Save settings
+                {m('save')}
               </Button>
               <Button onClick={handleReset} disabled={!dirty}>
-                Reset form
+                {m('reset')}
               </Button>
             </div>
           </Form>
         )}
         {settings?.updatedAt && (
           <p className="text-xs text-[var(--at-muted)] mt-4">
-            Last updated: {new Date(settings.updatedAt).toLocaleString()}
+            {m('lastUpdated', { date: formatDateTime(settings.updatedAt) })}
           </p>
         )}
       </section>
 
-      {dirty && <Alert type="warning" message="You have unsaved configuration changes." />}
+      {dirty && <Alert type="warning" message={m('unsaved')} />}
     </FeaturePage>
   );
 }

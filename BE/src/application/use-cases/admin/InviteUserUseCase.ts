@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { UserRole, UserStatus, type IUser } from "../../../domain/entities/User.js";
+import { normalizeLanguage, USER_LANGUAGES, UserRole, UserStatus, type IUser } from "../../../domain/entities/User.js";
 import type { IUserRepository } from "../../../domain/interfaces/IUserRepository.js";
 import type { IEmailService } from "../../../domain/interfaces/IEmailService.js";
 import type { BcryptHasher } from "../../../infrastructure/services/BcryptHasher.js";
@@ -10,6 +10,9 @@ export interface InviteUserInput {
   email: string;
   role: UserRole;
   temporaryPassword?: string;
+  /** "en" or "vi" for the new account and its invitation e-mail; when left out, the inviting administrator's language. */
+  language?: unknown;
+  invitedBy?: string;
 }
 
 export interface InviteUserResult {
@@ -52,6 +55,10 @@ export class InviteUserUseCase {
 
     const passwordHash = await this.bcryptHasher.hashPassword(temporaryPassword);
 
+    const asked = (USER_LANGUAGES as readonly unknown[]).includes(input.language) ? input.language : undefined;
+    const inviter = !asked && input.invitedBy ? await this.userRepo.findById(input.invitedBy).catch(() => null) : null;
+    const language = normalizeLanguage(asked ?? inviter?.language);
+
     const user = await this.userRepo.create({
       name,
       email,
@@ -59,11 +66,12 @@ export class InviteUserUseCase {
       role: input.role,
       status: UserStatus.ACTIVE,
       isVerified: true,
+      language,
     });
 
     if (this.emailService) {
       try {
-        await this.emailService.sendInvitation(email, temporaryPassword, input.role);
+        await this.emailService.sendInvitation(email, temporaryPassword, input.role, language);
       } catch (err) {
         console.warn(`[InviteUserUseCase] Failed to send invitation email to ${email}:`, err);
       }

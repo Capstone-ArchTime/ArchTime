@@ -7,7 +7,7 @@ import { App } from 'antd';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/auth/auth-context';
 import { loginDestination } from '@/auth/permissions';
-import { authRequest } from '@/auth/requests';
+import { AuthRequestError, authRequest } from '@/auth/requests';
 import { API_BASE_URL, clearSignInNotice, peekSignInNotice } from '@/auth/session';
 import PasswordRequirements from '@/components/PasswordRequirements';
 import { checkNewPassword } from '@/features/profile-validation';
@@ -137,8 +137,10 @@ const AuthPage: React.FC = () => {
     } catch (error) {
       if (controller.signal.aborted) return;
       const text = error instanceof Error ? error.message : t('auth.error.generic');
-      if (isRegister && /^password/i.test(text)) setFieldErrors({ password: text });
-      else if (isRegister && /email/i.test(text)) setFieldErrors({ email: text });
+      // Which field a server problem belongs to is read from its English wording (the shown text may be translated).
+      const raw = error instanceof AuthRequestError ? error.raw : text;
+      if (isRegister && /^password/i.test(raw)) setFieldErrors({ password: text });
+      else if (isRegister && /email/i.test(raw)) setFieldErrors({ email: text });
       else setFormError(text);
     } finally {
       if (!controller.signal.aborted) setIsLoading(false);

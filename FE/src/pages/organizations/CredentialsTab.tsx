@@ -6,9 +6,12 @@ import {
   CREDENTIAL_NAME_MAX, PROVIDERS, TOKEN_MAX, checkCredentialName, checkToken, createCredential, deleteCredential, listCredentials, rotateCredential,
 } from '@/features/organizations-api';
 import type { Credential, CredentialProvider, Organization } from '@/features/organizations-api';
+import { formatDate } from '@/i18n/format';
+import { message as translate, useMessages } from '@/i18n/define';
+import { ORG } from './messages';
 
-const providerLabel = (p: CredentialProvider) => PROVIDERS.find(x => x.value === p)?.label ?? 'Other';
-const when = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString() : null);
+const providerLabel = (p: CredentialProvider) => PROVIDERS.find(x => x.value === p)?.label ?? translate(ORG, 'other');
+const when = (iso: string | null) => (iso ? formatDate(iso) : '');
 const tokenRule = { validator: (_: unknown, v?: string) => { const p = checkToken(v ?? ''); return p ? Promise.reject(new Error(p)) : Promise.resolve(); } };
 
 /**
@@ -26,12 +29,13 @@ export default function CredentialsTab({ organization }: { organization: Organiz
   const [busy, setBusy] = useState<string | null>(null);
   const [createForm] = Form.useForm<{ name: string; provider: CredentialProvider; token: string }>();
   const [rotateForm] = Form.useForm<{ token: string }>();
+  const m = useMessages(ORG);
 
   useEffect(() => {
     const controller = new AbortController();
     listCredentials(organization.id, controller.signal)
       .then(list => setCredentials([...list].sort((a, b) => a.name.localeCompare(b.name))))
-      .catch(cause => { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Could not load the credentials.'); });
+      .catch(cause => { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : translate(ORG, 'credentialsFailed')); });
     return () => controller.abort();
   }, [organization.id, attempt]);
 
@@ -42,9 +46,9 @@ export default function CredentialsTab({ organization }: { organization: Organiz
       setCredentials(list => [...(list ?? []), created].sort((a, b) => a.name.localeCompare(b.name)));
       setCreating(false);
       createForm.resetFields();
-      message.success(`Credential "${created.name}" saved. Its token cannot be shown again.`);
+      message.success(m('credentialSaved', { name: created.name }));
     } catch (cause) {
-      message.error(cause instanceof Error ? cause.message : 'Could not save the credential.');
+      message.error(cause instanceof Error ? cause.message : m('credentialSaveFailed'));
     } finally {
       setSaving(false);
     }
@@ -56,11 +60,11 @@ export default function CredentialsTab({ organization }: { organization: Organiz
     try {
       const updated = await rotateCredential(organization.id, rotating.id, values.token.trim());
       setCredentials(list => (list ?? []).map(c => (c.id === updated.id ? { ...updated, usedBy: c.usedBy } : c)));
-      message.success(`Token of "${updated.name}" replaced. Workspaces using it pick it up on their next job.`);
+      message.success(m('tokenReplaced', { name: updated.name }));
       setRotating(null);
       rotateForm.resetFields();
     } catch (cause) {
-      message.error(cause instanceof Error ? cause.message : 'Could not replace the token.');
+      message.error(cause instanceof Error ? cause.message : m('replaceFailed'));
     } finally {
       setSaving(false);
     }
@@ -71,46 +75,46 @@ export default function CredentialsTab({ organization }: { organization: Organiz
     try {
       await deleteCredential(organization.id, credential.id);
       setCredentials(list => (list ?? []).filter(c => c.id !== credential.id));
-      message.success(`Credential "${credential.name}" deleted.`);
+      message.success(m('credentialDeleted', { name: credential.name }));
     } catch (cause) {
-      message.error(cause instanceof Error ? cause.message : 'Could not delete the credential.');
+      message.error(cause instanceof Error ? cause.message : m('deleteFailed'));
     } finally {
       setBusy(null);
     }
   }
 
-  if (error) return <Alert type="error" showIcon title={error} action={<Button size="small" onClick={() => { setError(null); setCredentials(null); setAttempt(a => a + 1); }}>Retry</Button>} />;
+  if (error) return <Alert type="error" showIcon title={error} action={<Button size="small" onClick={() => { setError(null); setCredentials(null); setAttempt(a => a + 1); }}>{m('retry')}</Button>} />;
   if (!credentials) return <Skeleton active paragraph={{ rows: 3 }} />;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-2xl text-sm text-[var(--at-muted)]">Tokens the organization's workspaces clone private repositories with, so nobody has to use a personal token. Only owners see this list.</p>
-        <Button type="primary" icon={<Plus size={14} />} onClick={() => setCreating(true)}>Add credential</Button>
+        <p className="max-w-2xl text-sm text-[var(--at-muted)]">{m('credentialsIntro')}</p>
+        <Button type="primary" icon={<Plus size={14} />} onClick={() => setCreating(true)}>{m('addCredential')}</Button>
       </div>
 
-      {!credentials.length ? <div className={featurePanel}><Empty description="No credentials yet. Add one to clone the organization's private repositories." /></div> : (
-        <ul className={`${featurePanel} divide-y divide-[var(--at-line)]`} aria-label="Credentials">
+      {!credentials.length ? <div className={featurePanel}><Empty description={m('noCredentials')} /></div> : (
+        <ul className={`${featurePanel} divide-y divide-[var(--at-line)]`} aria-label={m('credentials')}>
           {credentials.map(c => (
             <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
               <div className="min-w-0">
                 <p className="flex items-center gap-2 font-medium break-words"><KeyRound size={14} className="text-[var(--at-link)] shrink-0" />{c.name} <Tag>{providerLabel(c.provider)}</Tag></p>
                 <p className="text-xs text-[var(--at-muted)]">
                   <span className="font-mono">••••{c.last4}</span>
-                  {` · used by ${c.usedBy} ${c.usedBy === 1 ? 'workspace' : 'workspaces'}`}
-                  {c.rotatedAt && ` · token replaced ${when(c.rotatedAt)}`}
-                  {c.lastUsedAt && ` · last used ${when(c.lastUsedAt)}`}
+                  {m('usedBy', { count: c.usedBy })}
+                  {c.rotatedAt && m('replacedOn', { date: when(c.rotatedAt) })}
+                  {c.lastUsedAt && m('lastUsed', { date: when(c.lastUsedAt) })}
                 </p>
               </div>
               <div className="flex shrink-0 gap-2">
-                <Button size="small" onClick={() => { rotateForm.resetFields(); setRotating(c); }}>Replace token</Button>
+                <Button size="small" onClick={() => { rotateForm.resetFields(); setRotating(c); }}>{m('replaceToken')}</Button>
                 {c.usedBy > 0 ? (
-                  <Tooltip title="Workspaces still clone with it. Replace its token instead, or move those workspaces to another credential first.">
-                    <Button size="small" danger disabled>Delete</Button>
+                  <Tooltip title={m('stillUsed')}>
+                    <Button size="small" danger disabled>{m('delete')}</Button>
                   </Tooltip>
                 ) : (
-                  <Popconfirm title={`Delete "${c.name}"?`} okText="Delete" okButtonProps={{ danger: true }} onConfirm={() => remove(c)}>
-                    <Button size="small" danger loading={busy === c.id}>Delete</Button>
+                  <Popconfirm title={m('deleteTitle', { name: c.name })} okText={m('delete')} okButtonProps={{ danger: true }} onConfirm={() => remove(c)}>
+                    <Button size="small" danger loading={busy === c.id}>{m('delete')}</Button>
                   </Popconfirm>
                 )}
               </div>
@@ -119,21 +123,21 @@ export default function CredentialsTab({ organization }: { organization: Organiz
         </ul>
       )}
 
-      <Modal title="Add credential" open={creating} onCancel={() => setCreating(false)} onOk={() => createForm.submit()} okText="Save" confirmLoading={saving} destroyOnHidden>
+      <Modal title={m('addCredential')} open={creating} onCancel={() => setCreating(false)} onOk={() => createForm.submit()} okText={m('save')} confirmLoading={saving} destroyOnHidden>
         <Form form={createForm} layout="vertical" onFinish={create} initialValues={{ provider: 'github' }} requiredMark={false}>
-          <Form.Item name="name" label="Name" rules={[{ validator: (_, v) => { const p = checkCredentialName(v ?? ''); return p ? Promise.reject(new Error(p)) : Promise.resolve(); } }]}>
-            <Input maxLength={CREDENTIAL_NAME_MAX} placeholder="e.g. GitHub read-only bot" autoFocus />
+          <Form.Item name="name" label={m('name')} rules={[{ validator: (_, v) => { const p = checkCredentialName(v ?? ''); return p ? Promise.reject(new Error(p)) : Promise.resolve(); } }]}>
+            <Input maxLength={CREDENTIAL_NAME_MAX} placeholder={m('credentialPlaceholder')} autoFocus />
           </Form.Item>
-          <Form.Item name="provider" label="Provider"><Select options={PROVIDERS} /></Form.Item>
-          <Form.Item name="token" label="Access token" rules={[tokenRule]} extra="A read-only token is enough. It is stored encrypted and never shown again.">
+          <Form.Item name="provider" label={m('provider')}><Select options={PROVIDERS} /></Form.Item>
+          <Form.Item name="token" label={m('accessToken')} rules={[tokenRule]} extra={m('tokenExtra')}>
             <Input.Password maxLength={TOKEN_MAX} autoComplete="new-password" placeholder="ghp_…" />
           </Form.Item>
         </Form>
       </Modal>
 
-      <Modal title={rotating ? `Replace the token of "${rotating.name}"` : ''} open={!!rotating} onCancel={() => setRotating(null)} onOk={() => rotateForm.submit()} okText="Replace" confirmLoading={saving} destroyOnHidden>
+      <Modal title={rotating ? m('replaceTitle', { name: rotating.name }) : ''} open={!!rotating} onCancel={() => setRotating(null)} onOk={() => rotateForm.submit()} okText={m('replace')} confirmLoading={saving} destroyOnHidden>
         <Form form={rotateForm} layout="vertical" onFinish={rotate} requiredMark={false}>
-          <Form.Item name="token" label="New access token" rules={[tokenRule]} extra="Workspaces using this credential clone with the new token from their next job on.">
+          <Form.Item name="token" label={m('newToken')} rules={[tokenRule]} extra={m('newTokenExtra')}>
             <Input.Password maxLength={TOKEN_MAX} autoComplete="new-password" autoFocus />
           </Form.Item>
         </Form>

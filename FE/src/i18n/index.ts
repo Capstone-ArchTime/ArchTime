@@ -33,12 +33,49 @@ export function preferredLanguage(stored: string | null, browser: readonly strin
 const extraLoaders: ((language: Language) => Promise<unknown>)[] = [];
 export function addLanguageLoader(loader: (language: Language) => Promise<unknown>) { extraLoaders.push(loader); }
 
+/** The server's fixed error sentences in Vietnamese (server-messages.vi.ts), loaded with the Vietnamese dictionary. */
+let serverMessagesVi: Record<string, string> | undefined;
+
 async function load(language: Language): Promise<Dictionary> {
   const [dictionary] = await Promise.all([
     dictionaries[language] ?? import('./messages/vi.ts').then(({ vi }) => (dictionaries.vi = vi)),
+    language === 'vi' && !serverMessagesVi ? import('./server-messages.vi.ts').then(m => { serverMessagesVi = m.serverMessagesVi; }) : undefined,
     ...extraLoaders.map(loader => loader(language)),
   ]);
   return dictionary;
+}
+
+/** Server error codes whose meaning is the whole message, so the code alone gives the sentence. */
+const ERROR_CODE_KEYS: Partial<Record<string, MessageKey>> = {
+  INVALID_CREDENTIALS: 'err.invalidCredentials',
+  TOKEN_EXPIRED: 'err.sessionExpired',
+  TOKEN_INVALID: 'err.sessionExpired',
+  SESSION_REVOKED: 'err.sessionRevoked',
+  EMAIL_NOT_VERIFIED: 'err.emailNotVerified',
+  EMAIL_ALREADY_VERIFIED: 'err.emailAlreadyVerified',
+  OTP_INVALID: 'err.otpInvalid',
+  OTP_EXPIRED: 'err.otpExpired',
+  OTP_LOCKED: 'err.otpLocked',
+  RESET_TOKEN_INVALID: 'err.resetInvalid',
+  RESET_TOKEN_EXPIRED: 'err.resetInvalid',
+  DIAGRAM_LOCKED: 'err.diagramLocked',
+  USERNAME_LOCKED: 'err.usernameLocked',
+  PAYLOAD_TOO_LARGE: 'err.tooLarge',
+  INTERNAL_ERROR: 'err.internal',
+  SERVICE_UNAVAILABLE: 'err.unavailable',
+};
+
+/**
+ * A message the server sent, in the page language. English pages show it unchanged. Vietnamese pages use the
+ * translation of that exact sentence, else the meaning of its code when the code says it all, else the sentence as sent
+ * (sentences built at run time, with a name or number in them, have no translation).
+ */
+export function localizeServerMessage(text: string, code?: string, language: Language = current): string {
+  if (language === 'en') return text;
+  const exact = serverMessagesVi?.[text.trim()];
+  if (exact) return exact;
+  const key = code ? ERROR_CODE_KEYS[code] : undefined;
+  return key ? translate(key, undefined, language) : text;
 }
 
 function apply(language: Language) {
@@ -64,7 +101,10 @@ export async function setLanguage(language: Language): Promise<void> {
 
 export const getLanguage = (): Language => current;
 
-function fill(text: string, params?: Params): string {
+export type { Params };
+
+/** Replaces {name} with params.name; a placeholder without a value stays visible. */
+export function fill(text: string, params?: Params): string {
   if (!params) return text;
   return text.replace(/\{(\w+)\}/g, (match, name: string) => (name in params ? String(params[name]) : match));
 }
@@ -104,7 +144,11 @@ export function useLanguage(): Language {
  * order in every language: `rich('delete.typeName', { name: <strong>…</strong> })`.
  */
 export function translateRich(key: MessageKey, nodes: Record<string, ReactNode>, language: Language = current): ReactNode[] {
-  const text = translate(key, undefined, language);
+  return fillRich(translate(key, undefined, language), nodes);
+}
+
+/** `text` split around its {placeholders}, each replaced by its element (or left as written when there is none). */
+export function fillRich(text: string, nodes: Record<string, ReactNode>): ReactNode[] {
   return text.split(/(\{\w+\})/).map(part => {
     const name = /^\{(\w+)\}$/.exec(part)?.[1];
     return name && name in nodes ? nodes[name] : part;

@@ -4,6 +4,9 @@ import type { Dayjs } from 'dayjs';
 import { featurePanel } from '@/components/FeaturePage';
 import { getAiCost } from '@/features/organizations-api';
 import type { AiCostReport, Organization } from '@/features/organizations-api';
+import { formatNumber } from '@/i18n/format';
+import { message as translate, useMessages } from '@/i18n/define';
+import { ORG } from './messages';
 
 /**
  * UC-30: AI tokens and cost of the organization, per workspace, for a period. Every AI run in the organization's workspaces
@@ -14,42 +17,43 @@ export default function AiCostTab({ organization }: { organization: Organization
   const [report, setReport] = useState<AiCostReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const m = useMessages(ORG);
 
   useEffect(() => {
     const controller = new AbortController();
     const day = (d: Dayjs | null | undefined) => (d ? d.format('YYYY-MM-DD') : undefined);
     getAiCost(organization.id, { from: day(range?.[0]), to: day(range?.[1]) }, controller.signal)
       .then(r => { setError(null); setReport(r); })
-      .catch(cause => { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Could not load the AI cost.'); });
+      .catch(cause => { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : translate(ORG, 'costFailed')); });
     return () => controller.abort();
   }, [organization.id, range, attempt]);
 
   const money = (amount: number, currency: string) => `${amount.toFixed(4)} ${currency}`;
-  const tokens = (n: number) => n.toLocaleString();
+  const tokens = (n: number) => formatNumber(n);
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-[var(--at-muted)]">Every AI run in this organization's workspaces is charged to it. Costs are shown per workspace, never per member.</p>
-        <DatePicker.RangePicker allowEmpty={[true, true]} onChange={v => setRange(v ? [v[0], v[1]] : null)} aria-label="Period" />
+        <p className="text-sm text-[var(--at-muted)]">{m('costIntro')}</p>
+        <DatePicker.RangePicker allowEmpty={[true, true]} onChange={v => setRange(v ? [v[0], v[1]] : null)} aria-label={m('period')} />
       </div>
-      {error ? <Alert type="error" showIcon title={error} action={<Button size="small" onClick={() => setAttempt(a => a + 1)}>Retry</Button>} />
+      {error ? <Alert type="error" showIcon title={error} action={<Button size="small" onClick={() => setAttempt(a => a + 1)}>{m('retry')}</Button>} />
         : !report ? <Skeleton active paragraph={{ rows: 3 }} />
-        : !report.projects.length ? <div className={featurePanel}><Empty description="No AI runs in this period." /></div>
+        : !report.projects.length ? <div className={featurePanel}><Empty description={m('noRuns')} /></div>
         : (
           <div className={featurePanel}>
             <Table
               size="small" rowKey="projectId" pagination={false} dataSource={report.projects}
               columns={[
-                { title: 'Workspace', dataIndex: 'projectName' },
-                { title: 'Runs', dataIndex: 'runs', align: 'right' },
-                { title: 'Input tokens', dataIndex: 'inputTokens', align: 'right', render: tokens },
-                { title: 'Output tokens', dataIndex: 'outputTokens', align: 'right', render: tokens },
-                { title: 'Cost', key: 'cost', align: 'right', render: (_, r) => money(r.cost, r.currency) },
+                { title: m('workspace'), dataIndex: 'projectName' },
+                { title: m('runs'), dataIndex: 'runs', align: 'right' },
+                { title: m('inputTokens'), dataIndex: 'inputTokens', align: 'right', render: tokens },
+                { title: m('outputTokens'), dataIndex: 'outputTokens', align: 'right', render: tokens },
+                { title: m('cost'), key: 'cost', align: 'right', render: (_, r) => money(r.cost, r.currency) },
               ]}
               summary={() => (
                 <Table.Summary.Row>
-                  <Table.Summary.Cell index={0}><b>Total</b></Table.Summary.Cell>
+                  <Table.Summary.Cell index={0}><b>{m('total')}</b></Table.Summary.Cell>
                   <Table.Summary.Cell index={1} align="right">{report.total.runs}</Table.Summary.Cell>
                   <Table.Summary.Cell index={2} align="right">{tokens(report.total.inputTokens)}</Table.Summary.Cell>
                   <Table.Summary.Cell index={3} align="right">{tokens(report.total.outputTokens)}</Table.Summary.Cell>

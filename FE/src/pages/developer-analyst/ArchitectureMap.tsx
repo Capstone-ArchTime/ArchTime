@@ -7,15 +7,29 @@ import { FIXTURES } from '@/features/architecture/fixtures';
 import { parseHash } from '@/features/architecture/url-state';
 import { getProjects } from '@/features/project-data';
 import type { ProjectSummary } from '@/features/project-data';
+import { defineMessages, message, useMessages } from '@/i18n/define';
+
+const MSG = defineMessages({
+  sample: 'Sample', loadFailed: 'Could not load your workspaces.', title: 'Architecture Map',
+  intro: 'Open a repository to explore its architecture in a full-screen workspace: layers on the left, the diagram in the middle, details on the right.',
+  search: 'Search workspaces', yours: 'Your workspaces', open: 'Open architecture', noMatch: 'No workspace matches "{q}".',
+  none: 'No workspaces yet. {link} to see its architecture.', addRepo: 'Add a repository', samples: 'Samples',
+}, {
+  sample: 'Bản mẫu', loadFailed: 'Không tải được các không gian làm việc của bạn.', title: 'Bản đồ kiến trúc',
+  intro: 'Mở một repository để khám phá kiến trúc trong không gian làm việc toàn màn hình: các lớp ở bên trái, sơ đồ ở giữa, chi tiết ở bên phải.',
+  search: 'Tìm không gian làm việc', yours: 'Không gian làm việc của bạn', open: 'Mở kiến trúc', noMatch: 'Không có không gian làm việc nào khớp "{q}".',
+  none: 'Chưa có không gian làm việc nào. {link} để xem kiến trúc của nó.', addRepo: 'Thêm repository', samples: 'Bản mẫu',
+});
 
 const SAMPLE_IDS = new Set(FIXTURES.map(f => f.id));
 
 function Card({ to, title, subtitle, icon, sample }: { to: string; title: string; subtitle: string; icon: React.ReactNode; sample?: boolean }) {
+  const m = useMessages(MSG);
   return <Link to={to} className="group flex flex-col overflow-hidden rounded-lg border border-[var(--at-line)] bg-[var(--at-panel)] transition-colors hover:border-[var(--at-accent)]/60 focus-visible:outline-2 focus-visible:outline-[var(--at-accent)]">
     <div className="relative flex h-36 items-center justify-center border-b border-[var(--at-line)] bg-[var(--at-page)]"
       style={{ backgroundImage: 'radial-gradient(circle, #1c2530 1px, transparent 1px)', backgroundSize: '16px 16px' }}>
       <div className="text-[var(--at-link)] opacity-70 transition-opacity group-hover:opacity-100">{icon}</div>
-      {sample && <span className="absolute left-2 top-2 rounded border border-[var(--at-accent)]/30 bg-[var(--at-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--at-link)]">Sample</span>}
+      {sample && <span className="absolute left-2 top-2 rounded border border-[var(--at-accent)]/30 bg-[var(--at-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--at-link)]">{m('sample')}</span>}
     </div>
     <div className="px-3 py-2.5">
       <p className="truncate text-sm font-medium group-hover:text-white">{title}</p>
@@ -34,10 +48,11 @@ export default function ArchitectureMap() {
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const m = useMessages(MSG);
 
   useEffect(() => {
     const controller = new AbortController();
-    getProjects(controller.signal).then(setProjects).catch(cause => { if (!controller.signal.aborted) { setProjects([]); setError(cause instanceof Error ? cause.message : 'Could not load your workspaces.'); } });
+    getProjects(controller.signal).then(setProjects).catch(cause => { if (!controller.signal.aborted) { setProjects([]); setError(cause instanceof Error ? cause.message : message(MSG, 'loadFailed')); } });
     return () => controller.abort();
   }, []);
 
@@ -51,24 +66,24 @@ export default function ArchitectureMap() {
       <div className="mx-auto max-w-[1400px] space-y-6">
         <header className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--at-line)] pb-5">
           <div>
-            <h2 className="mb-1 text-3xl font-bold tracking-tight">Architecture Map</h2>
-            <p className="max-w-2xl text-sm text-[var(--at-muted)]">Open a repository to explore its architecture in a full-screen workspace: layers on the left, the diagram in the middle, details on the right.</p>
+            <h2 className="mb-1 text-3xl font-bold tracking-tight">{m('title')}</h2>
+            <p className="max-w-2xl text-sm text-[var(--at-muted)]">{m('intro')}</p>
           </div>
-          <Input allowClear prefix={<Search size={14} className="text-[var(--at-muted)]" />} placeholder="Search workspaces" aria-label="Search workspaces" className="!w-64" value={query} onChange={e => setQuery(e.target.value)} />
+          <Input allowClear prefix={<Search size={14} className="text-[var(--at-muted)]" />} placeholder={m('search')} aria-label={m('search')} className="!w-64" value={query} onChange={e => setQuery(e.target.value)} />
         </header>
         {error && <Alert type="error" showIcon title={error} />}
 
-        <section aria-label="Your workspaces" className="space-y-3">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-[var(--at-muted)]">Your workspaces</h3>
+        <section aria-label={m('yours')} className="space-y-3">
+          <h3 className="text-xs font-medium uppercase tracking-wider text-[var(--at-muted)]">{m('yours')}</h3>
           {projects === null ? <div className="p-10 text-center"><Spin /></div>
             : shown.length ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {shown.map(p => <Card key={p.id} to={`/workspace/${encodeURIComponent(p.id)}`} title={p.name} subtitle="Open architecture" icon={<FolderGit2 size={40} />} />)}
+              {shown.map(p => <Card key={p.id} to={`/workspace/${encodeURIComponent(p.id)}`} title={p.name} subtitle={m('open')} icon={<FolderGit2 size={40} />} />)}
             </div>
-            : <Empty description={q ? ('No workspace matches "' + q + '".') : <span>No workspaces yet. <Link to="/projects">Add a repository</Link> to see its architecture.</span>} />}
+            : <Empty description={q ? m('noMatch', { q }) : <span>{m.rich('none', { link: <Link key="l" to="/projects">{m('addRepo')}</Link> })}</span>} />}
         </section>
 
-        <section aria-label="Samples" className="space-y-3">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-[var(--at-muted)]">Samples</h3>
+        <section aria-label={m('samples')} className="space-y-3">
+          <h3 className="text-xs font-medium uppercase tracking-wider text-[var(--at-muted)]">{m('samples')}</h3>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {FIXTURES.map(f => <Card key={f.id} sample to={`/workspace/sample/${f.id}`} title={f.label.split(':')[0]} subtitle={f.label.split(':').slice(1).join(':').trim()} icon={<Boxes size={40} />} />)}
           </div>

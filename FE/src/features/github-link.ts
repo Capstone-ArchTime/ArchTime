@@ -1,6 +1,7 @@
 import { apiRequest } from '../api/client.ts';
 import { API_BASE_URL } from '../auth/session.ts';
 import type { SignInMethods } from '../auth/permissions.ts';
+import { translate, translateOr } from '../i18n/index.ts';
 
 // Linking GitHub to the signed-in account and unlinking it (RF-19, UC-35). Linking leaves the page for GitHub and comes
 // back to /profile#github=linked or /profile#github_error=<reason>.
@@ -17,9 +18,12 @@ const PROBLEMS: Record<string, string> = {
 /** What the return from GitHub says, read from the address hash; null when the page was not opened by it. */
 export function githubLinkResult(hash: string): { ok: boolean; text: string } | null {
   const params = new URLSearchParams(hash.replace(/^#/, ''));
-  if (params.get('github') === 'linked') return { ok: true, text: 'GitHub is linked: you can now also sign in with GitHub.' };
+  if (params.get('github') === 'linked') return { ok: true, text: translate('profile.github.linked') };
   const problem = params.get('github_error');
-  if (problem !== null) return { ok: false, text: PROBLEMS[problem] ?? PROBLEMS.failed };
+  if (problem !== null) {
+    const known = Object.hasOwn(PROBLEMS, problem) ? problem : 'failed';
+    return { ok: false, text: translateOr(`profile.github.${known}`, PROBLEMS[known]) };
+  }
   return null;
 }
 

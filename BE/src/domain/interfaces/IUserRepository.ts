@@ -1,4 +1,4 @@
-import type { IUser, UserRole, UserStatus } from "../entities/User.js";
+import type { IUser, UserLanguage, UserRole, UserStatus } from "../entities/User.js";
 import type { PaginatedResult } from "../../shared/utils/apiResponse.js";
 
 export interface UserFilter {
@@ -20,6 +20,7 @@ export interface IUserRepository {
     role: UserRole;
     status?: UserStatus;
     isVerified?: boolean;
+    language?: UserLanguage;
   }): Promise<IUser>;
   existsByEmail(email: string): Promise<boolean>;
   findPaginated(filter: UserFilter): Promise<PaginatedResult<IUser>>;
@@ -28,7 +29,7 @@ export interface IUserRepository {
   revokeSessions(userId: string): Promise<void>;
   existsByUsername(username: string, exceptUserId?: string): Promise<boolean>;
   /** `username: null` clears it. */
-  updateProfile(userId: string, patch: { name?: string; username?: string | null }): Promise<IUser | null>;
+  updateProfile(userId: string, patch: { name?: string; username?: string | null; language?: UserLanguage }): Promise<IUser | null>;
   countByRole(role: UserRole): Promise<number>;
   requestPasswordReset(userId: string, tokenHash: string, now: Date, expiresAt: Date): Promise<boolean>;
   resetPassword(email: string, tokenHash: string, passwordHash: string, now: Date): Promise<boolean>;

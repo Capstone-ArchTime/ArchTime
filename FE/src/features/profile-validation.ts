@@ -17,8 +17,8 @@ export const normalizeUsername = (raw: string): string => raw.trim().toLowerCase
 
 export function checkName(raw: string): string | null {
   const name = raw.trim();
-  if (!name) return 'Enter your name.';
-  if (name.length > NAME_MAX) return `At most ${NAME_MAX} characters.`;
+  if (!name) return translate('profile.enterName');
+  if (name.length > NAME_MAX) return translate('profile.nameMax', { max: NAME_MAX });
   return null;
 }
 
@@ -26,7 +26,7 @@ export function checkName(raw: string): string | null {
 export function checkUsername(raw: string): string | null {
   const username = normalizeUsername(raw);
   if (!username) return null;
-  return USERNAME_PATTERN.test(username) ? null : USERNAME_HINT;
+  return USERNAME_PATTERN.test(username) ? null : translate('profile.usernameHint');
 }
 
 /** The server's password rules, in the server's order; null when the password is acceptable. */
@@ -63,12 +63,12 @@ export type PasswordProblems = Partial<Record<keyof PasswordForm, string>>;
 
 export function checkPasswordForm(form: PasswordForm): PasswordProblems {
   const problems: PasswordProblems = {};
-  if (!form.oldPassword) problems.oldPassword = 'Enter your current password.';
+  if (!form.oldPassword) problems.oldPassword = translate('profile.enterCurrent');
   const rule = checkNewPassword(form.newPassword);
-  if (!form.newPassword) problems.newPassword = 'Enter a new password.';
+  if (!form.newPassword) problems.newPassword = translate('profile.enterNewPassword');
   else if (rule) problems.newPassword = rule;
-  if (!form.confirmNewPassword) problems.confirmNewPassword = 'Repeat the new password.';
-  else if (form.confirmNewPassword !== form.newPassword) problems.confirmNewPassword = 'New passwords do not match.';
+  if (!form.confirmNewPassword) problems.confirmNewPassword = translate('profile.repeatNewPassword');
+  else if (form.confirmNewPassword !== form.newPassword) problems.confirmNewPassword = translate('profile.newMismatch');
   return problems;
 }
 
@@ -86,5 +86,5 @@ export function buildProfilePatch(saved: { name: string; username?: string | nul
 
 /** The two system roles the server has now; the older role names are shown as plain users. */
 export function accountTypeLabel(role: string): string {
-  return role === 'system-administrator' ? 'System administrator' : 'User';
+  return translate(role === 'system-administrator' ? 'role.system.system-administrator' : 'role.system.developer-analyst');
 }

@@ -2,6 +2,7 @@
 // per email, so reloading the page keeps the countdown; the server decides in the end (it refuses an expired code).
 
 import { formatWait } from '../auth/rate-limit.ts';
+import { translate } from '../i18n/index.ts';
 
 /** How long a code lasts on the server (RegisterUseCase / ResendOtpUseCase), used when a response does not say. */
 export const OTP_TTL_MS = 10 * 60 * 1000;
@@ -33,5 +34,5 @@ export function formatCountdown(msLeft: number): string {
 
 /** The resend button while it is locked: "Resend in 45s" for a short wait, "Resend in 12 minutes" for a long one (a rate limit can ask for an hour). */
 export function resendLabel(secondsLeft: number): string {
-  return secondsLeft < 60 ? `Resend in ${secondsLeft}s` : `Resend in ${formatWait(secondsLeft)}`;
+  return translate('auth.resendIn', { wait: secondsLeft < 60 ? `${secondsLeft}s` : formatWait(secondsLeft) });
 }

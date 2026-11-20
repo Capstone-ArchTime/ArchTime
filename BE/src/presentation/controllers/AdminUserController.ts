@@ -58,6 +58,8 @@ export class AdminUserController {
         email,
         role: role as UserRole,
         temporaryPassword,
+        language: req.body?.language,
+        invitedBy: req.user?.userId,
       });
 
       await AuditService.log({

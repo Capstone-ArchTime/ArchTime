@@ -5,6 +5,9 @@ import { ROLE_LABEL } from '@/features/architecture/scene';
 import type { DiagramTheme } from '@/features/architecture/theme';
 import type { Highlight } from '@/features/architecture/highlight';
 import type { SnapshotSummary } from '@/features/architecture/api';
+import { formatDate } from '@/i18n/format';
+import { useMessages } from '@/i18n/define';
+import { ARCH } from './messages';
 
 /**
  * The left panel of the workspace. Layers: every box on the canvas, grouped by role; click selects and brings it into
@@ -16,6 +19,7 @@ export default function LayersPanel({ scene, theme, highlight, selected, onSelec
   onSelect?: (id: string) => void; onOpen?: (id: string) => void;
   snapshots?: SnapshotSummary[]; snapshotId?: string; onSnapshot?: (id: string) => void;
 }) {
+  const m = useMessages(ARCH);
   const [chosen, setTab] = useState<'layers' | 'snapshots'>('layers');
   const tab = scene ? chosen : 'snapshots';
   const [query, setQuery] = useState('');
@@ -38,16 +42,16 @@ export default function LayersPanel({ scene, theme, highlight, selected, onSelec
 
   return <div className="flex h-full min-h-0 flex-col">
     <div className="flex items-center gap-1 border-b border-[var(--at-line)] px-2 py-1.5" role="tablist">
-      {scene && <button type="button" role="tab" aria-selected={tab === 'layers'} className={tabClass('layers')} onClick={() => setTab('layers')}>Layers</button>}
-      {snapshots && <button type="button" role="tab" aria-selected={tab === 'snapshots'} className={tabClass('snapshots')} onClick={() => setTab('snapshots')}>Snapshots <span className="text-[var(--at-muted)]">{snapshots.length}</span></button>}
+      {scene && <button type="button" role="tab" aria-selected={tab === 'layers'} className={tabClass('layers')} onClick={() => setTab('layers')}>{m('layers')}</button>}
+      {snapshots && <button type="button" role="tab" aria-selected={tab === 'snapshots'} className={tabClass('snapshots')} onClick={() => setTab('snapshots')}>{m('snapshots')} <span className="text-[var(--at-muted)]">{snapshots.length}</span></button>}
     </div>
 
     {tab === 'layers' && scene && theme && highlight && <>
       <label className="mx-2 my-2 flex items-center gap-2 rounded border border-[var(--at-line)] bg-[var(--at-panel-2)] px-2">
         <Search size={13} className="text-[var(--at-muted)]" />
-        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search layers" aria-label="Search layers" className="h-7 w-full bg-transparent text-xs text-[var(--at-text)] outline-none placeholder:text-[var(--at-muted)]" />
+        <input value={query} onChange={e => setQuery(e.target.value)} placeholder={m('searchLayers')} aria-label={m('searchLayers')} className="h-7 w-full bg-transparent text-xs text-[var(--at-text)] outline-none placeholder:text-[var(--at-muted)]" />
       </label>
-      <div className="min-h-0 flex-1 overflow-auto pb-3" role="tree" aria-label="Layers">
+      <div className="min-h-0 flex-1 overflow-auto pb-3" role="tree" aria-label={m('layers')}>
         {[...groups].map(([key, items]) => <div key={key} role="group" aria-label={label(key)}>
           <button type="button" className="flex w-full items-center gap-1 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-[var(--at-muted)] hover:text-white" aria-expanded={!closed.has(key)} onClick={() => toggle(key)}>
             {closed.has(key) ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
@@ -73,9 +77,9 @@ export default function LayersPanel({ scene, theme, highlight, selected, onSelec
     {tab === 'snapshots' && snapshots && <>
       {snapshots.length > 8 && <label className="mx-2 my-2 flex items-center gap-2 rounded-lg border border-[var(--at-line)] bg-[var(--at-panel)] px-2 focus-within:border-[var(--at-link)]">
         <Search size={13} className="text-[var(--at-muted)]" />
-        <input value={snapshotQuery} onChange={e => setSnapshotQuery(e.target.value)} placeholder="Search by hash or title" aria-label="Search snapshots" className="h-8 w-full bg-transparent text-xs text-[var(--at-text)] outline-none focus-visible:outline-none placeholder:text-[var(--at-muted)]" />
+        <input value={snapshotQuery} onChange={e => setSnapshotQuery(e.target.value)} placeholder={m('searchSnapshotsPlaceholder')} aria-label={m('searchSnapshots')} className="h-8 w-full bg-transparent text-xs text-[var(--at-text)] outline-none focus-visible:outline-none placeholder:text-[var(--at-muted)]" />
       </label>}
-      <ol className="min-h-0 flex-1 overflow-auto pb-2" aria-label="Snapshots">
+      <ol className="min-h-0 flex-1 overflow-auto pb-2" aria-label={m('snapshots')}>
         {shownSnapshots.map(({ s, i }) => {
           const current = s.id === snapshotId || (!snapshotId && i === 0);
           return <li key={s.id}>
@@ -85,14 +89,14 @@ export default function LayersPanel({ scene, theme, highlight, selected, onSelec
               <span className={`truncate text-[13px] ${current ? 'font-medium text-white' : 'text-[var(--at-text)]'}`}>{s.title.split('\n')[0]}</span>
               <span className="flex items-center gap-1.5 text-[11px] text-[var(--at-muted)]">
                 <code className="text-[var(--at-link)]">{s.hash}</code>
-                {s.date && <span>· {new Date(s.date).toLocaleDateString()}</span>}
-                {i === 0 && <span className="ml-auto rounded-full border border-[var(--at-line)] px-1.5 text-[10px]">latest</span>}
+                {s.date && <span>· {formatDate(s.date)}</span>}
+                {i === 0 && <span className="ml-auto rounded-full border border-[var(--at-line)] px-1.5 text-[10px]">{m('latest')}</span>}
               </span>
             </button>
           </li>;
         })}
-        {!snapshots.length && <li className="px-4 py-4 text-xs text-[var(--at-muted)]">No snapshots yet. Mine the repository first.</li>}
-        {snapshots.length > 0 && !shownSnapshots.length && <li className="px-4 py-4 text-xs text-[var(--at-muted)]">No snapshot matches “{snapshotQuery}”.</li>}
+        {!snapshots.length && <li className="px-4 py-4 text-xs text-[var(--at-muted)]">{m('noSnapshots')}</li>}
+        {snapshots.length > 0 && !shownSnapshots.length && <li className="px-4 py-4 text-xs text-[var(--at-muted)]">{m('noSnapshotMatch', { query: snapshotQuery })}</li>}
       </ol>
     </>}
   </div>;
