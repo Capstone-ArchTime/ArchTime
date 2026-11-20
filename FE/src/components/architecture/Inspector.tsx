@@ -127,7 +127,7 @@ export default function Inspector({ view, scene, theme, selectedNode, selectedEd
   return <aside aria-label="Diagram summary" className="space-y-4">
     <div><h3 className={heading}>{scene.mode === 'components' ? 'Overview' : view.unit === 'file' ? 'Files' : 'Classes'}</h3>
       <p className="text-sm leading-relaxed">{scene.mode === 'components'
-        ? <><span className="text-[#4ade80]" title="Every arrow can be traced to the mined import edges. This checks the drawing against the mined data, not against the repository itself.">✓ Consistent with the import graph</span> · {scene.nodes.length} components, {scene.edges.length} dependencies. Every arrow is computed from {view.unit === 'file' ? 'file' : 'class'}-level dependencies; select one to see them.</>
+        ? <><span className="text-[var(--at-success)]" title="Every arrow can be traced to the mined import edges. This checks the drawing against the mined data, not against the repository itself.">✓ Consistent with the import graph</span> · {scene.nodes.length} components, {scene.edges.length} dependencies. Every arrow is computed from {view.unit === 'file' ? 'file' : 'class'}-level dependencies; select one to see them.</>
         : <>{scene.nodes.filter(n => n.kind === 'class').length} {unitWord(view, 2)}. Dashed boxes are components outside this one.</>}</p></div>
     <details className="group text-xs">
       <summary className="cursor-pointer select-none font-mono text-[10px] uppercase tracking-wider text-slate-300 hover:text-white">How to read this</summary>
@@ -146,5 +146,5 @@ function List({ title, items, onNode, onEdge }: { title: string; items: { id: st
   if (!items.length) return <div><h3 className={heading}>{title}</h3><p className="text-xs text-[var(--at-muted)]">None</p></div>;
   return <div><h3 className={heading}>{title}</h3><ul className="space-y-1">{items.map(i => <li key={i.edge} className="flex items-center justify-between gap-2 text-xs">
     <button type="button" className="text-left hover:underline" onClick={() => onNode(i.id)}>{i.label}</button>
-    <button type="button" aria-label={`Show ${i.weight} dependencies to ${i.label}`} className="font-mono text-[var(--at-muted)] border border-[#2a3441] px-1.5 hover:border-[var(--at-accent)]" onClick={() => onEdge(i.edge)}>{i.weight}</button></li>)}</ul></div>;
+    <button type="button" aria-label={`Show ${i.weight} dependencies to ${i.label}`} className="font-mono text-[var(--at-muted)] border border-[var(--at-line)] px-1.5 hover:border-[var(--at-accent)]" onClick={() => onEdge(i.edge)}>{i.weight}</button></li>)}</ul></div>;
 }

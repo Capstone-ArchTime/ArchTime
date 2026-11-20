@@ -54,7 +54,7 @@ function EvolutionSummary({ evolution, onFocus }: { evolution: Evolution; onFocu
     {items.length > 0 && <ul className="space-y-1">{items.map((item, i) => {
       const mark = item.kind === 'kept' || item.kind === 'removed' ? null : EVOLUTION_MARK[item.kind];
       return <li key={i} className="flex items-start gap-2">
-        <span className="mt-0.5 shrink-0 rounded-full border px-1 font-mono text-[9px] font-bold" style={mark ? { borderColor: mark.color, color: mark.color } : undefined}>{mark?.label ?? 'GONE'}</span>
+        <span className="mt-0.5 shrink-0 rounded-full border px-1 font-mono text-[11px] font-bold" style={mark ? { borderColor: mark.color, color: mark.color } : undefined}>{mark?.label ?? 'GONE'}</span>
         {item.componentIds.length
           ? <button type="button" className="text-left text-slate-200 hover:text-white hover:underline" onClick={() => onFocus(item.componentIds[0])}>{item.text}</button>
           : <span className="text-[var(--at-muted)]">{item.text}</span>}

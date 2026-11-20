@@ -22,6 +22,7 @@ import PaginationBar from '@/components/PaginationBar';
 import MiningPanel from '@/components/MiningPanel';
 import ViewerSettingsModal from '@/components/ViewerSettingsModal';
 import TransferProjectModal from '@/components/TransferProjectModal';
+import DeleteWorkspaceModal from '@/components/DeleteWorkspaceModal';
 import { Link } from 'react-router-dom';
 import { byRecent, getWorkspaces, hasMinedHistory, nextStep, STATUS_LABELS, type Workspace } from '@/features/workspace-summary';
 import { buildRegistration, listCredentials, listOrganizations, suspensionNotice, workspaceSpaces } from '@/features/organizations-api';
@@ -132,14 +133,22 @@ const Projects: React.FC = () => {
     }
   };
 
-  const handleDeleteProject = async (id: string) => {
+  // Deleting removes the workspace and everything made in it, with no undo: it is only done after the owner types its name.
+  const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const handleDeleteProject = async () => {
+    if (!deleting) return;
+    setDeleteBusy(true);
     try {
-      await apiRequest(`/projects/${encodeURIComponent(id)}`, { method: 'DELETE' });
-      message.success('Workspace deleted successfully');
-      setProjectsList(prev => prev?.filter(p => p.id !== id) ?? prev);
+      await apiRequest(`/projects/${encodeURIComponent(deleting.id)}`, { method: 'DELETE' });
+      message.success(`Workspace "${deleting.name}" deleted`);
+      setProjectsList(prev => prev?.filter(p => p.id !== deleting.id) ?? prev);
+      setDeleting(null);
       fetchProjects();
     } catch (error) {
       message.error(error instanceof Error ? error.message : 'Failed to delete workspace');
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -164,15 +173,15 @@ const Projects: React.FC = () => {
         </div>
 
         {suspended && (
-          <div role="status" className="border border-[#f59e0b]/40 bg-[#f59e0b]/5 p-4 text-sm text-[var(--at-text)]">
+          <div role="status" className="border border-[var(--at-warn)]/40 bg-[var(--at-warn)]/5 p-4 text-sm text-[var(--at-text)]">
             {suspended}
           </div>
         )}
 
         {loadError && (
-          <div role="alert" className="border border-[#ef4444]/40 bg-[#ef4444]/5 p-4 text-sm text-[#fca5a5] flex flex-wrap items-center justify-between gap-3">
+          <div role="alert" className="border border-[var(--at-danger)]/40 bg-[var(--at-danger)]/5 p-4 text-sm text-[var(--at-danger-text)] flex flex-wrap items-center justify-between gap-3">
             <span>{loadError}</span>
-            <button type="button" onClick={fetchProjects} className="h-8 px-3 border border-[#ef4444]/40 text-xs font-semibold">Try again</button>
+            <button type="button" onClick={fetchProjects} className="h-8 px-3 border border-[var(--at-danger)]/40 text-xs font-semibold">Try again</button>
           </div>
         )}
 
@@ -234,8 +243,8 @@ const Projects: React.FC = () => {
                         )}
                         {project.role === 'owner' && (
                           <button
-                            onClick={() => handleDeleteProject(project.id)}
-                            className="text-[var(--at-muted)] hover:text-[#ef4444] transition-colors p-1"
+                            onClick={() => setDeleting({ id: project.id, name: project.name })}
+                            className="text-[var(--at-muted)] hover:text-[var(--at-danger)] transition-colors p-1"
                             title="Delete workspace"
                             aria-label={`Delete ${project.name}`}
                           >
@@ -287,6 +296,7 @@ const Projects: React.FC = () => {
       {miningProject && <MiningPanel project={miningProject} open onClose={() => setMiningProject(null)} onChanged={fetchProjects} />}
       {viewerProject && <ViewerSettingsModal project={viewerProject} onClose={() => setViewerProject(null)} />}
       {transferProject && <TransferProjectModal project={transferProject} onClose={() => setTransferProject(null)} onMoved={() => { setTransferProject(null); fetchProjects(); }} />}
+      {deleting && <DeleteWorkspaceModal project={deleting} busy={deleteBusy} onCancel={() => setDeleting(null)} onConfirm={() => void handleDeleteProject()} />}
 
       {/* NEW PROJECT MODAL OVERLAY */}
       <AnimatePresence>
@@ -315,7 +325,7 @@ const Projects: React.FC = () => {
             >
               <div className="p-6 border-b border-[var(--at-line)] flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[var(--at-accent)] shadow-[0_0_5px_#3b82f6]"></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-[var(--at-accent)] shadow-[0_0_5px_var(--at-glow)]"></div>
                   <h2 id="create-project-title" className="text-[var(--at-text)] font-bold tracking-tight uppercase text-sm font-mono tracking-widest"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>Create Workspace</h2>
                 </div>
@@ -482,7 +492,7 @@ const Projects: React.FC = () => {
                 <button
                   onClick={handleConnect}
                   disabled={isSubmitting}
-                  className="w-full h-10 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)] disabled:opacity-70"
+                  className="w-full h-10 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] font-bold text-xs transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
                 >
                   {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <FolderGit2 size={16} />}
                   CONNECT REPOSITORY

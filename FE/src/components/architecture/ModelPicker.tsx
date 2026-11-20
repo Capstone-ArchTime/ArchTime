@@ -44,7 +44,7 @@ export function RunUsage({ receipt }: { receipt: RefineReceipt }) {
     try { await sendRunFeedback(receipt.runId, rating); setRated(rating); message.success('Thanks, this counts towards the model\'s score.'); }
     catch (cause) { message.error(cause instanceof Error ? cause.message : 'Could not save your rating.'); }
   }
-  const item = (label: string, value: string) => <span className="whitespace-nowrap"><span className="text-[var(--at-muted)]">{label}</span> <span className="font-mono text-[#e2e8f0]">{value}</span></span>;
+  const item = (label: string, value: string) => <span className="whitespace-nowrap"><span className="text-[var(--at-muted)]">{label}</span> <span className="font-mono text-[var(--at-text)]">{value}</span></span>;
   return <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded border border-[var(--at-line)] bg-[var(--at-panel)] px-3 py-2 text-xs" aria-label="AI usage for this result">
     {item('Model', receipt.model)}
     {item('Input', formatTokens(u.inputTokens))}

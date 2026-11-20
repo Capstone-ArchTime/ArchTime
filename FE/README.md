@@ -17,11 +17,15 @@ Tests use the Node.js test runner with native TypeScript stripping (Node 22.18+ 
 
 The home page, login, registration and email verification (`/verify-email`) are public. Registration continues to OTP entry; existing unverified users can open verification from the login page. All workspace routes require a server-verified session. Each role has its own workspace; administrator access does not implicitly grant project-maintainer or analyst permissions.
 
-| Role from API | Workspace |
+The UI calls a mined repository a **workspace** (the API and routes still say `project`).
+
+| Role from API | Sidebar |
 | --- | --- |
-| `developer-analyst` | Dashboard, Projects, Architecture History, Compare, Evidence, Insights, Reports, Project Detail |
-| `project-maintainer` | Overview, Approval Queue, Team, Component Diagram, Architecture Rules, Design Decisions, Evolution Reports |
-| `system-administrator` | Overview, User Management, System Settings, Audit Log, Mining Jobs Monitor |
+| `developer-analyst` | Dashboard, Workspaces, Organizations; **Analyze** (Architecture Map, Compare, Changes & Evidence, Tasks & Sprints, AI Insights); Learning, Reports |
+| `developer-analyst` who maintains a workspace | the above plus **Maintain** (Overview, Approval Queue, Team, Component Diagram, Architecture Rules, Conformance, Agent Access, Design Decisions) |
+| `system-administrator` | Overview, User Management, Organizations, System Settings, Audit Log, Mining Jobs Monitor, AI Models, AI Usage & Metrics |
+
+The source of truth is `src/components/layout/navigation.ts`.
 
 The backend authentication implementation is included from Develop and exposes `/auth/login`, `/auth/register`, `/auth/me`, and `/auth/refresh`. Run the backend with its database and email configuration for real login and registration. Frontend unit tests mock these endpoints; they do not verify a live backend.
 

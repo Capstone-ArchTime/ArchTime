@@ -1,5 +1,4 @@
 import { Icon } from "@iconify/react";
-import { App } from "antd";
 
 import { useAuth } from "@/auth/auth-context";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
@@ -7,9 +6,13 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Mascot } from "page-mascot";
 import { Logo } from "@/components/Logo";
-import { useComingSoon } from "@/hooks/useComingSoon";
+import { roleHome } from "@/auth/permissions";
 
 const AccountMenu = lazy(() => import('@/components/AccountMenu'));
+const MotionLink = motion.create(Link);
+
+/** A sample analysis anyone signed in can open; signed out, the route guard sends them to sign in first. */
+const SAMPLE_WORKSPACE = "/workspace/sample/shophub";
 
 const particles = [
   { left: "14%", size: 3, duration: 4.5, delay: 0 },
@@ -123,17 +126,10 @@ export default function HomePage() {
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
   const [navScrolled, setNavScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [subscribeEmail, setSubscribeEmail] = useState("");
   const prefersReducedMotion = useReducedMotion();
-  const notifyComingSoon = useComingSoon();
-  const { message } = App.useApp();
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!subscribeEmail.trim()) return;
-    message.success("Thanks for subscribing! We'll keep you posted.");
-    setSubscribeEmail("");
-  };
+  // The main call to action starts the real flow: sign up, or straight into the app for someone already signed in.
+  const startHref = user ? roleHome[user.role] : "/register";
+  const startLabel = user ? "Open your workspaces" : "Analyze a repository";
 
   const particleList = useMemo(() => particles, []);
 
@@ -156,7 +152,8 @@ export default function HomePage() {
       className="min-h-screen overflow-x-hidden at-home bg-[var(--at-page)] text-[var(--at-text)] antialiased selection:bg-[#d3def3] selection:text-[#18212c]"
       style={{ fontFamily: fontFamily.sans }}
     >
-      <div className="fixed bottom-6 right-6 z-[60]">
+      {/* Phones: hidden, the fixed mascot would sit on top of the hero's buttons. */}
+      <div className="fixed bottom-6 right-6 z-[60] hidden sm:block">
         <Mascot
           directions="/mascots/crt-directions.webp"
           reactions="/mascots/crt-reactions.webp"
@@ -221,27 +218,21 @@ export default function HomePage() {
             className="hidden items-center gap-8 text-xs uppercase tracking-widest text-white md:flex"
             style={{ fontFamily: fontFamily.mono }}
           >
-            <a href="#architecture" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
-              Architecture
+            <a href="#how-it-works" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
+              How it works
             </a>
-            <a href="#console" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
-              Console
+            <a href="#diff" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
+              Version diff
             </a>
-            <a href="#modules" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
-              Modules
+            <a href="#change-types" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
+              Change types
             </a>
-            <a href="#hardware" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
+            <a href="#evidence" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
               Evidence
             </a>
           </div>
 
           <div className="flex items-center gap-4">
-            <span
-              className="hidden border border-[var(--at-line)] bg-[var(--at-panel)] px-3 py-1 text-[10px] text-[var(--at-warn)] sm:inline-block"
-              style={{ fontFamily: fontFamily.mono }}
-            >
-              EVIDENCE // VERIFIED
-            </span>
             {authLoading ? (
               <span role="status" aria-label="Loading account" className="h-10 w-10 animate-pulse rounded-full border border-[var(--at-line)] bg-[var(--at-panel)] motion-reduce:animate-none" />
             ) : user ? (
@@ -289,28 +280,28 @@ export default function HomePage() {
                 style={{ fontFamily: fontFamily.mono }}
               >
                 <a
-                  href="#architecture"
+                  href="#how-it-works"
                   onClick={() => setMobileMenuOpen(false)}
                   className="border-b border-[var(--at-line)]/60 py-3 text-white visited:text-white transition-colors hover:text-[var(--at-link)]"
                 >
-                  Architecture
+                  How it works
                 </a>
                 <a
-                  href="#console"
+                  href="#diff"
                   onClick={() => setMobileMenuOpen(false)}
                   className="border-b border-[var(--at-line)]/60 py-3 text-white visited:text-white transition-colors hover:text-[var(--at-link)]"
                 >
-                  Console
+                  Version diff
                 </a>
                 <a
-                  href="#modules"
+                  href="#change-types"
                   onClick={() => setMobileMenuOpen(false)}
                   className="border-b border-[var(--at-line)]/60 py-3 text-white visited:text-white transition-colors hover:text-[var(--at-link)]"
                 >
-                  Modules
+                  Change types
                 </a>
                 <a
-                  href="#hardware"
+                  href="#evidence"
                   onClick={() => setMobileMenuOpen(false)}
                   className="border-b border-[var(--at-line)]/60 py-3 text-white visited:text-white transition-colors hover:text-[var(--at-link)]"
                 >
@@ -332,15 +323,13 @@ export default function HomePage() {
                   Sign Up
                 </Link>
                 </>)}
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    notifyComingSoon("Repository analysis");
-                  }}
+                <Link
+                  to={startHref}
+                  onClick={() => setMobileMenuOpen(false)}
                   className="mt-2 border border-[var(--at-line)] bg-transparent px-5 py-2.5 text-center text-[var(--at-muted)] transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400 hover:text-white"
                 >
-                  Analyze Repository
-                </button>
+                  {startLabel}
+                </Link>
               </nav>
             </motion.div>
           )}
@@ -389,8 +378,8 @@ export default function HomePage() {
             </p>
 
             <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
-              <motion.a
-                href="#console"
+              <MotionLink
+                to={startHref}
                 className="rounded-full bg-[var(--at-fill)] px-8 py-4 text-center text-xs font-bold uppercase tracking-widest text-[var(--at-on-fill)] transition-colors hover:bg-[var(--at-fill-hover)]"
                 style={{ fontFamily: fontFamily.mono }}
                 whileHover={{
@@ -401,14 +390,14 @@ export default function HomePage() {
                   boxShadow: "0 0 30px rgba(214, 228, 255, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.15)",
                 }}
               >
-                Run Analysis
-              </motion.a>
+                {startLabel}
+              </MotionLink>
               <a
-                href="#architecture"
+                href="#how-it-works"
                 className="rounded-full border border-[var(--at-line)] bg-[var(--at-panel)]/40 px-8 py-4 text-center text-xs font-light uppercase tracking-widest text-slate-300 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400"
                 style={{ fontFamily: fontFamily.mono }}
               >
-                Explore Pipeline
+                See how it works
               </a>
             </div>
           </div>
@@ -416,7 +405,7 @@ export default function HomePage() {
       </header>
 
       <div className="relative z-10">
-        <RevealSection id="architecture" className="mx-auto max-w-7xl px-6 py-32">
+        <RevealSection id="how-it-works" className="mx-auto max-w-7xl px-6 py-32">
           <div className="grid items-center gap-12 lg:grid-cols-12">
             <div className="space-y-6 lg:col-span-5">
               <span
@@ -464,7 +453,7 @@ export default function HomePage() {
                 icon="ph:brain-light"
                 iconColor="#b4c0ce"
                 title="Evidence-Based Reasoning"
-                description="A local LLM turns diffs, commit messages and code changes into a readable narrative of what changed."
+                description="An LLM of your choice (Claude, Gemini, or a local model) turns diffs, commit messages and code changes into a readable narrative of what changed."
               />
               <IsometricCard
                 icon="ph:shield-check-light"
@@ -476,7 +465,7 @@ export default function HomePage() {
           </div>
         </RevealSection>
 
-        <RevealSection id="console" className="border-y border-[var(--at-line)] bg-[var(--at-panel)]/50 py-32">
+        <RevealSection id="diff" className="border-y border-[var(--at-line)] bg-[var(--at-panel)]/50 py-32">
           <div className="mx-auto max-w-7xl px-6">
             <div className="mx-auto mb-16 max-w-2xl text-center">
               <span
@@ -534,7 +523,7 @@ export default function HomePage() {
           </div>
         </RevealSection>
 
-        <RevealSection id="modules" className="mx-auto max-w-7xl px-6 py-32">
+        <RevealSection id="change-types" className="mx-auto max-w-7xl px-6 py-32">
           <div className="mb-16 flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
             <div>
               <span
@@ -628,7 +617,7 @@ export default function HomePage() {
           </div>
         </RevealSection>
 
-        <RevealSection id="hardware" className="border-t border-[var(--at-line)] bg-[var(--at-panel-2)]/30 py-32">
+        <RevealSection id="evidence" className="border-t border-[var(--at-line)] bg-[var(--at-panel-2)]/30 py-32">
           <div className="mx-auto grid max-w-7xl items-center gap-16 px-6 lg:grid-cols-12">
             <div className="relative order-2 lg:col-span-6 lg:order-1">
               <div className="pointer-events-none absolute inset-0 rounded-full bg-[var(--at-accent)]/5 blur-[100px]" />
@@ -673,53 +662,46 @@ export default function HomePage() {
                 AI never invents a reason. If a change lacks enough evidence, ArchTime marks it as UNKNOWN instead of guessing &mdash; keeping every narrative verifiable against real Git history.
               </p>
               <div className="pt-2">
-                <button
-                  onClick={() => notifyComingSoon("Evidence trail view")}
-                  className="rounded-full bg-[var(--at-fill)] px-8 py-4 text-xs font-bold uppercase tracking-widest text-[var(--at-on-fill)] shadow-[0_0_18px_rgba(214,228,255,0.35)] transition-colors hover:bg-[var(--at-fill-hover)]"
+                <Link
+                  to={SAMPLE_WORKSPACE}
+                  className="inline-block rounded-full bg-[var(--at-fill)] px-8 py-4 text-xs font-bold uppercase tracking-widest text-[var(--at-on-fill)] shadow-[0_0_18px_rgba(214,228,255,0.35)] transition-colors hover:bg-[var(--at-fill-hover)]"
                   style={{ fontFamily: fontFamily.mono }}
                 >
-                  View Evidence Trail
-                </button>
+                  Open a sample analysis
+                </Link>
               </div>
             </div>
           </div>
         </RevealSection>
 
-        <RevealSection id="subscribe" className="relative mx-auto max-w-4xl overflow-hidden px-6 py-32 text-center">
+        {/* The closing call to action. (A newsletter form stood here, but nothing stored the address, so it promised mail
+            that never came.) */}
+        <RevealSection id="get-started" className="relative mx-auto max-w-4xl overflow-hidden px-6 py-32 text-center">
           <div className="pointer-events-none absolute inset-0 rounded-full bg-[var(--at-warn)]/5 blur-3xl" />
           <div className="relative z-10 space-y-8">
-            <Icon icon="ph:fingerprint-light" className="animate-pulse motion-reduce:animate-none text-4xl text-[var(--at-link)]" />
+            <Icon icon="ph:fingerprint-light" aria-hidden="true" className="animate-pulse motion-reduce:animate-none text-4xl text-[var(--at-link)]" />
             <h2 className="text-3xl font-bold tracking-tight text-white sm:text-5xl">
-              Follow the ArchTime Build Log
+              See your own architecture evolve
             </h2>
             <p className="mx-auto max-w-xl text-sm font-light leading-relaxed text-[var(--at-muted)] sm:text-base">
-              Get updates on new evaluation benchmarks, pipeline releases and Java/Spring Boot repository support.
+              Connect a Git repository, scan its history and mine the commits you choose. Every component and change links back to the commits behind it.
             </p>
-            <form
-              onSubmit={handleSubscribe}
-              className="mx-auto flex max-w-md flex-col items-center gap-4 sm:flex-row"
-            >
-              <label htmlFor="subscribe-email" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="subscribe-email"
-                type="email"
-                required
-                value={subscribeEmail}
-                onChange={(e) => setSubscribeEmail(e.target.value)}
-                placeholder="you@domain.com"
-                className="w-full border border-[var(--at-line)] bg-[var(--at-panel-2)] px-5 py-4 text-xs text-white placeholder:text-[var(--at-muted)] focus:border-[var(--at-accent)] focus:outline-none transition-colors"
-                style={{ fontFamily: fontFamily.mono }}
-              />
-              <button
-                type="submit"
-                className="w-full whitespace-nowrap bg-[var(--at-fill)] px-8 py-4 text-xs font-bold uppercase tracking-widest text-[var(--at-on-fill)] transition-colors hover:bg-[var(--at-fill-hover)] sm:w-auto"
+            <div className="mx-auto flex max-w-md flex-col items-stretch gap-4 sm:flex-row sm:justify-center">
+              <Link
+                to={startHref}
+                className="whitespace-nowrap bg-[var(--at-fill)] px-8 py-4 text-center text-xs font-bold uppercase tracking-widest text-[var(--at-on-fill)] transition-colors hover:bg-[var(--at-fill-hover)]"
                 style={{ fontFamily: fontFamily.mono }}
               >
-                Subscribe
-              </button>
-            </form>
+                {startLabel}
+              </Link>
+              <Link
+                to={SAMPLE_WORKSPACE}
+                className="whitespace-nowrap border border-[var(--at-line)] px-8 py-4 text-center text-xs uppercase tracking-widest text-slate-300 transition-colors hover:border-slate-400 hover:text-white"
+                style={{ fontFamily: fontFamily.mono }}
+              >
+                Open a sample
+              </Link>
+            </div>
           </div>
         </RevealSection>
 
@@ -741,10 +723,10 @@ export default function HomePage() {
                   Pipeline
                 </h4>
                 <ul className="space-y-4 text-xs">
-                  <li><a href="#architecture" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">Repository Mining</a></li>
-                  <li><a href="#console" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">Evolution Analysis</a></li>
-                  <li><a href="#hardware" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">Evidence-Based Reasoning</a></li>
-                  <li><a href="#modules" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">Architectural Diff</a></li>
+                  <li><a href="#how-it-works" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">Repository Mining</a></li>
+                  <li><a href="#diff" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">Evolution Analysis</a></li>
+                  <li><a href="#evidence" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">Evidence-Based Reasoning</a></li>
+                  <li><a href="#change-types" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">Architectural Diff</a></li>
                 </ul>
               </div>
               <div>
@@ -755,7 +737,8 @@ export default function HomePage() {
                   Scope
                 </h4>
                 <ul className="space-y-4 text-xs text-[var(--at-muted)]">
-                  <li>Java / Spring Boot</li>
+                  <li>JavaScript / TypeScript</li>
+                  <li>Java, C#, Python, Go</li>
                   <li>Git History Analysis</li>
                   <li>Knowledge Graph</li>
                   <li>Benchmarks</li>

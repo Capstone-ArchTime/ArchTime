@@ -22,7 +22,7 @@ const panel = 'rounded-2xl border border-[var(--at-line)] bg-[var(--at-panel)]';
 const sectionTitle = 'text-base font-semibold text-[var(--at-text)]';
 
 /** Colour of a job's status dot: green done, red failed, honey still going, grey stopped. */
-const JOB_DOT: Record<string, string> = { completed: 'bg-[#4ade80]', failed: 'bg-[#f87171]', running: 'bg-[#f0c27e] animate-pulse', queued: 'bg-[#f0c27e]' };
+const JOB_DOT: Record<string, string> = { completed: 'bg-[var(--at-success)]', failed: 'bg-[var(--at-danger)]', running: 'bg-[var(--at-warn)] animate-pulse', queued: 'bg-[var(--at-warn)]' };
 
 /** "just now", "5 min ago", "3 h ago", "2 days ago", then the date. */
 function ago(iso: string): string {
@@ -87,9 +87,9 @@ const Dashboard: React.FC = () => {
         </header>
 
         {error && (
-          <div role="alert" className="rounded-xl border border-[#f87171]/40 bg-[#f87171]/5 p-4 text-sm text-[#fca5a5] flex flex-wrap items-center justify-between gap-3">
+          <div role="alert" className="rounded-xl border border-[var(--at-danger)]/40 bg-[var(--at-danger)]/5 p-4 text-sm text-[var(--at-danger-text)] flex flex-wrap items-center justify-between gap-3">
             <span>{error}</span>
-            <button type="button" onClick={() => { setError(null); load(); }} className="h-8 px-3 rounded-full border border-[#f87171]/40 text-xs font-semibold">Try again</button>
+            <button type="button" onClick={() => { setError(null); load(); }} className="h-8 px-3 rounded-full border border-[var(--at-danger)]/40 text-xs font-semibold">Try again</button>
           </div>
         )}
 

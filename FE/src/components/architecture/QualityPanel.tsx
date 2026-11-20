@@ -7,7 +7,7 @@ import type { ReferenceComponent, ViewQuality } from '@/features/architecture/ap
 import { formatReference, isTodaysGrouping, parseReference, suggest } from '@/features/architecture/reference';
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
-const tone = (x: number) => (x >= 0.8 ? 'text-[#4ade80]' : x >= 0.5 ? 'text-[#facc15]' : 'text-[#f87171]');
+const tone = (x: number) => (x >= 0.8 ? 'text-[var(--at-success)]' : x >= 0.5 ? 'text-[var(--at-warn)]' : 'text-[var(--at-danger)]');
 
 function Measure({ label, value, hint }: { label: string; value: number | undefined; hint: string }) {
   return <Tooltip title={hint}>

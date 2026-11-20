@@ -19,7 +19,7 @@ Operating environment: desktop browser, internal network or cloud-hosted, always
 
 ## Product Purpose
 
-ArchTime reconstructs how a Java/Spring Boot codebase's architecture evolved from its Git history. It mines commits with AST analysis, clusters source into 8–15 meaningful components, computes graph-level diffs between snapshots, and produces evidence-backed narratives where every AI claim is labeled FACT, INFERENCE, or UNKNOWN — eliminating guesswork from architecture reviews.
+ArchTime reconstructs how a codebase's architecture evolved from its Git history. It mines commits with AST analysis, clusters source into 8–15 meaningful components, computes graph-level diffs between snapshots, and produces evidence-backed narratives where every AI claim is labeled FACT, INFERENCE, or UNKNOWN — eliminating guesswork from architecture reviews.
 
 Success: a developer can open ArchTime, pick any two snapshots of their repo, and immediately read an accurate, cited account of what changed architecturally and why.
 
@@ -46,9 +46,9 @@ Every architectural explanation traces back to a specific commit. Competing tool
 - GitHub OAuth + email/password auth; JWT sessions
 
 **Confirmed constraints:**
-- Scope: Java / Spring Boot repositories only (current version)
+- Languages: JavaScript / TypeScript parsed with an AST; Java, C#, Python, Go, Ruby and C/C++ through their import statements (regex), so their graphs are coarser
 - AI providers: Anthropic Claude, Google Gemini, or any OpenAI-compatible / Ollama endpoint
-- No drop shadows — depth from surface ladder + hairline borders only
+- No hard, crisp drop shadows — depth comes from translucent glass, a light edge and a soft cold glow (see DESIGN.md, Elevation & Depth)
 
 **Undecided:**
 - Multi-tenant SaaS pricing model (if deployed beyond Capstone context)
@@ -59,7 +59,7 @@ Every architectural explanation traces back to a specific commit. Competing tool
 - **Name:** ArchTime — do not shorten or reorder.
 - **Tagline candidates** (in-code copy, not yet formally locked): "Reconstruct how your architecture evolved." / "Architecture Evolution Observatory."
 - **Logo:** animated dot + ARCHTIME wordmark in JetBrains Mono — preserve.
-- **Colour anchor:** primary blue #3b82f6 is the single chromatic accent; the near-black canvas (#08090a) and hairline system are load-bearing identity elements.
+- **Colour anchor:** the "Frosted Observatory" palette in DESIGN.md — misty slate floor, translucent glass panels, ice-blue accents, and one pearl pill as the strongest action on a screen. The old saturated blue (#3b82f6) and near-black canvas (#08090a) are retired; DESIGN.md is the source of truth for colour.
 
 ## Evidence on Hand
 
@@ -72,7 +72,7 @@ Every architectural explanation traces back to a specific commit. Competing tool
 
 1. **Evidence over assertion.** Every architectural claim must be traceable to a commit. FACT / INFERENCE / UNKNOWN is non-negotiable.
 2. **Tool, not decoration.** The interface recedes; the architecture data is the protagonist. Product screenshots and evidence panels lead every section.
-3. **Precision over atmosphere.** Flat surfaces, hairline borders, monospace for factual content — the design language mirrors how developers read logs and diffs.
+3. **Precision over atmosphere.** The glass frames the data and never decorates on top of it; monospace is kept for hashes, paths and code — the content still reads the way developers read logs and diffs.
 4. **Role clarity.** Three distinct role contexts (Analyst, Maintainer, Admin) each get a dedicated workspace — no context switching within a role session.
 5. **Verifiability first.** AI contributions are always disclosed and bounded; the system must remain useful and correct even when AI is unavailable.
 

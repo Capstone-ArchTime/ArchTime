@@ -213,7 +213,7 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
   const markKinds = [...new Set(Object.values(marks ?? {}).map(m => m.kind))];
   const history = scene.mode === 'components' && state.focus && historyFor ? historyFor(state.focus) : [];
   const roleOptions = COMPONENT_ROLES.filter(r => view.components.some(c => c.role === r)).map(r => ({ value: r, label: ROLE_LABEL[r] }));
-  const panel = 'rounded-lg border border-[#2a3441] bg-[var(--at-panel)]/95 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur';
+  const panel = 'rounded-lg border border-[var(--at-line)] bg-[var(--at-panel)]/95 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur';
 
   if (errors.length > 0) {
     return <div className="p-6"><Alert type="error" showIcon title="This view failed verification and is not drawn" description={<ul className="list-disc pl-5">{errors.slice(0, 8).map((i, n) => <li key={n}><code>{i.code}</code> {i.message}</li>)}</ul>} /></div>;
@@ -241,14 +241,14 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
           {detailId && <Button size="small" icon={<ArrowLeft size={14} />} onClick={closeDetail}>All components{detailName ? ` · inside ${detailName}` : ''}</Button>}
           <IssuesChip summary={summary} verified={verified} onClick={openIssues} />
           <div className={`${panel} text-xs`}>
-            <button type="button" className="flex items-center gap-1.5 px-2.5 py-1.5 text-[#cbd5e1] hover:text-white" aria-expanded={legend} onClick={() => setLegend(v => !v)}>
+            <button type="button" className="flex items-center gap-1.5 px-2.5 py-1.5 text-[var(--at-text)] hover:text-white" aria-expanded={legend} onClick={() => setLegend(v => !v)}>
               Legend {legend ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
             </button>
             {legend && <ul className="space-y-1 px-3 pb-2.5 text-[var(--at-muted)]" aria-label="Legend">
               {roleOptions.map(r => <li key={r.value} className="flex items-center gap-2"><span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: theme.role[r.value as ComponentRole] }} />{r.label}</li>)}
               <li className="flex items-center gap-2"><span className="inline-block w-5 border-t-2" style={{ borderColor: theme.cycle }} />circular dependency</li>
               <li className="flex items-center gap-2"><span className="inline-block w-5 border-t-2 border-dashed" style={{ borderColor: theme.edge }} />points upward</li>
-              {scene.mode === 'components' && markKinds.map(kind => <li key={kind} className="flex items-center gap-2"><span className="rounded-full border px-1 font-mono text-[9px] font-bold" style={{ borderColor: EVOLUTION_MARK[kind].color, color: EVOLUTION_MARK[kind].color }}>{EVOLUTION_MARK[kind].label}</span>{EVOLUTION_MARK[kind].help}</li>)}
+              {scene.mode === 'components' && markKinds.map(kind => <li key={kind} className="flex items-center gap-2"><span className="rounded-full border px-1 font-mono text-[11px] font-bold" style={{ borderColor: EVOLUTION_MARK[kind].color, color: EVOLUTION_MARK[kind].color }}>{EVOLUTION_MARK[kind].label}</span>{EVOLUTION_MARK[kind].help}</li>)}
             </ul>}
           </div>
         </div>
@@ -258,7 +258,7 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
           {focusMode && <Button size="small" type="primary" icon={<Minimize size={14} />} onClick={exitFocus}>Exit full screen</Button>}
         </div>}
 
-        {activePin && <div data-overlay className="absolute bottom-[4.5rem] left-1/2 z-10 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-lg border border-[#2a3441] bg-[var(--at-panel)]/95 py-1 pl-3 pr-1 text-xs text-slate-200 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur">
+        {activePin && <div data-overlay className="absolute bottom-[4.5rem] left-1/2 z-10 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-lg border border-[var(--at-line)] bg-[var(--at-panel)]/95 py-1 pl-3 pr-1 text-xs text-slate-200 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur">
           <span className="min-w-0 truncate">Showing: {activePin.title}</span>
           <Button size="small" type="text" onClick={clearSelection}>Clear highlight</Button>
         </div>}
@@ -306,7 +306,7 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
         {!hasSelection && <IssuesPanel issues={issues} summary={summary} verified={verified} activeId={activePin?.id} inner={scene.mode !== 'components'} onShow={showIssue} onAction={onIssueAction} />}
         <Inspector view={view} scene={scene} theme={theme} selectedNode={state.focus} selectedEdge={state.edge} highlight={highlight} onSelectNode={focusNode} onSelectEdge={selectEdge} onOpen={openDetail}
           commits={projectId && snapshotId ? { projectId, state: commitImpacts, onRetry: commitImpacts.retry } : undefined} />
-        {state.focus && marks?.[state.focus] && <p className="text-xs text-[var(--at-muted)]"><span className="mr-1.5 rounded-full border px-1.5 font-mono text-[9px] font-bold" style={{ borderColor: marks[state.focus].color, color: marks[state.focus].color }}>{marks[state.focus].label}</span>
+        {state.focus && marks?.[state.focus] && <p className="text-xs text-[var(--at-muted)]"><span className="mr-1.5 rounded-full border px-1.5 font-mono text-[11px] font-bold" style={{ borderColor: marks[state.focus].color, color: marks[state.focus].color }}>{marks[state.focus].label}</span>
           {EVOLUTION_MARK[marks[state.focus].kind].help}{marks[state.focus].from.length ? `: ${marks[state.focus].from.join(', ')}` : ''}.</p>}
         {history.length > 1 && <section aria-label="Earlier names">
           <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-[var(--at-muted)]">Through the snapshots</h3>

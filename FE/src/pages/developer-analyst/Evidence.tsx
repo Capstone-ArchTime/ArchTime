@@ -75,7 +75,7 @@ const nameOf = (names: ComponentNames, id: string) => names.get(id)?.name ?? id;
 function PairList({ sample, sign }: { sample: PairSample; sign: '+' | '-' }) {
   if (!sample.total) return null;
   const more = andMore(sample.total, sample.pairs.length);
-  const color = sign === '+' ? 'text-[#4ade80]' : 'text-[#f87171]';
+  const color = sign === '+' ? 'text-[var(--at-success)]' : 'text-[var(--at-danger)]';
   return <ul className="space-y-0.5">
     {sample.pairs.map(p => <li key={`${p.source}\u0000${p.target}`} className={`text-[11px] font-mono break-all ${color}`} style={monoStyle}>{sign} {p.source} → {p.target}</li>)}
     {more && <li className="text-[11px] text-[var(--at-muted)]">{more}</li>}
@@ -118,7 +118,7 @@ function AffectedComponents({ state, projectId, retry }: { state: ImpactState; p
         </ul>
         <p className="mt-1.5 text-[var(--at-muted)]">Files this commit deleted have no component in its grouping, so they are listed here too.</p>
       </details>}
-      {impact.mapping.stale && <p className="text-xs text-[#fcd34d]">The grouping stored for this commit is out of date, so the components shown may not match its current files.</p>}
+      {impact.mapping.stale && <p className="text-xs text-[var(--at-warn)]">The grouping stored for this commit is out of date, so the components shown may not match its current files.</p>}
     </>}
     <Details bodyClassName="text-xs">
       <p>{IMPACT_NOTE}</p>
@@ -264,7 +264,7 @@ const Evidence: React.FC = () => {
               </p>
 
               <div className="mt-6 mb-2 flex items-center gap-4">
-                <div className="relative group flex items-center h-10 bg-[var(--at-page)] border border-[var(--at-line)] hover:border-[#5f636b] transition-colors">
+                <div className="relative group flex items-center h-10 rounded-[10px] bg-[var(--at-panel-2)] border border-[var(--at-line)] hover:border-[var(--at-line-strong)] transition-colors">
                   <FolderKanban size={16} className="text-[var(--at-muted)] ml-4" />
                   <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase pl-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>Workspace:</span>
                   <select 
@@ -292,7 +292,7 @@ const Evidence: React.FC = () => {
                  value={search}
                  onChange={event => setSearch(event.target.value)}
                  placeholder="Search changes..."
-                 className="w-full bg-[var(--at-page)] border border-[var(--at-line)] h-9 pl-9 pr-9 text-sm text-[var(--at-text)] placeholder-[#5f636b] focus:outline-none focus:border-[var(--at-accent)]/50 transition-colors"
+                 className="w-full rounded-[10px] bg-[var(--at-panel-2)] border border-[var(--at-line)] h-9 pl-9 pr-9 text-sm text-[var(--at-text)] placeholder-[var(--at-muted)] focus:outline-none focus:border-[var(--at-accent)]/50 transition-colors"
                />
                {search && (
                  <button 
@@ -325,7 +325,7 @@ const Evidence: React.FC = () => {
              </div>
           )}
 
-          {!loading && linkedCommitMissing(evidenceData, commitParam) && <p role="status" className="border-b border-[var(--at-line)] bg-[var(--at-panel-2)] px-4 py-3 text-xs text-[#fcd34d]">The commit in this link is not among the {evidenceData.length} most recent changes loaded here, so its detail cannot be opened.</p>}
+          {!loading && linkedCommitMissing(evidenceData, commitParam) && <p role="status" className="border-b border-[var(--at-line)] bg-[var(--at-panel-2)] px-4 py-3 text-xs text-[var(--at-warn)]">The commit in this link is not among the {evidenceData.length} most recent changes loaded here, so its detail cannot be opened.</p>}
 
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[800px]">
@@ -361,7 +361,7 @@ const Evidence: React.FC = () => {
                   >
                     <td className="p-4 text-sm font-bold text-[var(--at-text)]">{item.changeTitle}</td>
                     <td className="p-4">
-                       <span className="px-2 py-1 bg-[var(--at-warn)]/10 border border-[var(--at-warn)]/20 text-[var(--at-warn)] text-[9px] font-mono font-bold uppercase tracking-widest whitespace-nowrap"
+                       <span className="px-2 py-1 bg-[var(--at-warn)]/10 border border-[var(--at-warn)]/20 text-[var(--at-warn)] text-[11px] font-mono font-bold uppercase tracking-widest whitespace-nowrap"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                          {item.type}
                        </span>
@@ -445,8 +445,8 @@ const Evidence: React.FC = () => {
                     </button>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
-                    <span className="rounded-full bg-[#4ade80]/10 border border-[#4ade80]/30 px-3 py-1 text-[#4ade80]">+{selectedChange.depsAdded} dependencies added</span>
-                    <span className="rounded-full bg-[#f87171]/10 border border-[#f87171]/30 px-3 py-1 text-[#f87171]">−{selectedChange.depsRemoved} removed</span>
+                    <span className="rounded-full bg-[var(--at-success)]/10 border border-[var(--at-success)]/30 px-3 py-1 text-[var(--at-success)]">+{selectedChange.depsAdded} dependencies added</span>
+                    <span className="rounded-full bg-[var(--at-danger)]/10 border border-[var(--at-danger)]/30 px-3 py-1 text-[var(--at-danger)]">−{selectedChange.depsRemoved} removed</span>
                     <span className="rounded-full border border-[var(--at-line)] px-3 py-1 text-[var(--at-text)]">{selectedChange.files} files</span>
                   </div>
                   <Details className="mt-3" bodyClassName="text-xs">
@@ -512,8 +512,8 @@ const Evidence: React.FC = () => {
           width={900}
           className="dark-modal"
           styles={{
-            container: { backgroundColor: '#11161b', border: '1px solid #242527', padding: 0 },
-            header: { backgroundColor: '#161d24', borderBottom: '1px solid #242527', padding: '16px', margin: 0 },
+            container: { backgroundColor: 'var(--at-solid)', border: '1px solid var(--at-line)', padding: 0 },
+            header: { backgroundColor: 'var(--at-panel-2)', borderBottom: '1px solid var(--at-line)', padding: '16px', margin: 0 },
             body: { padding: '0' }
           }}
           closeIcon={<X size={18} className="text-[var(--at-muted)] hover:text-[var(--at-text)]" />}
@@ -526,11 +526,11 @@ const Evidence: React.FC = () => {
                   let bgColor = 'bg-transparent';
                   
                   if (line.startsWith('+') && !line.startsWith('+++')) {
-                    textColor = 'text-[#22c55e]'; // green
-                    bgColor = 'bg-[#22c55e]/10';
+                    textColor = 'text-[var(--at-success)]'; // green
+                    bgColor = 'bg-[var(--at-success)]/10';
                   } else if (line.startsWith('-') && !line.startsWith('---')) {
-                    textColor = 'text-[#ef4444]'; // red
-                    bgColor = 'bg-[#ef4444]/10';
+                    textColor = 'text-[var(--at-danger)]'; // red
+                    bgColor = 'bg-[var(--at-danger)]/10';
                   } else if (line.startsWith('@@')) {
                     textColor = 'text-[var(--at-link)]'; // blue for chunks
                   } else if (line.startsWith('+++') || line.startsWith('---')) {

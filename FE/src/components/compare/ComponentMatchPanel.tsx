@@ -8,7 +8,7 @@ import { serializeHash } from '@/features/architecture/url-state';
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
 
 const COLORS: Record<ChangeKind, string> = {
-  split: '#ffb03a', merged: '#ffb03a', restructured: '#ffb03a', added: '#22c55e', removed: '#ef4444', renamed: '#93c5fd', kept: '#94a3b8',
+  split: 'var(--at-warn)', merged: 'var(--at-warn)', restructured: 'var(--at-warn)', added: 'var(--at-success)', removed: 'var(--at-danger)', renamed: 'var(--at-link)', kept: 'var(--at-muted)',
 };
 
 const FILES_SHOWN = 20;
@@ -16,7 +16,7 @@ const FILES_SHOWN = 20;
 function Badge({ kind }: { kind: ChangeKind }) {
   const color = COLORS[kind];
   return (
-    <span className="px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-widest border" style={{ ...mono, color, borderColor: `${color}33`, background: `${color}1a` }}>
+    <span className="px-2 py-0.5 text-[11px] font-mono font-bold uppercase tracking-widest border" style={{ ...mono, color, borderColor: `color-mix(in srgb, ${color} 20%, transparent)`, background: `color-mix(in srgb, ${color} 10%, transparent)` }}>
       {CHANGE_LABELS[kind]}
     </span>
   );
@@ -154,8 +154,8 @@ export default function ComponentMatchPanel({ projectId, baseId, targetId, resul
         <div className="flex items-center gap-3 bg-[var(--at-panel-2)] border border-[var(--at-line)] px-3 py-2 text-[11px] text-[var(--at-muted)] font-mono" style={mono}>
           <span>{files.common} files kept</span>
           {files.moved > 0 && <span>{files.moved} moved</span>}
-          <span className="text-[#22c55e]">+{files.added}</span>
-          <span className="text-[#ef4444]">-{files.removed}</span>
+          <span className="text-[var(--at-success)]">+{files.added}</span>
+          <span className="text-[var(--at-danger)]">-{files.removed}</span>
         </div>
       </div>
 

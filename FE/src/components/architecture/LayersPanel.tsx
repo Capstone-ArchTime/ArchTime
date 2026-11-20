@@ -43,9 +43,9 @@ export default function LayersPanel({ scene, theme, highlight, selected, onSelec
     </div>
 
     {tab === 'layers' && scene && theme && highlight && <>
-      <label className="mx-2 my-2 flex items-center gap-2 rounded border border-[var(--at-line)] bg-[#0b0f13] px-2">
+      <label className="mx-2 my-2 flex items-center gap-2 rounded border border-[var(--at-line)] bg-[var(--at-panel-2)] px-2">
         <Search size={13} className="text-[var(--at-muted)]" />
-        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search layers" aria-label="Search layers" className="h-7 w-full bg-transparent text-xs text-[#e2e8f0] outline-none placeholder:text-[var(--at-muted)]" />
+        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search layers" aria-label="Search layers" className="h-7 w-full bg-transparent text-xs text-[var(--at-text)] outline-none placeholder:text-[var(--at-muted)]" />
       </label>
       <div className="min-h-0 flex-1 overflow-auto pb-3" role="tree" aria-label="Layers">
         {[...groups].map(([key, items]) => <div key={key} role="group" aria-label={label(key)}>
@@ -58,7 +58,7 @@ export default function LayersPanel({ scene, theme, highlight, selected, onSelec
             const isSel = n.id === selected;
             const dim = !!highlight.nodes && !highlight.nodes.has(n.id);
             return <div key={n.id} role="treeitem" aria-selected={isSel} tabIndex={0}
-              className={`mx-1 flex cursor-pointer flex-col rounded px-5 py-1 outline-none focus-visible:ring-1 focus-visible:ring-[var(--at-accent)] ${isSel ? 'bg-[var(--at-accent)]/15 text-white' : 'text-[#cbd5e1] hover:bg-white/5'} ${dim ? 'opacity-50' : ''}`}
+              className={`mx-1 flex cursor-pointer flex-col rounded px-5 py-1 outline-none focus-visible:ring-1 focus-visible:ring-[var(--at-accent)] ${isSel ? 'bg-[var(--at-accent)]/15 text-white' : 'text-[var(--at-text)] hover:bg-white/5'} ${dim ? 'opacity-50' : ''}`}
               onClick={() => onSelect?.(n.id)} onDoubleClick={() => onOpen?.(n.id)}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (e.shiftKey) onOpen?.(n.id); else onSelect?.(n.id); } }}>
               <span className="truncate text-xs">{n.title}</span>

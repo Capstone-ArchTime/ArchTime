@@ -26,9 +26,9 @@ import { filterTeamRows, teamRows, type TeamRow } from './team-rows';
 const fontFamily = { mono: '"JetBrains Mono", monospace' };
 
 const statusMeta = {
-  pending: { label: 'PENDING', color: '#ffb03a', icon: Clock },
-  approved: { label: 'APPROVED', color: '#22c55e', icon: CheckCircle2 },
-  rejected: { label: 'REJECTED', color: '#ef4444', icon: XCircle },
+  pending: { label: 'PENDING', color: 'var(--at-warn)', icon: Clock },
+  approved: { label: 'APPROVED', color: 'var(--at-success)', icon: CheckCircle2 },
+  rejected: { label: 'REJECTED', color: 'var(--at-danger)', icon: XCircle },
 };
 
 export default function ProjectMaintainerDashboard() {
@@ -180,7 +180,7 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <span
-                              className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest"
+                              className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest"
                               style={{ fontFamily: fontFamily.mono, color: meta.color }}
                             >
                               <StatusIcon size={11} />
@@ -224,7 +224,7 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
                       </div>
                       <div
                         className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[var(--at-panel)]"
-                        style={{ backgroundColor: member.status === 'active' ? '#22c55e' : '#5f636b' }}
+                        style={{ backgroundColor: member.status === 'active' ? 'var(--at-success)' : 'var(--at-line-strong)' }}
                       ></div>
                     </div>
                     <div className="min-w-0 w-full">

@@ -10,7 +10,7 @@ type Option = { value: string; label: string };
 function Tool({ label, shortcut, active, disabled, onClick, children }: { label: string; shortcut?: string; active?: boolean; disabled?: boolean; onClick?: () => void; children: ReactNode }) {
   return <Tooltip title={shortcut ? <span>{label} <kbd className="ml-1 rounded bg-white/10 px-1 font-mono text-[10px]">{shortcut}</kbd></span> : label} placement="top">
     <button type="button" aria-label={label} aria-pressed={active} disabled={disabled} onClick={onClick}
-      className={`h-8 min-w-8 shrink-0 px-1.5 flex items-center justify-center rounded-md text-[#cbd5e1] transition-colors hover:bg-white/10 hover:text-white disabled:opacity-35 disabled:hover:bg-transparent ${active ? 'bg-[var(--at-accent)]/15 text-[var(--at-link)]' : ''}`}>
+      className={`h-8 min-w-8 shrink-0 px-1.5 flex items-center justify-center rounded-md text-[var(--at-text)] transition-colors hover:bg-white/10 hover:text-white disabled:opacity-35 disabled:hover:bg-transparent ${active ? 'bg-[var(--at-accent)]/15 text-[var(--at-link)]' : ''}`}>
       {children}
     </button>
   </Tooltip>;
@@ -19,7 +19,7 @@ function Tool({ label, shortcut, active, disabled, onClick, children }: { label:
 const ROOMY = 940;
 const mark = (on: boolean) => <span className="inline-flex w-4">{on && <Check size={13} />}</span>;
 
-const Divider = () => <span aria-hidden className="mx-0.5 h-5 w-px shrink-0 bg-[#2a3441]" />;
+const Divider = () => <span aria-hidden className="mx-0.5 h-5 w-px shrink-0 bg-[var(--at-line)]" />;
 
 /**
  * The artboard's controls in one floating bar at the bottom: find and trace on the left, view in the middle, display and
@@ -57,7 +57,7 @@ export default function FloatingToolbar({ searchRef, ...p }: {
   const exports = [{ key: 'svg', label: 'SVG image' }, { key: 'png', label: 'PNG image' }, { key: 'html', label: 'Standalone HTML' }, { key: 'json', label: 'Data (JSON)' }];
   return (
     <div data-overlay role="toolbar" aria-label="Diagram tools"
-      className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex max-w-[calc(100%-1.5rem)] items-center gap-0.5 overflow-x-auto rounded-xl border border-[#2a3441] bg-[var(--at-panel)]/95 px-2 py-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur">
+      className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex max-w-[calc(100%-1.5rem)] items-center gap-0.5 overflow-x-auto rounded-xl border border-[var(--at-line)] bg-[var(--at-panel)]/95 px-2 py-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur">
       <Select ref={searchRef as never} showSearch allowClear size="small" variant="borderless" placeholder="Find…  /" aria-label="Find a node" className="w-32 shrink-0"
         optionFilterProp="label" options={p.options} value={p.focus} onChange={id => p.onFind(id ?? undefined)} />
       {p.focus && <Dropdown trigger={['click']} placement="top" menu={{
@@ -92,7 +92,7 @@ export default function FloatingToolbar({ searchRef, ...p }: {
         ],
         onClick: ({ key }) => (key === 'fit' ? v.fit() : key === 'sel' ? v.frameSelection() : key === 'in' ? v.zoomIn() : key === 'out' ? v.zoomOut() : v.setZoom(Number(key))),
       }}>
-        <button type="button" aria-label={`Zoom ${Math.round(v.zoom * 100)}%, choose a level`} className="h-8 w-12 shrink-0 rounded-md font-mono text-xs text-[#cbd5e1] hover:bg-white/10">{Math.round(v.zoom * 100)}%</button>
+        <button type="button" aria-label={`Zoom ${Math.round(v.zoom * 100)}%, choose a level`} className="h-8 w-12 shrink-0 rounded-md font-mono text-xs text-[var(--at-text)] hover:bg-white/10">{Math.round(v.zoom * 100)}%</button>
       </Dropdown>
       {!tiny && <>
       <Tool label="Zoom in" shortcut="+" onClick={v.zoomIn}><Plus size={16} /></Tool>

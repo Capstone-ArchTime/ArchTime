@@ -123,12 +123,13 @@ const markText = (mark: { label: string; from: string[] }) => `${mark.label.char
 
 /** A small pill above the card's top-right corner, so it never covers the name. */
 function MarkBadge({ mark, width, theme }: { mark: { label: string; color: string; from: string[] }; width: number; theme: DiagramTheme }) {
-  const w = mark.label.length * 6.4 + 12;
+  // 11px monospace with letter spacing is about 7.4px a character.
+  const w = mark.label.length * 7.4 + 14;
   return (
-    <g transform={`translate(${width - w - 8},-8)`} aria-hidden="true">
+    <g transform={`translate(${width - w - 8},-9)`} aria-hidden="true">
       <title>{markText(mark)}</title>
-      <rect width={w} height={16} rx={8} fill={theme.card} stroke={mark.color} />
-      <text x={w / 2} y={11.5} textAnchor="middle" fontSize={9} fontWeight={700} letterSpacing={0.6} fontFamily={theme.mono} fill={mark.color}>{mark.label}</text>
+      <rect width={w} height={18} rx={9} fill={theme.card} stroke={mark.color} />
+      <text x={w / 2} y={13} textAnchor="middle" fontSize={11} fontWeight={700} letterSpacing={0.6} fontFamily={theme.mono} fill={mark.color}>{mark.label}</text>
     </g>
   );
 }
@@ -146,7 +147,8 @@ function NodeCard({ node, width, height, theme, selected }: { node: SceneNode; w
       {!neighbour && <rect x={0} y={0} width={5} height={height} rx={2.5} fill={accent} />}
       <text x={left} y={roomy ? 28 : neighbour ? 19 : 22} fontSize={13} fontWeight={600} fill={neighbour ? theme.muted : theme.text}>{truncate(node.title, Math.floor((width - left - 12) / 7.2))}</text>
       <text x={left} y={roomy ? 47 : neighbour ? 34 : 40} fontSize={11} fill={theme.muted}>{truncate(node.subtitle, subtitleRoom)}</text>
-      {node.tag && <text x={left} y={68} fontSize={9} fontWeight={700} letterSpacing={0.6} fontFamily={theme.mono} fill={tagColor}>{node.tag}</text>}
+      {/* The evidence tag (FACT / INFERENCE / UNKNOWN) is what the diagram is about: readable size, not 9px. */}
+      {node.tag && <text x={left} y={69} fontSize={11} fontWeight={700} letterSpacing={0.6} fontFamily={theme.mono} fill={tagColor}>{node.tag}</text>}
     </>
   );
 }

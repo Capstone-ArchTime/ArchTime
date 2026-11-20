@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { backTo } from '@/components/layout/back-link';
+import MiningPanel from '@/components/MiningPanel';
 import { Box, GitCommit, Clock, Layers, ArrowRight, SearchCode, Loader2, ExternalLink, FolderGit2 } from 'lucide-react';
 import { getMiningOverview, type MiningOverview } from '@/features/mining-api';
 import { getSnapshotPage, getWorkspace, nextStep, STATUS_LABELS, structuralChanges, type SnapshotRow, type Workspace } from '@/features/workspace-summary';
@@ -29,6 +30,8 @@ const ProjectDetail: React.FC = () => {
   const [failure, setFailure] = useState<{ id: string; message: string } | null>(null);
   const data = loaded && loaded.id === projectId ? loaded : null;
   const error = failure && failure.id === projectId ? failure.message : null;
+  // Scanning and mining open here, on the workspace itself, instead of sending the person back to the list to find it.
+  const [miningOpen, setMiningOpen] = useState(false);
 
   const load = useCallback((id: string, signal?: AbortSignal) => {
     // The mining overview and commits are extras: a workspace whose history cannot be read still shows its own fields.
@@ -75,9 +78,9 @@ const ProjectDetail: React.FC = () => {
     <DashboardLayout title={w?.name}>
       <div className="max-w-[1400px] mx-auto flex flex-col min-h-0 pb-12">
         {error && (
-          <div role="alert" className="border border-[#ef4444]/40 bg-[#ef4444]/5 p-4 text-sm text-[#fca5a5] flex flex-wrap items-center justify-between gap-3">
+          <div role="alert" className="border border-[var(--at-danger)]/40 bg-[var(--at-danger)]/5 p-4 text-sm text-[var(--at-danger-text)] flex flex-wrap items-center justify-between gap-3">
             <span>{error}</span>
-            <button type="button" onClick={() => { setFailure(null); load(projectId); }} className="h-8 px-3 border border-[#ef4444]/40 text-xs font-semibold">Try again</button>
+            <button type="button" onClick={() => { setFailure(null); load(projectId); }} className="h-8 px-3 border border-[var(--at-danger)]/40 text-xs font-semibold">Try again</button>
           </div>
         )}
         {!w ? (
@@ -113,7 +116,7 @@ const ProjectDetail: React.FC = () => {
             <nav aria-label="Workspace views" className="mt-8 border-b border-[var(--at-line)] flex gap-8 overflow-x-auto custom-scrollbar">
               <span aria-current="page" className="pb-3 border-b-2 border-[var(--at-accent)] text-[var(--at-link)] font-bold text-xs tracking-wider uppercase whitespace-nowrap">Overview</span>
               {tabs.map(t => (
-                <Link key={t.label} to={t.to} state={backTo(`/project?${q}`, w.name)} className="pb-3 border-b-2 border-transparent hover:border-[#5f636b] text-[var(--at-muted)] hover:text-[var(--at-text)] font-bold text-xs tracking-wider uppercase whitespace-nowrap transition-colors">{t.label}</Link>
+                <Link key={t.label} to={t.to} state={backTo(`/project?${q}`, w.name)} className="pb-3 border-b-2 border-transparent hover:border-[var(--at-line-strong)] text-[var(--at-muted)] hover:text-[var(--at-text)] font-bold text-xs tracking-wider uppercase whitespace-nowrap transition-colors">{t.label}</Link>
               ))}
             </nav>
 
@@ -125,9 +128,13 @@ const ProjectDetail: React.FC = () => {
                       <h3 id="next-step-title" className="text-sm font-bold text-[var(--at-text)] tracking-wide uppercase mb-1">Next step: {step.label}</h3>
                       <p className="text-xs text-[var(--at-muted)] leading-relaxed">{step.hint}</p>
                     </div>
-                    {step.action !== 'wait' && <Link to={step.to} className="shrink-0 h-9 px-4 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] text-xs font-bold flex items-center gap-2">
-                      {step.action === 'open' ? 'Open architecture' : 'Go to workspaces'} <ArrowRight size={14} aria-hidden="true" />
+                    {step.action === 'open' && <Link to={step.to} className="shrink-0 h-9 px-4 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] text-xs font-bold flex items-center gap-2">
+                      Open architecture <ArrowRight size={14} aria-hidden="true" />
                     </Link>}
+                    {(step.action === 'scan' || step.action === 'mine') && <button type="button" onClick={() => setMiningOpen(true)} aria-haspopup="dialog"
+                      className="shrink-0 h-9 px-4 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] text-xs font-bold flex items-center gap-2">
+                      {step.action === 'scan' ? 'Scan repository' : 'Open mining'} <ArrowRight size={14} aria-hidden="true" />
+                    </button>}
                   </section>
                 )}
 
@@ -173,7 +180,7 @@ const ProjectDetail: React.FC = () => {
                     <p className="p-5 text-sm text-[var(--at-muted)] flex-1">No structural changes found in the mined commits yet.</p>
                   )}
                   <div className="p-4 border-t border-[var(--at-line)] bg-[var(--at-page)]">
-                    <Link to={`/evidence?${q}`} className="inline-flex h-9 px-4 items-center justify-center gap-2 text-[10px] font-mono font-bold text-[var(--at-muted)] border border-[var(--at-line)] hover:border-[#5f636b] hover:text-[var(--at-text)] transition-colors uppercase w-full" style={mono}>
+                    <Link to={`/evidence?${q}`} className="inline-flex h-9 px-4 items-center justify-center gap-2 text-[10px] font-mono font-bold text-[var(--at-muted)] border border-[var(--at-line)] hover:border-[var(--at-line-strong)] hover:text-[var(--at-text)] transition-colors uppercase w-full" style={mono}>
                       View all changes <SearchCode size={14} aria-hidden="true" />
                     </Link>
                   </div>
@@ -183,6 +190,7 @@ const ProjectDetail: React.FC = () => {
           </>
         )}
       </div>
+      {miningOpen && w && <MiningPanel project={{ id: projectId, name: w.name }} open onClose={() => setMiningOpen(false)} onChanged={() => load(projectId)} />}
     </DashboardLayout>
   );
 };

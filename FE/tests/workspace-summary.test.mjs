@@ -42,6 +42,9 @@ test('the next step follows create, scan, mine, group into components', () => {
   assert.equal(nextStep({ id: 'p1', status: 'FAILED', totalCommits: 37 }).action, 'mine');
   const open = nextStep({ id: 'a/b', status: 'PARTIAL', totalCommits: 37 });
   assert.equal(open.action, 'open'); assert.equal(open.to, '/workspace/a%2Fb');
+  // Scanning and mining happen on the workspace's own page, not back on the list where it has to be found again.
+  assert.equal(nextStep({ id: 'a/b', status: 'PENDING', totalCommits: null }).to, '/project?projectId=a%2Fb');
+  assert.equal(nextStep({ id: 'p1', status: 'FAILED', totalCommits: 37 }).to, '/project?projectId=p1');
 });
 
 test('stats add up real values and are all zero for a new account', () => {

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { importJiraExport } from '../src/features/tasks.ts';
 import { suspendOrganization } from '../src/features/admin-organizations.ts';
 import { mockGlobal } from './mock-global.mjs';
@@ -31,7 +32,7 @@ test('every apiRequest that sends a JSON body says so (Content-Type or the json(
   const root = new URL('../src/', import.meta.url);
   const files = [];
   const walk = dir => { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { const p = path.join(dir, e.name); if (e.isDirectory()) walk(p); else if (/\.tsx?$/.test(e.name)) files.push(p); } };
-  walk(root.pathname.replace(/^\/([A-Za-z]:)/, '$1'));
+  walk(fileURLToPath(root)); // decodes %20 and drive letters, so a checkout path with spaces works
   const missing = [];
   for (const file of files) {
     const text = fs.readFileSync(file, 'utf8');

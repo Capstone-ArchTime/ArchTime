@@ -391,11 +391,11 @@ const AuthPage: React.FC = () => {
             </AnimatePresence>
           </div>
 
-          {/* Footer (SOC-2) */}
+          {/* Footer */}
           <div className="flex flex-col sm:flex-row items-center justify-between text-[11px] text-[var(--at-muted)] shrink-0 mt-auto pt-6" style={{ fontFamily: fontFamily.mono }}>
             <div className="flex items-center gap-2 mb-4 sm:mb-0">
               <Lock size={12} className="text-[var(--at-link)]" />
-              <span>SOC-2 & Git AST Grounded</span>
+              <span>Grounded in Git history</span>
             </div>
             <div className="flex gap-4" aria-label="Coming soon">
               <span className="cursor-not-allowed opacity-60" aria-disabled="true" title="Coming soon">Docs</span>

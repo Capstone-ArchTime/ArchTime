@@ -18,9 +18,9 @@ const fontFamily = { mono: '"JetBrains Mono", monospace' };
 type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 
 const statusMeta: Record<ApprovalStatus, { label: string; color: string; icon: typeof Clock }> = {
-  pending: { label: 'PENDING', color: '#ffb03a', icon: Clock },
-  approved: { label: 'APPROVED', color: '#22c55e', icon: CheckCircle2 },
-  rejected: { label: 'REJECTED', color: '#ef4444', icon: XCircle },
+  pending: { label: 'PENDING', color: 'var(--at-warn)', icon: Clock },
+  approved: { label: 'APPROVED', color: 'var(--at-success)', icon: CheckCircle2 },
+  rejected: { label: 'REJECTED', color: 'var(--at-danger)', icon: XCircle },
 };
 
 const filterOptions: { key: 'all' | ApprovalStatus; label: string }[] = [
@@ -184,8 +184,8 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-2">
                         <span
-                          className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest px-2 py-1 border"
-                          style={{ fontFamily: fontFamily.mono, color: meta.color, borderColor: `${meta.color}33`, backgroundColor: `${meta.color}1A` }}
+                          className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest px-2 py-1 border"
+                          style={{ fontFamily: fontFamily.mono, color: meta.color, borderColor: `color-mix(in srgb, ${meta.color} 20%, transparent)`, backgroundColor: `color-mix(in srgb, ${meta.color} 10%, transparent)` }}
                         >
                           <StatusIcon size={11} />
                           {meta.label}
@@ -220,7 +220,7 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
                             size="small"
                             type="primary"
                             onClick={() => startReview(item, 'approve')}
-                            style={{ fontFamily: fontFamily.mono, background: '#22c55e', borderColor: '#22c55e' }}
+                            style={{ fontFamily: fontFamily.mono, background: 'var(--at-success)', borderColor: 'var(--at-success)' }}
                           >
                             APPROVE
                           </Button>

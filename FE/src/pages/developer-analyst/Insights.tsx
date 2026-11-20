@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { Select } from 'antd';
+import { App, Select } from 'antd';
 import {
   Sparkles,
   Loader2,
@@ -55,6 +55,7 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 const Insights: React.FC = () => {
+  const { modal } = App.useApp();
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [selectedProjectId, setSelectedProjectId] = useState('');
@@ -189,16 +190,26 @@ const Insights: React.FC = () => {
     }
   };
 
-  const removeConversation = async (summary: ConversationSummary) => {
-    if (!selectedProjectId || !window.confirm(`Delete the saved chat "${summary.title}"? This cannot be undone.`)) return;
-    setHistoryNotice('');
-    try {
-      await apiRequest(`/projects/${selectedProjectId}/chat/conversations/${summary.id}`, { method: 'DELETE' });
-      setConversations(prev => prev.filter(c => c.id !== summary.id));
-      if (summary.id === conversationId) resetConversation('Chat deleted. How can I help you understand your architecture?');
-    } catch (error) {
-      setHistoryNotice(error instanceof Error ? error.message : 'Could not delete this chat.');
-    }
+  // The same confirmation dialog as the rest of the app (the browser's own confirm box looked and behaved differently).
+  const removeConversation = (summary: ConversationSummary) => {
+    if (!selectedProjectId) return;
+    const projectId = selectedProjectId;
+    modal.confirm({
+      title: `Delete the saved chat "${summary.title}"?`,
+      content: 'This cannot be undone.',
+      okText: 'Delete chat',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        setHistoryNotice('');
+        try {
+          await apiRequest(`/projects/${projectId}/chat/conversations/${summary.id}`, { method: 'DELETE' });
+          setConversations(prev => prev.filter(c => c.id !== summary.id));
+          if (summary.id === conversationId) resetConversation('Chat deleted. How can I help you understand your architecture?');
+        } catch (error) {
+          setHistoryNotice(error instanceof Error ? error.message : 'Could not delete this chat.');
+        }
+      },
+    });
   };
 
   const handleSend = async (query: string) => {
@@ -339,7 +350,7 @@ const Insights: React.FC = () => {
                             <span className="block text-sm text-[var(--at-text)] truncate">{conversation.title}</span>
                             <span className="block mt-0.5 text-[11px] text-[var(--at-muted)]">{describeWhen(conversation.updatedAt)} · {conversation.messageCount} messages</span>
                           </button>
-                          <button type="button" onClick={() => void removeConversation(conversation)} aria-label={`Delete saved chat: ${conversation.title}`}
+                          <button type="button" onClick={() => removeConversation(conversation)} aria-label={`Delete saved chat: ${conversation.title}`}
                             className="shrink-0 w-9 flex items-center justify-center rounded-lg text-[var(--at-muted)] opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-red-400">
                             <Trash2 size={14} />
                           </button>
