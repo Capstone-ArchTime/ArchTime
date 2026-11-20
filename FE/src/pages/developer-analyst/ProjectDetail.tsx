@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { backTo } from '@/components/layout/back-link';
+import MiningPanel from '@/components/MiningPanel';
 import { Box, GitCommit, Clock, Layers, ArrowRight, SearchCode, Loader2, ExternalLink, FolderGit2 } from 'lucide-react';
 import { getMiningOverview, type MiningOverview } from '@/features/mining-api';
 import { getSnapshotPage, getWorkspace, nextStep, STATUS_LABELS, structuralChanges, type SnapshotRow, type Workspace } from '@/features/workspace-summary';
@@ -29,6 +30,8 @@ const ProjectDetail: React.FC = () => {
   const [failure, setFailure] = useState<{ id: string; message: string } | null>(null);
   const data = loaded && loaded.id === projectId ? loaded : null;
   const error = failure && failure.id === projectId ? failure.message : null;
+  // Scanning and mining open here, on the workspace itself, instead of sending the person back to the list to find it.
+  const [miningOpen, setMiningOpen] = useState(false);
 
   const load = useCallback((id: string, signal?: AbortSignal) => {
     // The mining overview and commits are extras: a workspace whose history cannot be read still shows its own fields.
@@ -125,9 +128,13 @@ const ProjectDetail: React.FC = () => {
                       <h3 id="next-step-title" className="text-sm font-bold text-[var(--at-text)] tracking-wide uppercase mb-1">Next step: {step.label}</h3>
                       <p className="text-xs text-[var(--at-muted)] leading-relaxed">{step.hint}</p>
                     </div>
-                    {step.action !== 'wait' && <Link to={step.to} className="shrink-0 h-9 px-4 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] text-xs font-bold flex items-center gap-2">
-                      {step.action === 'open' ? 'Open architecture' : 'Go to workspaces'} <ArrowRight size={14} aria-hidden="true" />
+                    {step.action === 'open' && <Link to={step.to} className="shrink-0 h-9 px-4 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] text-xs font-bold flex items-center gap-2">
+                      Open architecture <ArrowRight size={14} aria-hidden="true" />
                     </Link>}
+                    {(step.action === 'scan' || step.action === 'mine') && <button type="button" onClick={() => setMiningOpen(true)} aria-haspopup="dialog"
+                      className="shrink-0 h-9 px-4 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] text-xs font-bold flex items-center gap-2">
+                      {step.action === 'scan' ? 'Scan repository' : 'Open mining'} <ArrowRight size={14} aria-hidden="true" />
+                    </button>}
                   </section>
                 )}
 
@@ -183,6 +190,7 @@ const ProjectDetail: React.FC = () => {
           </>
         )}
       </div>
+      {miningOpen && w && <MiningPanel project={{ id: projectId, name: w.name }} open onClose={() => setMiningOpen(false)} onChanged={() => load(projectId)} />}
     </DashboardLayout>
   );
 };

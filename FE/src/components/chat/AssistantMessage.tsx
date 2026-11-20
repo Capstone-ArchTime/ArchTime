@@ -49,7 +49,7 @@ function CommitCard({ item, commit, projectId }: { item: CitedItem | undefined; 
   return (
     <div className="space-y-3 pr-8">
       <div>
-        <span className="px-2 py-1 bg-[var(--at-warn)]/10 border border-[var(--at-warn)]/20 text-[var(--at-warn)] text-[9px] font-mono font-bold uppercase tracking-widest inline-block mb-2" style={mono}>{item.type}</span>
+        <span className="px-2 py-1 bg-[var(--at-warn)]/10 border border-[var(--at-warn)]/20 text-[var(--at-warn)] text-[11px] font-mono font-bold uppercase tracking-widest inline-block mb-2" style={mono}>{item.type}</span>
         <h4 className="text-sm font-bold text-[var(--at-text)] leading-snug break-words">{item.title}</h4>
         <p className="mt-1 text-[10px] text-[var(--at-muted)] font-mono" style={mono}>{[item.commit, when(item.date), item.author].filter(Boolean).join(' · ')}</p>
       </div>

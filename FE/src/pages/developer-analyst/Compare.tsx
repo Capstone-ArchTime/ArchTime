@@ -385,7 +385,7 @@ const Compare: React.FC = () => {
                 <div key={`na-${node.id}`} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[var(--at-panel-2)]/50 transition-colors">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="px-2 py-0.5 bg-[var(--at-success)]/10 border border-[var(--at-success)]/20 text-[var(--at-success)] text-[9px] font-mono font-bold uppercase tracking-widest"
+                      <span className="px-2 py-0.5 bg-[var(--at-success)]/10 border border-[var(--at-success)]/20 text-[var(--at-success)] text-[11px] font-mono font-bold uppercase tracking-widest"
               style={{ fontFamily: '"JetBrains Mono", monospace' }}>Module Added</span>
                     </div>
                     <div className="text-sm font-bold text-[var(--at-text)] mb-1">{node.name}</div>
@@ -402,7 +402,7 @@ const Compare: React.FC = () => {
                 <div key={`nr-${node.id}`} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[var(--at-panel-2)]/50 transition-colors">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="px-2 py-0.5 bg-[var(--at-danger)]/10 border border-[var(--at-danger)]/20 text-[var(--at-danger)] text-[9px] font-mono font-bold uppercase tracking-widest"
+                      <span className="px-2 py-0.5 bg-[var(--at-danger)]/10 border border-[var(--at-danger)]/20 text-[var(--at-danger)] text-[11px] font-mono font-bold uppercase tracking-widest"
               style={{ fontFamily: '"JetBrains Mono", monospace' }}>Module Removed</span>
                     </div>
                     <div className="text-sm font-bold text-[var(--at-text)] mb-1">{node.name}</div>
@@ -422,9 +422,9 @@ const Compare: React.FC = () => {
                   <div key={`ea-${i}`} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[var(--at-panel-2)]/50 transition-colors">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2 py-0.5 bg-[var(--at-accent)]/10 border border-[var(--at-accent)]/20 text-[var(--at-link)] text-[9px] font-mono font-bold uppercase tracking-widest"
+                        <span className="px-2 py-0.5 bg-[var(--at-accent)]/10 border border-[var(--at-accent)]/20 text-[var(--at-link)] text-[11px] font-mono font-bold uppercase tracking-widest"
                 style={{ fontFamily: '"JetBrains Mono", monospace' }}>Dependency Added</span>
-                        <span className="px-2 py-0.5 bg-[var(--at-panel-2)] border border-[var(--at-line)] text-[var(--at-muted)] text-[9px] font-mono"
+                        <span className="px-2 py-0.5 bg-[var(--at-panel-2)] border border-[var(--at-line)] text-[var(--at-muted)] text-[11px] font-mono"
                 style={{ fontFamily: '"JetBrains Mono", monospace' }}>{edge.type || 'imports'}</span>
                       </div>
                       <div className="text-sm font-bold text-[var(--at-text)] mb-1 flex items-center gap-2">{src} <ArrowRight size={14} className="text-[var(--at-link)]" /> {tgt}</div>
@@ -441,9 +441,9 @@ const Compare: React.FC = () => {
                   <div key={`er-${i}`} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[var(--at-panel-2)]/50 transition-colors">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2 py-0.5 bg-[var(--at-danger)]/10 border border-[var(--at-danger)]/20 text-[var(--at-danger)] text-[9px] font-mono font-bold uppercase tracking-widest"
+                        <span className="px-2 py-0.5 bg-[var(--at-danger)]/10 border border-[var(--at-danger)]/20 text-[var(--at-danger)] text-[11px] font-mono font-bold uppercase tracking-widest"
                 style={{ fontFamily: '"JetBrains Mono", monospace' }}>Dependency Removed</span>
-                        <span className="px-2 py-0.5 bg-[var(--at-panel-2)] border border-[var(--at-line)] text-[var(--at-muted)] text-[9px] font-mono"
+                        <span className="px-2 py-0.5 bg-[var(--at-panel-2)] border border-[var(--at-line)] text-[var(--at-muted)] text-[11px] font-mono"
                 style={{ fontFamily: '"JetBrains Mono", monospace' }}>{edge.type || 'imports'}</span>
                       </div>
                       <div className="text-sm font-bold text-[var(--at-text)] mb-1 flex items-center gap-2 line-through opacity-70">{src} <ArrowRight size={14} className="text-[var(--at-danger)]" /> {tgt}</div>

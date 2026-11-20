@@ -16,7 +16,7 @@ const FILES_SHOWN = 20;
 function Badge({ kind }: { kind: ChangeKind }) {
   const color = COLORS[kind];
   return (
-    <span className="px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-widest border" style={{ ...mono, color, borderColor: `color-mix(in srgb, ${color} 20%, transparent)`, background: `color-mix(in srgb, ${color} 10%, transparent)` }}>
+    <span className="px-2 py-0.5 text-[11px] font-mono font-bold uppercase tracking-widest border" style={{ ...mono, color, borderColor: `color-mix(in srgb, ${color} 20%, transparent)`, background: `color-mix(in srgb, ${color} 10%, transparent)` }}>
       {CHANGE_LABELS[kind]}
     </span>
   );

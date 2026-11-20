@@ -22,6 +22,7 @@ import PaginationBar from '@/components/PaginationBar';
 import MiningPanel from '@/components/MiningPanel';
 import ViewerSettingsModal from '@/components/ViewerSettingsModal';
 import TransferProjectModal from '@/components/TransferProjectModal';
+import DeleteWorkspaceModal from '@/components/DeleteWorkspaceModal';
 import { Link } from 'react-router-dom';
 import { byRecent, getWorkspaces, hasMinedHistory, nextStep, STATUS_LABELS, type Workspace } from '@/features/workspace-summary';
 import { buildRegistration, listCredentials, listOrganizations, suspensionNotice, workspaceSpaces } from '@/features/organizations-api';
@@ -132,14 +133,22 @@ const Projects: React.FC = () => {
     }
   };
 
-  const handleDeleteProject = async (id: string) => {
+  // Deleting removes the workspace and everything made in it, with no undo: it is only done after the owner types its name.
+  const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const handleDeleteProject = async () => {
+    if (!deleting) return;
+    setDeleteBusy(true);
     try {
-      await apiRequest(`/projects/${encodeURIComponent(id)}`, { method: 'DELETE' });
-      message.success('Workspace deleted successfully');
-      setProjectsList(prev => prev?.filter(p => p.id !== id) ?? prev);
+      await apiRequest(`/projects/${encodeURIComponent(deleting.id)}`, { method: 'DELETE' });
+      message.success(`Workspace "${deleting.name}" deleted`);
+      setProjectsList(prev => prev?.filter(p => p.id !== deleting.id) ?? prev);
+      setDeleting(null);
       fetchProjects();
     } catch (error) {
       message.error(error instanceof Error ? error.message : 'Failed to delete workspace');
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -234,7 +243,7 @@ const Projects: React.FC = () => {
                         )}
                         {project.role === 'owner' && (
                           <button
-                            onClick={() => handleDeleteProject(project.id)}
+                            onClick={() => setDeleting({ id: project.id, name: project.name })}
                             className="text-[var(--at-muted)] hover:text-[var(--at-danger)] transition-colors p-1"
                             title="Delete workspace"
                             aria-label={`Delete ${project.name}`}
@@ -287,6 +296,7 @@ const Projects: React.FC = () => {
       {miningProject && <MiningPanel project={miningProject} open onClose={() => setMiningProject(null)} onChanged={fetchProjects} />}
       {viewerProject && <ViewerSettingsModal project={viewerProject} onClose={() => setViewerProject(null)} />}
       {transferProject && <TransferProjectModal project={transferProject} onClose={() => setTransferProject(null)} onMoved={() => { setTransferProject(null); fetchProjects(); }} />}
+      {deleting && <DeleteWorkspaceModal project={deleting} busy={deleteBusy} onCancel={() => setDeleting(null)} onConfirm={() => void handleDeleteProject()} />}
 
       {/* NEW PROJECT MODAL OVERLAY */}
       <AnimatePresence>

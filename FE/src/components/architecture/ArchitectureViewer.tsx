@@ -248,7 +248,7 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
               {roleOptions.map(r => <li key={r.value} className="flex items-center gap-2"><span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: theme.role[r.value as ComponentRole] }} />{r.label}</li>)}
               <li className="flex items-center gap-2"><span className="inline-block w-5 border-t-2" style={{ borderColor: theme.cycle }} />circular dependency</li>
               <li className="flex items-center gap-2"><span className="inline-block w-5 border-t-2 border-dashed" style={{ borderColor: theme.edge }} />points upward</li>
-              {scene.mode === 'components' && markKinds.map(kind => <li key={kind} className="flex items-center gap-2"><span className="rounded-full border px-1 font-mono text-[9px] font-bold" style={{ borderColor: EVOLUTION_MARK[kind].color, color: EVOLUTION_MARK[kind].color }}>{EVOLUTION_MARK[kind].label}</span>{EVOLUTION_MARK[kind].help}</li>)}
+              {scene.mode === 'components' && markKinds.map(kind => <li key={kind} className="flex items-center gap-2"><span className="rounded-full border px-1 font-mono text-[11px] font-bold" style={{ borderColor: EVOLUTION_MARK[kind].color, color: EVOLUTION_MARK[kind].color }}>{EVOLUTION_MARK[kind].label}</span>{EVOLUTION_MARK[kind].help}</li>)}
             </ul>}
           </div>
         </div>
@@ -306,7 +306,7 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
         {!hasSelection && <IssuesPanel issues={issues} summary={summary} verified={verified} activeId={activePin?.id} inner={scene.mode !== 'components'} onShow={showIssue} onAction={onIssueAction} />}
         <Inspector view={view} scene={scene} theme={theme} selectedNode={state.focus} selectedEdge={state.edge} highlight={highlight} onSelectNode={focusNode} onSelectEdge={selectEdge} onOpen={openDetail}
           commits={projectId && snapshotId ? { projectId, state: commitImpacts, onRetry: commitImpacts.retry } : undefined} />
-        {state.focus && marks?.[state.focus] && <p className="text-xs text-[var(--at-muted)]"><span className="mr-1.5 rounded-full border px-1.5 font-mono text-[9px] font-bold" style={{ borderColor: marks[state.focus].color, color: marks[state.focus].color }}>{marks[state.focus].label}</span>
+        {state.focus && marks?.[state.focus] && <p className="text-xs text-[var(--at-muted)]"><span className="mr-1.5 rounded-full border px-1.5 font-mono text-[11px] font-bold" style={{ borderColor: marks[state.focus].color, color: marks[state.focus].color }}>{marks[state.focus].label}</span>
           {EVOLUTION_MARK[marks[state.focus].kind].help}{marks[state.focus].from.length ? `: ${marks[state.focus].from.join(', ')}` : ''}.</p>}
         {history.length > 1 && <section aria-label="Earlier names">
           <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-[var(--at-muted)]">Through the snapshots</h3>

@@ -180,7 +180,7 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <span
-                              className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest"
+                              className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest"
                               style={{ fontFamily: fontFamily.mono, color: meta.color }}
                             >
                               <StatusIcon size={11} />

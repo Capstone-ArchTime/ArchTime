@@ -361,7 +361,7 @@ const Evidence: React.FC = () => {
                   >
                     <td className="p-4 text-sm font-bold text-[var(--at-text)]">{item.changeTitle}</td>
                     <td className="p-4">
-                       <span className="px-2 py-1 bg-[var(--at-warn)]/10 border border-[var(--at-warn)]/20 text-[var(--at-warn)] text-[9px] font-mono font-bold uppercase tracking-widest whitespace-nowrap"
+                       <span className="px-2 py-1 bg-[var(--at-warn)]/10 border border-[var(--at-warn)]/20 text-[var(--at-warn)] text-[11px] font-mono font-bold uppercase tracking-widest whitespace-nowrap"
             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                          {item.type}
                        </span>
