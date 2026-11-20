@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { apiRequest } from '../api/client.ts';
-import { translate, translateOr } from '../i18n/index.ts';
+import { localizeStage, translate, translateOr } from '../i18n/index.ts';
 
 // Work that runs on the server while the person does something else: reading the commit history, mining, the
 // architecture map, the conformance check. One shared copy for the whole app: the header shows what is running, and
@@ -74,9 +74,9 @@ export function jobLink(job: Pick<TrackedJob, 'kind' | 'projectId'>): string {
 /** The notice for a job that ended. */
 export function jobNotice(job: TrackedJob): { kind: 'success' | 'warning' | 'error'; title: string; description: string } {
   const what = `${kindLabel(job.kind)} · ${job.project}`;
-  if (job.status === 'completed') return { kind: 'success', title: translate('job.done', { what }), description: job.stage || translate('job.finished') };
-  if (job.status === 'cancelled') return { kind: 'warning', title: translate('job.stopped', { what }), description: job.stage || translate('job.stoppedKept') };
-  return { kind: 'error', title: translate('job.failed', { what }), description: job.stage.replace(/^Failed:\s*/, '') || translate('job.failedBody') };
+  if (job.status === 'completed') return { kind: 'success', title: translate('job.done', { what }), description: (job.stage && localizeStage(job.stage)) || translate('job.finished') };
+  if (job.status === 'cancelled') return { kind: 'warning', title: translate('job.stopped', { what }), description: (job.stage && localizeStage(job.stage)) || translate('job.stoppedKept') };
+  return { kind: 'error', title: translate('job.failed', { what }), description: localizeStage(job.stage.replace(/^Failed:\s*/, '')) || translate('job.failedBody') };
 }
 
 // ── The shared store ─────────────────────────────────────────────────────────────────────────────────────────────────

@@ -35,11 +35,12 @@ export function addLanguageLoader(loader: (language: Language) => Promise<unknow
 
 /** The server's fixed error sentences in Vietnamese (server-messages.vi.ts), loaded with the Vietnamese dictionary. */
 let serverMessagesVi: Record<string, string> | undefined;
+let serverPatternsVi: [RegExp, string][] = [];
 
 async function load(language: Language): Promise<Dictionary> {
   const [dictionary] = await Promise.all([
     dictionaries[language] ?? import('./messages/vi.ts').then(({ vi }) => (dictionaries.vi = vi)),
-    language === 'vi' && !serverMessagesVi ? import('./server-messages.vi.ts').then(m => { serverMessagesVi = m.serverMessagesVi; }) : undefined,
+    language === 'vi' && !serverMessagesVi ? import('./server-messages.vi.ts').then(m => { serverMessagesVi = m.serverMessagesVi; serverPatternsVi = m.serverPatternsVi; }) : undefined,
     ...extraLoaders.map(loader => loader(language)),
   ]);
   return dictionary;
@@ -71,12 +72,20 @@ const ERROR_CODE_KEYS: Partial<Record<string, MessageKey>> = {
  * (sentences built at run time, with a name or number in them, have no translation).
  */
 export function localizeServerMessage(text: string, code?: string, language: Language = current): string {
-  if (language === 'en') return text;
-  const exact = serverMessagesVi?.[text.trim()];
+  if (language === 'en' || !text) return text;
+  const trimmed = text.trim();
+  const exact = serverMessagesVi?.[trimmed];
   if (exact) return exact;
+  // A job that failed reports "Failed: <the error>": the error is translated on its own.
+  const failed = /^Failed:\s*(.+)$/s.exec(trimmed);
+  if (failed) return `${translate('job.failedPrefix', undefined, language)}${localizeServerMessage(failed[1], undefined, language)}`;
+  for (const [pattern, replacement] of serverPatternsVi) if (pattern.test(trimmed)) return trimmed.replace(pattern, replacement);
   const key = code ? ERROR_CODE_KEYS[code] : undefined;
   return key ? translate(key, undefined, language) : text;
 }
+
+/** The stage a background job reports, in the page language (the server words it in English). */
+export const localizeStage = (stage: string, language: Language = current): string => localizeServerMessage(stage, undefined, language);
 
 function apply(language: Language) {
   current = language;

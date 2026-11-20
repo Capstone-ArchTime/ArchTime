@@ -8,7 +8,7 @@ import type { MiningJob } from '@/features/mining-jobs';
 import { getMyPaths } from '@/features/onboarding-api';
 import { pathToContinue } from '@/features/onboarding-context';
 import ContinueLearning from './learning/ContinueLearning';
-import { translate, translateOr, useT, type MessageKey } from '@/i18n';
+import { localizeStage, translate, translateOr, useT, type MessageKey } from '@/i18n';
 import { formatDate, formatDateTime, formatNumber } from '@/i18n/format';
 
 type Loaded = { workspaces: Workspace[]; jobs: MiningJob[]; stats: WorkspaceStats };
@@ -174,7 +174,7 @@ const Dashboard: React.FC = () => {
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-[var(--at-text)]">{job.project}</p>
                           <p className="truncate text-xs text-[var(--at-muted)]" title={job.error}>
-                            <span className="sr-only">{job.status}: </span>{job.kind === 'scan' ? t('dash.job.scan') : t('dash.job.mining')} · {job.stage}
+                            <span className="sr-only">{job.status}: </span>{job.kind === 'scan' ? t('dash.job.scan') : t('dash.job.mining')} · {localizeStage(job.stage)}
                           </p>
                         </div>
                         {job.createdAt && <time dateTime={job.createdAt} title={formatDateTime(job.createdAt)} className="shrink-0 text-xs text-[var(--at-muted)]">{ago(job.createdAt)}</time>}

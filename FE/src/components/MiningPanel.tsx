@@ -12,7 +12,7 @@ import { notifyFindings, notifyMessage } from '@/features/conformance';
 import { Link } from 'react-router-dom';
 import { Loader2, Mail } from 'lucide-react';
 import { Details } from './PageHeader';
-import { translateOr } from '@/i18n';
+import { localizeStage, translateOr } from '@/i18n';
 import { defineMessages, message as translate, useMessages } from '@/i18n/define';
 
 const MSG = defineMessages({
@@ -150,7 +150,7 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
   const minedPercent = total ? Math.round((minedCount / total) * 100) : 0;
   const needsModel = aiModels.length > 0 && !selectedModel;
   // The stage often repeats the batch line ("Batch 1/1 - 56a9111"); only a different stage (cloning, saving…) is shown.
-  const stageNote = active && !(active.kind === 'mine' && /^batch\b/i.test(active.stage)) ? active.stage : '';
+  const stageNote = active && !(active.kind === 'mine' && /^batch\b/i.test(active.stage)) ? localizeStage(active.stage) : '';
   return <Modal open={open} onCancel={onClose} footer={null} width={760} title={m('title', { name: project.name })} destroyOnHidden>
     {!overview && !error && <div role="status" className="p-10 text-center"><Spin /></div>}
     {error && <Alert type="error" showIcon title={error} action={<Button onClick={() => refresh()}>{m('retry')}</Button>} className="mb-4" />}
@@ -179,7 +179,7 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
           <div className="h-full rounded-full bg-[var(--at-link)] transition-[width] duration-500" style={{ width: `${active.progress}%` }} />
         </div>
         <p className="text-sm text-[var(--at-muted)]">
-          {active.kind === 'mine' ? describeBatchProgress(active) : active.stage}
+          {active.kind === 'mine' ? describeBatchProgress(active) : localizeStage(active.stage)}
           {stageNote && active.kind === 'mine' ? ` · ${stageNote}` : ''}
           {active.failedCommits ? m('unreadable', { n: active.failedCommits }) : ''}
         </p>

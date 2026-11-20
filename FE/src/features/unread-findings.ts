@@ -1,6 +1,13 @@
 import { useEffect, useSyncExternalStore } from 'react';
-import { hx } from './helper-messages.ts';
 import { apiRequest } from '../api/client.ts';
+import { defineMessages, message } from '../i18n/define.ts';
+
+// Kept here, not in helper-messages: the sidebar loads this module on every page, so it must stay small.
+const TEXT = defineMessages({
+  inOne: ' in {name}', inMany: ' in {n} workspaces', unread: 'You have {count} new conformance findings{where} to review.', unread_one: 'You have 1 new conformance finding{where} to review.',
+}, {
+  inOne: ' trong {name}', inMany: ' trong {n} không gian làm việc', unread: 'Bạn có {count} phát hiện tuân thủ mới{where} cần xem.',
+});
 
 // MSG26: conformance findings a maintainer has not looked at yet, across the workspaces they maintain. One shared copy
 // for the sidebar badge and the overview notice; refreshed every two minutes, on focus, and after the findings page
@@ -16,8 +23,8 @@ const REFRESH_MS = 120_000;
 export function unreadMessage(unread: Unread): string | null {
   if (!unread.total) return null;
   const n = unread.total;
-  const where = unread.projects.length === 1 ? hx('inOne', { name: unread.projects[0].projectName }) : hx('inMany', { n: unread.projects.length });
-  return hx('unread', { count: n, where });
+  const where = unread.projects.length === 1 ? message(TEXT, 'inOne', { name: unread.projects[0].projectName }) : message(TEXT, 'inMany', { n: unread.projects.length });
+  return message(TEXT, 'unread', { count: n, where });
 }
 
 /** What the server sent, or nothing when it is not the expected shape. */

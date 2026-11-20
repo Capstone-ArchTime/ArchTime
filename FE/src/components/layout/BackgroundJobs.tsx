@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { App, Button, Popover, Progress } from 'antd';
 import { LoaderCircle } from 'lucide-react';
 import { ACTIVE, configureJobs, jobLink, jobNotice, kindLabel, refreshJobs, useBackgroundJobs } from '@/features/background-jobs';
-import { translate, useT } from '@/i18n';
+import { localizeStage, translate, useT } from '@/i18n';
 
 /**
  * Header indicator of work running on the server (mining, scans, the conformance check, architecture maps), so people
@@ -34,7 +34,7 @@ export default function BackgroundJobs({ userId }: { userId: string | undefined 
   const content = <ul className="w-72 max-w-[80vw] space-y-3" aria-label={t('job.list')}>
     {running.map(j => <li key={j.id} className="space-y-1">
       <p className="text-sm font-medium break-words">{kindLabel(j.kind)} · <Link to={jobLink(j)}>{j.project}</Link></p>
-      <p className="text-xs text-[var(--at-muted)] break-words">{j.status === 'queued' ? t('job.waiting') : j.stage || t('job.running')}</p>
+      <p className="text-xs text-[var(--at-muted)] break-words">{j.status === 'queued' ? t('job.waiting') : (j.stage && localizeStage(j.stage)) || t('job.running')}</p>
       <Progress percent={Math.round(j.progress)} size="small" status="active" showInfo={false} />
     </li>)}
     <li className="text-xs text-[var(--at-muted)]">{t('job.hint')}</li>

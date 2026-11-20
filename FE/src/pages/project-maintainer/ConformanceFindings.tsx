@@ -11,6 +11,7 @@ import type { DecisionKind, Finding, Overview } from '@/features/conformance';
 import { markFindingsSeen } from '@/features/unread-findings';
 import { trackJobs } from '@/features/background-jobs';
 import { formatDate, formatDateTime } from '@/i18n/format';
+import { localizeStage } from '@/i18n';
 import { defineMessages, message as translate, useMessages } from '@/i18n/define';
 
 const MSG = defineMessages({
@@ -216,9 +217,9 @@ function Findings({ project }: { project: string }) {
       description={<>{m.rich('noPathsBody', { link: <Link key="l" to={`/project-maintainer/component-diagram?project=${project}`}>{m('diagram')}</Link> })}</>} />}
     {anyStale && <Alert type="info" showIcon title={m('stale')} />}
     {error && <Alert type="error" showIcon closable title={error} onClose={() => setError(null)} />}
-    {checking && overview.job && <Alert type="info" showIcon title={overview.job.status === 'queued' ? m('waiting') : m('checkingStage', { stage: overview.job.stage })}
+    {checking && overview.job && <Alert type="info" showIcon title={overview.job.status === 'queued' ? m('waiting') : m('checkingStage', { stage: localizeStage(overview.job.stage) })}
       description={<div className="space-y-1"><Progress percent={Math.round(overview.job.progress)} size="small" status="active" /><p>{m('leave')}</p></div>} />}
-    {overview.job?.status === 'failed' && <Alert type="error" showIcon closable title={m('lastFailed')} description={overview.job.stage.replace(/^Failed:\s*/, '')} />}
+    {overview.job?.status === 'failed' && <Alert type="error" showIcon closable title={m('lastFailed')} description={localizeStage(overview.job.stage.replace(/^Failed:\s*/, ''))} />}
 
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div className="text-sm text-[var(--at-muted)]">

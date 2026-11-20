@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { en } from '../src/i18n/messages/en.ts';
 import { vi } from '../src/i18n/messages/vi.ts';
-import { getLanguage, localeTag, preferredLanguage, setLanguage, translate, translateOr, translateRich } from '../src/i18n/index.ts';
+import { getLanguage, localeTag, localizeServerMessage, localizeStage, preferredLanguage, setLanguage, translate, translateOr, translateRich } from '../src/i18n/index.ts';
 import { formatDate, formatNumber } from '../src/i18n/format.ts';
 import { mockGlobal } from './mock-global.mjs';
 
@@ -71,4 +71,18 @@ test('switching language loads Vietnamese, remembers it, and dates and numbers f
   assert.equal(translate('common.signOut'), 'Sign out');
   assert.equal(formatDate('not a date'), '', 'an invalid date is empty, not "Invalid Date"');
   assert.equal(formatNumber(null), '');
+});
+
+test('job stages and server sentences with a number in them are translated; English stays as sent', () => {
+  assert.equal(localizeStage('Batch 2/5 saved', 'en'), 'Batch 2/5 saved');
+  assert.equal(localizeStage('Batch 2/5 saved', 'vi'), 'Đã lưu đợt 2/5');
+  assert.equal(localizeStage('Batch 3/7 - a1b2c3d', 'vi'), 'Đợt 3/7 - a1b2c3d');
+  assert.equal(localizeStage('Reading commit history', 'vi'), 'Đang đọc lịch sử commit');
+  assert.equal(localizeStage('Checked 1 commit: 4 findings', 'vi'), 'Đã kiểm tra 1 commit: 4 phát hiện');
+  // A failure keeps the error, translated on its own when it can be.
+  assert.equal(localizeStage('Failed: Workspace not found.', 'vi'), 'Thất bại: Không tìm thấy không gian làm việc.');
+  assert.equal(localizeStage('Failed: git exited with 128', 'vi'), 'Thất bại: git exited with 128');
+  assert.equal(localizeServerMessage('Invalid OTP code. 2 tries left.', 'OTP_INVALID', 'vi'), 'Mã OTP không đúng. Còn 2 lần thử.');
+  assert.equal(localizeServerMessage('A model with key "groq-llama" already exists.', undefined, 'vi'), 'Đã có mô hình với khoá "groq-llama".');
+  assert.equal(localizeServerMessage('Something the map does not know', undefined, 'vi'), 'Something the map does not know');
 });

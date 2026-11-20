@@ -152,6 +152,7 @@ export const vi: Record<Exclude<MessageKey, `${string}_one`>, string> = {
   'job.done': '{what}: xong',
   'job.stopped': '{what}: đã dừng',
   'job.failed': '{what}: thất bại',
+  'job.failedPrefix': 'Thất bại: ',
   'job.finished': 'Đã hoàn tất.',
   'job.stoppedKept': 'Đã dừng. Phần đã xong vẫn được giữ.',
   'job.failedBody': 'Tác vụ thất bại.',

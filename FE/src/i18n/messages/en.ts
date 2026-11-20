@@ -153,6 +153,7 @@ export const en = {
   'job.done': '{what}: done',
   'job.stopped': '{what}: stopped',
   'job.failed': '{what}: failed',
+  'job.failedPrefix': 'Failed: ',
   'job.finished': 'Finished.',
   'job.stoppedKept': 'Stopped. What was finished is kept.',
   'job.failedBody': 'The job failed.',
