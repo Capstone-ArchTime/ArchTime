@@ -1,3 +1,4 @@
+import { hx } from './helper-messages.ts';
 export type MonthCount = { month: string; commits: number };
 export type MonthRow = { month: string; total: number; mined: number };
 
@@ -24,6 +25,6 @@ export function monthBounds(month: string): { since: string; until: string } {
 }
 
 export function describeBatchProgress(job: { processed: number; total: number; batchIndex: number; batchCount: number }): string {
-  if (!job.total) return 'Preparing';
-  return `Batch ${Math.min(job.batchIndex || 1, job.batchCount)}/${job.batchCount} · ${job.processed}/${job.total} commits`;
+  if (!job.total) return hx('preparing');
+  return hx('batch', { index: Math.min(job.batchIndex || 1, job.batchCount), count: job.batchCount, processed: job.processed, total: job.total });
 }

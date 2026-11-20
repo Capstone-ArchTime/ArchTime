@@ -1,4 +1,5 @@
 import { useEffect, useSyncExternalStore } from 'react';
+import { hx } from './helper-messages.ts';
 import { apiRequest } from '../api/client.ts';
 
 // MSG26: conformance findings a maintainer has not looked at yet, across the workspaces they maintain. One shared copy
@@ -15,8 +16,8 @@ const REFRESH_MS = 120_000;
 export function unreadMessage(unread: Unread): string | null {
   if (!unread.total) return null;
   const n = unread.total;
-  const where = unread.projects.length === 1 ? ` in ${unread.projects[0].projectName}` : ` in ${unread.projects.length} workspaces`;
-  return `You have ${n} new conformance finding${n === 1 ? '' : 's'}${where} to review.`;
+  const where = unread.projects.length === 1 ? hx('inOne', { name: unread.projects[0].projectName }) : hx('inMany', { n: unread.projects.length });
+  return hx('unread', { count: n, where });
 }
 
 /** What the server sent, or nothing when it is not the expected shape. */

@@ -28,7 +28,7 @@ import { getArchitecture } from '@/features/architecture/api';
 import { ROLE_LABEL } from '@/features/architecture/scene';
 import { serializeHash } from '@/features/architecture/url-state';
 import type { ComponentRole } from '@/features/architecture/types';
-import { IMPACT_NOTE, andMore, changeLabel, deltaText, getEvidenceImpact, impactSummary, linkedCommitMissing, linkedEvidence } from '@/features/evidence-bridge';
+import { impactNote, andMore, changeLabel, deltaText, getEvidenceImpact, impactSummary, linkedCommitMissing, linkedEvidence } from '@/features/evidence-bridge';
 import type { ComponentChange, EvidenceImpact, PairSample } from '@/features/evidence-bridge';
 import { translateOr } from '@/i18n';
 import { formatDateTime } from '@/i18n/format';
@@ -178,7 +178,7 @@ function AffectedComponents({ state, projectId, retry }: { state: ImpactState; p
       {impact.mapping.stale && <p className="text-xs text-[var(--at-warn)]">{tx('staleGrouping')}</p>}
     </>}
     <Details bodyClassName="text-xs">
-      <p>{IMPACT_NOTE}</p>
+      <p>{impactNote()}</p>
       {impact.hasBaseline && <p>{tx('resolvedNote')}</p>}
     </Details>
   </div>;

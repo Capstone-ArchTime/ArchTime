@@ -1,3 +1,4 @@
+import { hx } from './helper-messages.ts';
 // Path prefixes map repository files to the components of the diagram (RF-08, BR-27). The server has the final word
 // (BE domain/architecture/paths.ts); these copies let the component form answer at once, with the same wording (MSG24).
 
@@ -17,11 +18,11 @@ export function normalizePathPrefix(raw: unknown): string | null {
 
 /** The prefixes normalized and without repeats, or the first refused value with the reason to show. */
 export function checkPathPrefixes(values: string[]): { prefixes: string[] } | { error: string } {
-  if (values.length > MAX_PREFIXES_PER_COMPONENT) return { error: `A component can have at most ${MAX_PREFIXES_PER_COMPONENT} path prefixes.` };
+  if (values.length > MAX_PREFIXES_PER_COMPONENT) return { error: hx('maxPrefixes', { max: MAX_PREFIXES_PER_COMPONENT }) };
   const prefixes: string[] = [];
   for (const value of values) {
     const prefix = normalizePathPrefix(value);
-    if (prefix === null) return { error: `"${value}" is not a path inside the repository. Use a folder or file path such as BE/src/billing.` };
+    if (prefix === null) return { error: hx('badPrefix', { value }) };
     if (!prefixes.includes(prefix)) prefixes.push(prefix);
   }
   return { prefixes };
@@ -32,7 +33,7 @@ export function prefixOverlap(componentId: string | undefined, componentName: st
   for (const other of others) {
     if (other.id === componentId) continue;
     const shared = prefixes.find(prefix => other.pathPrefixes?.includes(prefix));
-    if (shared) return `Path prefix "${shared}" is already mapped to component "${other.name}"; it cannot also be mapped to "${componentName}". Each path prefix belongs to one component.`;
+    if (shared) return hx('prefixTaken', { prefix: shared, other: other.name, name: componentName });
   }
   return null;
 }

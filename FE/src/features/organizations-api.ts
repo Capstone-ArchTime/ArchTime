@@ -1,4 +1,5 @@
 import { apiRequest } from '../api/client.ts';
+import { hx } from './helper-messages.ts';
 
 // Organizations, their members and their repository credentials.
 // Server: BE/src/presentation/routes/organization.routes.ts. The server checks every rule below again; the checks here
@@ -25,7 +26,7 @@ export const CREDENTIAL_NAME_MAX = 80;
 export const TOKEN_MIN = 8;
 export const TOKEN_MAX = 1024;
 export const PROVIDERS: { value: CredentialProvider; label: string }[] = [
-  { value: 'github', label: 'GitHub' }, { value: 'gitlab', label: 'GitLab' }, { value: 'bitbucket', label: 'Bitbucket' }, { value: 'other', label: 'Other' },
+  { value: 'github', label: 'GitHub' }, { value: 'gitlab', label: 'GitLab' }, { value: 'bitbucket', label: 'Bitbucket' }, { value: 'other', get label() { return hx('other'); } },
 ];
 
 type Envelope<T> = { data?: T };
@@ -162,26 +163,26 @@ export async function deleteCredential(orgId: string, credentialId: string): Pro
 
 export function checkOrganizationName(value: string): string | null {
   const n = value.trim().length;
-  return n < NAME_MIN || n > NAME_MAX ? `Use ${NAME_MIN} to ${NAME_MAX} characters.` : null;
+  return n < NAME_MIN || n > NAME_MAX ? hx('nameLength', { min: NAME_MIN, max: NAME_MAX }) : null;
 }
 
 export function checkDescription(value: string): string | null {
-  return value.trim().length > DESCRIPTION_MAX ? `Use at most ${DESCRIPTION_MAX} characters.` : null;
+  return value.trim().length > DESCRIPTION_MAX ? hx('atMost', { max: DESCRIPTION_MAX }) : null;
 }
 
 export function checkEmail(value: string): string | null {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()) ? null : 'Enter a valid email address.';
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()) ? null : hx('validEmail');
 }
 
 export function checkCredentialName(value: string): string | null {
   const n = value.trim().length;
-  return n < 1 || n > CREDENTIAL_NAME_MAX ? `Use 1 to ${CREDENTIAL_NAME_MAX} characters.` : null;
+  return n < 1 || n > CREDENTIAL_NAME_MAX ? hx('nameLength', { min: 1, max: CREDENTIAL_NAME_MAX }) : null;
 }
 
 export function checkToken(value: string): string | null {
   const t = value.trim();
   if (/\s/.test(t)) return 'A token has no spaces.';
-  return t.length < TOKEN_MIN || value.length > TOKEN_MAX ? `Use ${TOKEN_MIN} to ${TOKEN_MAX} characters.` : null;
+  return t.length < TOKEN_MIN || value.length > TOKEN_MAX ? hx('nameLength', { min: TOKEN_MIN, max: TOKEN_MAX }) : null;
 }
 
 /** The only owner cannot be demoted or removed: an organization always keeps one. */
@@ -194,7 +195,7 @@ export interface MemberActions { changeRole: boolean; remove: boolean; leave: bo
 export function memberActions(members: OrganizationMember[], member: OrganizationMember, me: { userId: string; role: OrganizationRole }): MemberActions {
   const self = member.userId === me.userId;
   const last = isLastOwner(members, member);
-  const reason = last ? 'An organization needs at least one owner. Make someone else an owner first.' : undefined;
+  const reason = last ? hx('lastOwner') : undefined;
   return {
     changeRole: me.role === 'owner' && !last,
     remove: me.role === 'owner' && !self && !last,
@@ -206,7 +207,7 @@ export function memberActions(members: OrganizationMember[], member: Organizatio
 /** Where a new workspace can go: the personal space, or an organization the account owns (only owners add workspaces). */
 export function workspaceSpaces(organizations: Organization[]): { value: string; label: string }[] {
   return [
-    { value: '', label: 'Personal space' },
+    { value: '', label: hx('personal') },
     // A suspended organization takes no new workspace (the server refuses it too).
     ...organizations.filter(o => o.myRole === 'owner' && !o.suspension).sort((a, b) => a.name.localeCompare(b.name)).map(o => ({ value: o.id, label: o.name })),
   ];
@@ -216,8 +217,8 @@ export function workspaceSpaces(organizations: Organization[]): { value: string;
 export function suspensionNotice(organizations: readonly Organization[]): string | null {
   const names = organizations.filter(o => o.suspension).map(o => o.name).sort((a, b) => a.localeCompare(b));
   if (!names.length) return null;
-  const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
-  return `${list} ${names.length === 1 ? 'is' : 'are'} suspended by a System Administrator. Its workspaces are hidden and cannot be opened until it is reactivated; nothing was deleted.`;
+  const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')}${hx('and')}${names[names.length - 1]}`;
+  return hx(names.length === 1 ? 'suspendedOne' : 'suspendedMany', { list });
 }
 
 export interface RegistrationInput {
@@ -235,15 +236,15 @@ export interface RegistrationInput {
  * organization, a private repository needs a token or a credential, and never both.
  */
 export function buildRegistration(input: RegistrationInput): { body: Record<string, string> } | { problem: string } {
-  if (!input.name.trim() || !input.repoUrl.trim()) return { problem: 'Workspace name and repository URL are required.' };
+  if (!input.name.trim() || !input.repoUrl.trim()) return { problem: hx('nameAndUrl') };
   const body: Record<string, string> = { name: input.name.trim(), description: input.description.trim(), repoUrl: input.repoUrl.trim(), visibility: input.visibility };
   if (input.organizationId) body.organizationId = input.organizationId;
   if (input.visibility === 'private') {
     if (input.organizationId && input.access === 'credential') {
-      if (!input.credentialId) return { problem: 'Choose one of the organization\'s credentials, or use a personal token.' };
+      if (!input.credentialId) return { problem: hx('chooseCredential') };
       body.credentialId = input.credentialId;
     } else {
-      if (!input.token.trim()) return { problem: 'A personal access token is required for a private repository.' };
+      if (!input.token.trim()) return { problem: hx('tokenRequired') };
       body.token = input.token.trim();
     }
   }

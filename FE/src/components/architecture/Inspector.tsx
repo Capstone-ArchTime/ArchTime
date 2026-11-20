@@ -6,7 +6,7 @@ import type { Scene } from '@/features/architecture/scene';
 import { ROLE_LABEL } from '@/features/architecture/scene';
 import type { DiagramTheme } from '@/features/architecture/theme';
 import type { Highlight } from '@/features/architecture/highlight';
-import { IMPACT_NOTE, commitsTouchingComponent, componentDelta, deltaText, evidenceLink, shortDate, shortHash } from '@/features/evidence-bridge';
+import { impactNote, commitsTouchingComponent, componentDelta, deltaText, evidenceLink, shortDate, shortHash } from '@/features/evidence-bridge';
 import type { CommitImpactsState } from '@/features/useCommitImpacts';
 import { translateOr } from '@/i18n';
 import { defineMessages, useMessages } from '@/i18n/define';
@@ -111,7 +111,7 @@ export function ChangedInCommits({ projectId, componentId, state, onRetry }: { p
       })}</ul>}
       {all.length > shown.length && <p className="mt-1 text-xs text-[var(--at-muted)]">{m('andMore', { n: all.length - shown.length })}</p>}
       {state.impacts.skipped > 0 && <p className="mt-1 text-xs text-[var(--at-muted)]">{m('skipped', { count: state.impacts.skipped })}</p>}
-      <p className="mt-2 text-[11px] leading-snug text-[var(--at-muted)]">{m.language === 'en' ? IMPACT_NOTE : m('impactNote')}</p>
+      <p className="mt-2 text-[11px] leading-snug text-[var(--at-muted)]">{m.language === 'en' ? impactNote() : m('impactNote')}</p>
     </>;
   }
   return <section aria-label={m('changedIn')}><h3 className={heading}>{m('changedIn')}</h3>{body}</section>;

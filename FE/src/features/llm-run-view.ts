@@ -1,15 +1,16 @@
 import type { LlmRun, UsageRow } from './llm-api';
+import { hx } from './helper-messages.ts';
 
 /** What a run was, when it was not an ordinary architecture drawing; shown under the model's name. */
 export function runKindNote(mode: LlmRun['mode']): string {
-  if (mode === 'chat') return 'AI Insights chat';
-  if (mode === 'name-only') return 'names only';
+  if (mode === 'chat') return hx('chatRun');
+  if (mode === 'name-only') return hx('namesOnly');
   return '';
 }
 
 /** The outcome word for a run. "Accepted" is the architecture validator's word; a question that got an answer was answered. */
 export function resultLabel(run: Pick<LlmRun, 'mode' | 'status'>, labels: Record<LlmRun['status'], string>): string {
-  return run.mode === 'chat' && run.status === 'accepted' ? 'Answered' : labels[run.status];
+  return run.mode === 'chat' && run.status === 'accepted' ? hx('answered') : labels[run.status];
 }
 
 /** Only runs that drew an architecture are scored; a chat run (or an old row) has no quality to show. */

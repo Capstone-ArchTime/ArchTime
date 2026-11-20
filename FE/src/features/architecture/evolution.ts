@@ -5,6 +5,23 @@
 // Pure, so it is tested under Node.
 
 import type { SnapshotSummary } from './api';
+import { defineMessages, message } from '../../i18n/define.ts';
+import type { Params } from '../../i18n/index.ts';
+
+const TEXT = defineMessages({
+  added: 'NEW', addedHelp: 'new since the previous snapshot', split: 'SPLIT', splitHelp: 'split off an earlier component',
+  merged: 'MERGED', mergedHelp: 'several earlier components merged into it', renamed: 'RENAMED', renamedHelp: 'the same files under a new name',
+  restructured: 'REGROUPED', restructuredHelp: 'files of several components regrouped, with file evidence', and: ' and ',
+  removedDeleted: '{was} removed: its files were deleted', removedMoved: '{was} removed: its files went to other components', isAdded: '{now} added',
+  splitInto: '{was} split into {now}', mergedInto: '{was} merged into {now}', renamedTo: '{was} renamed to {now}', regrouped: '{was} regrouped into {now}',
+}, {
+  added: 'MỚI', addedHelp: 'mới kể từ ảnh chụp trước', split: 'TÁCH', splitHelp: 'tách ra từ một thành phần trước đó',
+  merged: 'GỘP', mergedHelp: 'nhiều thành phần trước đó gộp vào', renamed: 'ĐỔI TÊN', renamedHelp: 'cùng các tệp nhưng tên mới',
+  restructured: 'NHÓM LẠI', restructuredHelp: 'tệp của nhiều thành phần được nhóm lại, có bằng chứng từ tệp', and: ' và ',
+  removedDeleted: '{was} bị xoá: các tệp của nó đã bị xoá', removedMoved: '{was} bị xoá: các tệp của nó chuyển sang thành phần khác', isAdded: '{now} được thêm',
+  splitInto: '{was} được tách thành {now}', mergedInto: '{was} được gộp vào {now}', renamedTo: '{was} được đổi tên thành {now}', regrouped: '{was} được nhóm lại thành {now}',
+});
+const tx = (key: Parameters<typeof message<typeof TEXT.en>>[1], params?: Params) => message(TEXT, key, params);
 
 export type EvolutionKind = 'kept' | 'renamed' | 'split' | 'merged' | 'restructured' | 'removed' | 'added';
 export interface LineageMember { snapshotId: string; componentId: string; name: string }
@@ -20,12 +37,14 @@ export interface LineagePayload {
 
 /** What is drawn on a component of the map. Kept components carry no mark. */
 export type MarkKind = Exclude<EvolutionKind, 'kept' | 'removed'>;
-export const EVOLUTION_MARK: Record<MarkKind, { label: string; color: string; help: string }> = {
-  added: { label: 'NEW', color: '#34d399', help: 'new since the previous snapshot' },
-  split: { label: 'SPLIT', color: '#fbbf24', help: 'split off an earlier component' },
-  merged: { label: 'MERGED', color: '#c084fc', help: 'several earlier components merged into it' },
-  renamed: { label: 'RENAMED', color: '#38bdf8', help: 'the same files under a new name' },
-  restructured: { label: 'REGROUPED', color: '#fb923c', help: 'files of several components regrouped, with file evidence' },
+// Read when shown, so the words follow the chosen language.
+const markOf = (kind: MarkKind, color: string) => ({ color, get label() { return tx(kind); }, get help() { return tx(`${kind}Help`); } });
+export const EVOLUTION_MARK: Record<MarkKind, { readonly label: string; color: string; readonly help: string }> = {
+  added: markOf('added', '#34d399'),
+  split: markOf('split', '#fbbf24'),
+  merged: markOf('merged', '#c084fc'),
+  renamed: markOf('renamed', '#38bdf8'),
+  restructured: markOf('restructured', '#fb923c'),
 };
 
 export interface EvolutionMark { kind: MarkKind; label: string; color: string; from: string[] }
@@ -67,7 +86,7 @@ export function parseLineage(raw: unknown): LineagePayload {
   };
 }
 
-const list = (names: string[]) => (names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`);
+const list = (names: string[]) => (names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')}${tx('and')}${names[names.length - 1]}`);
 
 /** The evolution of `snapshotId` against the previous snapshot with components, or null when the lineage does not cover it. */
 export function evolutionAt(lineage: LineagePayload | null, snapshotId: string | undefined): Evolution | null {
@@ -89,15 +108,16 @@ export function evolutionAt(lineage: LineagePayload | null, snapshotId: string |
     if (change.kind === 'kept') continue;
     counts[change.kind] = (counts[change.kind] ?? 0) + 1;
     if (change.kind === 'removed') {
-      items.push({ kind: 'removed', text: `${list(was)} ${change.reason === 'deleted' ? 'removed: its files were deleted' : 'removed: its files went to other components'}`, componentIds: [] });
+      items.push({ kind: 'removed', text: tx(change.reason === 'deleted' ? 'removedDeleted' : 'removedMoved', { was: list(was) }), componentIds: [] });
       continue;
     }
     for (const id of change.after) mark(change.kind, id, was);
-    const text = change.kind === 'added' ? `${list(now)} added`
-      : change.kind === 'split' ? `${list(was)} split into ${list(now)}`
-      : change.kind === 'merged' ? `${list(was)} merged into ${list(now)}`
-      : change.kind === 'renamed' ? `${list(was)} renamed to ${list(now)}`
-      : `${list(was)} regrouped into ${list(now)}`;
+    const params = { was: list(was), now: list(now) };
+    const text = change.kind === 'added' ? tx('isAdded', params)
+      : change.kind === 'split' ? tx('splitInto', params)
+      : change.kind === 'merged' ? tx('mergedInto', params)
+      : change.kind === 'renamed' ? tx('renamedTo', params)
+      : tx('regrouped', params);
     items.push({ kind: change.kind, text, componentIds: change.after });
   }
   return { previous: lineage.snapshots.find(s => s.id === step.from) ?? null, marks, items, counts };
