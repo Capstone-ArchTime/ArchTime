@@ -1,5 +1,4 @@
 import { useAuth } from '@/auth/auth-context';
-import { saveAccountLanguage } from '@/features/profile-api';
 import { LANGUAGES, setLanguage, useLanguage, useT, type Language } from '@/i18n';
 
 /**
@@ -14,7 +13,12 @@ export default function LanguageSwitch({ className = '' }: { className?: string 
   const choose = async (next: Language) => {
     await setLanguage(next);
     if (!user) return;
-    try { await saveAccountLanguage(next); updateUser({ language: next }); } catch { /* kept in this browser; Settings can save it later */ }
+    // Loaded only now: the landing page carries this switch and must stay small for signed-out visitors.
+    try {
+      const { saveAccountLanguage } = await import('@/features/profile-api');
+      await saveAccountLanguage(next);
+      updateUser({ language: next });
+    } catch { /* kept in this browser; Settings can save it later */ }
   };
   return <div role="group" aria-label={t('language.switchTo')} className={`inline-flex rounded-full border border-[var(--at-line)] bg-[var(--at-panel)]/70 p-0.5 text-[11px] font-semibold tracking-widest ${className}`}>
     {LANGUAGES.map(option => {
