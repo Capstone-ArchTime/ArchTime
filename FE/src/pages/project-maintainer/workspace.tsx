@@ -7,6 +7,8 @@ import { useSearchParams } from 'react-router-dom';
 import type { ProjectSummary } from '@/features/project-data';
 import { ManagedWorkspaces } from './managed';
 import { pickWorkspace } from './managed-access';
+import { useMessages } from '@/i18n/define';
+import { MAINT } from './messages';
 
 /** `description` is one short line under the title; `details` holds the longer explanation, folded behind "Details". */
 export function WorkspacePage(props: {
@@ -36,6 +38,7 @@ function WorkspaceView({
   const [project, setProject] = useState(() => pickWorkspace(projects, requested));
   const [dirty, setDirty] = useState(false);
   const { modal } = App.useApp();
+  const m = useMessages(MAINT);
   const notMaintained = !!requested && !projects.some(p => p.id === requested);
 
   function changeProject(next: string) {
@@ -49,10 +52,10 @@ function WorkspaceView({
       return;
     }
     modal.confirm({
-      title: 'Switch workspace without saving?',
-      content: 'The current diagram has unsaved changes.',
-      okText: 'Discard and switch',
-      cancelText: 'Keep editing',
+      title: m('switchTitle'),
+      content: m('switchBody'),
+      okText: m('discardSwitch'),
+      cancelText: m('keepEditing'),
       okButtonProps: { danger: true },
       onOk: proceed,
     });
@@ -66,7 +69,7 @@ function WorkspaceView({
         <PageHeader title={title} summary={description} details={details} actions={
           <div className="w-full lg:w-64">
             <label htmlFor="maintainer-project" className="block text-xs text-[var(--at-muted)] mb-2">
-              Workspace
+              {m('workspace')}
             </label>
             <Select
               id="maintainer-project"
@@ -78,7 +81,7 @@ function WorkspaceView({
           </div>
         } />
         {notMaintained && project !== requested && (
-          <Alert type="warning" showIcon title="You do not maintain the workspace in this link, so one you maintain is shown instead." />
+          <Alert type="warning" showIcon title={m('notMaintained')} />
         )}
         <div key={project}>{children(project, setDirty)}</div>
       </div>
@@ -87,14 +90,15 @@ function WorkspaceView({
 }
 
 export function StorageError({ visible, message, onRetry }: { visible: boolean; message?: string | null; onRetry?: () => void }) {
+  const m = useMessages(MAINT);
   if (!visible) return null;
   return (
     <Alert
       type="error"
       showIcon
-      title="This workspace could not be loaded from the server. Editing is disabled until it loads."
+      title={m('storageError')}
       description={message ?? undefined}
-      action={onRetry && <Button size="small" onClick={onRetry}>Retry</Button>}
+      action={onRetry && <Button size="small" onClick={onRetry}>{m('retry')}</Button>}
       className="mb-5"
     />
   );
@@ -103,12 +107,13 @@ export function StorageError({ visible, message, onRetry }: { visible: boolean; 
 /** Shown after a save was rejected because the workspace changed since it was loaded. Loading the latest version discards the draft. */
 export function ConflictAlert({ error, dirty, onReload }: { error: string | null; dirty?: boolean; onReload: () => void }) {
   const { modal } = App.useApp();
+  const m = useMessages(MAINT);
   if (!error) return null;
   const reload = () => dirty
     ? modal.confirm({
-      title: 'Load the latest version?',
-      content: 'Your unsaved changes will be discarded. Copy anything you want to keep before continuing.',
-      okText: 'Discard and load latest',
+      title: m('loadLatestTitle'),
+      content: m('loadLatestBody'),
+      okText: m('discardLoad'),
       okButtonProps: { danger: true },
       onOk: onReload,
     })
@@ -117,11 +122,11 @@ export function ConflictAlert({ error, dirty, onReload }: { error: string | null
     <Alert
       type="error"
       showIcon
-      title="Not saved: this workspace was changed by someone else"
+      title={m('conflictTitle')}
       description={
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-1">
-          <span>{error} Your changes were kept here but not saved.</span>
-          <Button size="small" danger onClick={reload}>Load latest version</Button>
+          <span>{m('conflictKept', { error })}</span>
+          <Button size="small" danger onClick={reload}>{m('loadLatest')}</Button>
         </div>
       }
     />

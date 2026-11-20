@@ -132,6 +132,7 @@ export const vi: Record<Exclude<MessageKey, `${string}_one`>, string> = {
   'mywork.noneYet': 'chưa có',
 
   // ── Vai trò thành phần kiến trúc ──
+  'agentStatus.active': 'Đang dùng', 'agentStatus.expired': 'Hết hạn', 'agentStatus.revoked': 'Đã thu hồi',
   'archRole.controller': 'Controller', 'archRole.service': 'Service', 'archRole.repository': 'Repository', 'archRole.entity': 'Thực thể',
   'archRole.gateway': 'Gateway', 'archRole.config': 'Cấu hình', 'archRole.util': 'Tiện ích', 'archRole.external': 'Bên ngoài', 'archRole.other': 'Khác',
 

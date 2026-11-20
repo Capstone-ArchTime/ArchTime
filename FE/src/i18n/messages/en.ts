@@ -133,6 +133,7 @@ export const en = {
   'mywork.noneYet': 'none yet',
 
   // ── Component roles in the architecture (features/architecture/scene.ts ROLE_LABEL) ──
+  'agentStatus.active': 'Active', 'agentStatus.expired': 'Expired', 'agentStatus.revoked': 'Revoked',
   'archRole.controller': 'Controller', 'archRole.service': 'Service', 'archRole.repository': 'Repository', 'archRole.entity': 'Entity',
   'archRole.gateway': 'Gateway', 'archRole.config': 'Config', 'archRole.util': 'Utility', 'archRole.external': 'External', 'archRole.other': 'Other',
 
