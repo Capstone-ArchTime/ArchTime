@@ -13,7 +13,7 @@ import { Link } from 'react-router-dom';
 import { Loader2, Mail } from 'lucide-react';
 import { Details } from './PageHeader';
 import { translateOr } from '@/i18n';
-import { defineMessages, useMessages } from '@/i18n/define';
+import { defineMessages, message as translate, useMessages } from '@/i18n/define';
 
 const MSG = defineMessages({
   loadFailed: 'Could not load mining status.', estimateFailed: 'Could not estimate this range.', requestFailed: 'The request failed.', mailFailed: 'The findings could not be e-mailed.',
@@ -120,7 +120,7 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
     const timer = setTimeout(() => {
       getMiningEstimate(project.id, range.since, range.until, controller.signal)
         .then(next => { if (!controller.signal.aborted) setResult({ key, estimate: next }); })
-        .catch(cause => { if (!controller.signal.aborted) setResult({ key, error: cause instanceof Error ? cause.message : m('estimateFailed') }); });
+        .catch(cause => { if (!controller.signal.aborted) setResult({ key, error: cause instanceof Error ? cause.message : translate(MSG, 'estimateFailed') }); });
     }, 300);
     return () => { controller.abort(); clearTimeout(timer); };
   }, [open, range, hasHistory, project.id, minedCount]);

@@ -246,7 +246,7 @@ export const en = {
   'settings.summary': 'How ArchTime looks and behaves for you, in this browser.',
   'settings.language.title': 'Language',
   'settings.language.help': 'Menus, buttons, messages, dates and numbers. Your choice is kept in this browser.',
-  'settings.language.notYet': 'Being translated: the pages below the Dashboard and Workspaces, e-mails and PDF reports are still in English.',
+  'settings.language.notYet': 'Some texts made by the server, such as job progress, AI answers and a few detailed messages, stay in English.',
   'settings.language.changed': 'Language changed to English.',
   'settings.display.title': 'Display',
   'settings.display.sidebar': 'Start with the sidebar collapsed',

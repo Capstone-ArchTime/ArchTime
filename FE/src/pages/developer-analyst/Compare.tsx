@@ -150,7 +150,7 @@ const Compare: React.FC = () => {
 
   const revisionOptions = useMemo(() => snapshots.map(s => ({
     value: s.id as string,
-    label: `${s.version || s.hash.substring(0, 7)} · ${formatDate(s.date)}${s.title ? ` · ${s.title}` : ''}`,
+    label: `${s.version || s.hash.substring(0, 7)} · ${formatDate(s.date, {}, m.language)}${s.title ? ` · ${s.title}` : ''}`,
   })), [snapshots, m.language]);
   const getBaseSnapshot = () => snapshots.find(s => s.id === baseId);
   const getTargetSnapshot = () => snapshots.find(s => s.id === targetId);

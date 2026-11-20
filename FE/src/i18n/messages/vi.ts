@@ -244,7 +244,7 @@ export const vi: Record<Exclude<MessageKey, `${string}_one`>, string> = {
   'settings.summary': 'Cách ArchTime hiển thị và hoạt động với bạn, trên trình duyệt này.',
   'settings.language.title': 'Ngôn ngữ',
   'settings.language.help': 'Menu, nút bấm, thông báo, ngày tháng và số. Lựa chọn được lưu trên trình duyệt này.',
-  'settings.language.notYet': 'Đang được dịch: các trang ngoài Tổng quan và Không gian làm việc, email và báo cáo PDF vẫn đang bằng tiếng Anh.',
+  'settings.language.notYet': 'Một số nội dung do máy chủ tạo ra, như tiến độ xử lý, câu trả lời của AI và vài thông báo chi tiết, vẫn bằng tiếng Anh.',
   'settings.language.changed': 'Đã chuyển sang tiếng Việt.',
   'settings.display.title': 'Hiển thị',
   'settings.display.sidebar': 'Mở ứng dụng với thanh bên thu gọn',

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { App, Button, Popover, Progress } from 'antd';
 import { LoaderCircle } from 'lucide-react';
 import { ACTIVE, configureJobs, jobLink, jobNotice, kindLabel, refreshJobs, useBackgroundJobs } from '@/features/background-jobs';
-import { useT } from '@/i18n';
+import { translate, useT } from '@/i18n';
 
 /**
  * Header indicator of work running on the server (mining, scans, the conformance check, architecture maps), so people
@@ -21,7 +21,7 @@ export default function BackgroundJobs({ userId }: { userId: string | undefined 
         const { kind, title, description } = jobNotice(job);
         notification[kind]({
           key: job.id, title, description, placement: 'bottomRight', duration: kind === 'success' ? 8 : 0,
-          actions: <Button size="small" onClick={() => { notification.destroy(job.id); navigate(jobLink(job)); }}>{t('common.open')}</Button>,
+          actions: <Button size="small" onClick={() => { notification.destroy(job.id); navigate(jobLink(job)); }}>{translate('common.open')}</Button>,
         });
       }
     });
