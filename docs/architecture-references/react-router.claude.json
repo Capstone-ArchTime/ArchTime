@@ -1,0 +1,159 @@
+{
+  "repo": "react-router",
+  "commit": "5d7962ea44fefef43718a6f9e6cce17f4e7e04ab",
+  "author": "Claude (AI assistant) - reference A, AI-written; must be paired with an independent reference B by a team member",
+  "writtenAt": "2026-11-16",
+  "note": "Written from the repository's ADRs (decisions/) and source at the commit above, without any ArchTime output for this repository (it has not been mined). integration/, playground/, build and doc scripts, config files and createRoutesStub are deliberately left unassigned: the ADRs do not treat them as part of the architecture. Five test files named vite/*-test.ts fall under the 'packages/react-router-dev/vite/' prefix and are counted in that component. Coverage at the commit: 208 of 542 analysed files (npm run reference-check).",
+  "sources": [
+    "decisions/0005-remixing-react-router.md (framework-agnostic router core, history inlined)",
+    "decisions/0007-remix-on-react-router-6-4-0.md (server data loading, server rendering, client hydration, client data loading)",
+    "decisions/0010-splitting-up-client-and-server-code-in-vite.md, 0013-react-router-config-ts.md (Vite plugin, config)",
+    "decisions/0011-routes-ts.md (route config)",
+    "decisions/0012-type-inference.md (typegen, route module types)",
+    "decisions/0014-context-middleware.md, 0015-observability.md (router context, instrumentation)",
+    "decisions/0019-application-controlled-route-discovery.md (lazy route discovery)",
+    "packages/*/package.json and entry files (index.ts, dom-export.ts, index-react-server*.ts)"
+  ],
+  "components": [
+    {
+      "name": "Router core",
+      "responsibility": "Framework-agnostic data router: history, route matching, navigations, fetchers, loaders/actions orchestration, revalidation, middleware and instrumentation; no React dependency.",
+      "prefixes": [
+        "packages/react-router/lib/router/",
+        "packages/react-router/route-pattern.ts"
+      ],
+      "evidence": ["ADR 0005 'Move the bulk of logic to a framework-agnostic router' and 'Inline the history library'", "ADR 0015 instrumentation of navigations and fetchers (lib/router/instrumentation.ts)"]
+    },
+    {
+      "name": "React bindings",
+      "responsibility": "The React API over the router: router components, hooks, contexts, <Link>/<Form> and browser routers, <Await>, href(); the package's public entry points.",
+      "prefixes": [
+        "packages/react-router/lib/components.tsx",
+        "packages/react-router/lib/hooks.tsx",
+        "packages/react-router/lib/context.ts",
+        "packages/react-router/lib/await.ts",
+        "packages/react-router/lib/href.ts",
+        "packages/react-router/lib/dom/lib.tsx",
+        "packages/react-router/lib/dom/dom.ts",
+        "packages/react-router/lib/dom/global.ts",
+        "packages/react-router/lib/dom-export/",
+        "packages/react-router/dom-export.ts",
+        "packages/react-router/index.ts"
+      ],
+      "evidence": ["ADR 0005 'React-Router API surface'", "package entry index.ts / dom-export.ts re-export these modules"]
+    },
+    {
+      "name": "Framework rendering and hydration",
+      "responsibility": "Framework-mode client and server rendering: server entry rendering, static router, hydration, route modules, single-fetch on the client, links/meta, error boundaries, lazy route discovery (fog of war).",
+      "prefixes": [
+        "packages/react-router/lib/dom/ssr/",
+        "packages/react-router/lib/dom/server.tsx"
+      ],
+      "evidence": ["ADR 0007 points 2-4: server react component rendering, client hydration, client data loading", "ADR 0019 route discovery (lib/dom/ssr/fog-of-war.ts, route-discovery.ts)"]
+    },
+    {
+      "name": "Server runtime",
+      "responsibility": "Request handling on the server: building the request handler from the server build, document/data/resource requests, single-fetch responses, sessions and cookies, headers, CSRF checks on actions.",
+      "prefixes": [
+        "packages/react-router/lib/server-runtime/",
+        "packages/react-router/lib/actions.ts"
+      ],
+      "evidence": ["ADR 0007 point 1 'SSR data loading' (handleDocumentRequest, handleDataRequest, handleResourceRequest)", "lib/actions.ts exports throwIfPotentialCSRFAttack, used when handling action requests"]
+    },
+    {
+      "name": "Data serialization (turbo-stream, vendored)",
+      "responsibility": "Streaming serialization of loader/action data between server and client for single fetch.",
+      "prefixes": ["packages/react-router/vendor/turbo-stream-v2/"],
+      "evidence": ["ADR 0004 streaming APIs; vendored dependency used by single-fetch on both sides"]
+    },
+    {
+      "name": "React Server Components",
+      "responsibility": "RSC mode: RSC server and SSR handlers, browser RSC router, HTML streaming, RSC route modules and error digests; the react-server entry points.",
+      "prefixes": [
+        "packages/react-router/lib/rsc/",
+        "packages/react-router/lib/errors.ts",
+        "packages/react-router/index-react-server.ts",
+        "packages/react-router/index-react-server-client.ts"
+      ],
+      "evidence": ["package.json 'react-server' export conditions point to index-react-server*.ts", "lib/errors.ts encodes redirect / route error digests used by lib/rsc"]
+    },
+    {
+      "name": "Route module types",
+      "responsibility": "Types of route modules, params, loader/action data, future flags and the register mechanism that typegen fills in.",
+      "prefixes": ["packages/react-router/lib/types/"],
+      "evidence": ["ADR 0012 'Type inference within a route' and 'from the route config' (lib/types/register.ts, route-module.ts)"]
+    },
+    {
+      "name": "Route configuration",
+      "responsibility": "routes.ts route config API, file-system routes convention, and the adapter for Remix's routes option.",
+      "prefixes": [
+        "packages/react-router-dev/config/routes.ts",
+        "packages/react-router-dev/routes.ts",
+        "packages/react-router-fs-routes/",
+        "packages/react-router-remix-routes-option-adapter/"
+      ],
+      "evidence": ["ADR 0011 routes.ts"]
+    },
+    {
+      "name": "Type generation",
+      "responsibility": "Generates route types from the route config into .react-router/types (typegen watch / CLI command).",
+      "prefixes": ["packages/react-router-dev/typegen/"],
+      "evidence": ["ADR 0012 decision: generate types from routes.ts"]
+    },
+    {
+      "name": "Vite plugin and build",
+      "responsibility": "The framework's Vite plugin: dev server, builds, client/server code splitting, route chunks, prerendering, RSC plugin, manifest, server build and its Node adapter for dev.",
+      "prefixes": [
+        "packages/react-router-dev/vite/",
+        "packages/react-router-dev/vite.ts",
+        "packages/react-router-dev/manifest.ts",
+        "packages/react-router-dev/restart-with-conditions.ts",
+        "packages/react-router-dev/development-condition-enabled/",
+        "packages/react-router-dev/module-sync-enabled/"
+      ],
+      "evidence": ["ADR 0010 'Splitting up client and server code in Vite'", "ADR 0009 do not rely on treeshaking (vite/remove-exports.ts, route-chunks.ts)"]
+    },
+    {
+      "name": "Config, CLI and default entries",
+      "responsibility": "react-router.config.ts resolution, the react-router CLI (dev, build, typegen, reveal), and the default entry.client / entry.server files.",
+      "prefixes": [
+        "packages/react-router-dev/config/config.ts",
+        "packages/react-router-dev/config/format.ts",
+        "packages/react-router-dev/config/is-react-router-repo.ts",
+        "packages/react-router-dev/config/defaults/",
+        "packages/react-router-dev/config/default-rsc-entries/",
+        "packages/react-router-dev/config.ts",
+        "packages/react-router-dev/cli/",
+        "packages/react-router-dev/bin.cjs",
+        "packages/react-router-dev/invariant.ts"
+      ],
+      "evidence": ["ADR 0013 react-router.config.ts"]
+    },
+    {
+      "name": "Server adapters",
+      "responsibility": "Deploy targets around the server runtime: Node (streams, file sessions), Express, Architect (AWS), Cloudflare Workers, and the ready-made react-router-serve server.",
+      "prefixes": [
+        "packages/react-router-node/",
+        "packages/react-router-express/",
+        "packages/react-router-architect/",
+        "packages/react-router-cloudflare/",
+        "packages/react-router-serve/"
+      ],
+      "evidence": ["one package per runtime; each wraps createRequestHandler from the server runtime"]
+    },
+    {
+      "name": "Project scaffolding",
+      "responsibility": "create-react-router: interactive CLI that creates a new project from a template.",
+      "prefixes": [
+        "packages/create-react-router/cli.ts",
+        "packages/create-react-router/copy-template.ts",
+        "packages/create-react-router/index.ts",
+        "packages/create-react-router/loading-indicator.ts",
+        "packages/create-react-router/prompt.ts",
+        "packages/create-react-router/prompts-",
+        "packages/create-react-router/utils.ts"
+      ],
+      "evidence": ["package create-react-router (bin create-react-router)"]
+    }
+  ]
+}

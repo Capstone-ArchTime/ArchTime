@@ -10,6 +10,7 @@ const { canAccess, maintainerRoutes, roles, roleHome } = await import('../src/au
 const { accountMenuItems, analyzeNavItems, maintainNavItems, navGroupsFor } = await import('../src/components/layout/navigation.ts');
 const { rememberMaintains } = await import('../src/hooks/useMaintainsWorkspaces.ts');
 const { default: DashboardLayout } = await import('../src/components/layout/DashboardLayout.tsx');
+const { backTo, readBack } = await import('../src/components/layout/back-link.ts');
 
 function render(role, path, id = 'test') {
   const auth = { user: { id, name: 'Test Account', email: 'test@example.com', role }, signOut() {} };
@@ -32,14 +33,14 @@ test('all navigation destinations are authorized for their displayed role', () =
 test('the sidebar of a developer-analyst has six entries, seven with the Maintain group', () => {
   assert.deepEqual(topLevel(navGroupsFor('developer-analyst', { maintains: false })), ['Dashboard', 'Workspaces', 'Organizations', 'Analyze', 'Learning', 'Reports']);
   assert.deepEqual(topLevel(navGroupsFor('developer-analyst', { maintains: true })), ['Dashboard', 'Workspaces', 'Organizations', 'Analyze', 'Learning', 'Reports', 'Maintain']);
-  assert.deepEqual(analyzeNavItems.map(item => item.path), ['/architecture', '/compare', '/evidence', '/insights']);
+  assert.deepEqual(analyzeNavItems.map(item => item.path), ['/architecture', '/compare', '/evidence', '/tasks', '/insights']);
   assert.equal(topLevel(navGroupsFor('system-administrator', { maintains: true })).length, 8, 'administrators keep their own eight pages (Organizations added for T44)');
 });
 
 test('every page still has a way in: the sidebar, the account menu, or (old maintainer reports, old history) a redirect', () => {
   const reachable = new Set([...navGroupsFor('developer-analyst', { maintains: true }).flatMap(group => group.items), ...accountMenuItems['developer-analyst']].map(item => item.path));
   assert.ok(!reachable.has('/history'), 'Architecture History was folded into Compare; /history redirects there');
-  for (const path of ['/dashboard', '/projects', '/architecture', '/compare', '/evidence', '/insights', '/learning', '/reports', '/ai-usage', '/profile', '/my-work']) assert.ok(reachable.has(path), path);
+  for (const path of ['/dashboard', '/projects', '/architecture', '/compare', '/evidence', '/tasks', '/insights', '/learning', '/reports', '/ai-usage', '/profile', '/my-work']) assert.ok(reachable.has(path), path);
   assert.deepEqual(maintainerRoutes.filter(path => !reachable.has(path)), ['/project-maintainer/reports'], 'only the old reports page, which now redirects to /reports');
   assert.deepEqual(accountMenuItems['developer-analyst'].map(item => item.path), ['/my-work', '/profile', '/ai-usage']);
 });
@@ -65,13 +66,24 @@ for (const role of roles) test(`${role} layout renders a main landmark, skip lin
   assert.ok(!links(html).includes('/profile'), 'My profile moved to the account menu');
 });
 
-test('Analyze is folded until it holds the current page', () => {
+test('Analyze is one sidebar link; its pages are tabs under the header', () => {
   const onDashboard = render('developer-analyst', '/dashboard');
-  assert.match(onDashboard, /role="group" aria-label="Analyze"[^>]*><button type="button" aria-expanded="false"/);
-  assert.ok(!links(onDashboard).includes('/compare'));
-  const onCompare = render('developer-analyst', '/compare');
-  assert.match(onCompare, /role="group" aria-label="Analyze"[^>]*><button type="button" aria-expanded="true"/);
-  assert.match(onCompare, /<a(?=[^>]*href="\/compare")(?=[^>]*aria-current="page")/);
+  assert.match(onDashboard, /<a[^>]*href="\/architecture"[^>]*>.*?<span[^>]*>Analyze<\/span>/, 'the sidebar link opens the first page of the group');
+  assert.ok(!links(onDashboard).includes('/compare'), 'no tabs outside the group');
+  const onCompare = render('developer-analyst', '/compare?projectId=p1&base=a');
+  assert.match(onCompare, /<nav aria-label="Analyze pages"/);
+  for (const item of analyzeNavItems) assert.ok(links(onCompare).includes(`${item.path}?projectId=p1`), `${item.path} keeps the chosen workspace only`);
+  assert.match(onCompare, /<a(?=[^>]*href="\/compare\?projectId=p1")(?=[^>]*aria-current="page")/);
+  assert.match(onCompare, /<a(?=[^>]*href="\/architecture")(?=[^>]*aria-current="true")[^>]*>.*?<span[^>]*>Analyze<\/span>/);
+});
+
+test('a page opened from a workspace tab offers a way back to it, also from the other tabs of its group', () => {
+  const html = render('developer-analyst', { pathname: '/compare', search: '?projectId=p1', state: backTo('/project?projectId=p1', 'Dự án nhỏ') });
+  assert.match(html, /<a[^>]*aria-label="Back to Dự án nhỏ"[^>]*href="\/project\?projectId=p1"/);
+  assert.doesNotMatch(render('developer-analyst', '/compare'), /aria-label="Back to /, 'no way back without a starting point');
+  assert.equal(readBack({ back: { to: '//evil.example/x', label: 'x' } }), null, 'only same-site paths');
+  assert.equal(readBack({ back: { to: 'https://evil.example', label: 'x' } }), null);
+  assert.equal(readBack(null), null);
 });
 
 test('pages in the account menu still get their own title', () => {
@@ -88,11 +100,19 @@ test('a developer-analyst who maintains nothing gets no maintainer links', () =>
   assert.ok(!links(render('developer-analyst', '/project-maintainer/team', 'analyst-only')).some(link => link.startsWith('/project-maintainer')), 'not even on a maintainer page reached by a link');
 });
 
-test('a developer-analyst who maintains a workspace gets the Maintain group, open on its pages', () => {
+test('a developer-analyst who maintains a workspace gets the Maintain link, with its pages as tabs', () => {
   rememberMaintains('maintainer', true);
   const html = render('developer-analyst', '/project-maintainer/team', 'maintainer');
-  assert.match(html, /role="group" aria-label="Maintain"[^>]*><button type="button" aria-expanded="true"/);
+  assert.match(html, /<nav aria-label="Maintain pages"/);
   for (const item of maintainNavItems) assert.ok(links(html).includes(item.path), item.path);
-  assert.match(html, /aria-current="page"[^>]*>.*?<span>Team<\/span>/);
-  assert.match(render('developer-analyst', '/dashboard', 'maintainer'), /role="group" aria-label="Maintain"[^>]*><button type="button" aria-expanded="false"/, 'folded elsewhere');
+  assert.match(html, /aria-current="page"[^>]*><span>Team<\/span>/);
+  const elsewhere = render('developer-analyst', '/dashboard', 'maintainer');
+  assert.match(elsewhere, /<a[^>]*href="\/project-maintainer"[^>]*>.*?<span[^>]*>Maintain<\/span>/);
+  assert.ok(!links(elsewhere).includes('/project-maintainer/team'), 'no Maintain tabs outside its pages');
+});
+
+test('the ArchTime name folds the sidebar to its icons and unfolds it again', () => {
+  const html = render('developer-analyst', '/dashboard');
+  assert.match(html, /<aside id="app-sidebar" data-collapsed="false"/, 'unfolded by default');
+  assert.match(html, /<button type="button" aria-expanded="true" aria-controls="app-sidebar"/);
 });

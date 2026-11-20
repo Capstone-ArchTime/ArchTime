@@ -1,6 +1,7 @@
 import {
   OrganizationMemberStatus,
   OrganizationRole,
+  isSuspended,
   type IOrganization,
   type IOrganizationMember,
 } from "../../../domain/entities/Organization.js";
@@ -91,6 +92,10 @@ export class OrganizationUseCases {
     const membership = await this.requireMember(organizationId, userId);
     if (membership.role !== OrganizationRole.OWNER) {
       throw new ForbiddenError("Only organization owners can do this.");
+    }
+    // RF-14: a suspended organization cannot be changed until a System Administrator reactivates it.
+    if (isSuspended(await this.organizations.findById(organizationId))) {
+      throw new ForbiddenError("This organization is suspended by a System Administrator; it cannot be changed until it is reactivated.");
     }
     return membership;
   }
@@ -196,6 +201,10 @@ export class OrganizationUseCases {
     if (!member) throw new NotFoundError("Member not found.");
     if (member.userId !== input.userId && caller.role !== OrganizationRole.OWNER) {
       throw new ForbiddenError("Only organization owners can remove other members.");
+    }
+    // RF-14: while suspended nobody removes anyone else; a member may still leave on their own.
+    if (member.userId !== input.userId && isSuspended(await this.organizations.findById(input.organizationId))) {
+      throw new ForbiddenError("This organization is suspended by a System Administrator; it cannot be changed until it is reactivated.");
     }
     if (member.status !== OrganizationMemberStatus.INVITED && member.role === OrganizationRole.OWNER
       && (await this.organizations.countOwners(input.organizationId)) <= 1) {

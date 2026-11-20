@@ -1,0 +1,11 @@
+{
+  "_comment": "Synthetic sample for demos and tests of the Jira import (T2/T3). Shape of Jira's issue search JSON (GET /rest/api/3/search?expand=names). Not real project data.",
+  "names": { "customfield_10016": "Story point estimate", "customfield_10020": "Sprint" },
+  "issues": [
+    { "key": "ARCH-12", "fields": { "summary": "Parse Jira export", "status": { "name": "Done", "statusCategory": { "key": "done" } }, "assignee": { "displayName": "Truong" }, "customfield_10016": 3, "customfield_10020": [{ "id": 7, "name": "Sprint 2", "state": "active", "startDate": "2026-11-15T00:00:00.000Z", "endDate": "2026-11-18T00:00:00.000Z" }] } },
+    { "key": "ARCH-13", "fields": { "summary": "Link commits to tasks", "status": { "name": "In Review", "statusCategory": { "key": "indeterminate" } }, "assignee": { "displayName": "Truong" }, "customfield_10016": 5, "customfield_10020": [{ "id": 7, "name": "Sprint 2", "state": "active", "startDate": "2026-11-15T00:00:00.000Z", "endDate": "2026-11-18T00:00:00.000Z" }] } },
+    { "key": "ARCH-14", "fields": { "summary": "Tasks & Sprints screen", "status": { "name": "To Do", "statusCategory": { "key": "new" } }, "assignee": null, "customfield_10016": 2, "customfield_10020": [{ "id": 6, "name": "Sprint 1", "state": "closed" }, { "id": 7, "name": "Sprint 2", "state": "active", "startDate": "2026-11-15T00:00:00.000Z", "endDate": "2026-11-18T00:00:00.000Z" }] } },
+    { "key": "T22", "fields": { "summary": "Commit convention check", "status": { "name": "To Do", "statusCategory": { "key": "new" } }, "assignee": { "displayName": "Duc" }, "customfield_10016": null, "customfield_10020": [{ "id": 8, "name": "Sprint 3", "state": "future" }] } },
+    { "key": "ARCH-20", "fields": { "summary": "Backlog item without sprint or points" } }
+  ]
+}

@@ -1,9 +1,11 @@
-import { readTokens } from '@/auth/session';
+import { apiRequest } from '@/api/client';
 import { getWorkspaces, mayHaveSnapshots, type Workspace } from '@/features/workspace-summary';
 import { Link as RouterLink } from 'react-router-dom';
 import React, { useState, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { Details } from '@/components/PageHeader';
 import {
   Search,
   ArrowRight,
@@ -21,7 +23,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationBar from '@/components/PaginationBar';
-import { API_BASE_URL } from '@/auth/session';
 import { Modal } from 'antd';
 import { getArchitecture } from '@/features/architecture/api';
 import { ROLE_LABEL } from '@/features/architecture/scene';
@@ -31,7 +32,7 @@ import { IMPACT_NOTE, andMore, changeLabel, deltaText, getEvidenceImpact, impact
 import type { ComponentChange, EvidenceImpact, PairSample } from '@/features/evidence-bridge';
 
 const monoStyle = { fontFamily: '"JetBrains Mono", monospace' };
-const blockTitle = 'text-[10px] font-mono font-bold text-[var(--at-muted)] uppercase tracking-widest flex items-center gap-2';
+const blockTitle = 'text-[11px] font-semibold text-[var(--at-muted)] uppercase tracking-[0.14em] flex items-center gap-2';
 
 type ComponentNames = Map<string, { name: string; role: ComponentRole }>;
 type ImpactState =
@@ -94,13 +95,9 @@ function AffectedComponents({ state, projectId, retry }: { state: ImpactState; p
   const { impact, names } = state;
   const map = `/workspace/${encodeURIComponent(projectId)}${serializeHash({ project: projectId, snapshot: impact.snapshot.id })}`;
   return <div className="space-y-3">
-    <p className="text-sm text-[var(--at-text)]">{impactSummary(impact)}</p>
-    {impact.hasBaseline && <p className="text-[11px] leading-snug text-[var(--at-muted)]">Counted as resolved file-to-file imports, so these numbers can differ from the raw import counts in "Evidence Suggests" above.</p>}
-    {!impact.grouped && <div className="border border-[var(--at-line)] bg-[var(--at-page)] p-4 text-xs leading-relaxed text-slate-300">
-      <p className="font-bold text-[var(--at-text)]">This commit has not been grouped into components yet.</p>
-      <p className="mt-1">Group its files in the Architecture Map to see which components it changed.</p>
-      <RouterLink to={map} className="mt-2 inline-block text-[var(--at-link)] hover:text-[var(--at-link-hover)] hover:underline">Open the Architecture Map for this commit</RouterLink>
-    </div>}
+    {impact.grouped
+      ? <p className="text-sm text-[var(--at-text)]">{impactSummary(impact)}</p>
+      : <p className="text-sm text-[var(--at-text)]">Not grouped into components yet. <RouterLink to={map} className="text-[var(--at-link)] underline hover:text-[var(--at-link-hover)]">Group it in the Architecture Map</RouterLink></p>}
     {impact.grouped && !impact.hasBaseline && <p className="text-xs text-[var(--at-muted)]">This is the first mined commit, so there is no earlier snapshot to compare with.</p>}
     {impact.grouped && impact.hasBaseline && <>
       {impact.components.length === 0
@@ -123,7 +120,10 @@ function AffectedComponents({ state, projectId, retry }: { state: ImpactState; p
       </details>}
       {impact.mapping.stale && <p className="text-xs text-[#fcd34d]">The grouping stored for this commit is out of date, so the components shown may not match its current files.</p>}
     </>}
-    <p className="text-[11px] leading-snug text-[var(--at-muted)]">{IMPACT_NOTE}</p>
+    <Details bodyClassName="text-xs">
+      <p>{IMPACT_NOTE}</p>
+      {impact.hasBaseline && <p>Dependencies are counted as resolved file-to-file imports, so these numbers can differ from the raw import counts at the top.</p>}
+    </Details>
   </div>;
 }
 
@@ -175,6 +175,7 @@ const Evidence: React.FC = () => {
   const impact = useEvidenceImpact(selectedProjectId, selectedChange?.id);
   const closeDrawer = useCallback(() => { setPicked(null); setClosedLink(commitParam); }, [commitParam, setPicked, setClosedLink]);
   const drawerRef = useFocusTrap(selectedChange !== null, closeDrawer);
+  const commitAuthor: string = selectedChange?.diffBefore?.match(/Author:\s*(.*)/)?.[1] || 'Unknown author';
   
   const [search, setSearch] = useState('');
   const [type, setType] = useState('all');
@@ -197,10 +198,8 @@ const Evidence: React.FC = () => {
     const fetchEvidences = async () => {
       setLoading(true);
       try {
-        const token = readTokens().accessToken;
-        const res = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}/evidences?limit=100`, { headers: { Authorization: `Bearer ${token}` } });
-        if (res.ok) {
-          const data = await res.json();
+        const data = await apiRequest<{ data?: { evidences?: any[] } }>(`/projects/${selectedProjectId}/evidences?limit=100`);
+        {
           const eList = data.data?.evidences || [];
           
           // formatting dates for UI
@@ -211,8 +210,6 @@ const Evidence: React.FC = () => {
             diffBefore: e.diffBefore || '// No diff recorded',
           }));
           setEvidenceData(formatted);
-        } else {
-           setEvidenceData([]);
         }
       } catch (e) {
         console.error(e);
@@ -261,14 +258,9 @@ const Evidence: React.FC = () => {
         <div className="shrink-0 space-y-6">
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--at-panel-2)] border border-[var(--at-line)] mb-4">
-                <div className="w-1.5 h-1.5 rounded-full bg-[var(--at-accent)] shadow-[0_0_5px_#3b82f6]"></div>
-                <span className="text-[10px] font-mono text-[var(--at-link)] tracking-wider font-semibold uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Evidence Observatory</span>
-              </div>
               <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)] mb-2">Changes & Evidence</h2>
               <p className="text-[var(--at-muted)] text-sm max-w-xl leading-relaxed">
-                Trace architectural changes back to commits, files and dependency evidence.
+                Each architectural change and the commits behind it.
               </p>
 
               <div className="mt-6 mb-2 flex items-center gap-4">
@@ -358,7 +350,7 @@ const Evidence: React.FC = () => {
               <tbody className="divide-y divide-[var(--at-line)]">
                 {!loading && !filtered.length && <tr><td colSpan={7} className="p-8 text-center text-sm text-[var(--at-muted)]" role="status">
                   {loadError ?? (projectsList?.length === 0
-                    ? <>No workspace has mined commits yet. Evidence is recorded while commits are mined: <RouterLink to="/projects" className="text-[var(--at-link)] hover:underline">go to Workspaces</RouterLink> and choose Manage mining.</>
+                    ? <>No workspace has mined commits yet. Evidence is recorded while commits are mined: <RouterLink to="/projects" className="text-[var(--at-link)] hover:underline">go to Workspaces</RouterLink> and choose Mining.</>
                     : evidenceData.length === 0 ? 'No architectural changes were recorded for the mined commits of this workspace.' : 'No changes match these filters.')}
                 </td></tr>}
                 {pagination.items.map((item: any) => (
@@ -403,8 +395,8 @@ const Evidence: React.FC = () => {
           </div>
         </div>
 
-        {/* EVIDENCE DETAIL DRAWER (SLIDE OVER) */}
-        <AnimatePresence>
+        {/* EVIDENCE DETAIL DRAWER (SLIDE OVER), in <body> so it covers the screen whatever its ancestors do */}
+        {createPortal(<AnimatePresence>
           {selectedChange && (
             <>
               {/* BACKDROP */}
@@ -412,7 +404,7 @@ const Evidence: React.FC = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-[var(--at-page)]/50 backdrop-blur-sm z-40"
+                className="fixed inset-0 bg-black/55 z-40"
                 onClick={closeDrawer}
               />
 
@@ -426,115 +418,84 @@ const Evidence: React.FC = () => {
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="absolute top-0 right-0 bottom-0 w-[800px] max-w-[90vw] bg-[var(--at-panel)] border-l border-[var(--at-line)] shadow-2xl z-50 flex flex-col"
+                className="fixed top-0 right-0 bottom-0 w-[720px] max-w-[92vw] bg-[var(--at-solid)] border-l border-[var(--at-line)] shadow-2xl z-50 flex flex-col"
               >
-                {/* Drawer Header */}
-                <div className="p-6 border-b border-[var(--at-line)] bg-[var(--at-panel-2)] shrink-0">
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div>
-                      <span className="px-2 py-1 bg-[var(--at-warn)]/10 border border-[var(--at-warn)]/20 text-[var(--at-warn)] text-[9px] font-mono font-bold uppercase tracking-widest mb-3 inline-block"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                {/* Head: what changed, in which commit, by whom, and how much. Explanations stay under "Details". */}
+                <div className="px-6 pt-5 pb-4 border-b border-[var(--at-line)] shrink-0">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <span className="inline-block rounded-full border border-[var(--at-warn)]/40 bg-[var(--at-warn)]/10 px-2.5 py-0.5 text-[11px] font-semibold text-[var(--at-warn)]">
                         {selectedChange.type}
                       </span>
-                      <h3 id="evidence-detail-title" className="text-xl font-bold text-[var(--at-text)] leading-snug">{selectedChange.changeTitle}</h3>
+                      <h3 id="evidence-detail-title" className="mt-2 text-lg font-bold text-[var(--at-text)] leading-snug break-words">{selectedChange.changeTitle}</h3>
+                      <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--at-muted)]">
+                        <code className="text-[var(--at-link)]" style={monoStyle}>{selectedChange.commit}</code>
+                        <span aria-hidden="true">·</span>
+                        <span className="truncate max-w-[22rem]" title={commitAuthor}>{commitAuthor}</span>
+                        <span aria-hidden="true">·</span>
+                        <span>{selectedChange.date}</span>
+                      </p>
                     </div>
                     <button
                       onClick={closeDrawer}
                       aria-label="Close evidence detail"
-                      className="w-8 h-8 bg-[var(--at-line)] hover:bg-[#5f636b] text-[var(--at-text)] flex items-center justify-center transition-colors shrink-0"
+                      className="w-9 h-9 rounded-full border border-[var(--at-line)] hover:bg-[var(--at-panel-2)] text-[var(--at-text)] flex items-center justify-center transition-colors shrink-0"
                     >
                       <X size={18} />
                     </button>
                   </div>
-                  
-                  {/* AI Disclaimer */}
-                  <div className="bg-[var(--at-accent)]/5 border border-[var(--at-accent)]/20 p-4 mt-4">
-                     <p className="text-xs text-[var(--at-link)] leading-relaxed">
-                       <strong className="font-bold tracking-wide uppercase font-mono text-[10px]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Evidence Suggests:</strong><br />
-                       Raw import counts found by mining this commit and the one before it. {selectedChange.summary}
-                     </p>
+                  <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
+                    <span className="rounded-full bg-[#4ade80]/10 border border-[#4ade80]/30 px-3 py-1 text-[#4ade80]">+{selectedChange.depsAdded} dependencies added</span>
+                    <span className="rounded-full bg-[#f87171]/10 border border-[#f87171]/30 px-3 py-1 text-[#f87171]">−{selectedChange.depsRemoved} removed</span>
+                    <span className="rounded-full border border-[var(--at-line)] px-3 py-1 text-[var(--at-text)]">{selectedChange.files} files</span>
                   </div>
+                  <Details className="mt-3" bodyClassName="text-xs">
+                    <p>Raw import counts found by mining this commit and the one before it. {selectedChange.summary}</p>
+                  </Details>
                 </div>
 
-                {/* Drawer Scrollable Content */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
-                  
+                  {/* MODIFIED FILES: the most concrete evidence first */}
+                  <section className="space-y-3">
+                    <h4 className={blockTitle}><FileCode size={14} /> Modified files ({selectedChange.files})</h4>
+                    {selectedChange.sourceFiles?.length > 0 ? (
+                      <ul className="divide-y divide-[var(--at-line)] rounded-xl border border-[var(--at-line)] max-h-[300px] overflow-y-auto custom-scrollbar">
+                        {selectedChange.sourceFiles.map((file: string, idx: number) => (
+                          <li key={idx} className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-[var(--at-panel-2)] transition-colors">
+                            <span className="flex items-center gap-3 min-w-0">
+                              <FileText size={14} className="text-[var(--at-muted)] shrink-0" aria-hidden="true" />
+                              <span className="text-xs text-[var(--at-text)] truncate" style={monoStyle} title={file}>{file}</span>
+                            </span>
+                            <button
+                              onClick={() => viewFileDiff(file, selectedChange.diffBefore)}
+                              className="shrink-0 rounded-full border border-[var(--at-line)] px-3 py-1 text-xs text-[var(--at-link)] hover:bg-[var(--at-panel-2)] hover:text-[var(--at-link-hover)] transition-colors"
+                            >
+                              View diff
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-[var(--at-muted)]">No file details were collected for this commit.</p>
+                    )}
+                  </section>
+
                   {/* AFFECTED COMPONENTS: what this commit changed, projected on the components of its snapshot (inference) */}
-                  <div className="space-y-3">
-                    <h4 className={blockTitle} style={monoStyle}>
-                       <Layers size={14} /> Affected Components
-                    </h4>
+                  <section className="space-y-3">
+                    <h4 className={blockTitle}><Layers size={14} /> Affected components</h4>
                     <AffectedComponents state={impact.state} projectId={selectedProjectId} retry={impact.retry} />
-                  </div>
-
-                  {/* EVIDENCE GRID */}
-                  <div className="grid grid-cols-2 gap-4">
-                     <div className="bg-[var(--at-panel-2)] border border-[var(--at-line)] p-4">
-                        <div className="text-[10px] font-mono text-[var(--at-muted)] mb-2 uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Commit Info</div>
-                        <div className="text-sm font-mono font-bold text-[var(--at-link)]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{selectedChange.commit}</div>
-                        <div className="text-[10px] mt-1 text-[var(--at-text)] truncate" title={selectedChange.diffBefore?.match(/Author:\s*(.*)/)?.[1] || 'Unknown Author'}>
-                          {selectedChange.diffBefore?.match(/Author:\s*(.*)/)?.[1] || 'Unknown Author'}
-                        </div>
-                        <div className="text-[10px] mt-1 text-[var(--at-muted)]">{selectedChange.date}</div>
-                     </div>
-                     <div className="bg-[var(--at-panel-2)] border border-[var(--at-line)] p-4">
-                        <div className="text-[10px] font-mono text-[var(--at-muted)] mb-2 uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Dependencies Drift</div>
-                        <div className="text-sm font-bold font-mono"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                           <span className="text-[#22c55e]">+{selectedChange.depsAdded} added</span> / <span className="text-[#ef4444]">-{selectedChange.depsRemoved} removed</span>
-                        </div>
-                     </div>
-                  </div>
-
-                  {/* MODIFIED FILES LIST */}
-                  <div className="space-y-3">
-                    <h4 className="text-[10px] font-mono font-bold text-[var(--at-muted)] uppercase tracking-widest flex items-center gap-2"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                       <FileCode size={14} /> Modified Files ({selectedChange.files})
-                    </h4>
-                    
-                    <div className="bg-[var(--at-panel)] border border-[var(--at-line)] overflow-hidden max-h-[300px] overflow-y-auto custom-scrollbar">
-                       <ul className="divide-y divide-[var(--at-line)]">
-                         {selectedChange.sourceFiles?.length > 0 ? (
-                           selectedChange.sourceFiles.map((file: string, idx: number) => (
-                             <li key={idx} className="flex items-center justify-between p-3 hover:bg-[var(--at-panel-2)] transition-colors group">
-                                <div className="flex items-center gap-3 truncate">
-                                   <FileText size={14} className="text-[var(--at-muted)]" />
-                                   <span className="text-xs font-mono text-[var(--at-text)] truncate" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{file}</span>
-                                </div>
-                                <button
-                                  onClick={() => viewFileDiff(file, selectedChange.diffBefore)}
-                                  className="shrink-0 ml-4 px-3 py-1 bg-[var(--at-line)] text-[10px] font-mono text-[var(--at-muted)] group-hover:text-[var(--at-link)] transition-colors rounded-sm"
-                                  style={{ fontFamily: '"JetBrains Mono", monospace' }}
-                                >
-                                  VIEW DIFF
-                                </button>
-                             </li>
-                           ))
-                         ) : (
-                           <li className="p-4 text-xs text-[var(--at-muted)] italic">No file details collected.</li>
-                         )}
-                       </ul>
-                    </div>
-                  </div>
+                  </section>
 
                   {/* COMPONENT DEPENDENCIES CHANGED */}
-                  <div className="space-y-3 pb-8">
-                     <h4 className={blockTitle} style={monoStyle}>
-                       <Box size={14} /> Component Dependencies Changed
-                     </h4>
-                     <ChangedDependencies state={impact.state} />
-                  </div>
-
+                  <section className="space-y-3 pb-8">
+                    <h4 className={blockTitle}><Box size={14} /> Component dependencies changed</h4>
+                    <ChangedDependencies state={impact.state} />
+                  </section>
                 </div>
               </motion.div>
             </>
           )}
-        </AnimatePresence>
+        </AnimatePresence>, document.body)}
 
         {/* MODAL FOR INDIVIDUAL FILE DIFF */}
         <Modal

@@ -28,6 +28,10 @@ export default function LayersPanel({ scene, theme, highlight, selected, onSelec
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(n);
   }
+  // The snapshot list keeps each snapshot's place in the history (index 0 is the latest) while it is filtered.
+  const [snapshotQuery, setSnapshotQuery] = useState('');
+  const sq = snapshotQuery.trim().toLowerCase();
+  const shownSnapshots = (snapshots ?? []).map((s, i) => ({ s, i })).filter(({ s }) => !sq || s.hash.toLowerCase().includes(sq) || s.title.toLowerCase().includes(sq));
   const label = (key: string) => (key === 'neighbour' ? 'Neighbours' : ROLE_LABEL[key as keyof typeof ROLE_LABEL] ?? key);
   const toggle = (key: string) => setClosed(s => { const next = new Set(s); if (next.has(key)) next.delete(key); else next.add(key); return next; });
   const tabClass = (t: string) => `px-2 py-1 text-xs font-medium rounded ${tab === t ? 'text-white bg-white/10' : 'text-[var(--at-muted)] hover:text-white'}`;
@@ -66,19 +70,30 @@ export default function LayersPanel({ scene, theme, highlight, selected, onSelec
       </div>
     </>}
 
-    {tab === 'snapshots' && snapshots && <ol className="min-h-0 flex-1 overflow-auto py-1" aria-label="Snapshots">
-      {snapshots.map((s, i) => {
-        const current = s.id === snapshotId || (!snapshotId && i === 0);
-        return <li key={s.id}>
-          <button type="button" aria-current={current} onClick={() => onSnapshot?.(s.id)}
-            className={`flex w-full flex-col px-3 py-1.5 text-left ${current ? 'bg-[var(--at-accent)]/15' : 'hover:bg-white/5'}`}>
-            <span className="flex items-center gap-2 text-xs"><code className="text-[var(--at-link)]">{s.hash}</code>{i === 0 && <span className="text-[10px] text-[var(--at-muted)]">latest</span>}</span>
-            <span className="truncate text-[11px] text-[#cbd5e1]">{s.title.split('\n')[0]}</span>
-            {s.date && <span className="text-[10px] text-[var(--at-muted)]">{new Date(s.date).toLocaleDateString()}</span>}
-          </button>
-        </li>;
-      })}
-      {!snapshots.length && <li className="px-3 py-4 text-xs text-[var(--at-muted)]">No snapshots yet. Mine the repository first.</li>}
-    </ol>}
+    {tab === 'snapshots' && snapshots && <>
+      {snapshots.length > 8 && <label className="mx-2 my-2 flex items-center gap-2 rounded-lg border border-[var(--at-line)] bg-[var(--at-panel)] px-2 focus-within:border-[var(--at-link)]">
+        <Search size={13} className="text-[var(--at-muted)]" />
+        <input value={snapshotQuery} onChange={e => setSnapshotQuery(e.target.value)} placeholder="Search by hash or title" aria-label="Search snapshots" className="h-8 w-full bg-transparent text-xs text-[var(--at-text)] outline-none focus-visible:outline-none placeholder:text-[var(--at-muted)]" />
+      </label>}
+      <ol className="min-h-0 flex-1 overflow-auto pb-2" aria-label="Snapshots">
+        {shownSnapshots.map(({ s, i }) => {
+          const current = s.id === snapshotId || (!snapshotId && i === 0);
+          return <li key={s.id}>
+            <button type="button" aria-current={current} onClick={() => onSnapshot?.(s.id)} title={s.title}
+              className={`relative flex w-full flex-col gap-0.5 px-4 py-2 text-left transition-colors ${current ? 'bg-white/[0.08]' : 'hover:bg-white/5'}`}>
+              {current && <span aria-hidden="true" className="absolute inset-y-1.5 left-1 w-0.5 rounded-full bg-[var(--at-link)]" />}
+              <span className={`truncate text-[13px] ${current ? 'font-medium text-white' : 'text-[var(--at-text)]'}`}>{s.title.split('\n')[0]}</span>
+              <span className="flex items-center gap-1.5 text-[11px] text-[var(--at-muted)]">
+                <code className="text-[var(--at-link)]">{s.hash}</code>
+                {s.date && <span>· {new Date(s.date).toLocaleDateString()}</span>}
+                {i === 0 && <span className="ml-auto rounded-full border border-[var(--at-line)] px-1.5 text-[10px]">latest</span>}
+              </span>
+            </button>
+          </li>;
+        })}
+        {!snapshots.length && <li className="px-4 py-4 text-xs text-[var(--at-muted)]">No snapshots yet. Mine the repository first.</li>}
+        {snapshots.length > 0 && !shownSnapshots.length && <li className="px-4 py-4 text-xs text-[var(--at-muted)]">No snapshot matches “{snapshotQuery}”.</li>}
+      </ol>
+    </>}
   </div>;
 }

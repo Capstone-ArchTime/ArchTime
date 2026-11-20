@@ -1,19 +1,18 @@
-import { readTokens } from '@/auth/session';
+import { apiRequest } from '@/api/client';
 import React, { useState, useCallback, useEffect } from 'react';
-import { API_BASE_URL } from '@/auth/session';
 import { App } from 'antd';
 import { motion, AnimatePresence } from 'motion/react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import PageHeader from '@/components/PageHeader';
 import {
-  FolderKanban,
   Activity,
   Plus,
   ArrowRight,
-  GitCommit,
   X,
   FolderGit2,
   Loader2,
   Trash2,
+  Building2,
   Eye
 } from 'lucide-react';
 import { Icon } from '@iconify/react';
@@ -22,9 +21,10 @@ import { usePagination } from '@/hooks/usePagination';
 import PaginationBar from '@/components/PaginationBar';
 import MiningPanel from '@/components/MiningPanel';
 import ViewerSettingsModal from '@/components/ViewerSettingsModal';
+import TransferProjectModal from '@/components/TransferProjectModal';
 import { Link } from 'react-router-dom';
 import { byRecent, getWorkspaces, hasMinedHistory, nextStep, STATUS_LABELS, type Workspace } from '@/features/workspace-summary';
-import { buildRegistration, listCredentials, listOrganizations, workspaceSpaces } from '@/features/organizations-api';
+import { buildRegistration, listCredentials, listOrganizations, suspensionNotice, workspaceSpaces } from '@/features/organizations-api';
 import type { Credential, Organization } from '@/features/organizations-api';
 
 const Projects: React.FC = () => {
@@ -32,6 +32,7 @@ const Projects: React.FC = () => {
   const closeModal = useCallback(() => setIsModalOpen(false), []);
   const [miningProject, setMiningProject] = useState<{ id: string; name: string } | null>(null);
   const [viewerProject, setViewerProject] = useState<{ id: string; name: string } | null>(null);
+  const [transferProject, setTransferProject] = useState<{ id: string; name: string } | null>(null);
   const modalRef = useFocusTrap(isModalOpen, closeModal);
   const { message } = App.useApp();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,6 +49,12 @@ const Projects: React.FC = () => {
   const [credentialId, setCredentialId] = useState('');
   // Without credentials to choose from, an organization workspace clones with a personal token like a personal one.
   const effectiveAccess = organizationId && credentials?.length ? access : 'token';
+
+  // RF-14: the organizations are also read up front, to say why workspaces of a suspended one are not listed.
+  useEffect(() => {
+    listOrganizations().then(setOrganizations).catch(() => setOrganizations(prev => prev ?? []));
+  }, []);
+  const suspended = suspensionNotice(organizations ?? []);
 
   useEffect(() => {
     if (!isModalOpen || organizations) return;
@@ -94,24 +101,17 @@ const Projects: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/projects`, {
+      const data = await apiRequest<{ data: { project: { id: string; name?: string } } }>('/projects', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${readTokens().accessToken}`
-        },
-        body: JSON.stringify(built.body)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(built.body),
       });
-      
-      if (response.ok) {
-        const data = await response.json();
+      {
         const projectId = data.data.project.id;
-        
+
         // Only read the commit history here; the user chooses what to mine (a date range or everything).
-        await fetch(`${API_BASE_URL}/projects/${projectId}/scan`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${readTokens().accessToken}` }
-        });
+        // A failed scan is not fatal: Manage mining offers it again.
+        await apiRequest(`/projects/${projectId}/scan`, { method: 'POST' }).catch(() => undefined);
 
         message.success('Repository registered. Choose which part of its history to mine.');
         setMiningProject({ id: projectId, name: data.data.project.name ?? projectName });
@@ -124,12 +124,9 @@ const Projects: React.FC = () => {
         setRepoUrl('');
         chooseSpace('');
         setAccess('credential');
-      } else {
-        const err = await response.json().catch(() => ({}));
-        message.error(err.error?.message || err.message || 'Failed to register repository');
       }
     } catch (error) {
-      message.error('Network error. Please try again.');
+      message.error(error instanceof Error ? error.message : 'Failed to register repository');
     } finally {
       setIsSubmitting(false);
     }
@@ -137,22 +134,12 @@ const Projects: React.FC = () => {
 
   const handleDeleteProject = async (id: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${readTokens().accessToken}`
-        }
-      });
-      if (response.ok) {
-        message.success('Workspace deleted successfully');
-        setProjectsList(prev => prev?.filter(p => p.id !== id) ?? prev);
-        fetchProjects();
-      } else {
-        const err = await response.json().catch(() => ({}));
-        message.error(err.message || 'Failed to delete workspace');
-      }
+      await apiRequest(`/projects/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      message.success('Workspace deleted successfully');
+      setProjectsList(prev => prev?.filter(p => p.id !== id) ?? prev);
+      fetchProjects();
     } catch (error) {
-      message.error('Network error. Please try again.');
+      message.error(error instanceof Error ? error.message : 'Failed to delete workspace');
     }
   };
 
@@ -165,29 +152,22 @@ const Projects: React.FC = () => {
         
         {/* HEADER */}
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--at-panel-2)] border border-[var(--at-line)] mb-4">
-            <div className="w-1.5 h-1.5 rounded-full bg-[var(--at-accent)] shadow-[0_0_5px_#3b82f6]"></div>
-            <span className="text-[10px] font-mono text-[var(--at-link)] tracking-wider font-semibold uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Repository Workspace</span>
-          </div>
-          
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)] mb-2">Repository Workspaces</h2>
-              <p className="text-[var(--at-muted)] text-sm max-w-xl leading-relaxed">
-                Manage repositories and their architecture analysis. Each workspace contains one or more connected repositories.
-              </p>
-            </div>
-            <button 
+          <PageHeader title="Workspaces" summary="Your repositories and their architecture history." actions={
+            <button
               onClick={() => setIsModalOpen(true)}
-              className="shrink-0 h-10 px-5 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] font-bold text-xs transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(56,189,248,0.15)]"
+              className="shrink-0 h-10 px-5 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] font-semibold text-sm transition-colors flex items-center gap-2"
             >
               <Plus size={16} />
-              NEW WORKSPACE
+              New workspace
             </button>
-          </div>
-          <div className="h-[1px] w-full bg-gradient-to-r from-[var(--at-line)] to-transparent mt-8"></div>
+          } />
         </div>
+
+        {suspended && (
+          <div role="status" className="border border-[#f59e0b]/40 bg-[#f59e0b]/5 p-4 text-sm text-[var(--at-text)]">
+            {suspended}
+          </div>
+        )}
 
         {loadError && (
           <div role="alert" className="border border-[#ef4444]/40 bg-[#ef4444]/5 p-4 text-sm text-[#fca5a5] flex flex-wrap items-center justify-between gap-3">
@@ -214,27 +194,13 @@ const Projects: React.FC = () => {
           </section>
         ) : (
           <>
-            {/* PROJECT SUMMARY METRICS */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[
-                { icon: FolderKanban, label: 'Workspaces', value: projectsList.length, color: 'text-[var(--at-muted)]' },
-                { icon: GitCommit, label: 'Commits found', value: projectsList.reduce((sum, p) => sum + (p.totalCommits ?? 0), 0), color: 'text-[var(--at-link)]' },
-                { icon: Activity, label: 'Mined workspaces', value: projectsList.filter(hasMinedHistory).length, color: 'text-[var(--at-warn)]' },
-              ].map(({ icon: Icon, label, value, color }) => (
-                <div key={label} className="flex items-center gap-4 bg-[var(--at-panel-2)] border border-[var(--at-line)] p-5">
-                  <div className="w-12 h-12 bg-[var(--at-page)] border border-[var(--at-line)] flex items-center justify-center">
-                    <Icon size={20} className={color} aria-hidden="true" />
-                  </div>
-                  <div>
-                    <h3 className="text-[10px] font-mono font-semibold text-[var(--at-muted)] tracking-widest uppercase mb-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{label}</h3>
-                    <div className="text-2xl font-bold text-[var(--at-text)] font-mono" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{value}</div>
-                  </div>
-                </div>
-              ))}
+            {/* PROJECT LIST: the totals in one line next to the search (the Dashboard shows them as tiles). */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <input aria-label="Search workspaces" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search workspaces…" className="h-11 w-full max-w-md px-4 border border-[var(--at-line)] bg-[var(--at-panel)] text-sm" />
+              <p className="text-sm text-[var(--at-muted)]">
+                <span className="text-[var(--at-text)] font-semibold">{projectsList.length}</span> workspaces · <span className="text-[var(--at-text)] font-semibold">{projectsList.filter(hasMinedHistory).length}</span> mined · <span className="text-[var(--at-text)] font-semibold">{projectsList.reduce((sum, p) => sum + (p.totalCommits ?? 0), 0)}</span> commits found
+              </p>
             </div>
-
-            {/* PROJECT LIST */}
-            <input aria-label="Search workspaces" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search workspaces…" className="h-11 w-full max-w-md px-4 border border-[var(--at-line)] bg-[var(--at-panel)] text-sm" />
             {!filteredProjects.length && <p role="status" className="text-[var(--at-muted)] text-sm">No workspaces match your search.</p>}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {pagination.items.map((project) => {
@@ -243,7 +209,9 @@ const Projects: React.FC = () => {
                   <div key={project.id} className="bg-[var(--at-panel)] border border-[var(--at-line)] hover:border-[var(--at-accent)]/50 overflow-hidden transition-colors flex flex-col group">
                     <div className="p-6 flex-1 flex flex-col">
                       <div className="flex items-start justify-between mb-2 gap-2">
-                        <h3 className="text-[var(--at-text)] font-bold text-lg tracking-tight group-hover:text-[var(--at-link)] transition-colors break-words">{project.name}</h3>
+                        <h3 className="text-[var(--at-text)] font-bold text-lg tracking-tight break-words">
+                          <Link to={`/project?projectId=${encodeURIComponent(project.id)}`} title="Workspace details" className="hover:text-[var(--at-link)] transition-colors">{project.name}</Link>
+                        </h3>
                         {project.role === 'owner' && project.personalPublic && (
                           <button
                             onClick={() => setViewerProject({ id: project.id, name: project.name })}
@@ -252,6 +220,16 @@ const Projects: React.FC = () => {
                             aria-label={`Viewer settings of ${project.name}`}
                           >
                             <Eye size={16} />
+                          </button>
+                        )}
+                        {project.role === 'owner' && project.personal && (
+                          <button
+                            onClick={() => setTransferProject({ id: project.id, name: project.name })}
+                            className={`text-[var(--at-muted)] hover:text-[var(--at-link)] transition-colors p-1 ${project.personalPublic ? '' : 'ml-auto'}`}
+                            title="Move into an organization"
+                            aria-label={`Move ${project.name} into an organization`}
+                          >
+                            <Building2 size={16} />
                           </button>
                         )}
                         {project.role === 'owner' && (
@@ -266,48 +244,31 @@ const Projects: React.FC = () => {
                         )}
                       </div>
 
-                      <p className="text-[var(--at-muted)] text-sm mb-6 line-clamp-2 leading-relaxed flex-1 break-all">
-                        {project.description || project.repoUrl || 'No description.'}
+                      <p className="text-sm text-[var(--at-muted)]">
+                        <span className="text-[var(--at-text)]">{STATUS_LABELS[project.status]}</span>
+                        {' · '}{project.totalCommits == null ? 'not scanned' : `${project.totalCommits} commits`}
+                        {!project.canMaintain && <span title="Only its maintainers can mine it or define its architecture with AI." className="ml-2 rounded-full border border-[var(--at-line)] px-2 py-0.5 text-[11px]">Read only</span>}
                       </p>
+                      <p className="mt-3 mb-6 flex-1 text-xs leading-relaxed text-[var(--at-muted)] line-clamp-2">{step.hint}</p>
 
-                      <dl className="grid grid-cols-2 gap-y-4 gap-x-2 mb-6">
-                        <div>
-                          <dt className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider mb-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>Status</dt>
-                          <dd className="text-[var(--at-text)] text-sm font-mono" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{STATUS_LABELS[project.status]}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider mb-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>Commits found</dt>
-                          <dd className="text-[var(--at-text)] text-sm font-mono" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{project.totalCommits ?? 'Not scanned'}</dd>
-                        </div>
-                        <div className="col-span-2">
-                          <dt className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider mb-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>Next step</dt>
-                          <dd className="text-[var(--at-muted)] text-xs leading-relaxed">{step.hint}</dd>
-                        </div>
-                      </dl>
-
-                      {/* Scanning and mining are maintainer work; the server refuses them to members who only read. */}
-                      {project.canMaintain ? <button
-                        type="button"
-                        onClick={() => setMiningProject({ id: project.id, name: project.name })}
-                        className="w-full h-11 mb-3 bg-[var(--at-accent)]/10 hover:bg-[var(--at-accent)]/20 border border-[var(--at-accent)]/40 text-[var(--at-link)] text-xs font-bold flex items-center justify-center gap-2"
-                      >
-                        MANAGE MINING
-                      </button> : <p className="mb-3 text-xs text-slate-400">You can read this workspace. Only its maintainers can mine it or define its architecture with AI.</p>}
                       <div className="mt-auto flex gap-2">
-                        <Link
-                          to={`/workspace/${encodeURIComponent(project.id)}`}
-                          className="flex-1 h-11 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] font-semibold text-sm flex items-center justify-center gap-2"
-                        >
-                          Open architecture <ArrowRight size={14} aria-hidden="true" />
-                        </Link>
+                        {/* Opens the workspace's overview; the full-screen map is one click further (its Architecture tab). */}
                         <Link
                           to={`/project?projectId=${encodeURIComponent(project.id)}`}
-                          aria-label={`Details of ${project.name}`}
-                          title="Workspace details"
-                          className="h-11 px-3 bg-[var(--at-panel-2)] hover:bg-[var(--at-line)] border border-[var(--at-line)] text-xs flex items-center justify-center"
+                          aria-label={`Open ${project.name}`}
+                          className="flex-1 h-10 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] font-semibold text-sm flex items-center justify-center gap-2"
                         >
-                          Details
+                          Open <ArrowRight size={14} aria-hidden="true" />
                         </Link>
+                        {/* Scanning and mining are maintainer work; the server refuses them to members who only read. */}
+                        {project.canMaintain && <button
+                          type="button"
+                          onClick={() => setMiningProject({ id: project.id, name: project.name })}
+                          aria-label={`Manage mining of ${project.name}`}
+                          className="h-10 px-4 rounded-full bg-[var(--at-panel-2)] hover:bg-[var(--at-line)] border border-[var(--at-line)] text-[var(--at-text)] text-sm flex items-center justify-center gap-2"
+                        >
+                          <Activity size={14} aria-hidden="true" /> Mining
+                        </button>}
                       </div>
                     </div>
                   </div>
@@ -325,6 +286,7 @@ const Projects: React.FC = () => {
 
       {miningProject && <MiningPanel project={miningProject} open onClose={() => setMiningProject(null)} onChanged={fetchProjects} />}
       {viewerProject && <ViewerSettingsModal project={viewerProject} onClose={() => setViewerProject(null)} />}
+      {transferProject && <TransferProjectModal project={transferProject} onClose={() => setTransferProject(null)} onMoved={() => { setTransferProject(null); fetchProjects(); }} />}
 
       {/* NEW PROJECT MODAL OVERLAY */}
       <AnimatePresence>

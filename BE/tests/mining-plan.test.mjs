@@ -73,6 +73,26 @@ test('parseCommitLog reads real git output including subjects with odd character
   }
 });
 
+test('parseCommitLog keeps the trailers of the message (Task:, Arch-Change:) and still reads the subject', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mining-'));
+  const git = (...args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8', env: { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@x.io', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@x.io' } });
+  try {
+    git('init', '-q', '-b', 'main');
+    fs.writeFileSync(path.join(dir, 'a.txt'), '1');
+    git('add', '.');
+    git('commit', '-q', '-m', 'feat(tasks): import jira\n\nA body line.\n\nTask: T22, ARCH-12\nArch-Change: billing, orders');
+    fs.writeFileSync(path.join(dir, 'a.txt'), '2');
+    git('commit', '-q', '-am', 'no trailers here');
+    const commits = parseCommitLog(git('log', '--all', '--source', '--date-order', '--reverse', `--format=${GIT_LOG_FORMAT}`));
+    assert.equal(commits.length, 2);
+    assert.equal(commits[0].message, 'feat(tasks): import jira');
+    assert.deepEqual(commits[0].trailers, ['Task: T22, ARCH-12', 'Arch-Change: billing, orders']);
+    assert.deepEqual(commits[1].trailers, []);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('milestones requests: accepted, and milestonesOnly is only read in that mode', () => {
   assert.deepEqual(parseMineRequest({ mode: 'milestones' }), { mode: 'milestones', since: undefined, until: undefined, force: false, milestonesOnly: false });
   assert.equal(parseMineRequest({ mode: 'milestones', milestonesOnly: true }).milestonesOnly, true);

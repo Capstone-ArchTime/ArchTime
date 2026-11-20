@@ -5,7 +5,7 @@ import { parseMiningJobs, type MiningJob } from './mining-jobs';
 // What the analyst pages show about the signed-in account's workspaces, read from GET /projects and GET /projects/jobs.
 // Server: BE/src/application/use-cases/projects/GetAllProjectsUseCase.ts; status rules in BE MiningService.settleProjectStatus.
 
-export type WorkspaceStatus = 'PENDING' | 'CLONING' | 'ANALYZING' | 'PARTIAL' | 'COMPLETED' | 'FAILED' | 'UNKNOWN';
+export type WorkspaceStatus = 'PENDING' | 'ANALYZING' | 'PARTIAL' | 'COMPLETED' | 'FAILED' | 'UNKNOWN';
 export type Workspace = {
   id: string; name: string; description: string; repoUrl: string; status: WorkspaceStatus; role: string;
   /** Commits found by the last scan; null until the history has been read. */
@@ -14,9 +14,11 @@ export type Workspace = {
   canMaintain: boolean;
   /** A public workspace in a personal space: the only kind that has viewers (BR-17). */
   personalPublic: boolean;
+  /** In its owner's personal space, not an organization's: the owner can move it into an organization (RF-11). */
+  personal: boolean;
 };
 
-const STATUSES: WorkspaceStatus[] = ['PENDING', 'CLONING', 'ANALYZING', 'PARTIAL', 'COMPLETED', 'FAILED'];
+const STATUSES: WorkspaceStatus[] = ['PENDING', 'ANALYZING', 'PARTIAL', 'COMPLETED', 'FAILED'];
 const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 const date = (v: unknown) => (typeof v === 'string' && Number.isFinite(Date.parse(v)) ? v : null);
 
@@ -33,6 +35,7 @@ export function parseWorkspace(raw: unknown): Workspace | null {
     firstCommitDate: date(history?.firstCommitDate), lastCommitDate: date(history?.lastCommitDate), updatedAt: date(p.updatedAt),
     canMaintain: p.isMaintainer === true,
     personalPublic: !p.organizationId && text(p.visibility) === 'public',
+    personal: !p.organizationId,
   };
 }
 
@@ -52,7 +55,7 @@ export const hasMinedHistory = (w: Pick<Workspace, 'status'>) => w.status === 'P
 export const mayHaveSnapshots = (w: Pick<Workspace, 'status'>) => hasMinedHistory(w) || w.status === 'ANALYZING';
 
 export const STATUS_LABELS: Record<WorkspaceStatus, string> = {
-  PENDING: 'Not mined yet', CLONING: 'Cloning', ANALYZING: 'Mining', PARTIAL: 'Partly mined', COMPLETED: 'Fully mined', FAILED: 'Mining failed', UNKNOWN: 'Unknown',
+  PENDING: 'Not mined yet', ANALYZING: 'Mining', PARTIAL: 'Partly mined', COMPLETED: 'Fully mined', FAILED: 'Mining failed', UNKNOWN: 'Unknown',
 };
 
 export type NextStep = { label: string; hint: string; to: string; action: 'scan' | 'mine' | 'open' | 'wait' };
@@ -64,12 +67,12 @@ export function nextStep(w: Pick<Workspace, 'id' | 'status' | 'totalCommits'> & 
   const id = encodeURIComponent(w.id);
   if (w.canMaintain === false) {
     if (hasMinedHistory(w)) return { action: 'open', label: 'Open the architecture', hint: 'Mined commits are ready. Open the architecture to explore its components.', to: `/workspace/${id}` };
-    if (w.status === 'ANALYZING' || w.status === 'CLONING') return { action: 'wait', label: 'Mining in progress', hint: 'A maintainer is mining this workspace. Its history appears once the first batch is stored.', to: '/projects' };
+    if (w.status === 'ANALYZING') return { action: 'wait', label: 'Mining in progress', hint: 'A maintainer is mining this workspace. Its history appears once the first batch is stored.', to: '/projects' };
     return { action: 'wait', label: 'Waiting for a maintainer', hint: 'Only maintainers of this workspace can scan and mine its history. Its architecture appears here once they have.', to: '/projects' };
   }
   if (hasMinedHistory(w)) return { action: 'open', label: 'Group files into components', hint: 'Mined commits are ready. Open the architecture to name its components.', to: `/workspace/${id}` };
-  if (w.status === 'ANALYZING' || w.status === 'CLONING') return { action: 'wait', label: 'Mining in progress', hint: 'Commits are being analyzed. This page shows them once the first batch is stored.', to: '/projects' };
-  if (w.status === 'FAILED') return { action: 'mine', label: 'Try mining again', hint: 'The last mining run stored no commits. Open Manage mining to see the error and retry.', to: '/projects' };
+  if (w.status === 'ANALYZING') return { action: 'wait', label: 'Mining in progress', hint: 'Commits are being analyzed. This page shows them once the first batch is stored.', to: '/projects' };
+  if (w.status === 'FAILED') return { action: 'mine', label: 'Try mining again', hint: 'The last mining run stored no commits. Open Mining to see the error and retry.', to: '/projects' };
   if (w.totalCommits === null) return { action: 'scan', label: 'Read the commit history', hint: 'Scan the repository so you can choose which commits to mine.', to: '/projects' };
   return { action: 'mine', label: 'Mine commits', hint: `${w.totalCommits} commits found. Mine a date range or all of them to build the history.`, to: '/projects' };
 }

@@ -23,6 +23,11 @@ export interface IProjectRepository {
   ): Promise<{ items: IProject[]; total: number }>;
   delete(id: string, userId?: string): Promise<boolean>;
   findByOrganizationId(organizationId: string): Promise<IProject[]>;
+  /**
+   * Moves a personal project of `ownerId` into an organization (RF-11). Null when it is not (any more) a personal project
+   * of that owner. Everything else of the project is keyed by its id and moves with it.
+   */
+  moveToOrganization(id: string, ownerId: string, organizationId: string): Promise<IProject | null>;
   findByIds(ids: string[]): Promise<IProject[]>;
   countByCredentialId(credentialId: string): Promise<number>;
   updateViewerAccess(id: string, access: IProjectViewerAccess): Promise<IProject | null>;

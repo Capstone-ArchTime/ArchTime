@@ -10,6 +10,8 @@ export interface ISnapshot {
   /** Tags on this commit when it was last mined or scanned. */
   tags?: string[];
   title: string;
+  /** Git trailers of the commit message ("Task: T22", "Arch-Change: none"). Absent on snapshots mined before they were kept. */
+  trailers?: string[];
   author: string;
   date: Date;
   branches: string[];
@@ -40,6 +42,7 @@ const SnapshotSchema = new Schema<ISnapshotDocument>(
     version: { type: String },
     tags: { type: [String], default: [] },
     title: { type: String, required: true },
+    trailers: { type: [String], default: undefined },
     author: { type: String, required: true },
     date: { type: Date, required: true },
     branches: { type: [String], default: [] },

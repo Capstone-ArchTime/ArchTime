@@ -114,3 +114,25 @@ test("Mentor labels: the chat answer, its evidence panel and the saved history a
   assert.equal(saved[0].answer.content, result.answer);
   assert.deepEqual(saved[0].answer.labelCheck, result.labelCheck);
 });
+
+test("F-06 (WF-02): the 16th question within a minute is refused (MSG10); the first 15 are answered", async (t) => {
+  t.mock.method(SnapshotModel, "find", () => query([]));
+  t.mock.method(SnapshotModel, "countDocuments", async () => 0);
+  t.mock.method(SnapshotModel, "findOne", () => query(null));
+  t.mock.method(EvidenceModel, "find", () => query([]));
+  t.mock.method(EvidenceModel, "countDocuments", async () => 0);
+  let calls = 0;
+  t.mock.method(LlmModelRegistry, "resolve", async () => ({
+    modelId: null, modelKey: "test", pricing: null,
+    client: { info: { model: "test-model", host: "localhost", external: false }, complete: async () => { calls++; return "[INFERENCE] Nothing was mined yet."; } },
+  }));
+  const useCase = new ProjectChatUseCase(
+    { assertCanAppend: async () => {}, append: async () => ({ id: "c1", title: "t" }) },
+    { record: async () => {} },
+    { among: async () => [] },
+  );
+  const ask = () => useCase.execute({ project: { id: "p1", name: "api", repoUrl: "https://git.example/api" }, userId: "u-msg10", messages: [{ role: "user", content: "What changed?" }] });
+  for (let i = 0; i < 15; i++) await ask();
+  await assert.rejects(ask(), e => e.statusCode === 429 && e.code === "RATE_LIMITED" && /too quickly/.test(e.message));
+  assert.equal(calls, 15, "the refused question never reached the model (no cost)");
+});

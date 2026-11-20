@@ -13,7 +13,7 @@ import { OrganizationRole } from "../src/domain/entities/Organization.ts";
 import { MemberStatus, ProjectMemberRole } from "../src/domain/entities/ProjectMember.ts";
 import { ProjectStatus, RepoVisibility } from "../src/domain/entities/Project.ts";
 import { OrganizationUseCases } from "../src/application/use-cases/organizations/OrganizationUseCases.ts";
-import { GetAdminOrganizationsUseCase } from "../src/application/use-cases/admin/GetAdminOrganizationsUseCase.ts";
+import { GetAdminOrganizationsUseCase, SuspendOrganizationUseCase } from "../src/application/use-cases/admin/GetAdminOrganizationsUseCase.ts";
 import { OrganizationController } from "../src/presentation/controllers/OrganizationController.ts";
 import { AdminOrganizationController } from "../src/presentation/controllers/AdminOrganizationController.ts";
 import { createOrganizationRouter } from "../src/presentation/routes/organization.routes.ts";
@@ -78,6 +78,12 @@ function world() {
     async removeMember(id) { const i = orgMembers.findIndex((m) => m.id === id); if (i < 0) return false; orgMembers.splice(i, 1); return true; },
     async countOwners(organizationId) { return orgMembers.filter((m) => m.organizationId === organizationId && m.role === OrganizationRole.OWNER && m.status !== "invited").length; },
     async findPaginated({ page, limit }) { return { items: orgs.slice((page - 1) * limit, page * limit), total: orgs.length }; },
+    async setSuspension(id, suspension) {
+      const o = orgs.find((x) => x.id === id);
+      if (!o || !!o.suspension === !!suspension) return null;
+      o.suspension = suspension;
+      return { ...o };
+    },
   };
   const projectRepo = {
     async findById(id) { return projects.find((p) => p.id === id) ?? null; },
@@ -126,7 +132,10 @@ async function start(t) {
   app.use("/api/organizations", createOrganizationRouter(new OrganizationController(orgUseCases, allowAll()), jwt));
   app.use("/api/admin", createAdminRouter({
     userController: allowAll(), jobController: allowAll(), auditController: allowAll(), settingsController: allowAll(), metricsController: allowAll(), llmController: allowAll(),
-    organizationController: new AdminOrganizationController(new GetAdminOrganizationsUseCase(w.organizations, w.projectRepo, w.userRepo)),
+    organizationController: (() => {
+      const view = new GetAdminOrganizationsUseCase(w.organizations, w.projectRepo, w.userRepo);
+      return new AdminOrganizationController(view, new SuspendOrganizationUseCase(w.organizations, view, async (entry) => { audits.push(entry); }));
+    })(),
   }, jwt));
   app.use("/api/projects", createOnboardingRouter(allowAll(), jwt, checkRole));
   app.use("/api/projects", createProjectRouter(allowAll(), jwt, allowAll(), checkRole, allowAll(), allowAll()));
@@ -196,7 +205,7 @@ test("S05 A removed member loses every project of the organization at once, with
   const frank = w.orgMembers.find((m) => m.userId === "frank");
   assert.equal(await status("DELETE", `/organizations/acme/members/${frank.id}`, "alice"), 200);
   for (const [method, path] of [["GET", "/projects/acme-web"], ["GET", "/projects/acme-web/snapshots"], ["POST", "/projects/acme-web/diagram/confirm"], ["GET", "/projects/acme-api/snapshots"]]) {
-    assert.equal(await status(method, path, token), 403, `${method} ${path}`);
+    assert.equal(await status(method, path, token), 404, `${method} ${path} (N-05: foreign now)`);
   }
   assert.equal(await status("GET", "/organizations/acme", token), 404);
   assert.equal(await status("GET", "/projects/frank-own/snapshots", token), 200, "their own personal project");
@@ -207,9 +216,10 @@ test("S06 A member of one organization cannot reach another organization or its 
   const { status } = await start(t);
   assert.equal(await status("GET", "/organizations/beta", "bob"), 404, "not even its existence");
   assert.equal(await status("GET", "/organizations/beta/members", "bob"), 404);
-  assert.equal(await status("GET", "/projects/beta-core", "bob"), 403);
-  assert.equal(await status("GET", "/projects/beta-core/snapshots", "alice"), 403, "owning one organization gives nothing in another");
-  assert.equal(await status("GET", "/projects/acme-api/snapshots", "dora"), 403, "a public organization project is still members only");
+  // N-05: a project of another organization answers 404, as if it did not exist.
+  assert.equal(await status("GET", "/projects/beta-core", "bob"), 404);
+  assert.equal(await status("GET", "/projects/beta-core/snapshots", "alice"), 404, "owning one organization gives nothing in another");
+  assert.equal(await status("GET", "/projects/acme-api/snapshots", "dora"), 404, "a public organization project is still members only");
 });
 
 test("S07 Project Owner manages the project: members, invitations, approvals, deletion", async (t) => {
@@ -227,7 +237,7 @@ test("S08 Maintainer (Mentor) manages knowledge: diagram, decisions, rules, lear
     ["POST", "/projects/acme-api/onboarding-paths"], ["POST", "/projects/acme-api/onboarding-paths/p1/assignments"], ["GET", "/projects/acme-api/onboarding-paths/p1/assignments"],
   ]) assert.equal(await status(method, path, "bob"), 200, `${method} ${path}`);
   assert.equal(await status("DELETE", "/projects/acme-api", "bob"), 403);
-  assert.equal(await status("POST", "/projects/acme-web/diagram/confirm", "bob"), 403, "only in the project they maintain");
+  assert.equal(await status("POST", "/projects/acme-web/diagram/confirm", "bob"), 404, "only in the project they maintain; another project of the organization is foreign to them");
 });
 
 test("S09 Newcomer (Member) learns and reads; cannot change knowledge or see others' progress", async (t) => {
@@ -248,8 +258,8 @@ test("S10 Viewer reads public personal projects only, and never writes", async (
   assert.equal(await status("GET", "/projects/eve-public/snapshots", "gina"), 200);
   assert.equal(await status("POST", "/projects/eve-public/diagram/confirm", "gina"), 403);
   assert.equal(await status("POST", "/projects/eve-public/onboarding-paths/p1/steps/s1/complete", "gina"), 200, "reading includes following a path they were given");
-  assert.equal(await status("GET", "/projects/eve-private/snapshots", "gina"), 403);
-  assert.equal(await status("GET", "/projects/acme-api/snapshots", "gina"), 403, "organization projects are never public");
+  assert.equal(await status("GET", "/projects/eve-private/snapshots", "gina"), 404);
+  assert.equal(await status("GET", "/projects/acme-api/snapshots", "gina"), 404, "organization projects are never public");
 });
 
 test("S11 Nobody but a System Administrator calls the admin API, and authentication is enforced", async (t) => {
@@ -277,4 +287,79 @@ test("S12 A System Administrator cannot read the content of an organization's pr
     ["POST", "/projects/acme-api/diagram/confirm"], ["DELETE", "/projects/acme-api"],
   ]) assert.equal(await status(method, path, "admin"), 403, `${method} ${path}`);
   assert.equal(await status("GET", "/organizations/acme", "admin"), 404, "not a member");
+});
+
+// ── T7: organization suspension (RF-14, UC-25) ───────────────────────────────
+
+test("S13 only a System Administrator suspends or reactivates an organization, with a reason, and sees metadata only", async (t) => {
+  const { call, status, audits } = await start(t);
+  const reason = { reason: "Unpaid invoice since October" };
+  assert.equal(await status("POST", "/admin/organizations/acme/suspend", null, reason), 401, "no token");
+  assert.equal(await status("POST", "/admin/organizations/acme/suspend", "alice", reason), 403, "organization owner");
+  assert.equal(await status("POST", "/admin/organizations/acme/suspend", "bob", reason), 403, "member");
+  assert.equal(await status("POST", "/admin/organizations/acme/reactivate", "alice"), 403);
+  const noReason = await call("POST", "/admin/organizations/acme/suspend", "admin", { reason: " " });
+  assert.equal(noReason.status, 400);
+  assert.equal(noReason.json.error.fields.reason, "required");
+  assert.equal(await status("POST", "/admin/organizations/nope/suspend", "admin", reason), 404);
+
+  const done = await call("POST", "/admin/organizations/acme/suspend", "admin", reason);
+  assert.equal(done.status, 200);
+  const org = done.json.data.organization;
+  assert.equal(org.status, "suspended");
+  assert.equal(org.suspension.reason, "Unpaid invoice since October");
+  assert.equal(org.suspension.by.name, "Ada Admin");
+  assert.equal(done.text.includes("git.example"), false, "still no repository address");
+  assert.equal(done.text.includes("internals"), false, "still no project description");
+  assert.equal(await status("POST", "/admin/organizations/acme/suspend", "admin", reason), 409, "already suspended");
+  const listed = await call("GET", "/admin/organizations", "admin");
+  assert.deepEqual(listed.json.data.organizations.map((o) => [o.name, o.status]), [["Acme", "suspended"], ["Beta", "active"]]);
+  assert.deepEqual(audits.filter((a) => a.action === "ORGANIZATION_SUSPEND").map((a) => [a.userId, a.targetId, a.details.reason]), [["admin", "acme", "Unpaid invoice since October"]]);
+
+  const back = await call("POST", "/admin/organizations/acme/reactivate", "admin");
+  assert.equal(back.status, 200);
+  assert.deepEqual([back.json.data.organization.status, back.json.data.organization.suspension], ["active", null]);
+  assert.equal(await status("POST", "/admin/organizations/acme/reactivate", "admin"), 409, "not suspended any more");
+  assert.equal(audits.filter((a) => a.action === "ORGANIZATION_REACTIVATE").length, 1);
+});
+
+test("S14 while suspended, the organization's workspaces are closed to everyone and owners cannot change it; reactivating restores access", async (t) => {
+  const { call, status, w } = await start(t);
+  const membersBefore = w.orgMembers.length;
+  await call("POST", "/admin/organizations/acme/suspend", "admin", { reason: "Security review" });
+
+  for (const who of ["alice", "bob", "carl"]) {
+    const r = await call("GET", "/projects/acme-api/snapshots", who);
+    assert.equal(r.status, 403, `${who} reads nothing`);
+    assert.match(r.json.error.message, /suspended/);
+    assert.equal(await status("GET", "/projects/acme-api", who), 403, `${who} not even metadata`);
+  }
+  assert.equal(await status("POST", "/projects/acme-web/scan", "alice"), 403, "no write either");
+  assert.equal(await status("PATCH", "/organizations/acme", "alice", { name: "Acme 2" }), 403, "owner cannot change it");
+  assert.equal(await status("GET", "/organizations/acme", "alice"), 200, "members still see that their organization exists");
+  // Other organizations and personal workspaces are not affected; the administrator still has metadata only.
+  assert.equal(await status("GET", "/projects/beta-core/snapshots", "dora"), 200);
+  assert.equal(await status("GET", "/projects/frank-own/snapshots", "frank"), 200);
+  assert.equal(await status("GET", "/projects/acme-api", "admin"), 200);
+  assert.equal(await status("GET", "/projects/acme-api/snapshots", "admin"), 403);
+
+  await call("POST", "/admin/organizations/acme/reactivate", "admin");
+  assert.equal(await status("GET", "/projects/acme-api/snapshots", "bob"), 200);
+  assert.equal(await status("POST", "/projects/acme-web/scan", "alice"), 200);
+  assert.equal(await status("PATCH", "/organizations/acme", "alice", { name: "Acme" }), 200);
+  assert.equal(w.orgMembers.length, membersBefore, "suspension removed no member");
+});
+
+test("S15 while suspended, owners cannot add, re-role or remove members; a member may still leave", async (t) => {
+  const { status, w } = await start(t);
+  await status("POST", "/admin/organizations/acme/suspend", "admin", { reason: "Security review" });
+  const before = w.orgMembers.filter((m) => m.organizationId === "acme").length;
+  assert.equal(await status("POST", "/organizations/acme/members", "alice", { email: "gina@x.io" }), 403, "add");
+  assert.equal(await status("PATCH", "/organizations/acme/members/om1", "alice", { role: "owner" }), 403, "change role");
+  assert.equal(await status("DELETE", "/organizations/acme/members/om1", "alice"), 403, "remove someone else");
+  assert.equal(w.orgMembers.filter((m) => m.organizationId === "acme").length, before, "nobody was added or removed");
+  assert.equal(await status("DELETE", "/organizations/acme/members/om2", "carl"), 200, "carl leaves on his own");
+  assert.equal(w.orgMembers.filter((m) => m.organizationId === "acme").length, before - 1);
+  await status("POST", "/admin/organizations/acme/reactivate", "admin");
+  assert.equal(await status("DELETE", "/organizations/acme/members/om3", "alice"), 200, "after reactivation the owner manages members again");
 });

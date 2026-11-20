@@ -1,6 +1,7 @@
 import { Tooltip } from 'antd';
 import { CircleCheck, TriangleAlert } from 'lucide-react';
 import type { Issue, IssueAction, IssueSeverity, IssueSummary } from '@/features/architecture/issues';
+import { Details } from '@/components/PageHeader';
 
 // Red for high, amber for medium, slate for low; text colours are chosen to read on the #11161b panels.
 const TONE: Record<IssueSeverity | 'hint', { bar: string; text: string; label: string; chip: string }> = {
@@ -39,8 +40,10 @@ function Card({ issue, active, onShow, onAction }: { issue: Issue; active: boole
         <span className={`mt-px shrink-0 font-mono text-[10px] font-bold uppercase tracking-wider ${tone.text}`}>{tone.label}</span>
         <span className="text-[13px] font-semibold leading-snug text-slate-100">{issue.title}</span>
       </p>
-      <p className="leading-relaxed text-slate-300">{issue.explanation}</p>
-      <p className="leading-relaxed text-slate-300"><span className="font-semibold text-[var(--at-link)]">What to do: </span>{issue.suggestion}</p>
+      <Details bodyClassName="text-xs" defaultOpen={active}>
+        <p className="text-slate-300">{issue.explanation}</p>
+        <p className="text-slate-300"><span className="font-semibold text-[var(--at-link)]">What to do: </span>{issue.suggestion}</p>
+      </Details>
       {(showable || (issue.action && onAction)) && <div className="flex flex-wrap gap-2 pt-1">
         {showable && <button type="button" onClick={() => onShow(issue)} className="h-7 border border-[var(--at-accent)]/50 px-2.5 text-[11px] font-bold text-[var(--at-link)] hover:bg-[var(--at-accent)]/10 hover:text-[var(--at-link-hover)]">Show in diagram</button>}
         {issue.action && onAction && <button type="button" onClick={() => onAction(issue.action!)} className="h-7 bg-[var(--at-fill)] px-2.5 text-[11px] font-bold text-[var(--at-on-fill)] hover:bg-[var(--at-fill-hover)]">{ACTION_LABEL[issue.action](issue)}</button>}

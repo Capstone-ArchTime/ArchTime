@@ -19,18 +19,28 @@ import {
   projectMaintainerController,
   llmController,
   projectChatController,
+  conformanceController,
+  agentController,
+  transferProjectUseCase,
   organizationController,
   onboardingController,
   rateLimiter,
+  taskUseCases,
 } from "./container.js";
+import { createTaskRouter } from "./presentation/routes/task.routes.js";
 import { createOrganizationRouter } from "./presentation/routes/organization.routes.js";
 import { createRevisionRouter } from "./presentation/routes/revision.routes.js";
 import { createLearningRouter, createOnboardingRouter } from "./presentation/routes/onboarding.routes.js";
 import { createLlmRouter } from "./presentation/routes/llm.routes.js";
 import { createProjectChatRouter } from "./presentation/routes/projectChat.routes.js";
+import { createConformanceInboxRouter, createConformanceRouter } from "./presentation/routes/conformance.routes.js";
+import { createAgentRouter, createAgentTokenRouter } from "./presentation/routes/agent.routes.js";
+import { createProjectTransferRouter } from "./presentation/routes/projectTransfer.routes.js";
 import { createGitHubRouter } from './presentation/routes/github.routes.js';
 import { GitHubIdentityService } from './infrastructure/services/GitHubIdentityService.js';
 import { GitHubLoginUseCase } from './application/use-cases/GitHubLoginUseCase.js';
+import { GitHubLinkUseCase } from './application/use-cases/GitHubLinkUseCase.js';
+import { AuditService } from './infrastructure/services/AuditService.js';
 import { MongoUserRepository } from './infrastructure/repositories/MongoUserRepository.js';
 import { createAuthenticateMiddleware } from "./presentation/middlewares/authenticate.js";
 import { createInvitationRouter } from "./presentation/routes/invitation.routes.js";
@@ -50,9 +60,16 @@ setupSwagger(app);
 
 // ── Routes ──
 app.use("/api/health", healthRouter);
-app.use('/api/auth/github', createGitHubRouter(env, new GitHubIdentityService(env.githubClientId, env.githubClientSecret, env.githubCallbackUrl), new GitHubLoginUseCase(), new MongoUserRepository(), jwtTokenService));
+app.use('/api/auth/github', createGitHubRouter(env, new GitHubIdentityService(env.githubClientId, env.githubClientSecret, env.githubCallbackUrl), new GitHubLoginUseCase(), new MongoUserRepository(), jwtTokenService,
+  new GitHubLinkUseCase(new MongoUserRepository(), entry => AuditService.log({ ...entry, targetType: 'user', targetId: entry.userId }))));
 app.use("/api/auth", createAuthRouter(authController, jwtTokenService, rateLimiter));
 app.use("/api/projects", createProjectChatRouter(projectChatController, jwtTokenService, projectRoleMiddleware));
+app.use("/api/projects", createConformanceRouter(conformanceController, jwtTokenService, projectRoleMiddleware));
+app.use("/api/conformance", createConformanceInboxRouter(conformanceController, jwtTokenService));
+app.use("/api/agent", createAgentRouter(agentController));
+app.use("/api/projects", createAgentTokenRouter(agentController, jwtTokenService, projectRoleMiddleware));
+app.use("/api/projects", createTaskRouter(taskUseCases, jwtTokenService, projectRoleMiddleware));
+app.use("/api/projects", createProjectTransferRouter(transferProjectUseCase, jwtTokenService, projectRoleMiddleware));
 app.use("/api/projects", createRevisionRouter(jwtTokenService, projectRoleMiddleware));
 app.use("/api/projects", createOnboardingRouter(onboardingController, jwtTokenService, projectRoleMiddleware));
 app.use("/api/onboarding", createLearningRouter(onboardingController, jwtTokenService));

@@ -13,6 +13,8 @@ export enum JobKind {
   MINE = "mine",
   /** Groups a snapshot into architecture components, optionally with AI refinement. */
   ABSTRACT = "abstract",
+  /** The conformance check of the commits after the baseline, run in the background (RF-08). */
+  CONFORMANCE = "conformance",
 }
 
 export interface IMiningJob {

@@ -17,6 +17,8 @@ export type ErrorCode =
   | "NOT_FOUND"
   | "ALREADY_EXISTS"
   | "CONFLICT"
+  | "DIAGRAM_LOCKED" // a confirmed diagram is edited directly: unconfirm it or propose an architecture change (HTTP 409)
+  | "USERNAME_LOCKED" // a username is set once; changing or clearing it afterwards is refused (HTTP 409)
   // Permission
   | "UNAUTHORIZED"
   | "FORBIDDEN"

@@ -1,7 +1,7 @@
-import { readTokens } from '@/auth/session';
+import { apiRequest } from '@/api/client';
 import { getWorkspaces, mayHaveSnapshots, type Workspace } from '@/features/workspace-summary';
 import { Link, useLocation } from 'react-router-dom';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   GitCommit,
@@ -13,7 +13,6 @@ import {
   FolderKanban
 } from 'lucide-react';
 
-import { API_BASE_URL } from '@/auth/session';
 import { App } from 'antd';
 import ComponentMatchPanel from '@/components/compare/ComponentMatchPanel';
 import CompareDiagram, { GROUP_HEIGHT, GROUP_WIDTH } from '@/components/compare/CompareDiagram';
@@ -52,10 +51,10 @@ const Compare: React.FC = () => {
     if (!selectedProjectId) return;
     const fetchSnapshots = async () => {
       try {
-        const token = readTokens().accessToken;
-        const res = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}/snapshots`, { headers: { Authorization: `Bearer ${token}` } });
-        if (res.ok) {
-          const data = await res.json();
+        // The pickers need names, dates and titles only; the graphs of the two chosen revisions come with the comparison.
+        // Without summary=1 a workspace of 1,000 snapshots sent ~36 MB and took ~3.8 s (N-02, docs/report-5-test-plan-and-results.md).
+        const data = await apiRequest<{ data?: { snapshots?: any[] } }>(`/projects/${selectedProjectId}/snapshots?summary=1`);
+        {
           const sList = data.data?.snapshots || [];
           setSnapshots(sList);
           if (sList.length >= 2) {
@@ -86,18 +85,10 @@ const Compare: React.FC = () => {
     setLoading(true);
     loadMatch(selectedProjectId, baseId, targetId);
     try {
-      const token = readTokens().accessToken;
-      const res = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}/snapshots/compare?baseId=${baseId}&targetId=${targetId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCompareData(data.data);
-      } else {
-        message.error('Failed to compare revisions.');
-      }
+      const data = await apiRequest<{ data?: unknown }>(`/projects/${selectedProjectId}/snapshots/compare?baseId=${encodeURIComponent(baseId)}&targetId=${encodeURIComponent(targetId)}`);
+      setCompareData(data.data);
     } catch (e) {
-      message.error('Network error. Please try again.');
+      message.error(e instanceof Error ? e.message : 'Failed to compare revisions.');
     } finally {
       setLoading(false);
     }
@@ -126,7 +117,8 @@ const Compare: React.FC = () => {
   const files = useMemo(() => (compareData && graph ? compareFiles(compareData.baseSnapshot, compareData.targetSnapshot, graph.fileGroup) : new Map()), [compareData, graph]);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [openFile, setOpenFile] = useState<string | null>(null);
-  const openFolder = (group: string) => { setOpenGroup(group); setOpenFile(null); };
+  // Stable, so the two drawings (memoised) only redraw when the outlined folder changes.
+  const openFolder = useCallback((group: string) => { setOpenGroup(group); setOpenFile(null); }, []);
   const showFile = (path: string | null) => {
     if (path) { const f = files.get(path); if (f) setOpenGroup(f.group); }
     setOpenFile(path);
@@ -148,14 +140,9 @@ const Compare: React.FC = () => {
         
         {/* HEADER */}
         <div className="shrink-0">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--at-panel-2)] border border-[var(--at-line)] mb-4">
-            <div className="w-1.5 h-1.5 rounded-full bg-[var(--at-accent)] shadow-[0_0_5px_#3b82f6]"></div>
-            <span className="text-[10px] font-mono text-[var(--at-link)] tracking-wider font-semibold uppercase"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>Architecture Diff</span>
-          </div>
-          <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)] mb-2">Compare Architecture</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text)] mb-2">Compare</h2>
           <p className="text-[var(--at-muted)] text-sm max-w-xl leading-relaxed">
-            Compare two repository revisions and identify structural changes.
+            What changed in the structure between two revisions.
           </p>
 
           <div className="mt-6 mb-2 flex items-center gap-4">

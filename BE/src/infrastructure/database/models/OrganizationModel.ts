@@ -8,6 +8,11 @@ const OrganizationSchema = new Schema<IOrganizationDocument>(
     name: { type: String, required: true, trim: true },
     description: { type: String, trim: true },
     createdBy: { type: String, required: true, ref: "User" },
+    // RF-14: set while suspended by a System Administrator; absent or null when active.
+    suspension: {
+      type: new Schema({ at: { type: Date, required: true }, by: { type: String, required: true }, reason: { type: String, required: true } }, { _id: false }),
+      default: null,
+    },
   },
   {
     timestamps: true,

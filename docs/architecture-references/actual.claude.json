@@ -1,0 +1,358 @@
+{
+  "repo": "actual",
+  "commit": "33912a083822f19090fe45a562d58fe29499ca25",
+  "author": "Claude (AI assistant) - reference A, AI-written; must be paired with an independent reference B by a team member",
+  "writtenAt": "2026-11-16",
+  "note": "Written from packages/docs/docs/contributing/project-details/architecture.md, database.md, the ADR page and the bank-sync docs, and the source at the commit above, without any ArchTime output for this repository (it has not been mined). Components are functional and cut across packages: a feature owns its web-app views, its background-server handlers (loot-core) and, where it has one, its sync-server routes. Left unassigned: the docs site, CI actions, the ESLint plugin, e2e tests, mocks and build scripts.",
+  "sources": [
+    "packages/docs/docs/contributing/project-details/architecture.md (web app + background server in a web worker / Electron child process; loot-core; sync-server)",
+    "packages/docs/docs/contributing/project-details/database.md (SQLite, migrations, server/db)",
+    "packages/docs/docs/contributing/leadership/architecture-decision-records.md (bank sync credentials on the sync server)",
+    "packages/docs/docs/advanced/bank-sync*.md, getting-started/sync.md"
+  ],
+  "components": [
+    {
+      "name": "Budgeting",
+      "responsibility": "Envelope and tracking budgets: budget months, categories and groups, templates, goals, moving money between categories.",
+      "prefixes": [
+        "packages/desktop-client/src/components/budget/",
+        "packages/desktop-client/src/budget/",
+        "packages/loot-core/src/server/budget/",
+        "packages/loot-core/src/shared/templates"
+      ],
+      "evidence": [
+        "server/budget holds the budget handlers; components/budget the budget views"
+      ]
+    },
+    {
+      "name": "Accounts and transactions",
+      "responsibility": "Accounts, account groups, transaction entry and editing, splits, transfers, reconciliation.",
+      "prefixes": [
+        "packages/desktop-client/src/components/accounts/",
+        "packages/desktop-client/src/components/transactions/",
+        "packages/desktop-client/src/accounts/",
+        "packages/desktop-client/src/transactions/",
+        "packages/desktop-client/src/account-groups/",
+        "packages/loot-core/src/server/accounts/",
+        "packages/loot-core/src/server/transactions/",
+        "packages/loot-core/src/server/account-groups",
+        "packages/loot-core/src/shared/transactions",
+        "packages/loot-core/src/shared/transfer"
+      ],
+      "evidence": [
+        "server/accounts, server/transactions; account and transaction views"
+      ]
+    },
+    {
+      "name": "Bank sync",
+      "responsibility": "Linking bank accounts and importing their transactions through GoCardless, SimpleFIN, Enable Banking, Akahu and Pluggy; the providers live on the sync server.",
+      "prefixes": [
+        "packages/desktop-client/src/components/banksync/",
+        "packages/desktop-client/src/components/gocardless/",
+        "packages/desktop-client/src/components/BankSyncStatus",
+        "packages/desktop-client/src/components/EnableBankingCallback",
+        "packages/desktop-client/src/gocardless",
+        "packages/desktop-client/src/enablebanking",
+        "packages/loot-core/src/server/accounts/sync.ts",
+        "packages/loot-core/src/server/accounts/link.ts",
+        "packages/sync-server/src/app-gocardless/",
+        "packages/sync-server/src/app-simplefin",
+        "packages/sync-server/src/app-enablebanking/",
+        "packages/sync-server/src/app-akahu",
+        "packages/sync-server/src/app-pluggyai/"
+      ],
+      "evidence": [
+        "ADR \"Bank sync: credential storage\" (credentials stay on the sync server)",
+        "docs/advanced/bank-sync/*"
+      ]
+    },
+    {
+      "name": "Reports and dashboard",
+      "responsibility": "Custom reports, spending / net worth / cash flow, the dashboard and forecasts.",
+      "prefixes": [
+        "packages/desktop-client/src/components/reports/",
+        "packages/desktop-client/src/reports/",
+        "packages/loot-core/src/server/reports",
+        "packages/loot-core/src/server/dashboard",
+        "packages/loot-core/src/server/forecast/",
+        "packages/loot-core/src/shared/dashboard",
+        "packages/loot-core/src/shared/forecast-contributors"
+      ],
+      "evidence": [
+        "components/reports is the largest UI area; server/reports, dashboard, forecast"
+      ]
+    },
+    {
+      "name": "Rules, payees, tags and filters",
+      "responsibility": "The transaction rules engine, payees, tags and the filter model used to select transactions.",
+      "prefixes": [
+        "packages/desktop-client/src/components/rules/",
+        "packages/desktop-client/src/components/ManageRules",
+        "packages/desktop-client/src/components/payees/",
+        "packages/desktop-client/src/components/tags/",
+        "packages/desktop-client/src/components/filters/",
+        "packages/desktop-client/src/payees/",
+        "packages/desktop-client/src/tags/",
+        "packages/loot-core/src/server/rules/",
+        "packages/loot-core/src/server/payees",
+        "packages/loot-core/src/server/tags",
+        "packages/loot-core/src/server/filters",
+        "packages/loot-core/src/shared/rules",
+        "packages/loot-core/src/shared/tags"
+      ],
+      "evidence": [
+        "server/rules is the rules engine; payees and tags are its conditions and actions"
+      ]
+    },
+    {
+      "name": "Schedules",
+      "responsibility": "Scheduled and recurring transactions.",
+      "prefixes": [
+        "packages/desktop-client/src/components/schedules/",
+        "packages/loot-core/src/server/schedules/",
+        "packages/loot-core/src/shared/schedules"
+      ],
+      "evidence": [
+        "server/schedules"
+      ]
+    },
+    {
+      "name": "Formulas and spreadsheet engine",
+      "responsibility": "The reactive spreadsheet that computes budget cells, and the formula language (Peggy grammar) used in templates and reports.",
+      "prefixes": [
+        "packages/loot-core/src/server/spreadsheet/",
+        "packages/loot-core/src/server/sheet",
+        "packages/loot-core/src/server/formulas/",
+        "packages/loot-core/src/shared/formulas",
+        "packages/loot-core/src/shared/arithmetic",
+        "packages/desktop-client/src/components/formula/",
+        "packages/desktop-client/src/components/spreadsheet",
+        "packages/desktop-client/src/components/codemirror",
+        "packages/desktop-client/src/spreadsheet/",
+        "packages/vite-plugin-peggy/"
+      ],
+      "evidence": [
+        "server/spreadsheet and sheet back every budget number; vite-plugin-peggy builds the formula parser"
+      ]
+    },
+    {
+      "name": "Data storage and query layer",
+      "responsibility": "The local SQLite database, migrations, models and mutators, and the AQL query language the UI reads through.",
+      "prefixes": [
+        "packages/loot-core/src/server/db/",
+        "packages/loot-core/src/server/migrate/",
+        "packages/loot-core/src/server/models",
+        "packages/loot-core/src/server/mutators",
+        "packages/loot-core/src/server/aql/",
+        "packages/loot-core/src/shared/query",
+        "packages/loot-core/migrations/",
+        "packages/desktop-client/src/queries/"
+      ],
+      "evidence": [
+        "database.md: SQLite, migrations in loot-core/migrations, functionality in server/db"
+      ]
+    },
+    {
+      "name": "Sync and encryption",
+      "responsibility": "Multi-device sync through CRDT messages, end-to-end encryption of the budget file, and the sync endpoints of the sync server.",
+      "prefixes": [
+        "packages/crdt/",
+        "packages/loot-core/src/server/sync/",
+        "packages/loot-core/src/server/encryption/",
+        "packages/loot-core/src/server/cloud-storage",
+        "packages/desktop-client/src/sync-events",
+        "packages/sync-server/src/app-sync",
+        "packages/sync-server/src/sync-simple"
+      ],
+      "evidence": [
+        "getting-started/sync.md; crdt package; server/sync replays and repairs messages"
+      ]
+    },
+    {
+      "name": "Budget files, users and server administration",
+      "responsibility": "Opening, creating and closing budget files, sign-in (password, OpenID), users and access, API keys, and the account database of the sync server.",
+      "prefixes": [
+        "packages/desktop-client/src/components/manager/",
+        "packages/desktop-client/src/components/admin/",
+        "packages/desktop-client/src/components/LoggedInUser",
+        "packages/desktop-client/src/budgetfiles",
+        "packages/desktop-client/src/auth/",
+        "packages/desktop-client/src/users",
+        "packages/loot-core/src/server/budgetfiles/",
+        "packages/loot-core/src/server/auth/",
+        "packages/loot-core/src/server/admin",
+        "packages/sync-server/src/account-db",
+        "packages/sync-server/src/accounts/",
+        "packages/sync-server/src/app-account",
+        "packages/sync-server/src/app-admin",
+        "packages/sync-server/src/app-openid",
+        "packages/sync-server/src/app-api-keys",
+        "packages/sync-server/src/app-secrets",
+        "packages/sync-server/src/services/"
+      ],
+      "evidence": [
+        "the sync server holds users, OpenID and secrets; manager is the budget-file chooser"
+      ]
+    },
+    {
+      "name": "Import",
+      "responsibility": "Importing budgets and transactions from YNAB 4, nYNAB, Actual exports and files (QIF, OFX, CSV).",
+      "prefixes": [
+        "packages/loot-core/src/server/importers/"
+      ],
+      "evidence": [
+        "server/importers"
+      ]
+    },
+    {
+      "name": "Background server runtime",
+      "responsibility": "The background server of the web worker / Electron process: handler registry, main app, undo, preferences, notes, platform abstractions (browser / Node), shared environment and types.",
+      "prefixes": [
+        "packages/loot-core/src/server/main",
+        "packages/loot-core/src/server/app",
+        "packages/loot-core/src/server/api",
+        "packages/loot-core/src/server/post",
+        "packages/loot-core/src/server/server-config",
+        "packages/loot-core/src/server/undo",
+        "packages/loot-core/src/server/update",
+        "packages/loot-core/src/server/util/",
+        "packages/loot-core/src/server/errors",
+        "packages/loot-core/src/server/preferences",
+        "packages/loot-core/src/server/prefs",
+        "packages/loot-core/src/server/storage",
+        "packages/loot-core/src/server/notes",
+        "packages/loot-core/src/server/tools",
+        "packages/loot-core/src/server/bench",
+        "packages/loot-core/src/platform/",
+        "packages/loot-core/src/types/",
+        "packages/loot-core/src/shared/environment",
+        "packages/loot-core/src/shared/platform",
+        "packages/desktop-client/src/browser-server",
+        "packages/desktop-client/src/shared-browser-server",
+        "packages/desktop-client/src/browser-preload"
+      ],
+      "evidence": [
+        "architecture.md: the background server runs in a web worker or a Node child process; loot-core uses conditional platform exports"
+      ]
+    },
+    {
+      "name": "Web app shell",
+      "responsibility": "The React application frame: bootstrap, routing, sidebar, modals, settings, notifications, news, tour, command bar, themes, shared hooks and state.",
+      "prefixes": [
+        "packages/desktop-client/src/index",
+        "packages/desktop-client/src/app",
+        "packages/desktop-client/src/redux/",
+        "packages/desktop-client/src/hooks/",
+        "packages/desktop-client/src/modals",
+        "packages/desktop-client/src/notifications",
+        "packages/desktop-client/src/prefs",
+        "packages/desktop-client/src/i18n",
+        "packages/desktop-client/src/languages",
+        "packages/desktop-client/src/global-events",
+        "packages/desktop-client/src/globals",
+        "packages/desktop-client/src/style/",
+        "packages/desktop-client/src/undo",
+        "packages/desktop-client/src/news/",
+        "packages/desktop-client/src/notes/",
+        "packages/desktop-client/src/util/",
+        "packages/desktop-client/src/contextmenu/",
+        "packages/desktop-client/src/components/App",
+        "packages/desktop-client/src/components/FinancesApp",
+        "packages/desktop-client/src/components/sidebar/",
+        "packages/desktop-client/src/components/modals/",
+        "packages/desktop-client/src/components/settings/",
+        "packages/desktop-client/src/components/news/",
+        "packages/desktop-client/src/components/tour/",
+        "packages/desktop-client/src/components/Notifications",
+        "packages/desktop-client/src/components/CommandBar",
+        "packages/desktop-client/src/components/GlobalKeys",
+        "packages/desktop-client/src/components/Titlebar",
+        "packages/desktop-client/src/components/ThemeSelector",
+        "packages/desktop-client/src/components/Notes",
+        "packages/desktop-client/src/components/NotesButton",
+        "packages/desktop-client/src/components/responsive/",
+        "packages/desktop-client/src/components/Modals",
+        "packages/desktop-client/src/components/Page"
+      ],
+      "evidence": [
+        "architecture.md: the front-end React-based web app"
+      ]
+    },
+    {
+      "name": "Mobile views",
+      "responsibility": "Touch-friendly views of budget, accounts and transactions for small screens.",
+      "prefixes": [
+        "packages/desktop-client/src/components/mobile/"
+      ],
+      "evidence": [
+        "components/mobile is the small-screen variant of the main views"
+      ]
+    },
+    {
+      "name": "UI component library",
+      "responsibility": "Shared visual components, icons, design tokens and themes, and generic widgets (autocomplete, select, table, forms).",
+      "prefixes": [
+        "packages/component-library/",
+        "packages/desktop-client/src/components/common/",
+        "packages/desktop-client/src/components/autocomplete/",
+        "packages/desktop-client/src/components/select/",
+        "packages/desktop-client/src/components/table",
+        "packages/desktop-client/src/components/forms/",
+        "packages/desktop-client/src/components/util/"
+      ],
+      "evidence": [
+        "package @actual-app/components"
+      ]
+    },
+    {
+      "name": "Desktop app (Electron)",
+      "responsibility": "The Electron shell: window, menu, preload, security, starting the background server as a child process.",
+      "prefixes": [
+        "packages/desktop-electron/"
+      ],
+      "evidence": [
+        "architecture.md: the Electron app runs the background server as a Node child process over WebSockets"
+      ]
+    },
+    {
+      "name": "Public API and CLI",
+      "responsibility": "The @actual-app/api Node package and the actual CLI, which drive the background server from code.",
+      "prefixes": [
+        "packages/api/",
+        "packages/cli/"
+      ],
+      "evidence": [
+        "packages/api and packages/cli"
+      ]
+    },
+    {
+      "name": "Sync server core",
+      "responsibility": "The self-hosted sync server: app set-up, configuration, its database and migrations, the CORS proxy, utilities.",
+      "prefixes": [
+        "packages/sync-server/src/app.ts",
+        "packages/sync-server/src/load-config",
+        "packages/sync-server/src/config-file-env",
+        "packages/sync-server/src/db",
+        "packages/sync-server/src/migrations",
+        "packages/sync-server/src/util/",
+        "packages/sync-server/src/app-cors-proxy",
+        "packages/sync-server/app",
+        "packages/sync-server/bin/",
+        "packages/sync-server/migrations/"
+      ],
+      "evidence": [
+        "packages/sync-server"
+      ]
+    },
+    {
+      "name": "Plugins service",
+      "responsibility": "The service worker that hosts plugins.",
+      "prefixes": [
+        "packages/plugins-service/"
+      ],
+      "evidence": [
+        "packages/plugins-service"
+      ]
+    }
+  ]
+}

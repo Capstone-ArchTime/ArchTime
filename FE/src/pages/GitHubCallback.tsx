@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/auth/auth-context';
-import { API_BASE_URL } from '@/auth/session';
+import { exchangeGitHubTicket } from '@/auth/requests';
 import { loginDestination } from '@/auth/permissions';
 
 const errors: Record<string, string> = {
@@ -29,14 +29,7 @@ export default function GitHubCallback() {
         if (!code) throw new Error(errors.invalid_state);
         const preferences = JSON.parse(sessionStorage.getItem('github-login') ?? '{}');
         sessionStorage.removeItem('github-login');
-        const response = await fetch(`${API_BASE_URL}/auth/github/exchange`, {
-          method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code }), signal: AbortSignal.timeout(15_000),
-        });
-        const tokens = await response.json();
-        if (!response.ok || typeof tokens.accessToken !== 'string' || typeof tokens.refreshToken !== 'string') {
-          throw new Error(tokens.message ?? 'Sign-in expired. Please try again.');
-        }
+        const tokens = await exchangeGitHubTicket(code);
         const user = await signIn(tokens, preferences?.rememberMe === true);
         return loginDestination(user.role, typeof preferences?.from === 'string' ? preferences.from : undefined);
       })();

@@ -75,11 +75,26 @@ test("UpdateProfile: changes name and username, trims and lower-cases, never ret
   assert.equal(user.passwordHash, undefined);
 });
 
-test("UpdateProfile: null clears the username, undefined leaves fields alone", async () => {
+test("UpdateProfile: a username is set once; changing or clearing it afterwards is refused with 409 USERNAME_LOCKED", async () => {
   const repo = userRepo([{ id: "u1", name: "Jane", email: "a@x.io", username: "jane" }]);
-  const user = await new UpdateProfileUseCase(repo).execute({ userId: "u1", username: null });
-  assert.equal(user.username, undefined);
-  assert.equal(user.name, "Jane");
+  const uc = new UpdateProfileUseCase(repo);
+  for (const next of ["jane2", null, ""]) {
+    await assert.rejects(uc.execute({ userId: "u1", username: next }), (err) => rejectsWith(409)(err) && err.code === "USERNAME_LOCKED", String(next));
+  }
+  assert.equal(repo.users[0].username, "jane", "unchanged");
+  const same = await uc.execute({ userId: "u1", username: "Jane", name: "Jane D" });
+  assert.equal(same.username, "jane", "sending it again unchanged is fine");
+  assert.equal(same.name, "Jane D");
+});
+
+test("UpdateProfile: undefined leaves fields alone; an account without a username may set one", async () => {
+  const repo = userRepo([{ id: "u1", name: "Jane", email: "a@x.io" }]);
+  const uc = new UpdateProfileUseCase(repo);
+  const renamed = await uc.execute({ userId: "u1", name: "Jane D" });
+  assert.equal(renamed.username, undefined);
+  const set = await uc.execute({ userId: "u1", username: "jane" });
+  assert.equal(set.username, "jane");
+  assert.equal(set.name, "Jane D");
 });
 
 test("UpdateProfile: rejects a taken username with 409, but keeping your own is fine", async () => {

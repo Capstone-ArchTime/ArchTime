@@ -2,7 +2,7 @@ import type { IProject } from "../../domain/entities/Project.js";
 import { RepoVisibility, viewerAccessOf } from "../../domain/entities/Project.js";
 import { UserRole } from "../../domain/entities/User.js";
 import { MemberStatus, ProjectMemberRole } from "../../domain/entities/ProjectMember.js";
-import { OrganizationRole } from "../../domain/entities/Organization.js";
+import { OrganizationRole, isSuspended } from "../../domain/entities/Organization.js";
 import type { IProjectRepository } from "../../domain/interfaces/IProjectRepository.js";
 import type { IProjectMemberRepository } from "../../domain/interfaces/IProjectMemberRepository.js";
 import type { IOrganizationRepository } from "../../domain/interfaces/IOrganizationRepository.js";
@@ -11,11 +11,12 @@ import { ForbiddenError, NotFoundError } from "../../shared/errors/AppError.js";
 /**
  * metadata – name, status, mining progress; what a platform operator may see of any project
  * read     – history, snapshots, evidence, maps, ADRs, the mentor
+ * propose  – ask the maintainers for an architecture change (an approval request); members, not viewers
  * write    – maintainer work: scan, mine, cluster, refine, ADRs, rules, diagram
  * admin    – manage the project's members, invitations and approvals
  * owner    – delete the project
  */
-export type ProjectAction = "metadata" | "read" | "write" | "admin" | "owner";
+export type ProjectAction = "metadata" | "read" | "propose" | "write" | "admin" | "owner";
 
 export type ProjectAccessRole =
   | "owner"
@@ -30,11 +31,15 @@ export interface ProjectAccess {
   actions: ReadonlySet<ProjectAction>;
   /** The membership role to expose on the request, as before this policy existed. */
   memberRole?: ProjectMemberRole | "owner";
+  /** True when access is closed because the workspace's organization is suspended (RF-14). */
+  suspended?: boolean;
 }
 
 const set = (...a: ProjectAction[]): ReadonlySet<ProjectAction> => new Set(a);
-const EVERYTHING = set("metadata", "read", "write", "admin", "owner");
-const MAINTAINER = set("metadata", "read", "write", "admin");
+const EVERYTHING = set("metadata", "read", "propose", "write", "admin", "owner");
+const MAINTAINER = set("metadata", "read", "propose", "write", "admin");
+/** A project member: reads, and proposes changes that a maintainer approves or rejects (WF-04, DS-04a). */
+const MEMBER = set("metadata", "read", "propose");
 const READER = set("metadata", "read");
 const NOTHING = set();
 
@@ -48,14 +53,15 @@ export interface AccessUser { userId: string; role: UserRole | string }
  *    project ownership included.
  * 3. Organization Owner: maintainer rights on every project of the organization, and may delete them.
  * 4. Project Owner: everything.
- * 5. Project Maintainer: read, write, admin. Project Member: read.
+ * 5. Project Maintainer: read, propose, write, admin. Project Member: read, propose.
  * 6. Public personal projects: read for any signed-in user (viewer), unless the owner turned viewing off (BR-17).
  */
 export class ProjectAccessPolicy {
   constructor(
     private readonly projects: Pick<IProjectRepository, "findById" | "findByUserId" | "findByOrganizationId" | "findByIds">,
     private readonly members: Pick<IProjectMemberRepository, "findByProjectAndUserId" | "findByUserId">,
-    private readonly organizations?: Pick<IOrganizationRepository, "findMember" | "listMembershipsOfUser">,
+    // findById is optional for stores written before suspension existed; without it no organization counts as suspended.
+    private readonly organizations?: Pick<IOrganizationRepository, "findMember" | "listMembershipsOfUser"> & Partial<Pick<IOrganizationRepository, "findById">>,
   ) {}
 
   async evaluate(project: IProject, user: AccessUser): Promise<ProjectAccess> {
@@ -66,6 +72,10 @@ export class ProjectAccessPolicy {
     if (project.organizationId) {
       const orgMember = this.organizations ? await this.organizations.findMember(project.organizationId, user.userId) : null;
       if (!orgMember) return { role: null, actions: NOTHING };
+      // RF-14, UC-25: a suspended organization's workspaces are closed to their members, owners included, until it is
+      // reactivated. Their data is kept as it is.
+      const organization = this.organizations?.findById ? await this.organizations.findById(project.organizationId) : null;
+      if (isSuspended(organization)) return { role: null, actions: NOTHING, suspended: true };
       if (orgMember.role === OrganizationRole.OWNER) {
         return project.userId === user.userId
           ? { role: "owner", actions: EVERYTHING, memberRole: "owner" }
@@ -79,7 +89,7 @@ export class ProjectAccessPolicy {
     if (member && member.status === MemberStatus.ACTIVE) {
       return member.role === ProjectMemberRole.MAINTAINER
         ? { role: "project-maintainer", actions: MAINTAINER, memberRole: member.role }
-        : { role: "developer-analyst", actions: READER, memberRole: member.role };
+        : { role: "developer-analyst", actions: MEMBER, memberRole: member.role };
     }
 
     if (!project.organizationId && project.visibility === RepoVisibility.PUBLIC && viewerAccessOf(project).publicRead) {
@@ -94,10 +104,13 @@ export class ProjectAccessPolicy {
     return project ? { project, access: await this.evaluate(project, user) } : null;
   }
 
-  /** Throws 404 when the project does not exist and 403 when the action is not allowed. */
+  /**
+   * Throws 404 when the project does not exist or the caller has no access to it at all (N-05: a foreign workspace looks
+   * the same as a missing one), and 403 when the caller has access but not for this action.
+   */
   async require(projectId: string, user: AccessUser, action: ProjectAction): Promise<{ project: IProject; access: ProjectAccess }> {
     const found = await this.accessTo(projectId, user);
-    if (!found) throw new NotFoundError("Workspace not found.");
+    if (!found || isForeign(found.access)) throw new NotFoundError("Workspace not found.");
     if (!found.access.actions.has(action)) throw new ForbiddenError(deniedMessage(found.access, action));
     return found;
   }
@@ -124,7 +137,16 @@ export class ProjectAccessPolicy {
   }
 }
 
+/**
+ * N-05: the caller has no relation to the workspace at all, so it must look the same as one that does not exist (404).
+ * Members of a suspended organization are not foreign: they are told why they are shut out (403).
+ */
+export function isForeign(access: ProjectAccess): boolean {
+  return !access.actions.has("metadata") && !access.suspended;
+}
+
 export function deniedMessage(access: ProjectAccess, action: ProjectAction): string {
+  if (access.suspended) return "Forbidden: this workspace's organization is suspended by a System Administrator.";
   if (!access.actions.has("metadata")) return "Forbidden: you do not have permission to access this workspace.";
   if (access.role === "system-administrator") {
     return action === "owner"
@@ -132,5 +154,6 @@ export function deniedMessage(access: ProjectAccess, action: ProjectAction): str
       : "Forbidden: System Administrators cannot read the content of an organization's workspace.";
   }
   if (action === "owner") return "Forbidden: only the workspace owner or an owner of its organization can delete it.";
+  if (action === "propose") return "Forbidden: only members of this workspace can propose a change.";
   return "Forbidden: only project maintainers can perform this action.";
 }

@@ -231,6 +231,55 @@ test('milestones: tagged commits are mined first, the rest follows, nothing is m
   }
 });
 
+test('WF07-07 after each mined batch, its commits (with their Task: trailers) are linked to the tasks they name', async () => {
+  const { LinkCommitsToTasksUseCase } = await import(src('application/use-cases/tasks/TaskUseCases.ts'));
+  const { InMemoryTaskRepository, minedCommits } = await import('./task-fakes.mjs');
+  const tasks = new InMemoryTaskRepository();
+  tasks.tasks.push({ id: 't1', projectId: String(project._id), key: 'ARCH-12', removed: false }, { id: 't2', projectId: String(project._id), key: 'T22', removed: false });
+  const linker = new LinkCommitsToTasksUseCase(tasks, minedCommits());
+  const batches = [];
+  MiningService.onBatchSaved = async (projectId, commits) => { batches.push(commits); return linker.execute(projectId, commits); };
+  process.env.MINING_BATCH_SIZE = '1';
+  try {
+    fs.writeFileSync(path.join(repo, 'task.js'), "import './m0.js';\n");
+    git('add', '.');
+    execFileSync('git', ['commit', '-q', '-m', 'feat(tasks): wire T22 import\n\nTask: ARCH-12\nArch-Change: none'], { cwd: repo, env });
+    fs.writeFileSync(path.join(repo, 'task.js'), "import './m1.js';\n");
+    execFileSync('git', ['commit', '-q', '-am', 'chore: no task here'], { cwd: repo, env });
+    assert.equal((await settled(await MiningService.startScanJob(project._id, 'u1'))).status, 'completed');
+    const job = await settled(await MiningService.startMiningJob(project._id, 'u1'));
+    assert.equal(job.status, 'completed', job.error);
+    assert.equal(batches.length, 2, 'the hook runs once per saved batch');
+    const tagged = batches.flat().find(c => c.title === 'feat(tasks): wire T22 import');
+    assert.deepEqual(tagged.trailers, ['Task: ARCH-12', 'Arch-Change: none']);
+    assert.deepEqual(tasks.links.map(l => [l.taskKey, l.source]).sort(), [['ARCH-12', 'trailer'], ['T22', 'subject']]);
+    assert.ok(tasks.links.every(l => l.hash === tagged.hash));
+    const stored = fakes.snap.rows.find(s => s.title === 'feat(tasks): wire T22 import');
+    assert.deepEqual(stored.trailers, ['Task: ARCH-12', 'Arch-Change: none'], 'the snapshot keeps the trailers for later relinks');
+  } finally {
+    MiningService.onBatchSaved = null;
+    delete process.env.MINING_BATCH_SIZE;
+  }
+});
+
+test('a failing link hook is logged and never fails the mining job', async () => {
+  MiningService.onBatchSaved = async () => { throw new Error('database down'); };
+  const errors = [];
+  const original = console.error;
+  console.error = (...a) => errors.push(a.join(' '));
+  try {
+    fs.writeFileSync(path.join(repo, 'task.js'), "import './m2.js';\n");
+    execFileSync('git', ['commit', '-q', '-am', 'feat: ARCH-12 again'], { cwd: repo, env });
+    await settled(await MiningService.startScanJob(project._id, 'u1'));
+    const job = await settled(await MiningService.startMiningJob(project._id, 'u1'));
+    assert.equal(job.status, 'completed', job.error);
+    assert.ok(errors.some(e => /linking commits/.test(e) && /database down/.test(e)));
+  } finally {
+    console.error = original;
+    MiningService.onBatchSaved = null;
+  }
+});
+
 test('a project registered with a local path is refused at mining time too', async () => {
   delete process.env.ARCHTIME_ALLOW_LOCAL_REPOS;
   try {

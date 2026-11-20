@@ -35,6 +35,7 @@ const TYPE_BY_ACTION: Record<string, string> = {
   USER_LOGIN: 'login',
   USER_LOGOUT_ALL: 'logout',
   ORGANIZATION_CREATE: 'organization', ORGANIZATION_MEMBER_ADD: 'organization', ORGANIZATION_MEMBER_REMOVE: 'organization',
+  ORGANIZATION_SUSPEND: 'organization', ORGANIZATION_REACTIVATE: 'organization',
   PROJECT_CREATE: 'workspace', PROJECT_DELETE: 'workspace', JOB_CANCEL: 'workspace',
 };
 
@@ -51,6 +52,8 @@ const SENTENCE: Record<string, string> = {
   ORGANIZATION_CREDENTIAL_CREATE: 'Added an organization credential',
   ORGANIZATION_CREDENTIAL_ROTATE: 'Rotated an organization credential',
   ORGANIZATION_CREDENTIAL_DELETE: 'Deleted an organization credential',
+  ORGANIZATION_SUSPEND: 'Suspended an organization',
+  ORGANIZATION_REACTIVATE: 'Reactivated an organization',
   PROJECT_CREATE: 'Created a workspace',
   PROJECT_DELETE: 'Deleted a workspace',
   JOB_CANCEL: 'Cancelled a mining job',

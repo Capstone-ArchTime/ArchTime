@@ -1,4 +1,4 @@
-import { API_BASE_URL, readTokens, tokenStorage, verifySession } from '../auth/session.ts';
+import { API_BASE_URL, InvalidSessionError, readTokens, tokenStorage, verifySession } from '../auth/session.ts';
 
 export class ApiError extends Error {
   status: number;
@@ -13,6 +13,16 @@ export class ApiError extends Error {
   }
 }
 
+const sessionEndedListeners = new Set<() => void>();
+/**
+ * Called when the session can no longer be renewed (the refresh token expired or was revoked), so the app can sign out
+ * at once instead of leaving the person on a page whose requests all fail. Returns the unsubscribe function.
+ */
+export function onSessionEnded(listener: () => void): () => void {
+  sessionEndedListeners.add(listener);
+  return () => { sessionEndedListeners.delete(listener); };
+}
+
 let renewal: Promise<string> | null = null;
 async function renewToken() {
   if (!renewal) {
@@ -21,6 +31,9 @@ async function renewToken() {
       if (readTokens().refreshToken !== tokens.refreshToken) throw new Error('Your account changed. Reload this page.');
       tokenStorage().setItem('accessToken', result.accessToken);
       return result.accessToken;
+    }).catch(error => {
+      if (error instanceof InvalidSessionError) sessionEndedListeners.forEach(listener => listener());
+      throw error;
     }).finally(() => { renewal = null; });
   }
   return renewal;

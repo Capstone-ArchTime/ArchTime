@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './session.ts';
+import type { Tokens } from './session.ts';
 import { AuthRequestError, readRetryAfter, tooManyAttemptsMessage } from './rate-limit.ts';
 
 export { AuthRequestError } from './rate-limit.ts';
@@ -39,4 +40,23 @@ export async function authRequest(endpoint: 'login' | 'register' | 'verify-email
     if (error instanceof TypeError) throw new Error('Cannot reach the server. Check your connection and try again.');
     throw error;
   }
+}
+
+/**
+ * Trades the one-time ticket of the GitHub callback (#code=...) for tokens. The back end answers
+ * { success, data: { accessToken, refreshToken } } and, on failure, { success: false, error: { code, message } };
+ * the browser must send the archtime_github cookie set when the sign-in started, hence credentials: 'include'.
+ */
+export async function exchangeGitHubTicket(code: string): Promise<Tokens> {
+  const response = await fetch(`${API_BASE_URL}/auth/github/exchange`, {
+    method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }), signal: AbortSignal.timeout(15_000),
+  });
+  const result = await response.json().catch(() => null);
+  const tokens = result?.data ?? result;
+  if (!response.ok || typeof tokens?.accessToken !== 'string' || typeof tokens?.refreshToken !== 'string') {
+    const detail = result?.error?.message ?? result?.message;
+    throw new AuthRequestError(typeof detail === 'string' ? detail : 'Sign-in expired. Please try again.', response.status, result?.error?.code);
+  }
+  return { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken };
 }

@@ -73,3 +73,22 @@ test('other refusals still carry their status and code, and a wrong sign-in keep
   answer.mock.mockImplementation(async () => Response.json({ success: false, error: { code: 'INVALID_CREDENTIALS', message: 'Invalid credentials.' } }, { status: 401 }));
   await assert.rejects(authRequest('login', {}), error => error.status === 401 && error.message === 'Incorrect username/email or password.');
 });
+
+test('GitHub sign-in: the tokens are read from data, as the back end sends them, with the cookie included', async t => {
+  const { exchangeGitHubTicket } = await import('../src/auth/requests.ts');
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    assert.ok(url.endsWith('/auth/github/exchange'));
+    assert.equal(options.credentials, 'include');
+    assert.deepEqual(JSON.parse(options.body), { code: 'ticket-1' });
+    return Response.json({ success: true, data: { accessToken: 'gh-access', refreshToken: 'gh-refresh' } });
+  });
+  assert.deepEqual(await exchangeGitHubTicket('ticket-1'), { accessToken: 'gh-access', refreshToken: 'gh-refresh' });
+});
+
+test('GitHub sign-in: a refusal shows the server\'s own message, not always "expired"', async t => {
+  const { exchangeGitHubTicket } = await import('../src/auth/requests.ts');
+  t.mock.method(globalThis, 'fetch', async () => Response.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Account is unavailable.' } }, { status: 401 }));
+  await assert.rejects(exchangeGitHubTicket('t'), err => err instanceof AuthRequestError && err.message === 'Account is unavailable.' && err.status === 401);
+  t.mock.method(globalThis, 'fetch', async () => new Response('<html>Bad gateway</html>', { status: 502 }));
+  await assert.rejects(exchangeGitHubTicket('t'), /Sign-in expired/);
+});

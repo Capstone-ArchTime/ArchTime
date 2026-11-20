@@ -66,7 +66,7 @@ export function createProjectRouter(
    *                 example: public
    *               token:
    *                 type: string
-   *                 description: GitHub personal access token (chỉ cần nếu repo private). Chỉ ghi, không bao giờ được trả về.
+   *                 description: GitHub personal access token (chỉ cần nếu repo private). Chỉ ghi, không bao giờ được trả về; lưu dạng mã hoá AES-256-GCM.
    *               organizationId:
    *                 type: string
    *                 description: Tạo project trong tổ chức này (người gọi phải là Organization Owner). Bỏ trống = không gian cá nhân.
@@ -863,6 +863,41 @@ export function createProjectRouter(
       checkRole("write"),
       workspaceController.saveWorkspace,
     );
+    /**
+     * @swagger
+     * /api/projects/{id}/workspace/components/{componentId}/paths:
+     *   put:
+     *     tags: [Workspace]
+     *     summary: Gán path prefix cho một component của sơ đồ (RF-08, BR-27)
+     *     description: >
+     *       Prefix được chuẩn hoá (dấu /, bỏ ./ ở đầu và / ở cuối). Mỗi prefix chỉ thuộc một component (MSG24);
+     *       prefix lồng nhau được phép, prefix dài nhất thắng. Không làm mất xác nhận của sơ đồ.
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - { in: path, name: id, required: true, schema: { type: string } }
+     *       - { in: path, name: componentId, required: true, schema: { type: string } }
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required: [pathPrefixes]
+     *             properties:
+     *               pathPrefixes: { type: array, maxItems: 50, items: { type: string, maxLength: 200 }, example: ["BE/src/billing", "BE/src/payments"] }
+     *               expectedRevision: { type: integer, example: 4 }
+     *     responses:
+     *       200: { description: "{ component, revision }" }
+     *       400: { description: "Prefix không hợp lệ, hoặc trùng với component khác (MSG24)" }
+     *       404: { description: "Không có workspace hoặc component" }
+     *       409: { description: "Workspace đã bị người khác sửa (revision cũ)" }
+     */
+    router.put(
+      "/:id/workspace/components/:componentId/paths",
+      checkRole("write"),
+      workspaceController.setComponentPaths,
+    );
   }
 
   /**
@@ -1113,6 +1148,8 @@ export function createProjectRouter(
      *     responses:
      *       200:
      *         description: Lưu sơ đồ thành công
+     *       409:
+     *         description: "CONFLICT: expectedRevision đã cũ. DIAGRAM_LOCKED: sơ đồ đã xác nhận, phải bỏ xác nhận (POST /diagram/unconfirm) hoặc gửi yêu cầu thay đổi kiến trúc"
      */
     router.get("/:id/diagram", checkRole("read"), pmController.getDiagram);
     router.put("/:id/diagram", checkRole("write"), pmController.saveDiagram);
@@ -1135,6 +1172,28 @@ export function createProjectRouter(
      *         description: Sơ đồ đã được xác nhận
      */
     router.post("/:id/diagram/confirm", checkRole("write"), pmController.confirmDiagram);
+
+    /**
+     * @swagger
+     * /api/projects/{id}/diagram/unconfirm:
+     *   post:
+     *     tags: [Projects - Diagram & Rules]
+     *     summary: Bỏ xác nhận sơ đồ để sửa trực tiếp (F-07)
+     *     description: Sơ đồ đã xác nhận bị khoá; PUT /diagram hoặc PUT /workspace đổi nội dung sẽ trả 409 DIAGRAM_LOCKED. Gọi route này để sơ đồ thành bản nháp (giữ nguyên nội dung, bỏ xác nhận và baseline), hoặc đổi qua yêu cầu thay đổi kiến trúc được duyệt.
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema: { type: string }
+     *     responses:
+     *       200:
+     *         description: Sơ đồ đã thành bản nháp
+     *       400:
+     *         description: Sơ đồ chưa được xác nhận
+     */
+    router.post("/:id/diagram/unconfirm", checkRole("write"), pmController.unconfirmDiagram);
 
     /**
      * @swagger
@@ -1517,7 +1576,7 @@ export function createProjectRouter(
      *         description: Yêu cầu xét duyệt đã tạo
      */
     router.get("/:id/approvals", checkRole("read"), pmController.getApprovals);
-    router.post("/:id/approvals", checkRole("write"), pmController.createApproval);
+    router.post("/:id/approvals", checkRole("propose"), pmController.createApproval);
 
     /**
      * @swagger

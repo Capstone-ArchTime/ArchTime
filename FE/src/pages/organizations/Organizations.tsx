@@ -62,7 +62,8 @@ export default function Organizations() {
   return (
     <FeaturePage
       title="Organizations"
-      description="Share workspaces and repository credentials with a team. Owners add members and workspaces; members see the workspaces they are given a role in."
+      description="Share workspaces and repository credentials with a team."
+      details={<p>Owners add members and workspaces. Members see only the workspaces they are given a role in.</p>}
       demo={false}
       actions={<Button type="primary" icon={<Plus size={14} />} onClick={() => setCreating(true)}>New organization</Button>}
     >
@@ -96,7 +97,10 @@ export default function Organizations() {
               <Link key={o.id} to={`/organizations/${encodeURIComponent(o.id)}`} className={`${featurePanel} block hover:border-[var(--at-accent)]/60 transition-colors`} aria-label={o.name}>
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="flex items-center gap-2 font-semibold break-words"><Building2 size={16} className="text-[var(--at-link)] shrink-0" />{o.name}</h3>
-                  <Tag color={o.myRole === 'owner' ? 'blue' : undefined}>{o.myRole === 'owner' ? 'Owner' : 'Member'}</Tag>
+                  <span className="flex gap-1 shrink-0">
+                    {o.suspension && <Tag color="red">Suspended</Tag>}
+                    <Tag color={o.myRole === 'owner' ? 'blue' : undefined}>{o.myRole === 'owner' ? 'Owner' : 'Member'}</Tag>
+                  </span>
                 </div>
                 {o.description && <p className="mt-2 text-sm text-[var(--at-muted)] line-clamp-2">{o.description}</p>}
                 <p className="mt-3 text-xs text-[var(--at-muted)]">{o.memberCount} {o.memberCount === 1 ? 'member' : 'members'}</p>

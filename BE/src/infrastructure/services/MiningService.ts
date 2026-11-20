@@ -27,9 +27,9 @@ import {
 import { runArchitectureJob } from './ArchitectureJob.js';
 import { firstParentBase, type ParentIndex } from '../../domain/mining/baseline.js';
 import { MongoOrganizationCredentialRepository } from '../repositories/MongoOrganizationCredentialRepository.js';
+import { MongoProjectRepository } from '../repositories/MongoProjectRepository.js';
 import { allowLocalRepos, assertPublicRepoAddress, validateRepoUrl } from '../../domain/mining/repoUrl.js';
 import { lookup as dnsLookup } from 'node:dns/promises';
-import { unsealProjectToken } from './projectToken.js';
 import { ConflictError, NotFoundError } from '../../shared/errors/AppError.js';
 import { edgeKey, extractDependencies, type Graph, type GraphEdge, type GraphNode } from './DependencyExtractor.js';
 
@@ -62,8 +62,49 @@ export class MiningService {
   private static readonly running = new Set<string>();
   private static readonly cancelled = new Set<string>();
   private static readonly credentials = new MongoOrganizationCredentialRepository();
+  private static readonly projects = new MongoProjectRepository();
+  /**
+   * Called after a fetch (scan) or mine finished, or was cancelled with commits kept: the conformance check and its
+   * e-mail (RF-29). Set by the container; it never holds up or fails the job, its errors are only logged.
+   */
+  public static onHistoryChanged: ((projectId: string) => Promise<void>) | null = null;
+
+  /**
+   * Called after each mined batch is saved, with the commits of that batch: links them to the project's tasks (F-13,
+   * LinkCommitsToTasksUseCase). Set by the container. Awaited so links follow the batch, but its errors are only logged:
+   * a failed link never fails the mining job (POST /tasks/link links everything again).
+   */
+  public static onBatchSaved: ((projectId: string, commits: { hash: string; fullHash: string; title: string; trailers: string[]; author: string; date: Date }[]) => Promise<unknown>) | null = null;
+
+  private static async afterBatchSaved(projectId: string, snapshotDocs: any[]) {
+    const hook = this.onBatchSaved;
+    if (!hook || !snapshotDocs.length) return;
+    try {
+      await hook(projectId, snapshotDocs.map(d => ({ hash: d.hash, fullHash: d.fullHash, title: d.title, trailers: d.trailers ?? [], author: d.author, date: d.date })));
+    } catch (error) {
+      console.error(`[tasks] linking commits of project ${projectId} to tasks failed:`, error);
+    }
+  }
+
+  private static afterHistoryChange(projectId: string) {
+    const hook = this.onHistoryChanged;
+    if (!hook) return;
+    void hook(projectId).catch(error => console.error(`[conformance] automatic check of project ${projectId} failed:`, error));
+  }
 
   // ---------- public API ----------
+
+  /**
+   * Runs the conformance check for a background job (set by the container): reports progress, stops between two commits
+   * when asked. Throws a ConflictError when there is nothing to check against (no confirmed diagram, baseline gone).
+   */
+  public static conformanceRunner: ((projectId: string, options: { force: boolean; onProgress: (done: number, total: number) => Promise<void>; shouldStop: () => boolean }) => Promise<{ checked: number; skipped: number; findings: number }>) | null = null;
+
+  /** The conformance check as a background job, so the page does not wait for it (it can take a while on a long history). */
+  public static async startConformanceJob(projectId: string, userId: string, force = false): Promise<string> {
+    if (!this.conformanceRunner) throw new Error("The conformance check is not configured.");
+    return this.enqueue(projectId, userId, { kind: JobKind.CONFORMANCE, force, stage: "Queued for the conformance check" });
+  }
 
   public static async startScanJob(projectId: string, userId: string): Promise<string> {
     return this.enqueue(projectId, userId, { kind: JobKind.SCAN, stage: 'Queued for scan' });
@@ -258,6 +299,34 @@ export class MiningService {
       return;
     }
 
+    if (job.kind === JobKind.CONFORMANCE) {
+      // Not a repository job either: it reads what was mined. Findings are kept per commit as they are checked.
+      try {
+        await set({ status: JobStatus.RUNNING, startedAt: new Date(), stage: "Checking commits after the baseline", progress: 1 });
+        const result = await this.conformanceRunner!(String(job.projectId), {
+          force: !!job.force,
+          shouldStop: () => this.cancelled.has(jobId),
+          onProgress: async (done, total) => {
+            await set({ processed: done, total, progress: total ? Math.max(1, Math.round((done / total) * 100)) : 100, stage: total ? `Checked ${done} of ${total} commits` : "No commit after the baseline" });
+          },
+        });
+        if (this.cancelled.has(jobId)) {
+          await set({ status: JobStatus.CANCELLED, stage: `Stopped after ${result.checked + result.skipped} commits - their findings were kept`, finishedAt: new Date() });
+          return;
+        }
+        await set({
+          status: JobStatus.COMPLETED, progress: 100, finishedAt: new Date(),
+          stage: result.checked
+            ? `Checked ${result.checked} commit${result.checked === 1 ? "" : "s"}: ${result.findings} finding${result.findings === 1 ? "" : "s"}`
+            : "Nothing new to check: every commit after the baseline was already checked against this diagram and these rules",
+        });
+      } catch (error: any) {
+        const message = String(error?.message ?? error);
+        await set({ status: JobStatus.FAILED, stage: "Failed: " + message, error: message, finishedAt: new Date() });
+      }
+      return;
+    }
+
     try {
       if (!project) throw new Error('Workspace no longer exists');
       secret = await this.repoToken(project);
@@ -289,6 +358,8 @@ export class MiningService {
         await set({ stage: 'Checking dependency counts', progress: 90 });
         await this.rebaseline(project, git, commits);
         await set({ status: JobStatus.COMPLETED, stage: `Scanned ${commits.length} commits`, progress: 100, total: 0, finishedAt: new Date() });
+        // A fetch can drop commits from the history (force push) or move the baseline out of it.
+        this.afterHistoryChange(String(project._id));
         return;
       }
 
@@ -341,7 +412,7 @@ export class MiningService {
             snapshotDocs.push({
               projectId: project._id, hash: shortHash, fullHash: commit.hash, version: snapshotLabel(commit.hash, tags),
               tags: tags.get(commit.hash.toLowerCase()) ?? [],
-              title: commit.message || '(no message)', author: commit.author || 'unknown', date: commit.date,
+              title: commit.message || '(no message)', trailers: commit.trailers ?? [], author: commit.author || 'unknown', date: commit.date,
               branches: commit.ref ? [commit.ref] : [], files: nodes.length, archChanges,
               depAdded: diff.depAdded, depRemoved: diff.depRemoved, baseHash, nodes, edges,
             });
@@ -363,6 +434,7 @@ export class MiningService {
         // Persist the batch so a cancel or crash keeps everything analyzed so far.
         if (snapshotDocs.length) await SnapshotModel.insertMany(snapshotDocs, { ordered: false });
         if (evidenceDocs.length) await EvidenceModel.insertMany(evidenceDocs, { ordered: false });
+        await this.afterBatchSaved(String(project._id), snapshotDocs);
         batchGraphs.clear();
         lastWrite = Date.now();
         await set({ stage: `Batch ${b + 1}/${batches.length} saved`, batchIndex: b + 1, processed, failedCommits: failed, progress: analysisProgress(processed, pending.length) });
@@ -372,10 +444,12 @@ export class MiningService {
       if (processedHashes.size) await this.rebaseline(project, git, commits);
       await set({ status: JobStatus.COMPLETED, stage: failed ? `Completed with ${failed} unreadable commits` : 'Completed', progress: 100, processed, failedCommits: failed, finishedAt: new Date() });
       await this.settleProjectStatus(String(project._id), false);
+      this.afterHistoryChange(String(project._id));
     } catch (error: any) {
       if (error instanceof CancelledError) {
         await set({ status: JobStatus.CANCELLED, stage: 'Cancelled - mined commits were kept', finishedAt: new Date() });
         await this.settleProjectStatus(String(job.projectId), false);
+        if (job.kind === JobKind.MINE) this.afterHistoryChange(String(job.projectId));
         return;
       }
       console.error(error);
@@ -392,7 +466,7 @@ export class MiningService {
       if (!token) throw new Error('The organization credential for this workspace was deleted. Ask an organization owner to attach another one.');
       return token;
     }
-    return project.visibility === 'private' && project.token ? unsealProjectToken(project.token) : undefined;
+    return project.visibility === 'private' ? this.projects.resolveToken(String(project._id ?? project.id)) : undefined;
   }
 
   private static async ensureRepo(project: any, token: string | undefined, report: (stage: string, progress: number) => Promise<void>): Promise<SimpleGit> {

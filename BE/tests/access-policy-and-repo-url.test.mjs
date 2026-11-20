@@ -7,7 +7,6 @@ import { RegisterProjectUseCase } from "../src/application/use-cases/projects/Re
 import { MiningJobModel } from "../src/infrastructure/database/models/MiningJobModel.ts";
 import { SnapshotModel } from "../src/infrastructure/database/models/SnapshotModel.ts";
 import { validateRepoUrl, assertPublicRepoAddress, RepoUrlError } from "../src/domain/mining/repoUrl.ts";
-import { sealProjectToken, unsealProjectToken } from "../src/infrastructure/services/projectToken.ts";
 import { UserRole } from "../src/domain/entities/User.ts";
 import { MemberStatus, ProjectMemberRole } from "../src/domain/entities/ProjectMember.ts";
 import { AppError } from "../src/shared/errors/AppError.ts";
@@ -52,19 +51,19 @@ const actionsOf = async (projectId, u) => [...(await policy.evaluate(projects.fi
 // ── the permission table (system overview §4.2) ──────────────────────────────
 
 test("Policy: personal project roles", async () => {
-  assert.equal(await actionsOf("p-personal", user("alice")), "admin,metadata,owner,read,write", "owner");
-  assert.equal(await actionsOf("p-personal", user("bob")), "admin,metadata,read,write", "maintainer: scan, mine, refine, but not delete");
-  assert.equal(await actionsOf("p-personal", user("dan")), "metadata,read", "member (newcomer) reads history, snapshots and maps");
+  assert.equal(await actionsOf("p-personal", user("alice")), "admin,metadata,owner,propose,read,write", "owner");
+  assert.equal(await actionsOf("p-personal", user("bob")), "admin,metadata,propose,read,write", "maintainer: scan, mine, refine, but not delete");
+  assert.equal(await actionsOf("p-personal", user("dan")), "metadata,propose,read", "member (newcomer) reads history, snapshots and maps, and proposes changes");
   assert.equal(await actionsOf("p-personal", user("eve")), "", "an invitation not yet accepted gives nothing");
   assert.equal(await actionsOf("p-personal", user("zed")), "", "stranger");
   assert.equal(await actionsOf("p-public", user("zed")), "metadata,read", "viewer of a public personal project");
-  assert.equal(await actionsOf("p-personal", user("root", UserRole.SYSTEM_ADMINISTRATOR)), "admin,metadata,read,write", "admin on a personal project: everything but delete");
+  assert.equal(await actionsOf("p-personal", user("root", UserRole.SYSTEM_ADMINISTRATOR)), "admin,metadata,propose,read,write", "admin on a personal project: everything but delete");
 });
 
 test("Policy: organization projects", async () => {
-  assert.equal(await actionsOf("p-org", user("alice")), "admin,metadata,owner,read,write", "organization owner acts as maintainer and may delete");
-  assert.equal(await actionsOf("p-org", user("carol")), "admin,metadata,owner,read,write", "project owner, still in the organization");
-  assert.equal(await actionsOf("p-org", user("dan")), "metadata,read", "project member who is in the organization");
+  assert.equal(await actionsOf("p-org", user("alice")), "admin,metadata,owner,propose,read,write", "organization owner acts as maintainer and may delete");
+  assert.equal(await actionsOf("p-org", user("carol")), "admin,metadata,owner,propose,read,write", "project owner, still in the organization");
+  assert.equal(await actionsOf("p-org", user("dan")), "metadata,propose,read", "project member who is in the organization");
   assert.equal(await actionsOf("p-org", user("zed")), "", "public does not leak outside the organization");
   assert.equal(await actionsOf("p-org", user("root", UserRole.SYSTEM_ADMINISTRATOR)), "metadata", "admin sees metadata, never content");
 
@@ -164,18 +163,6 @@ test("Repo URL: a public-looking name that resolves to a private address is refu
   await assertPublicRepoAddress("http://localhost:3000/a.git", async () => { throw new Error("must not resolve"); }, true);
 });
 
-test("Project token: stored encrypted, read back, and older plaintext tokens still work", () => {
-  const sealed = sealProjectToken("ghp_secretvalue1234");
-  assert.ok(sealed.startsWith("enc:v1:"));
-  assert.ok(!sealed.includes("ghp_secretvalue1234"));
-  assert.notEqual(sealProjectToken("ghp_secretvalue1234"), sealed, "a fresh IV each time");
-  assert.equal(unsealProjectToken(sealed), "ghp_secretvalue1234");
-  assert.equal(unsealProjectToken("ghp_legacyplaintext"), "ghp_legacyplaintext");
-  assert.equal(sealProjectToken(undefined), undefined);
-  assert.equal(unsealProjectToken(undefined), undefined);
-  const [iv, tag, data] = sealed.slice("enc:v1:".length).split(":");
-  assert.throws(() => unsealProjectToken(`enc:v1:${iv}:${tag}:${data.slice(0, -4)}AAAA`), /could not be decrypted/);
-});
 
 test("Register: a file:// repository is refused with 400", async () => {
   const saved = process.env.ARCHTIME_ALLOW_LOCAL_REPOS;

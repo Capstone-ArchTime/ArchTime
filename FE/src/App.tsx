@@ -1,9 +1,9 @@
 import { lazy, Suspense, useEffect, useLayoutEffect } from 'react';
-import { App as AntApp, ConfigProvider, Result, theme } from 'antd';
+import { App as AntApp, ConfigProvider, theme } from 'antd';
 import type { ThemeConfig } from 'antd';
 import { StyleProvider } from '@ant-design/cssinjs';
 import { MotionConfig } from 'motion/react';
-import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, Outlet, Link, Navigate, useLocation } from 'react-router-dom';
+import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, Outlet, Navigate, useLocation } from 'react-router-dom';
 import AuthProvider from '@/auth/AuthProvider';
 import { useAuth } from '@/auth/auth-context';
 import { setUiTheme, themeFor, useUiTheme } from '@/features/ui-theme';
@@ -25,12 +25,15 @@ const OrganizationDetail = lazy(() => import("@/pages/organizations/Organization
 const ArchitectureMap = lazy(() => import("@/pages/developer-analyst/ArchitectureMap"));
 const Compare = lazy(() => import("@/pages/developer-analyst/Compare"));
 const Evidence = lazy(() => import("@/pages/developer-analyst/Evidence"));
+const TasksSprints = lazy(() => import("@/pages/developer-analyst/TasksSprints"));
 const Insights = lazy(() => import("@/pages/developer-analyst/Insights"));
 const ProjectDetail = lazy(() => import("@/pages/developer-analyst/ProjectDetail"));
 const ProjectMaintainerDashboard = lazy(() => import("@/pages/project-maintainer/Dashboard"));
 const ProjectMaintainerReports = lazy(() => import("@/pages/project-maintainer/Reports"));
 const ComponentDiagram = lazy(() => import("@/pages/project-maintainer/ComponentDiagram"));
 const ArchitectureRules = lazy(() => import("@/pages/project-maintainer/ArchitectureRules"));
+const ConformanceFindings = lazy(() => import("@/pages/project-maintainer/ConformanceFindings"));
+const AgentAccess = lazy(() => import("@/pages/project-maintainer/AgentAccess"));
 const DesignDecisions = lazy(() => import("@/pages/project-maintainer/DesignDecisions"));
 const SystemAdministratorDashboard = lazy(() => import("@/pages/system-administrator/Dashboard"));
 const SystemSettings = lazy(() => import("@/pages/system-administrator/SystemSettings"));
@@ -48,6 +51,7 @@ const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
 const AcceptInvitation = lazy(() => import('@/pages/AcceptInvitation'));
 const GitHubCallback = lazy(() => import('@/pages/GitHubCallback'));
+const NotFound = lazy(() => import('@/pages/NotFound'));
 
 /** Redirects to another page, keeping the query (such as ?projectId=) and the hash. */
 function KeepQuery({ to }: { to: string }) {
@@ -93,6 +97,7 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path="/architecture" element={<ArchitectureMap />} />
       <Route path="/compare" element={<Compare />} />
       <Route path="/evidence" element={<Evidence />} />
+      <Route path="/tasks" element={<TasksSprints />} />
       <Route path="/insights" element={<Insights />} />
       <Route path="/reports" element={<ProjectMaintainerReports />} />
       <Route path="/ai-usage" element={<AiUsage />} />
@@ -111,6 +116,8 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path="/project-maintainer/reports" element={<Navigate to="/reports" replace />} />
       <Route path="/project-maintainer/component-diagram" element={<ComponentDiagram />} />
       <Route path="/project-maintainer/architecture-rules" element={<ArchitectureRules />} />
+      <Route path="/project-maintainer/conformance" element={<ConformanceFindings />} />
+      <Route path="/project-maintainer/agent-access" element={<AgentAccess />} />
       <Route path="/project-maintainer/design-decisions" element={<DesignDecisions />} />
       <Route path="/system-administrator" element={<SystemAdministratorDashboard />} />
       <Route path="/system-administrator/users" element={<UserManagement />} />
@@ -121,7 +128,7 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path="/system-administrator/ai-models" element={<AiModels />} />
       <Route path="/system-administrator/ai-metrics" element={<AiMetrics />} />
     </Route>
-    <Route path="*" element={<div className="min-h-screen bg-[var(--at-page)] p-8"><Result status="404" title="Page not found" extra={<Link to="/">Back to home</Link>} /></div>} />
+    <Route path="*" element={<NotFound />} />
 
   </Route>
 ));

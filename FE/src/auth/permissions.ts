@@ -17,10 +17,10 @@ export const roleHome: Record<Role, string> = {
  * Pages for maintaining a project. Any developer-analyst may open them; each lists only the workspaces the account
  * maintains, and the server refuses everything else.
  */
-export const maintainerRoutes: readonly string[] = ['/project-maintainer', '/project-maintainer/approvals', '/project-maintainer/team', '/project-maintainer/reports', '/project-maintainer/component-diagram', '/project-maintainer/architecture-rules', '/project-maintainer/design-decisions'];
+export const maintainerRoutes: readonly string[] = ['/project-maintainer', '/project-maintainer/approvals', '/project-maintainer/team', '/project-maintainer/reports', '/project-maintainer/component-diagram', '/project-maintainer/architecture-rules', '/project-maintainer/conformance', '/project-maintainer/agent-access', '/project-maintainer/design-decisions'];
 
 const routes: Record<Role, readonly string[]> = {
-  'developer-analyst': ['/dashboard', '/projects', '/organizations', '/project', '/history', '/architecture', '/compare', '/evidence', '/insights', '/reports', '/ai-usage', '/learning', ...maintainerRoutes],
+  'developer-analyst': ['/dashboard', '/projects', '/organizations', '/project', '/history', '/architecture', '/compare', '/evidence', '/tasks', '/insights', '/reports', '/ai-usage', '/learning', ...maintainerRoutes],
   'system-administrator': ['/system-administrator', '/system-administrator/users', '/system-administrator/organizations', '/system-administrator/audit-log', '/system-administrator/settings', '/system-administrator/mining-jobs', '/system-administrator/ai-models', '/system-administrator/ai-metrics'],
 };
 

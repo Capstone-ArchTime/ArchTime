@@ -27,6 +27,8 @@ export const env = {
   port: Number(required("PORT", "4000")),
   mongodbUri: required("MONGODB_URI", "mongodb://localhost:27017/archtime"),
   corsOrigin: required("CORS_ORIGIN", "http://localhost:5173"),
+  /** Where coding agents reach this API (written into AGENTS.md). */
+  publicApiUrl: process.env.PUBLIC_API_URL || `http://localhost:${process.env.PORT || "4000"}/api`,
 
   // JWT
   jwtSecret: required("JWT_SECRET"),

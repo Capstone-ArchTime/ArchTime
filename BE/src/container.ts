@@ -54,7 +54,7 @@ import { MongoOrganizationRepository } from "./infrastructure/repositories/Mongo
 import { MongoOrganizationCredentialRepository } from "./infrastructure/repositories/MongoOrganizationCredentialRepository.js";
 import { OrganizationUseCases } from "./application/use-cases/organizations/OrganizationUseCases.js";
 import { MongoPendingInvitationStore } from "./infrastructure/repositories/MongoPendingInvitationStore.js";
-import { GetAdminOrganizationsUseCase } from "./application/use-cases/admin/GetAdminOrganizationsUseCase.js";
+import { GetAdminOrganizationsUseCase, SuspendOrganizationUseCase } from "./application/use-cases/admin/GetAdminOrganizationsUseCase.js";
 import { AdminOrganizationController } from "./presentation/controllers/AdminOrganizationController.js";
 import { OrganizationCredentialUseCases } from "./application/use-cases/organizations/OrganizationCredentialUseCases.js";
 import { OrganizationController } from "./presentation/controllers/OrganizationController.js";
@@ -228,6 +228,7 @@ export const projectController = new ProjectController(
 import { MongoWorkspaceRepository } from "./infrastructure/repositories/MongoWorkspaceRepository.js";
 import { GetProjectWorkspaceUseCase } from "./application/use-cases/workspace/GetProjectWorkspaceUseCase.js";
 import { SaveProjectWorkspaceUseCase } from "./application/use-cases/workspace/SaveProjectWorkspaceUseCase.js";
+import { SetComponentPathsUseCase } from "./application/use-cases/workspace/SetComponentPathsUseCase.js";
 import { latestMinedCommit } from "./infrastructure/services/latestCommit.js";
 import { WorkspaceController } from "./presentation/controllers/WorkspaceController.js";
 
@@ -247,6 +248,7 @@ const saveProjectWorkspaceUseCase = new SaveProjectWorkspaceUseCase(
 export const workspaceController = new WorkspaceController(
   getProjectWorkspaceUseCase,
   saveProjectWorkspaceUseCase,
+  new SetComponentPathsUseCase(workspaceRepository, projectRepository),
 );
 
 export const memberController = new MemberController(
@@ -336,11 +338,86 @@ import { AdminLlmController, LlmController } from "./presentation/controllers/Ll
 
 export const llmController = new LlmController(new UserLlmUseCases(projectAccessPolicy));
 import { ProjectChatUseCase } from "./application/use-cases/llm/ProjectChatUseCase.js";
+import { CheckConformanceUseCase, DecideFindingUseCase, ExplainFindingUseCase, ListConformanceUseCase, UnreadFindingsUseCase } from "./application/use-cases/conformance/ConformanceUseCases.js";
+import { FindingNotifier, conformanceAfterMining } from "./application/use-cases/conformance/FindingNotifier.js";
+import { mongoConformanceDirectory } from "./infrastructure/services/ConformanceDirectory.js";
+import { MiningService } from "./infrastructure/services/MiningService.js";
+import { JobKind, MiningJobModel } from "./infrastructure/database/models/MiningJobModel.js";
+import { AgentContextUseCases, AgentTokenUseCases } from "./application/use-cases/agent/AgentUseCases.js";
+import { MongoAgentTokenRepository } from "./infrastructure/repositories/MongoAgentTokenRepository.js";
+import { AgentController } from "./presentation/controllers/AgentController.js";
+import { AuditService } from "./infrastructure/services/AuditService.js";
+import { TransferProjectUseCase } from "./application/use-cases/projects/TransferProjectUseCase.js";
+import { MongoConformanceRepository, mongoConformanceSnapshots } from "./infrastructure/repositories/MongoConformanceRepository.js";
+import { ConformanceController } from "./presentation/controllers/ConformanceController.js";
+import { LlmModelRegistry } from "./infrastructure/llm/registry.js";
+import { LlmRunService } from "./infrastructure/services/LlmRunService.js";
+import type { LlmUsage } from "./domain/architecture/llm/types.js";
 import { ChatHistoryUseCases } from "./application/use-cases/llm/ChatHistoryUseCases.js";
 import { ProjectChatController } from "./presentation/controllers/ProjectChatController.js";
 const chatHistory = new ChatHistoryUseCases();
 export const projectChatController = new ProjectChatController(new ProjectChatUseCase(chatHistory), chatHistory);
+
+// ── Conformance check (RF-08, UC-40, UC-41) ──
+const conformanceRepository = new MongoConformanceRepository();
+/** The configured model; each explanation is logged as an AI run of the project, as a mentor answer is. */
+const explainModel = async (projectId: string, userId: string) => {
+  const resolved = await LlmModelRegistry.resolve();
+  return {
+    client: resolved.client,
+    record: async (run: { usage: LlmUsage | null; status: "accepted" | "failed"; errorKind?: string; latencyMs: number; wallMs: number }) => {
+      await LlmRunService.recordChat({ projectId, userId, model: resolved, ...run });
+    },
+  };
+};
+export const checkConformanceUseCase = new CheckConformanceUseCase(workspaceRepository, mongoConformanceSnapshots, conformanceRepository);
+// After every fetch or mine: check, then e-mail what is new (RF-29, BR-34); maintainers can also send it at once from the
+// findings page. The link opens the first allowed origin.
+export const findingNotifier = new FindingNotifier(
+  conformanceRepository,
+  mongoConformanceDirectory,
+  (to, mail) => emailService.sendNotification(to, mail),
+  env.corsOrigin.split(",")[0].trim(),
+);
+/** The latest background check of a project, for the findings page to follow. */
+const latestCheckJob = async (projectId: string) => {
+  const job = await MiningJobModel.findOne({ projectId, kind: JobKind.CONFORMANCE }).sort({ createdAt: -1 })
+    .select("status progress stage error finishedAt").lean<{ _id: unknown; status: string; progress?: number; stage?: string; error?: string; finishedAt?: Date }>();
+  return job ? { id: String(job._id), status: job.status, progress: job.progress ?? 0, stage: job.stage ?? "", error: job.error ?? null, finishedAt: job.finishedAt ?? null } : null;
+};
+export const conformanceController = new ConformanceController(
+  checkConformanceUseCase,
+  new ListConformanceUseCase(workspaceRepository, conformanceRepository, latestCheckJob),
+  new DecideFindingUseCase(conformanceRepository),
+  new ExplainFindingUseCase(conformanceRepository, workspaceRepository, explainModel),
+  new UnreadFindingsUseCase(projectAccessPolicy, conformanceRepository),
+  findingNotifier,
+  (projectId, userId, force) => MiningService.startConformanceJob(projectId, userId, force),
+);
+MiningService.onHistoryChanged = conformanceAfterMining(checkConformanceUseCase, findingNotifier);
+// "Run check" runs as a background job: the page answers at once, progress shows on the page and in the header.
+MiningService.conformanceRunner = async (projectId, options) => {
+  const summary = await checkConformanceUseCase.execute(projectId, options);
+  return { checked: summary.checked.length, skipped: summary.skipped, findings: summary.checked.reduce((n, c) => n + c.findings, 0) };
+};
+
+// ── Agent access (RF-09, UC-42 – UC-44) ──
+// ── Moving a personal workspace into an organization (RF-11, UC-29) ──
+export const transferProjectUseCase = new TransferProjectUseCase(projectRepository, organizationRepository, memberRepository,
+  entry => AuditService.log({ ...entry, targetType: "project" }));
+
+export const agentController = new AgentController(
+  new AgentTokenUseCases(new MongoAgentTokenRepository(), projectRepository, entry => AuditService.log({ ...entry, targetType: "project" })),
+  new AgentContextUseCases(workspaceRepository, projectRepository, env.publicApiUrl, organizationRepository),
+);
 export const adminLlmController = new AdminLlmController(new AdminLlmUseCases());
+
+// RF-14, UC-25: organizations for System Administrators (metadata only) and their temporary suspension.
+const adminOrganizationsUseCase = new GetAdminOrganizationsUseCase(organizationRepository, projectRepository, userRepository);
+const adminOrganizationController = new AdminOrganizationController(
+  adminOrganizationsUseCase,
+  new SuspendOrganizationUseCase(organizationRepository, adminOrganizationsUseCase, entry => AuditService.log({ ...entry, targetType: "organization" })),
+);
 
 export const adminControllersConfig: AdminControllersConfig = {
   userController: adminUserController,
@@ -349,7 +426,7 @@ export const adminControllersConfig: AdminControllersConfig = {
   settingsController: adminSettingsController,
   metricsController: adminMetricsController,
   llmController: adminLlmController,
-  organizationController: new AdminOrganizationController(new GetAdminOrganizationsUseCase(organizationRepository, projectRepository, userRepository)),
+  organizationController: adminOrganizationController,
 };
 
 // ── Project Maintainer (PM) ──
@@ -358,6 +435,7 @@ import { GetProjectDiagramUseCase } from "./application/use-cases/pm/GetProjectD
 import {
   SaveProjectDiagramUseCase,
   ConfirmProjectDiagramUseCase,
+  UnconfirmProjectDiagramUseCase,
 } from "./application/use-cases/pm/SaveProjectDiagramUseCase.js";
 import {
   GetProjectRulesUseCase,
@@ -409,6 +487,7 @@ export const projectMaintainerController = new ProjectMaintainerController({
   getDiagramUseCase: new GetProjectDiagramUseCase(workspaceRepository, projectRepository),
   saveDiagramUseCase: new SaveProjectDiagramUseCase(workspaceRepository, projectRepository),
   confirmDiagramUseCase: new ConfirmProjectDiagramUseCase(workspaceRepository, projectRepository, latestMinedCommit),
+  unconfirmDiagramUseCase: new UnconfirmProjectDiagramUseCase(workspaceRepository, projectRepository),
   getRulesUseCase: new GetProjectRulesUseCase(workspaceRepository, projectRepository),
   createRuleUseCase: new CreateProjectRuleUseCase(workspaceRepository, projectRepository),
   updateRuleUseCase: new UpdateProjectRuleUseCase(workspaceRepository, projectRepository),
@@ -443,3 +522,18 @@ export const projectMaintainerController = new ProjectMaintainerController({
 });
 
 export { jwtTokenService };
+
+// ── Project tasks & sprints (F-13, RF-07, UC-36 – UC-39) ──
+import { ImportTasksUseCase, LinkCommitsToTasksUseCase, ListTasksUseCase, TaskImpactUseCase } from "./application/use-cases/tasks/TaskUseCases.js";
+import { MongoTaskRepository, mongoCommitArchitecture, mongoMinedCommits } from "./infrastructure/repositories/MongoTaskRepository.js";
+import type { TaskUseCases } from "./presentation/routes/task.routes.js";
+const taskRepository = new MongoTaskRepository();
+const linkCommitsToTasksUseCase = new LinkCommitsToTasksUseCase(taskRepository, mongoMinedCommits);
+export const taskUseCases: TaskUseCases = {
+  list: new ListTasksUseCase(taskRepository),
+  importTasks: new ImportTasksUseCase(taskRepository, linkCommitsToTasksUseCase),
+  link: linkCommitsToTasksUseCase,
+  impact: new TaskImpactUseCase(taskRepository, mongoCommitArchitecture, workspaceRepository),
+};
+// After every mined batch: link its commits to the tasks they name (ARCH-12, T22).
+MiningService.onBatchSaved = (projectId, commits) => linkCommitsToTasksUseCase.execute(projectId, commits);

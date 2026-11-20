@@ -1,0 +1,131 @@
+{
+  "repo": "docusaurus",
+  "commit": "4c4ec4aaabc6d70288d53e10203c6d271f0cac7a",
+  "author": "Claude (AI assistant) - reference A, AI-written; must be paired with an independent reference B by a team member",
+  "writtenAt": "2026-11-16",
+  "note": "Written from website/docs/advanced/architecture.mdx (and the plugin / theme / client-server sections linked from it) and the source at the commit above, without any ArchTime output for this repository (it has not been mined). The documentation site (website/), admin/, examples/, argos/ and the repository's own lint packages (eslint-plugin, stylelint-copyright) are left unassigned: the architecture document describes the framework, not them.",
+  "sources": [
+    "website/docs/advanced/architecture.mdx: plugins collect content in Node and emit JSON; themes provide layout components that receive it as route modules; the bundler emits a server and a client bundle; plugins and themes communicate only through JSON and addRoute",
+    "website/docs/advanced/plugins.mdx, client.mdx, ssg.mdx, routing.mdx",
+    "packages/*/package.json (one package per plugin / theme)"
+  ],
+  "components": [
+    {
+      "name": "Core server (site loading)",
+      "responsibility": "Loads the config, initializes plugins and themes, runs their lifecycles (loadContent, contentLoaded, addRoute), builds the route tree, i18n and the generated files the client bundle reads.",
+      "prefixes": ["packages/docusaurus/src/server/", "packages/docusaurus/src/index.ts"],
+      "evidence": ["architecture.mdx: all plugin lifecycle methods run in Node; the core collects the JSON and routes they emit"]
+    },
+    {
+      "name": "Core client runtime",
+      "responsibility": "The React application shipped to the browser: router, hydration, client lifecycles, preloading, and the @docusaurus/* client APIs (Link, Head, useDocusaurusContext, BrowserOnly...).",
+      "prefixes": ["packages/docusaurus/src/client/"],
+      "evidence": ["architecture.mdx: the config is serialized into the bundle and read through useDocusaurusContext; client.mdx"]
+    },
+    {
+      "name": "Bundling and static generation",
+      "responsibility": "Webpack/Rspack configuration of the client and server bundles, Babel and SWC set-up, minification, and static site generation of every route's HTML from the server bundle.",
+      "prefixes": [
+        "packages/docusaurus/src/webpack/",
+        "packages/docusaurus/src/ssg/",
+        "packages/docusaurus-bundler/",
+        "packages/docusaurus-babel/"
+      ],
+      "evidence": ["architecture.mdx: 'the bundler bundles all the components and emits a server bundle and a client bundle'; ssg.mdx"]
+    },
+    {
+      "name": "CLI commands",
+      "responsibility": "docusaurus start, build, serve, deploy, swizzle, clear, write-translations, write-heading-ids.",
+      "prefixes": ["packages/docusaurus/src/commands/", "packages/docusaurus/bin/"],
+      "evidence": ["packages/docusaurus/bin/docusaurus.mjs dispatches to src/commands"]
+    },
+    {
+      "name": "Markdown and MDX pipeline",
+      "responsibility": "Turns Markdown/MDX files into React components: the MDX webpack loader, front matter, remark/rehype plugins (headings, TOC, admonitions, images, links), npm2yarn.",
+      "prefixes": ["packages/docusaurus-mdx-loader/", "packages/docusaurus-remark-plugin-npm2yarn/"],
+      "evidence": ["markdown-features docs: content plugins hand their files to the MDX loader"]
+    },
+    {
+      "name": "Docs content plugin",
+      "responsibility": "Docs: versions, sidebars, categories, slugs, generated index pages, its client API (useDocsVersion...) and translations.",
+      "prefixes": ["packages/docusaurus-plugin-content-docs/"],
+      "evidence": ["architecture.mdx: plugins each collect their content and emit JSON data"]
+    },
+    {
+      "name": "Blog content plugin",
+      "responsibility": "Blog posts, authors, tags, pagination, feeds, reading time.",
+      "prefixes": ["packages/docusaurus-plugin-content-blog/"],
+      "evidence": ["one content plugin per kind of content"]
+    },
+    {
+      "name": "Pages content plugin",
+      "responsibility": "Standalone React and Markdown pages under src/pages.",
+      "prefixes": ["packages/docusaurus-plugin-content-pages/"],
+      "evidence": ["one content plugin per kind of content"]
+    },
+    {
+      "name": "Classic theme and preset",
+      "responsibility": "The default layout components (navbar, footer, doc and blog pages, code blocks...) that receive the plugins' JSON as route modules, and the classic preset that bundles the default plugins and themes.",
+      "prefixes": ["packages/docusaurus-theme-classic/", "packages/docusaurus-preset-classic/"],
+      "evidence": ["architecture.mdx: themes provide layout components which receive the JSON data as route modules"]
+    },
+    {
+      "name": "Theme common",
+      "responsibility": "Theme-agnostic hooks, contexts and utilities shared by the themes (color mode, navbar state, docs and blog helpers, scroll...).",
+      "prefixes": ["packages/docusaurus-theme-common/"],
+      "evidence": ["package @docusaurus/theme-common, imported by every theme package"]
+    },
+    {
+      "name": "Search (Algolia)",
+      "responsibility": "DocSearch-based search theme: search bar, search page, OpenSearch description.",
+      "prefixes": ["packages/docusaurus-theme-search-algolia/"],
+      "evidence": ["theme package providing SearchBar / SearchPage"]
+    },
+    {
+      "name": "Translations",
+      "responsibility": "Default UI translations of the themes and the tooling that keeps them up to date.",
+      "prefixes": ["packages/docusaurus-theme-translations/"],
+      "evidence": ["i18n docs: theme translations ship in @docusaurus/theme-translations"]
+    },
+    {
+      "name": "Extension plugins and themes",
+      "responsibility": "Optional features added through the same plugin / theme protocol: sitemap, client redirects, PWA, ideal image (with its LQIP loader), SVGR, analytics (gtag, GTM, Vercel), CSS cascade layers, rsdoctor, debug pages, live code blocks, Mermaid diagrams.",
+      "prefixes": [
+        "packages/docusaurus-plugin-sitemap/",
+        "packages/docusaurus-plugin-client-redirects/",
+        "packages/docusaurus-plugin-pwa/",
+        "packages/docusaurus-plugin-ideal-image/",
+        "packages/lqip-loader/",
+        "packages/docusaurus-plugin-svgr/",
+        "packages/docusaurus-plugin-google-gtag/",
+        "packages/docusaurus-plugin-google-tag-manager/",
+        "packages/docusaurus-plugin-vercel-analytics/",
+        "packages/docusaurus-plugin-css-cascade-layers/",
+        "packages/docusaurus-plugin-rsdoctor/",
+        "packages/docusaurus-plugin-debug/",
+        "packages/docusaurus-theme-live-codeblock/",
+        "packages/docusaurus-theme-mermaid/"
+      ],
+      "evidence": ["each is a separate plugin or theme package using the lifecycle / theme-component protocol of architecture.mdx"]
+    },
+    {
+      "name": "Shared utilities",
+      "responsibility": "Node and isomorphic helpers used across packages: path, URL, i18n, markdown, VCS last-update, file system, globbing, logging, Joi validation schemas.",
+      "prefixes": [
+        "packages/docusaurus-utils/",
+        "packages/docusaurus-utils-common/",
+        "packages/docusaurus-utils-validation/",
+        "packages/docusaurus-logger/",
+        "packages/docusaurus-fs/",
+        "packages/docusaurus-glob/"
+      ],
+      "evidence": ["utility packages without a lifecycle of their own, imported by core and plugins"]
+    },
+    {
+      "name": "Project scaffolding",
+      "responsibility": "create-docusaurus: creates a new site from a template.",
+      "prefixes": ["packages/create-docusaurus/"],
+      "evidence": ["package create-docusaurus (bin)"]
+    }
+  ]
+}
