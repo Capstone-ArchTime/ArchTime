@@ -80,12 +80,14 @@ test("Extractor eval: end to end on a small repository with known dependencies",
   // Written by reading the files above, per LABEL_RULES; the extractor's output was not used.
   const gt = truth({ "src/a.ts": ["src/b.ts", "src/c.ts", "src/d.ts"], "src/b.ts": ["src/e.ts"] });
   const result = compareEdges(edges, gt);
-  assert.deepEqual(result.tp.map((e) => e.target), ["src/b.ts", "src/c.ts"], "import and import type are found");
-  assert.deepEqual(result.fn, [{ source: "src/a.ts", target: "src/d.ts" }, { source: "src/b.ts", target: "src/e.ts" }],
-    "export-from and require() are missed by the current extractor: the evaluation shows it");
+  assert.deepEqual(result.tp.map((e) => `${e.source} -> ${e.target}`), ["src/a.ts -> src/b.ts", "src/a.ts -> src/c.ts", "src/a.ts -> src/d.ts", "src/b.ts -> src/e.ts"],
+    "import, import type, export-from and require() are all found");
+  assert.deepEqual(result.fn, []);
   assert.deepEqual(result.fp, [], "npm packages never count as file dependencies");
 
-  const report = renderReport({ generatedAt: new Date("2026-11-05T00:00:00Z"), extractor: "test", rows: [{ repo: "demo", commit: COMMIT, files: 2, pending: 0, score: prf(2, 0, 2) }], details: [{ repo: "demo", comparison: result }] });
+  // The report still lists what an extractor missed (scored here with a made-up miss).
+  const missed = { ...result, tp: result.tp.slice(0, 2), fn: result.tp.slice(2) };
+  const report = renderReport({ generatedAt: new Date("2026-11-05T00:00:00Z"), extractor: "test", rows: [{ repo: "demo", commit: COMMIT, files: 2, pending: 0, score: prf(2, 0, 2) }], details: [{ repo: "demo", comparison: missed }] });
   assert.match(report, /\| demo \| `aaaaaaa` \| 2 \| 0 \| 2 \| 0 \| 2 \| 100\.0% \| 50\.0% \| 66\.7% \|/);
   assert.match(report, /`src\/b\.ts` → `src\/e\.ts`/);
 });

@@ -65,9 +65,9 @@ function KeepQuery({ to }: { to: string }) {
 
 /** Puts on the chosen look (before paint, so pages never flash in the other theme). */
 function RoleTheme() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { pathname } = useLocation();
-  const theme = themeFor(user?.role, pathname, useThemeChoice());
+  const theme = themeFor(user?.role, pathname, useThemeChoice(), loading);
   useLayoutEffect(() => { setUiTheme(theme); }, [theme]);
   return null;
 }

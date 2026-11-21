@@ -104,3 +104,21 @@ test('long folder names keep their end', () => {
   assert.equal(shortLabel('src/main/java/com/shop/web/controllers', 18), '…/web/controllers');
   assert.ok(shortLabel('averyveryveryverylongfoldername', 12).length <= 12);
 });
+
+test('folders with no imports between them wrap into rows instead of one long unreadable row', async () => {
+  const { layoutCompareGraph } = await import('../src/features/compare-graph.ts');
+  const box = { width: 200, height: 62 };
+  const loose = { groups: Array.from({ length: 12 }, (_, i) => ({ id: `f${String(i).padStart(2, '0')}` })), links: [] };
+  const grid = layoutCompareGraph(loose, box);
+  const rows = new Set(grid.nodes.map(n => n.y));
+  assert.equal(rows.size, 3, '12 loose folders: three rows of four');
+  assert.ok(grid.width / grid.height < 3, `close to twice as wide as tall, got ${grid.width}x${grid.height}`);
+
+  // Linked folders keep their layers; the loose ones go in rows under them.
+  const mixed = { groups: [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'x' }, { id: 'y' }], links: [{ id: 'a->b', source: 'a', target: 'b' }, { id: 'b->c', source: 'b', target: 'c' }] };
+  const m = layoutCompareGraph(mixed, box);
+  const y = Object.fromEntries(m.nodes.map(n => [n.id, n.y]));
+  assert.ok(y.a < y.b && y.b < y.c, 'the import chain stays layered');
+  assert.ok(y.x > y.c && y.y > y.c, 'loose folders sit below the linked drawing');
+  assert.equal(m.edges.length, 2);
+});

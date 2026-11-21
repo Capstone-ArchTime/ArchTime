@@ -51,3 +51,12 @@ test('a check is running while queued or running, and a busy workspace is explai
   assert.equal(startProblem(new Error('Confirm the diagram first')), 'Confirm the diagram first');
   assert.equal(startProblem('x'), 'The check could not start.');
 });
+
+test('the active-jobs key changes when a job starts or ends, not on progress ticks', async () => {
+  const { activeJobsKey } = await import('../src/features/background-jobs.ts');
+  const running = [{ projectId: 'p1', kind: 'mine', status: 'running' }, { projectId: 'p2', kind: 'scan', status: 'done' }];
+  assert.equal(activeJobsKey(running), 'p1:mine');
+  assert.equal(activeJobsKey([{ projectId: 'p1', kind: 'mine', status: 'queued' }]), 'p1:mine', 'queued and running count alike');
+  assert.equal(activeJobsKey([{ projectId: 'p1', kind: 'mine', status: 'completed' }]), '', 'an ended job leaves the key');
+  assert.equal(activeJobsKey([...running, { projectId: 'a', kind: 'scan', status: 'running' }]), 'a:scan|p1:mine', 'order does not matter');
+});

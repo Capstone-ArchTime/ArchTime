@@ -24,9 +24,16 @@ test('the public pages wear the chosen look for everyone', () => {
   }
 });
 
-test('a guarded page before the session is known keeps the base look, whatever was picked', () => {
+test('a guarded page with no known role keeps the base look, whatever was picked', () => {
   assert.equal(themeFor(undefined, '/dashboard'), BASE_THEME.id);
   assert.equal(themeFor(undefined, '/system-administrator', 'ink'), BASE_THEME.id);
+  assert.equal(themeFor('some-retired-role', '/dashboard', 'ink'), BASE_THEME.id);
+});
+
+test('while the session is being checked, a guarded page already wears the picked look (no dark flash on reload)', () => {
+  assert.equal(themeFor(undefined, '/dashboard', 'ink', true), 'ink');
+  assert.equal(themeFor(undefined, '/system-administrator/users', 'frost', true), 'frost');
+  assert.equal(themeFor('some-retired-role', '/dashboard', 'ink', true), BASE_THEME.id, 'a known but unsupported role still gets the base look');
 });
 
 test('a stored choice must name a selectable theme', () => {

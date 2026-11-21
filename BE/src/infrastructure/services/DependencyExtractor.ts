@@ -38,8 +38,33 @@ export function getAllFiles(dirPath: string, exts: string[], arrayOfFiles: strin
 }
 
 /**
+ * Every module a TypeScript/JavaScript file depends on, in source order: `import` (incl. `import type` and side-effect
+ * imports), `export … from`, `import x = require()`, CommonJS `require()` and dynamic `import()` with a literal path.
+ * Calls with a computed path (`require(name)`) cannot be resolved statically and are left out.
+ */
+export function moduleSpecifiers(sourceFile: ts.SourceFile): string[] {
+  const found: string[] = [];
+  const literal = (node: ts.Node | undefined) => {
+    if (node && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node))) found.push(node.text);
+  };
+  const visit = (node: ts.Node) => {
+    if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) literal(node.moduleSpecifier);
+    else if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference)) literal(node.moduleReference.expression);
+    else if (ts.isCallExpression(node) && node.arguments.length >= 1) {
+      const callee = node.expression;
+      const isRequire = ts.isIdentifier(callee) && callee.text === 'require';
+      const isDynamicImport = callee.kind === ts.SyntaxKind.ImportKeyword;
+      if (isRequire || isDynamicImport) literal(node.arguments[0]);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return found;
+}
+
+/**
  * Files and import edges of the checkout at `dirPath`. TypeScript/JavaScript is read with the TypeScript parser
- * (top-level `import` declarations); C#, Java, Python, Go, Ruby and C/C++ with regular expressions. Edge targets are
+ * (see moduleSpecifiers); C#, Java, Python, Go, Ruby and C/C++ with regular expressions. Edge targets are
  * import specifiers joined with the importer's folder, or package names; fileDependencies (domain/architecture/buildView.ts)
  * resolves them to files.
  */
@@ -55,20 +80,13 @@ export function extractDependencies(dirPath: string): Graph {
       if (!sourceFile.isDeclarationFile && !sourceFile.fileName.includes('node_modules')) {
         const fileId = path.relative(dirPath, sourceFile.fileName).replace(/\\/g, '/');
         nodes.push({ id: fileId, name: path.basename(fileId), type: 'module' });
-        ts.forEachChild(sourceFile, node => {
-          if (ts.isImportDeclaration(node)) {
-            const moduleSpecifier = node.moduleSpecifier;
-            if (ts.isStringLiteral(moduleSpecifier)) {
-              let target = moduleSpecifier.text;
-              if (target.startsWith('.')) {
-                const resolved = path.join(path.dirname(fileId), target).replace(/\\/g, '/');
-                edges.push({ source: fileId, target: resolved, type: 'imports' });
-              } else {
-                edges.push({ source: fileId, target, type: 'imports' });
-              }
-            }
-          }
-        });
+        const seen = new Set<string>();
+        for (const specifier of moduleSpecifiers(sourceFile)) {
+          const target = specifier.startsWith('.') ? path.join(path.dirname(fileId), specifier).replace(/\\/g, '/') : specifier;
+          if (seen.has(target)) continue;
+          seen.add(target);
+          edges.push({ source: fileId, target, type: 'imports' });
+        }
       }
     }
   }
