@@ -1,6 +1,5 @@
-import { lazy, Suspense, useEffect, useLayoutEffect } from 'react';
-import { App as AntApp, ConfigProvider, theme } from 'antd';
-import type { ThemeConfig } from 'antd';
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo } from 'react';
+import { App as AntApp, ConfigProvider } from 'antd';
 import { useLanguage } from '@/i18n';
 import { antdLocaleFor } from '@/i18n/antd-locale';
 import { StyleProvider } from '@ant-design/cssinjs';
@@ -8,7 +7,8 @@ import { MotionConfig } from 'motion/react';
 import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, Outlet, Navigate, useLocation } from 'react-router-dom';
 import AuthProvider from '@/auth/AuthProvider';
 import { useAuth } from '@/auth/auth-context';
-import { setUiTheme, themeFor, useUiTheme } from '@/features/ui-theme';
+import { setUiTheme, themeFor, useThemeChoice, useThemeDefinition } from '@/features/ui-theme';
+import { antdThemeFor } from '@/theme/antd';
 import RouteGuard from '@/auth/RouteGuard';
 import PageLoading from '@/components/PageLoading';
 import PageErrorBoundary from '@/components/PageErrorBoundary';
@@ -63,11 +63,11 @@ function KeepQuery({ to }: { to: string }) {
   return <Navigate to={`${to}${search}${hash}`} replace />;
 }
 
-/** Puts on the look of the signed-in person's role (before paint, so pages never flash in the other theme). */
+/** Puts on the chosen look (before paint, so pages never flash in the other theme). */
 function RoleTheme() {
   const { user } = useAuth();
   const { pathname } = useLocation();
-  const theme = themeFor(user?.role, pathname);
+  const theme = themeFor(user?.role, pathname, useThemeChoice());
   useLayoutEffect(() => { setUiTheme(theme); }, [theme]);
   return null;
 }
@@ -139,60 +139,13 @@ const router = createBrowserRouter(createRoutesFromElements(
   </Route>
 ));
 
-/**
- * Readable blues on the dark theme. #3b82f6 stays the brand for fills, borders and focus; text and links on dark grey use
- * #93c5fd (at least 7:1 on every surface), and solid blue buttons get white text on #1d4ed8 (6.7:1) instead of dark text
- * on #3b82f6. darkAlgorithm mixes the seed colours with grey and ignores seed overrides, so Button, Tabs, Pagination and
- * Dropdown get component tokens, and the link colour (which antd otherwise takes from colorInfo) is set.
- */
-const APP_THEME: ThemeConfig = {
-  algorithm: theme.darkAlgorithm,
-  token: {
-    colorPrimary: '#3b82f6', colorBgBase: '#080b0e', fontFamily: '"Space Grotesk", sans-serif', borderRadius: 6,
-    colorLink: '#93c5fd', colorLinkHover: '#bfdbfe', colorLinkActive: '#93c5fd', blue7: '#93c5fd', colorTextLightSolid: '#ffffff',
-  },
-  components: {
-    Button: {
-      colorPrimary: '#1d4ed8', colorPrimaryHover: '#1e40af', colorPrimaryActive: '#1e3a8a', primaryColor: '#ffffff',
-      defaultHoverColor: '#93c5fd', defaultHoverBorderColor: '#60a5fa', defaultActiveColor: '#93c5fd', defaultActiveBorderColor: '#3b82f6',
-    },
-    Tabs: { itemSelectedColor: '#93c5fd', itemActiveColor: '#93c5fd', itemHoverColor: '#bfdbfe', inkBarColor: '#60a5fa' },
-    Pagination: { itemActiveColor: '#93c5fd', itemActiveColorHover: '#bfdbfe' },
-    Dropdown: { colorPrimary: '#93c5fd' },
-  },
-};
-
-/**
- * The signed-in look (features/ui-theme.ts): frosted glass panels on a misty slate background, ice-blue text,
- * light pill buttons with dark text and Montserrat. Same rules as above: component tokens where darkAlgorithm would
- * otherwise mix or ignore the seed colours.
- */
-const FROST_THEME: ThemeConfig = {
-  algorithm: theme.darkAlgorithm,
-  token: {
-    colorPrimary: '#9db3dc', colorBgBase: '#161c22', colorBgContainer: '#222a32', colorBgElevated: '#27303a', colorBorder: '#4a5662', colorBorderSecondary: '#38424d',
-    colorSuccess: '#4ade80', colorError: '#f87171', colorWarning: '#f0c27e',
-    colorText: '#eef2f8', colorTextSecondary: '#c3cdd9', colorTextTertiary: '#a9b5c3', fontFamily: '"Montserrat", system-ui, sans-serif', borderRadius: 10,
-    colorLink: '#d3def3', colorLinkHover: '#ffffff', colorLinkActive: '#d3def3', blue7: '#d3def3', colorTextLightSolid: '#18212c',
-  },
-  components: {
-    Button: {
-      colorPrimary: '#e4eaf5', colorPrimaryHover: '#ffffff', colorPrimaryActive: '#cdd8ea', primaryColor: '#18212c', primaryShadow: '0 0 14px rgba(214, 228, 255, 0.35)',
-      defaultBg: 'rgba(214, 225, 240, 0.06)', defaultBorderColor: 'rgba(220, 230, 245, 0.32)', defaultColor: '#eef2f8',
-      defaultHoverColor: '#ffffff', defaultHoverBorderColor: '#d3def3', defaultHoverBg: 'rgba(214, 225, 240, 0.12)', defaultActiveColor: '#ffffff', defaultActiveBorderColor: '#e4eaf5',
-    },
-    Tabs: { itemSelectedColor: '#ffffff', itemActiveColor: '#ffffff', itemHoverColor: '#e4eaf5', inkBarColor: '#d3def3' },
-    Pagination: { itemActiveColor: '#ffffff', itemActiveColorHover: '#ffffff' },
-    Dropdown: { colorPrimary: '#d3def3' },
-    Modal: { contentBg: '#222a32', headerBg: '#222a32', footerBg: '#222a32' },
-  },
-};
-
 export default function App() {
-  const uiTheme = useUiTheme();
+  // The antd theme of the look being worn, built from its definition (src/theme).
+  const definition = useThemeDefinition();
+  const antdTheme = useMemo(() => antdThemeFor(definition), [definition]);
   // antd's own texts (date pickers, tables, pagination, "OK"/"Cancel") follow the page language.
   const language = useLanguage();
-  return <PageErrorBoundary><StyleProvider layer><ConfigProvider locale={antdLocaleFor(language)} theme={uiTheme === 'frost' ? FROST_THEME : APP_THEME}>
+  return <PageErrorBoundary><StyleProvider layer><ConfigProvider locale={antdLocaleFor(language)} theme={antdTheme}>
     <AntApp><MotionConfig reducedMotion="user"><RouterProvider router={router} /></MotionConfig></AntApp>
   </ConfigProvider></StyleProvider></PageErrorBoundary>;
 }

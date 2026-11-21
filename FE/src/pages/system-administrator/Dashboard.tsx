@@ -189,7 +189,7 @@ export default function Dashboard() {
         {aiLoading ? (
           <Spin size="small" />
         ) : aiError ? (
-          <p role="alert" className="text-sm text-red-400">{aiError}</p>
+          <p role="alert" className="text-sm text-[var(--at-danger)]">{aiError}</p>
         ) : !aiModels.length ? (
           <p className="text-sm text-[var(--at-muted)]">{m.rich('noModel', { link: <Link key="l" to="/system-administrator/ai-models" className="text-[var(--at-link)]">{m('addOne')}</Link> })}</p>
         ) : (

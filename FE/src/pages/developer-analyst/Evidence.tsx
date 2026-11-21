@@ -88,7 +88,7 @@ const MSG = defineMessages({
 });
 const tx = (key: Parameters<typeof message<typeof MSG.en>>[1], params?: Params) => message(MSG, key, params);
 
-const monoStyle = { fontFamily: '"JetBrains Mono", monospace' };
+const monoStyle = { fontFamily: 'var(--at-font-mono)' };
 const blockTitle = 'text-[11px] font-semibold text-[var(--at-muted)] uppercase tracking-[0.14em] flex items-center gap-2';
 
 type ComponentNames = Map<string, { name: string; role: ComponentRole }>;
@@ -141,7 +141,7 @@ function PairList({ sample, sign }: { sample: PairSample; sign: '+' | '-' }) {
 
 function ImpactMessage({ state, retry, loading }: { state: ImpactState; retry: () => void; loading: string }) {
   if (state.status === 'loading') return <p role="status" className="text-xs text-[var(--at-muted)]">{loading}</p>;
-  if (state.status === 'error') return <p className="text-xs text-slate-300">{tx('impactError', { reason: state.message })} <button type="button" onClick={retry} className="text-[var(--at-link)] underline hover:text-[var(--at-link-hover)]">{tx('tryAgain')}</button></p>;
+  if (state.status === 'error') return <p className="text-xs text-[var(--at-muted)]">{tx('impactError', { reason: state.message })} <button type="button" onClick={retry} className="text-[var(--at-link)] underline hover:text-[var(--at-link-hover)]">{tx('tryAgain')}</button></p>;
   return null;
 }
 
@@ -167,8 +167,8 @@ function AffectedComponents({ state, projectId, retry }: { state: ImpactState; p
             <span className="ml-2 text-[var(--at-muted)]">{deltaText({ added: c.pairsAdded, removed: c.pairsRemoved }) || tx('noDepChange')}</span>
           </li>;
         })}</ul>}
-      {impact.unmappedFiles.total > 0 && <details className="text-xs text-slate-300">
-        <summary className="cursor-pointer select-none hover:text-white">{tx('unmapped', { count: impact.unmappedFiles.total })}</summary>
+      {impact.unmappedFiles.total > 0 && <details className="text-xs text-[var(--at-muted)]">
+        <summary className="cursor-pointer select-none hover:text-[var(--at-text-strong)]">{tx('unmapped', { count: impact.unmappedFiles.total })}</summary>
         <ul className="mt-1.5 space-y-0.5 text-[var(--at-muted)]">
           {impact.unmappedFiles.files.map(f => <li key={f} className="break-all font-mono text-[11px]" style={monoStyle}>{f}</li>)}
           {andMore(impact.unmappedFiles.total, impact.unmappedFiles.files.length) && <li>{andMore(impact.unmappedFiles.total, impact.unmappedFiles.files.length)}</li>}
@@ -323,7 +323,7 @@ const Evidence: React.FC = () => {
               <div className="mt-6 mb-2 flex items-center gap-4">
                 <div className="relative group flex items-center h-10 rounded-[10px] bg-[var(--at-panel-2)] border border-[var(--at-line)] hover:border-[var(--at-line-strong)] transition-colors">
                   <FolderKanban size={16} className="text-[var(--at-muted)] ml-4" />
-                  <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase pl-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('workspace')}</span>
+                  <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase pl-2" style={{ fontFamily: 'var(--at-font-mono)' }}>{m('workspace')}</span>
                   <select 
                     value={selectedProjectId} 
                     onChange={(e) => setSelectedProjectId(e.target.value)}
@@ -389,19 +389,19 @@ const Evidence: React.FC = () => {
               <thead>
                 <tr className="border-b border-[var(--at-line)] bg-[var(--at-panel-2)]">
                   <th className="p-4 text-[10px] font-mono font-bold text-[var(--at-muted)] uppercase tracking-wider"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('change')}</th>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{m('change')}</th>
                   <th className="p-4 text-[10px] font-mono font-bold text-[var(--at-muted)] uppercase tracking-wider"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('type')}</th>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{m('type')}</th>
                   <th className="p-4 text-[10px] font-mono font-bold text-[var(--at-muted)] uppercase tracking-wider"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('repository')}</th>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{m('repository')}</th>
                   <th className="p-4 text-[10px] font-mono font-bold text-[var(--at-muted)] uppercase tracking-wider"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('commit')}</th>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{m('commit')}</th>
                   <th className="p-4 text-[10px] font-mono font-bold text-[var(--at-muted)] uppercase tracking-wider"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('files')}</th>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{m('files')}</th>
                   <th className="p-4 text-[10px] font-mono font-bold text-[var(--at-muted)] uppercase tracking-wider"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('date')}</th>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{m('date')}</th>
                   <th className="p-4 text-[10px] font-mono font-bold text-[var(--at-muted)] uppercase tracking-wider text-right"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('action')}</th>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{m('action')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--at-line)]">
@@ -419,18 +419,18 @@ const Evidence: React.FC = () => {
                     <td className="p-4 text-sm font-bold text-[var(--at-text)]">{item.changeTitle}</td>
                     <td className="p-4">
                        <span className="px-2 py-1 bg-[var(--at-warn)]/10 border border-[var(--at-warn)]/20 text-[var(--at-warn)] text-[11px] font-mono font-bold uppercase tracking-widest whitespace-nowrap"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>
                          {item.type}
                        </span>
                     </td>
                     <td className="p-4 text-xs font-mono text-[var(--at-muted)]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{item.repository}</td>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{item.repository}</td>
                     <td className="p-4 text-xs font-mono text-[var(--at-link)] font-bold flex items-center gap-1.5"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>
                        <GitCommit size={14} /> {item.commit}
                     </td>
                     <td className="p-4 text-xs font-mono text-[var(--at-text)]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('fileCount', { count: item.files })}</td>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{m('fileCount', { count: item.files })}</td>
                     <td className="p-4 text-xs text-[var(--at-muted)]">{item.date}</td>
                     <td className="p-4 text-right">
                        <button
@@ -440,7 +440,7 @@ const Evidence: React.FC = () => {
                          }}
                          aria-label={m('viewFor', { title: item.changeTitle })}
                          className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-[var(--at-muted)] group-hover:text-[var(--at-link)] transition-colors uppercase focus:outline-none focus-visible:text-[var(--at-link)]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>
                           {m('view')} <ArrowRight size={14} />
                        </button>
                     </td>
@@ -558,7 +558,7 @@ const Evidence: React.FC = () => {
         <Modal
           centered
           title={
-            <div className="flex items-center gap-2 text-[var(--at-text)] font-mono text-sm" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+            <div className="flex items-center gap-2 text-[var(--at-text)] font-mono text-sm" style={{ fontFamily: 'var(--at-font-mono)' }}>
               <Code2 size={16} className="text-[var(--at-link)]" />
               {m('diff', { file: fileDiffModal.filename })}
             </div>
@@ -576,7 +576,7 @@ const Evidence: React.FC = () => {
           closeIcon={<X size={18} className="text-[var(--at-muted)] hover:text-[var(--at-text)]" />}
         >
           <div className="bg-[var(--at-page)] overflow-x-auto p-4 custom-scrollbar" style={{ maxHeight: '70vh' }}>
-            <pre className="text-xs font-mono" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+            <pre className="text-xs font-mono" style={{ fontFamily: 'var(--at-font-mono)' }}>
               <code>
                 {fileDiffModal.content.split('\n').map((line, idx) => {
                   let textColor = 'text-[var(--at-text)]';

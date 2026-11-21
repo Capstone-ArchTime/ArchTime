@@ -28,7 +28,7 @@ const MSG = defineMessages({
   moves: '{n} tệp được coi là chuyển chỗ (cùng tên tệp duy nhất ở thư mục mới)',
 });
 
-const mono = { fontFamily: '"JetBrains Mono", monospace' };
+const mono = { fontFamily: 'var(--at-font-mono)' };
 
 const COLORS: Record<ChangeKind, string> = {
   split: 'var(--at-warn)', merged: 'var(--at-warn)', restructured: 'var(--at-warn)', added: 'var(--at-success)', removed: 'var(--at-danger)', renamed: 'var(--at-link)', kept: 'var(--at-muted)',

@@ -9,6 +9,7 @@ import { Logo } from "@/components/Logo";
 import { roleHome } from "@/auth/permissions";
 import { useT } from "@/i18n";
 import LanguageSwitch from "@/components/LanguageSwitch";
+import { fontFamily } from "@/theme/fonts";
 
 const AccountMenu = lazy(() => import('@/components/AccountMenu'));
 const MotionLink = motion.create(Link);
@@ -24,10 +25,6 @@ const particles = [
   { left: "58%", size: 2, duration: 4.9, delay: 3.1 },
 ];
 
-const fontFamily = {
-  sans: '"Montserrat", system-ui, sans-serif',
-  mono: '"JetBrains Mono", monospace',
-};
 
 function TypewriterLine() {
   const [text, setText] = useState("");
@@ -70,7 +67,7 @@ function TypewriterLine() {
   }, []);
 
   return (
-    <span className="text-white" style={{ fontFamily: fontFamily.mono }}>
+    <span className="text-[var(--at-text-strong)]" style={{ fontFamily: fontFamily.mono }}>
       {text}
       <motion.span
         animate={prefersReducedMotion ? { opacity: 1 } : { opacity: [1, 1, 0, 0] }}
@@ -97,11 +94,11 @@ function IsometricCard({
   return (
     <motion.div
       className="border border-[var(--at-line)] bg-[var(--at-panel-2)] p-8 space-y-4"
-      whileHover={{ y: -6, scale: 1.01, borderColor: "rgba(225, 234, 248, 0.45)" }}
+      whileHover={{ y: -6, scale: 1.01, borderColor: "var(--at-line-strong)" }}
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
       <Icon icon={icon} className="text-3xl" style={{ color: iconColor }} />
-      <h3 className="text-xl font-semibold text-white">{title}</h3>
+      <h3 className="text-xl font-semibold text-[var(--at-text-strong)]">{title}</h3>
       <p className="text-sm leading-relaxed text-[var(--at-muted)] font-light">{description}</p>
     </motion.div>
   );
@@ -152,7 +149,7 @@ export default function HomePage() {
 
   return (
     <main
-      className="min-h-screen overflow-x-hidden at-home bg-[var(--at-page)] text-[var(--at-text)] antialiased selection:bg-[#d3def3] selection:text-[#18212c]"
+      className="min-h-screen overflow-x-hidden at-home bg-[var(--at-page)] text-[var(--at-text)] antialiased"
       style={{ fontFamily: fontFamily.sans }}
     >
       {/* Phones: hidden, the fixed mascot would sit on top of the hero's buttons. */}
@@ -169,14 +166,14 @@ export default function HomePage() {
           style={{
             backgroundSize: "40px 40px",
             backgroundImage:
-              "linear-gradient(to right, rgba(220, 230, 245, 0.045) 1px, transparent 1px), linear-gradient(to bottom, rgba(220, 230, 245, 0.045) 1px, transparent 1px)",
+              "linear-gradient(to right, color-mix(in srgb, var(--at-text) 4.5%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--at-text) 4.5%, transparent) 1px, transparent 1px)",
           }}
         />
         <div
           className="absolute left-[10%] top-[20%] h-[50vw] w-[50vw] rounded-full blur-3xl"
           style={{
             background:
-              "radial-gradient(circle at 50% 50%, rgba(214, 228, 255, 0.1) 0%, rgba(160, 182, 214, 0.04) 45%, transparent 70%)",
+              "radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--at-glow) 10%, transparent) 0%, color-mix(in srgb, var(--at-accent) 4%, transparent) 45%, transparent 70%)",
           }}
         />
         <div className="absolute bottom-[10%] right-[-5%] h-[40vw] w-[40vw] rounded-full bg-[var(--at-accent)]/5 blur-[120px]" />
@@ -188,8 +185,8 @@ export default function HomePage() {
               left: p.left,
               width: p.size,
               height: p.size,
-              background: "#eef4ff",
-              boxShadow: "0 0 10px rgba(226, 236, 255, 0.7), 0 0 18px rgba(200, 218, 255, 0.35)",
+              background: "var(--at-glow)",
+              boxShadow: "0 0 10px color-mix(in srgb, var(--at-glow) 70%, transparent), 0 0 18px color-mix(in srgb, var(--at-glow) 35%, transparent)",
               pointerEvents: "none",
             }}
             initial={{ y: "-10vh", x: 0, scale: 0.85, opacity: 0 }}
@@ -208,8 +205,8 @@ export default function HomePage() {
         className="fixed left-0 top-0 z-50 flex w-full items-center border-b transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300"
         animate={{
           height: navScrolled ? 64 : 80,
-          backgroundColor: navScrolled ? "rgba(22, 28, 34, 0.72)" : "rgba(22, 28, 34, 0)",
-          borderColor: navScrolled ? "rgba(220, 230, 245, 0.17)" : "rgba(220, 230, 245, 0)",
+          backgroundColor: navScrolled ? "var(--at-chrome)" : "rgba(0, 0, 0, 0)",
+          borderColor: navScrolled ? "var(--at-line)" : "rgba(0, 0, 0, 0)",
           backdropFilter: navScrolled ? "blur(12px)" : "blur(0px)",
         }}
         transition={{ duration: 0.3 }}
@@ -218,19 +215,19 @@ export default function HomePage() {
           <Logo />
 
           <div
-            className="hidden items-center gap-8 text-xs uppercase tracking-widest text-white md:flex"
+            className="hidden items-center gap-8 text-xs uppercase tracking-widest text-[var(--at-text-strong)] md:flex"
             style={{ fontFamily: fontFamily.mono }}
           >
-            <a href="#how-it-works" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
+            <a href="#how-it-works" className="text-[var(--at-text-strong)] visited:text-[var(--at-text-strong)] transition-colors hover:text-[var(--at-link)]">
               {t("home.nav.howItWorks")}
             </a>
-            <a href="#diff" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
+            <a href="#diff" className="text-[var(--at-text-strong)] visited:text-[var(--at-text-strong)] transition-colors hover:text-[var(--at-link)]">
               {t("home.nav.diff")}
             </a>
-            <a href="#change-types" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
+            <a href="#change-types" className="text-[var(--at-text-strong)] visited:text-[var(--at-text-strong)] transition-colors hover:text-[var(--at-link)]">
               {t("home.nav.changeTypes")}
             </a>
-            <a href="#evidence" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
+            <a href="#evidence" className="text-[var(--at-text-strong)] visited:text-[var(--at-text-strong)] transition-colors hover:text-[var(--at-link)]">
               {t("home.nav.evidence")}
             </a>
           </div>
@@ -244,14 +241,14 @@ export default function HomePage() {
             ) : (<>
             <Link
               to="/login"
-              className="hidden text-xs uppercase tracking-widest text-slate-300 transition-colors hover:text-white md:inline-block"
+              className="hidden text-xs uppercase tracking-widest text-[var(--at-muted)] transition-colors hover:text-[var(--at-text-strong)] md:inline-block"
               style={{ fontFamily: fontFamily.mono }}
             >
               {t("common.signIn")}
             </Link>
             <Link
               to="/register"
-              className="hidden border border-[var(--at-accent)]/30 bg-[var(--at-panel)] px-5 py-2.5 text-xs uppercase tracking-widest text-white transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-[var(--at-glow)] hover:text-[var(--at-glow)] md:inline-block"
+              className="hidden border border-[var(--at-accent)]/30 bg-[var(--at-panel)] px-5 py-2.5 text-xs uppercase tracking-widest text-[var(--at-text-strong)] transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-[var(--at-glow)] hover:text-[var(--at-glow)] md:inline-block"
               style={{ fontFamily: fontFamily.mono }}
             >
               {t("common.signUp")}
@@ -262,7 +259,7 @@ export default function HomePage() {
               aria-label={mobileMenuOpen ? t("home.closeMenu") : t("home.openMenu")}
               aria-expanded={mobileMenuOpen}
               aria-controls="mobile-nav-menu"
-              className="border border-[var(--at-line)] bg-[var(--at-panel)] p-2.5 text-slate-300 transition-colors hover:border-[var(--at-glow)] hover:text-white md:hidden"
+              className="border border-[var(--at-line)] bg-[var(--at-panel)] p-2.5 text-[var(--at-muted)] transition-colors hover:border-[var(--at-glow)] hover:text-[var(--at-text-strong)] md:hidden"
             >
               <Icon icon={mobileMenuOpen ? "ph:x-bold" : "ph:list-bold"} className="text-lg" />
             </button>
@@ -280,34 +277,34 @@ export default function HomePage() {
               className="absolute left-0 top-full w-full overflow-hidden border-b border-[var(--at-line)] bg-[var(--at-page)]/95 backdrop-blur-md md:hidden"
             >
               <nav
-                className="flex flex-col gap-1 px-6 py-4 text-xs uppercase tracking-widest text-white"
+                className="flex flex-col gap-1 px-6 py-4 text-xs uppercase tracking-widest text-[var(--at-text-strong)]"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 <a
                   href="#how-it-works"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="border-b border-[var(--at-line)]/60 py-3 text-white visited:text-white transition-colors hover:text-[var(--at-link)]"
+                  className="border-b border-[var(--at-line)]/60 py-3 text-[var(--at-text-strong)] visited:text-[var(--at-text-strong)] transition-colors hover:text-[var(--at-link)]"
                 >
                   {t("home.nav.howItWorks")}
                 </a>
                 <a
                   href="#diff"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="border-b border-[var(--at-line)]/60 py-3 text-white visited:text-white transition-colors hover:text-[var(--at-link)]"
+                  className="border-b border-[var(--at-line)]/60 py-3 text-[var(--at-text-strong)] visited:text-[var(--at-text-strong)] transition-colors hover:text-[var(--at-link)]"
                 >
                   {t("home.nav.diff")}
                 </a>
                 <a
                   href="#change-types"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="border-b border-[var(--at-line)]/60 py-3 text-white visited:text-white transition-colors hover:text-[var(--at-link)]"
+                  className="border-b border-[var(--at-line)]/60 py-3 text-[var(--at-text-strong)] visited:text-[var(--at-text-strong)] transition-colors hover:text-[var(--at-link)]"
                 >
                   {t("home.nav.changeTypes")}
                 </a>
                 <a
                   href="#evidence"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="border-b border-[var(--at-line)]/60 py-3 text-white visited:text-white transition-colors hover:text-[var(--at-link)]"
+                  className="border-b border-[var(--at-line)]/60 py-3 text-[var(--at-text-strong)] visited:text-[var(--at-text-strong)] transition-colors hover:text-[var(--at-link)]"
                 >
                   {t("home.nav.evidence")}
                 </a>
@@ -322,7 +319,7 @@ export default function HomePage() {
                 <Link
                   to="/register"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="mt-2 border border-[var(--at-accent)]/30 bg-[var(--at-panel)] px-5 py-2.5 text-center text-white transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-[var(--at-glow)] hover:text-[var(--at-glow)]"
+                  className="mt-2 border border-[var(--at-accent)]/30 bg-[var(--at-panel)] px-5 py-2.5 text-center text-[var(--at-text-strong)] transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-[var(--at-glow)] hover:text-[var(--at-glow)]"
                 >
                   {t("common.signUp")}
                 </Link>
@@ -330,7 +327,7 @@ export default function HomePage() {
                 <Link
                   to={startHref}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="mt-2 border border-[var(--at-line)] bg-transparent px-5 py-2.5 text-center text-[var(--at-muted)] transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400 hover:text-white"
+                  className="mt-2 border border-[var(--at-line)] bg-transparent px-5 py-2.5 text-center text-[var(--at-muted)] transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-[var(--at-line-strong)] hover:text-[var(--at-text-strong)]"
                 >
                   {startLabel}
                 </Link>
@@ -361,17 +358,17 @@ export default function HomePage() {
             <div className="inline-flex items-center gap-3 border border-[var(--at-line)] bg-[var(--at-panel)]/80 px-4 py-1.5">
               <Icon icon="radix-icons:dot-filled" className="animate-spin motion-reduce:animate-none text-[var(--at-warn)]" />
               <span
-                className="text-xs uppercase tracking-widest text-slate-300"
+                className="text-xs uppercase tracking-widest text-[var(--at-muted)]"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 {t("home.hero.badge")}
               </span>
             </div>
 
-            <h1 className="text-5xl font-bold leading-[1.1] tracking-tight text-white sm:text-6xl md:text-7xl">
+            <h1 className="text-5xl font-bold leading-[1.1] tracking-tight text-[var(--at-text-strong)] sm:text-6xl md:text-7xl">
               {t("home.hero.title1")} <br />
               <span
-                className="bg-gradient-to-r from-[#ffffff] via-[#d3def3] to-[#9db3dc] bg-clip-text text-transparent"
+                className="at-headline-gradient bg-clip-text text-transparent"
               >
                 {t("home.hero.title2")}
               </span>
@@ -386,19 +383,12 @@ export default function HomePage() {
                 to={startHref}
                 className="rounded-full bg-[var(--at-fill)] px-8 py-4 text-center text-xs font-bold uppercase tracking-widest text-[var(--at-on-fill)] transition-colors hover:bg-[var(--at-fill-hover)]"
                 style={{ fontFamily: fontFamily.mono }}
-                whileHover={{
-                  boxShadow:
-                    "0 0 45px rgba(214, 228, 255, 0.45), inset 0 0 20px rgba(255, 255, 255, 0.25)",
-                }}
-                initial={{
-                  boxShadow: "0 0 30px rgba(214, 228, 255, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.15)",
-                }}
               >
                 {startLabel}
               </MotionLink>
               <a
                 href="#how-it-works"
-                className="rounded-full border border-[var(--at-line)] bg-[var(--at-panel)]/40 px-8 py-4 text-center text-xs font-light uppercase tracking-widest text-slate-300 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400"
+                className="rounded-full border border-[var(--at-line)] bg-[var(--at-panel)]/40 px-8 py-4 text-center text-xs font-light uppercase tracking-widest text-[var(--at-muted)] transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-[var(--at-line-strong)]"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 {t("home.hero.seeHow")}
@@ -418,7 +408,7 @@ export default function HomePage() {
               >
                 {t("home.mining.eyebrow")}
               </span>
-              <h2 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
+              <h2 className="text-4xl font-bold tracking-tight text-[var(--at-text-strong)] sm:text-5xl">
                 {t("home.mining.title")}
               </h2>
               <p className="leading-relaxed text-[var(--at-muted)] font-light">
@@ -426,13 +416,13 @@ export default function HomePage() {
               </p>
               <div className="grid grid-cols-2 gap-4 pt-4">
                 <div className="border-l-2 border-[var(--at-accent)] pl-4">
-                  <div className="text-xl font-bold text-white">
+                  <div className="text-xl font-bold text-[var(--at-text-strong)]">
                     AST
                   </div>
                   <div className="text-xs uppercase tracking-wider text-[var(--at-muted)]">{t("home.mining.astLabel")}</div>
                 </div>
                 <div className="border-l-2 border-[var(--at-warn)] pl-4">
-                  <div className="text-xl font-bold text-white">
+                  <div className="text-xl font-bold text-[var(--at-text-strong)]">
                     {t("home.mining.gitTitle")}
                   </div>
                   <div className="text-xs uppercase tracking-wider text-[var(--at-muted)]">{t("home.mining.gitLabel")}</div>
@@ -443,25 +433,25 @@ export default function HomePage() {
             <div className="grid gap-6 sm:grid-cols-2 lg:col-span-7">
               <IsometricCard
                 icon="ph:graph-light"
-                iconColor="#9db3dc"
+                iconColor="var(--at-accent)"
                 title={t("home.card.graph.title")}
                 description={t("home.card.graph.body")}
               />
               <IsometricCard
                 icon="ph:git-diff-light"
-                iconColor="#d3def3"
+                iconColor="var(--at-link)"
                 title={t("home.card.diff.title")}
                 description={t("home.card.diff.body")}
               />
               <IsometricCard
                 icon="ph:brain-light"
-                iconColor="#b4c0ce"
+                iconColor="var(--at-muted)"
                 title={t("home.card.reasoning.title")}
                 description={t("home.card.reasoning.body")}
               />
               <IsometricCard
                 icon="ph:shield-check-light"
-                iconColor="#eaf1ff"
+                iconColor="var(--at-glow)"
                 title="FACT / INFERENCE / UNKNOWN"
                 description={t("home.card.labels.body")}
               />
@@ -478,7 +468,7 @@ export default function HomePage() {
               >
                 {t("home.diff.eyebrow")}
               </span>
-              <h2 className="text-3xl font-bold tracking-tight text-white sm:text-5xl">
+              <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text-strong)] sm:text-5xl">
                 {t("home.diff.title")}
               </h2>
             </div>
@@ -486,9 +476,9 @@ export default function HomePage() {
             <div className="mx-auto w-full max-w-4xl overflow-hidden border border-[var(--at-line)] bg-[var(--at-page)] shadow-2xl">
               <div className="flex select-none items-center justify-between border-b border-[var(--at-line)] bg-[var(--at-panel)] px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full bg-red-500/40" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/40" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-green-500/40" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-[var(--at-danger)]/40" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-[var(--at-warn)]/40" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-[var(--at-success)]/40" />
                   <span className="ml-2 text-xs text-[var(--at-muted)]" style={{ fontFamily: fontFamily.mono }}>
                     archtime_pipeline.sh
                   </span>
@@ -504,7 +494,7 @@ export default function HomePage() {
               >
                 <div className="flex items-start gap-2">
                   <span className="text-[var(--at-link)]">archtime@repo:~$</span>
-                  <span className="text-slate-300">analyze --repo=./target-service --since=v1.0.0</span>
+                  <span className="text-[var(--at-muted)]">analyze --repo=./target-service --since=v1.0.0</span>
                 </div>
                 <div className="space-y-1 text-[var(--at-muted)]">
                   <div>[ OK ] Mining Git history and building commit graph...</div>
@@ -513,7 +503,7 @@ export default function HomePage() {
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-[var(--at-link)]">archtime@repo:~$</span>
-                  <span className="text-slate-300">cat architectural_diff.json</span>
+                  <span className="text-[var(--at-muted)]">cat architectural_diff.json</span>
                 </div>
                 <div className="border border-[var(--at-line)]/60 bg-[var(--at-panel-2)]/50 p-4 leading-relaxed text-[var(--at-warn)]">
                   &quot;{t("home.diff.quote")}&quot;
@@ -536,7 +526,7 @@ export default function HomePage() {
               >
                 {t("home.changes.eyebrow")}
               </span>
-              <h2 className="text-4xl font-bold tracking-tight text-white">{t("home.changes.title")}</h2>
+              <h2 className="text-4xl font-bold tracking-tight text-[var(--at-text-strong)]">{t("home.changes.title")}</h2>
             </div>
             <p className="max-w-xs text-sm font-light text-[var(--at-muted)]">
               {t("home.changes.body")}
@@ -554,7 +544,7 @@ export default function HomePage() {
                     {t("home.changes.counter", { n: "01" })}
                   </span>
                 </div>
-                <h3 className="mb-2 text-xl font-bold text-white transition-colors group-hover:text-[var(--at-link)]">
+                <h3 className="mb-2 text-xl font-bold text-[var(--at-text-strong)] transition-colors group-hover:text-[var(--at-link)]">
                   {t("home.changes.split.title")}
                 </h3>
                 <p className="text-sm leading-relaxed text-[var(--at-muted)] font-light">
@@ -579,7 +569,7 @@ export default function HomePage() {
                     {t("home.changes.counter", { n: "02" })}
                   </span>
                 </div>
-                <h3 className="mb-2 text-xl font-bold text-white transition-colors group-hover:text-[var(--at-warn)]">
+                <h3 className="mb-2 text-xl font-bold text-[var(--at-text-strong)] transition-colors group-hover:text-[var(--at-warn)]">
                   {t("home.changes.shift.title")}
                 </h3>
                 <p className="text-sm leading-relaxed text-[var(--at-muted)] font-light">
@@ -604,7 +594,7 @@ export default function HomePage() {
                     {t("home.changes.counter", { n: "03" })}
                   </span>
                 </div>
-                <h3 className="mb-2 text-xl font-bold text-white transition-colors group-hover:text-[var(--at-glow)]">
+                <h3 className="mb-2 text-xl font-bold text-[var(--at-text-strong)] transition-colors group-hover:text-[var(--at-glow)]">
                   {t("home.changes.package.title")}
                 </h3>
                 <p className="text-sm leading-relaxed text-[var(--at-muted)] font-light">
@@ -635,15 +625,15 @@ export default function HomePage() {
                 </div>
                 <div className="flex justify-between border-b border-[var(--at-line)]/40 pb-2">
                   <span className="text-[var(--at-muted)]">{t("home.evidence.author")}</span>
-                  <span className="text-white">j.tran@example.com</span>
+                  <span className="text-[var(--at-text-strong)]">j.tran@example.com</span>
                 </div>
                 <div className="flex justify-between border-b border-[var(--at-line)]/40 pb-2">
                   <span className="text-[var(--at-muted)]">{t("home.evidence.files")}</span>
-                  <span className="text-white">{t("home.evidence.filesValue")}</span>
+                  <span className="text-[var(--at-text-strong)]">{t("home.evidence.filesValue")}</span>
                 </div>
                 <div className="flex justify-between border-b border-[var(--at-line)]/40 pb-2">
                   <span className="text-[var(--at-muted)]">{t("home.evidence.claim")}</span>
-                  <span className="text-white">FACT</span>
+                  <span className="text-[var(--at-text-strong)]">FACT</span>
                 </div>
                 <div className="flex justify-between pb-1">
                   <span className="text-[var(--at-muted)]">{t("home.evidence.confidence")}</span>
@@ -659,7 +649,7 @@ export default function HomePage() {
               >
                 {t("home.evidence.eyebrow")}
               </span>
-              <h2 className="text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl">
+              <h2 className="text-4xl font-bold leading-tight tracking-tight text-[var(--at-text-strong)] sm:text-5xl">
                 {t("home.evidence.title")}
               </h2>
               <p className="leading-relaxed text-[var(--at-muted)] font-light">
@@ -668,7 +658,7 @@ export default function HomePage() {
               <div className="pt-2">
                 <Link
                   to={SAMPLE_WORKSPACE}
-                  className="inline-block rounded-full bg-[var(--at-fill)] px-8 py-4 text-xs font-bold uppercase tracking-widest text-[var(--at-on-fill)] shadow-[0_0_18px_rgba(214,228,255,0.35)] transition-colors hover:bg-[var(--at-fill-hover)]"
+                  className="inline-block rounded-full bg-[var(--at-fill)] px-8 py-4 text-xs font-bold uppercase tracking-widest text-[var(--at-on-fill)] shadow-[var(--at-shadow-action)] transition-colors hover:bg-[var(--at-fill-hover)]"
                   style={{ fontFamily: fontFamily.mono }}
                 >
                   {t("home.evidence.sample")}
@@ -684,7 +674,7 @@ export default function HomePage() {
           <div className="pointer-events-none absolute inset-0 rounded-full bg-[var(--at-warn)]/5 blur-3xl" />
           <div className="relative z-10 space-y-8">
             <Icon icon="ph:fingerprint-light" aria-hidden="true" className="animate-pulse motion-reduce:animate-none text-4xl text-[var(--at-link)]" />
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-5xl">
+            <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text-strong)] sm:text-5xl">
               {t("home.cta.title")}
             </h2>
             <p className="mx-auto max-w-xl text-sm font-light leading-relaxed text-[var(--at-muted)] sm:text-base">
@@ -700,7 +690,7 @@ export default function HomePage() {
               </Link>
               <Link
                 to={SAMPLE_WORKSPACE}
-                className="whitespace-nowrap border border-[var(--at-line)] px-8 py-4 text-center text-xs uppercase tracking-widest text-slate-300 transition-colors hover:border-slate-400 hover:text-white"
+                className="whitespace-nowrap border border-[var(--at-line)] px-8 py-4 text-center text-xs uppercase tracking-widest text-[var(--at-muted)] transition-colors hover:border-[var(--at-line-strong)] hover:text-[var(--at-text-strong)]"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 {t("home.cta.sample")}
@@ -727,10 +717,10 @@ export default function HomePage() {
                   {t("home.footer.pipeline")}
                 </h4>
                 <ul className="space-y-4 text-xs">
-                  <li><a href="#how-it-works" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">{t("home.footer.mining")}</a></li>
-                  <li><a href="#diff" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">{t("home.footer.evolution")}</a></li>
-                  <li><a href="#evidence" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">{t("home.footer.reasoning")}</a></li>
-                  <li><a href="#change-types" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">{t("home.footer.diff")}</a></li>
+                  <li><a href="#how-it-works" className="text-[var(--at-text-strong)] visited:text-[var(--at-text-strong)] transition-colors hover:text-[var(--at-link)]">{t("home.footer.mining")}</a></li>
+                  <li><a href="#diff" className="text-[var(--at-text-strong)] visited:text-[var(--at-text-strong)] transition-colors hover:text-[var(--at-link)]">{t("home.footer.evolution")}</a></li>
+                  <li><a href="#evidence" className="text-[var(--at-text-strong)] visited:text-[var(--at-text-strong)] transition-colors hover:text-[var(--at-link)]">{t("home.footer.reasoning")}</a></li>
+                  <li><a href="#change-types" className="text-[var(--at-text-strong)] visited:text-[var(--at-text-strong)] transition-colors hover:text-[var(--at-link)]">{t("home.footer.diff")}</a></li>
                 </ul>
               </div>
               <div>

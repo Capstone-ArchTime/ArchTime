@@ -29,7 +29,7 @@ export default function ContinueLearning({ path, others }: { path: MyPath; other
         </div>
         <span className="text-xs text-[var(--at-muted)]">{progressText(path)}</span>
       </div>
-      <p className="text-sm text-slate-300 truncate">{m('next')} <span className="text-[var(--at-text)]">{next.index + 1}. {next.title}</span> <span className="text-xs text-[var(--at-muted)]">({kindLabel(next.kind)})</span></p>
+      <p className="text-sm text-[var(--at-muted)] truncate">{m('next')} <span className="text-[var(--at-text)]">{next.index + 1}. {next.title}</span> <span className="text-xs text-[var(--at-muted)]">({kindLabel(next.kind)})</span></p>
       {others > 0 && <p className="text-xs text-[var(--at-muted)]">{m.rich('more', { count: others, link: <Link key="l" to="/learning" className="text-[var(--at-link)] hover:text-[var(--at-link-hover)] hover:underline">{m('myLearning')}</Link> })}</p>}
     </div>
     <Link to={learningHref(path.projectId, path.pathId, next.id)} className="shrink-0 h-10 px-5 bg-[var(--at-fill)] hover:bg-[var(--at-fill-hover)] text-[var(--at-on-fill)] font-bold text-xs flex items-center justify-center gap-2">

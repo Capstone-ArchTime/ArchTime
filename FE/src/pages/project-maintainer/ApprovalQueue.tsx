@@ -13,12 +13,12 @@ import {
 } from '@/features/pm-api';
 import type { Approval } from '@/features/pm-api';
 
-const fontFamily = { mono: '"JetBrains Mono", monospace' };
 
 type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 
 import { formatDate, formatDateTime } from '@/i18n/format';
 import { defineMessages, message as translate, useMessages } from '@/i18n/define';
+import { fontFamily } from '@/theme/fonts';
 
 const MSG = defineMessages({
   PENDING: 'PENDING', APPROVED: 'APPROVED', REJECTED: 'REJECTED', all: 'All', pendingF: 'Pending', approvedF: 'Approved', rejectedF: 'Rejected', pending: 'pending', approved: 'approved', rejected: 'rejected',
@@ -174,7 +174,7 @@ function ApprovalQueueView({ projects }: { projects: ProjectSummary[] }) {
           <Button loading={loading} onClick={refresh}>{m('refresh')}</Button>
         </div>
 
-        {error && <p className="text-red-400">{error}</p>}
+        {error && <p className="text-[var(--at-danger)]">{error}</p>}
 
         <div className="flex items-center gap-2 flex-wrap">
           <Filter size={14} className="text-[var(--at-muted)] mr-1" />

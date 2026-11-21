@@ -97,7 +97,7 @@ export default function AuditLog() {
       </div>
 
       {invalidRange && (
-        <p role="alert" className="text-red-400">
+        <p role="alert" className="text-[var(--at-danger)]">
           {m('badRange')}
         </p>
       )}

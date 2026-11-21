@@ -51,9 +51,9 @@ export default function GitHubCallback() {
     });
     return () => { active = false; };
   }, [navigate, signIn]);
-  return <main className="min-h-screen bg-[var(--at-page)] text-white flex flex-col items-center justify-center gap-6 p-8">
+  return <main className="min-h-screen bg-[var(--at-page)] text-[var(--at-text-strong)] flex flex-col items-center justify-center gap-6 p-8">
     <h1 className="text-2xl font-semibold">{m('title')}</h1>
-    <p role={error ? 'alert' : 'status'} className="max-w-lg text-center text-slate-300">{error || m('completing')}</p>
+    <p role={error ? 'alert' : 'status'} className="max-w-lg text-center text-[var(--at-muted)]">{error || m('completing')}</p>
     {error && <Link to="/login" className="text-[var(--at-link)] underline">{m('back')}</Link>}
   </main>;
 }

@@ -56,7 +56,7 @@ export default function MyPaths() {
             <div className="flex items-center justify-between text-xs text-[var(--at-muted)]"><span>{progressText(path)}</span><span>{path.percent}%</span></div>
             <Progress percent={path.percent} showInfo={false} status={path.done >= path.total && path.total > 0 ? 'success' : 'active'} />
           </div>
-          {path.nextStep && <p className="text-xs text-slate-300 truncate">{m('next', { title: path.nextStep.title })}</p>}
+          {path.nextStep && <p className="text-xs text-[var(--at-muted)] truncate">{m('next', { title: path.nextStep.title })}</p>}
           <Link to={learningHref(path.projectId, path.pathId, path.nextStep?.id)}><Button type={path.done === 0 ? 'primary' : 'default'} block>{m(verb(path))}</Button></Link>
         </article>
       ))}

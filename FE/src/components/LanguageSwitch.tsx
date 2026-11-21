@@ -25,7 +25,7 @@ export default function LanguageSwitch({ className = '' }: { className?: string 
       const active = option.code === language;
       return <button key={option.code} type="button" lang={option.code} aria-pressed={active} title={option.name}
         onClick={() => { if (!active) void choose(option.code); }}
-        className={`rounded-full px-2.5 py-1 transition-colors ${active ? 'bg-[var(--at-fill)] text-[var(--at-on-fill)]' : 'text-[var(--at-muted)] hover:text-white'}`}>
+        className={`rounded-full px-2.5 py-1 transition-colors ${active ? 'bg-[var(--at-fill)] text-[var(--at-on-fill)]' : 'text-[var(--at-muted)] hover:text-[var(--at-text-strong)]'}`}>
         <span aria-hidden="true">{option.short}</span><span className="sr-only">{option.name}</span>
       </button>;
     })}

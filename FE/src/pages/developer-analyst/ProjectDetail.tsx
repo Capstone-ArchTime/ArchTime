@@ -32,7 +32,7 @@ import { Box, GitCommit, Clock, Layers, ArrowRight, SearchCode, Loader2, Externa
 import { getMiningOverview, type MiningOverview } from '@/features/mining-api';
 import { getSnapshotPage, getWorkspace, nextStep, STATUS_LABELS, structuralChanges, type SnapshotRow, type Workspace } from '@/features/workspace-summary';
 
-const mono = { fontFamily: '"JetBrains Mono", monospace' };
+const mono = { fontFamily: 'var(--at-font-mono)' };
 type Loaded = { workspace: Workspace; mining: MiningOverview | null; recent: SnapshotRow[]; latest: SnapshotRow | null };
 
 function Metric({ icon: Icon, value, label }: { icon: React.ElementType; value: React.ReactNode; label: string }) {

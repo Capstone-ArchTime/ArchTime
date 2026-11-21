@@ -52,7 +52,7 @@ const anchor = (stepId: string) => `learning-step-${stepId}`;
 /** A labelled block of an ADR's text; nothing when the ADR leaves it empty. */
 function Section({ title, text }: { title: string; text: string }) {
   if (!text.trim()) return null;
-  return <div><p className={heading}>{title}</p><p className="text-sm text-slate-300 whitespace-pre-wrap">{text}</p></div>;
+  return <div><p className={heading}>{title}</p><p className="text-sm text-[var(--at-muted)] whitespace-pre-wrap">{text}</p></div>;
 }
 
 /** One path given to the signed-in person, step by step: read, look, answer, mark done. Only their own progress is ever shown. */
@@ -193,7 +193,7 @@ export default function LearningPath() {
       const { component, incoming, outgoing, decisions } = context;
       return <div className={reference}>
         <p className="font-medium">{component.name}<Tag className="ml-2">{component.kind}</Tag></p>
-        <p className="text-slate-300 whitespace-pre-wrap">{component.description || <span className="text-[var(--at-muted)]">{m('noDescription')}</span>}</p>
+        <p className="text-[var(--at-muted)] whitespace-pre-wrap">{component.description || <span className="text-[var(--at-muted)]">{m('noDescription')}</span>}</p>
         <div className="grid gap-3 sm:grid-cols-2">
           {neighbours(m('dependsOn'), outgoing, m('dependsNone'))}
           {neighbours(m('usedBy'), incoming, m('usedNone'))}
@@ -234,8 +234,8 @@ export default function LearningPath() {
           <p className={heading}>{m('restsOn')}</p>
           {sources.length
             ? <ul className="mt-1 space-y-0.5">{sources.map((s, i) => <li key={`${s.kind}-${i}`}>
-              {s.href ? <Link to={s.href} className={`font-mono ${link}`}>{s.label}</Link> : <span className="text-slate-300">{s.label}</span>}
-              {s.title && <span className="text-slate-300"> · {s.title}</span>}
+              {s.href ? <Link to={s.href} className={`font-mono ${link}`}>{s.label}</Link> : <span className="text-[var(--at-muted)]">{s.label}</span>}
+              {s.title && <span className="text-[var(--at-muted)]"> · {s.title}</span>}
               {s.date && <span className="text-[var(--at-muted)]"> · {formatDate(s.date)}</span>}
             </li>)}</ul>
             : <p className="text-[var(--at-muted)]">{m('noSources')}</p>}
@@ -262,7 +262,7 @@ export default function LearningPath() {
     const done = step.progress.completed;
     if (step.kind !== 'question' || !step.question) {
       return done
-        ? <p className="text-sm text-green-400">{step.progress.completedAt ? m('doneOn', { date: formatDate(step.progress.completedAt) }) : m('done')}</p>
+        ? <p className="text-sm text-[var(--at-success)]">{step.progress.completedAt ? m('doneOn', { date: formatDate(step.progress.completedAt) }) : m('done')}</p>
         : <Button type="primary" loading={busy === step.id} onClick={() => void markDone(step)}>{m('markDone')}</Button>;
     }
     const question = step.question;
@@ -271,7 +271,7 @@ export default function LearningPath() {
       <p className="font-medium">{question.prompt}</p>
       <Radio.Group value={choices[step.id]} disabled={done || busy === step.id} onChange={e => setChoices(prev => ({ ...prev, [step.id]: e.target.value as number }))} className="flex flex-col gap-2">
         {question.options.map((option, i) => (
-          <Radio key={i} value={i}>{option}{done && question.correctIndex === i && <CheckCircle2 size={14} className="inline ml-2 text-green-500" aria-label={m('rightAnswer')} />}</Radio>
+          <Radio key={i} value={i}>{option}{done && question.correctIndex === i && <CheckCircle2 size={14} className="inline ml-2 text-[var(--at-success)]" aria-label={m('rightAnswer')} />}</Radio>
         ))}
       </Radio.Group>
       {!done && <Button type="primary" disabled={choices[step.id] === undefined} loading={busy === step.id} onClick={() => void check(step)}>{m('checkAnswer')}</Button>}
@@ -303,7 +303,7 @@ export default function LearningPath() {
         return {
           key: step.id,
           label: <span id={anchor(step.id)} className="flex flex-wrap items-center gap-2 scroll-mt-4">
-            {step.progress.completed ? <CheckCircle2 size={18} className="text-green-500" aria-label={m('stepDone')} /> : <Circle size={18} className="text-[var(--at-muted)]" aria-label={m('notDone')} />}
+            {step.progress.completed ? <CheckCircle2 size={18} className="text-[var(--at-success)]" aria-label={m('stepDone')} /> : <Circle size={18} className="text-[var(--at-muted)]" aria-label={m('notDone')} />}
             <span className="font-medium">{i + 1}. {step.title}</span>
             <Tag>{kindLabel(step.kind)}</Tag>
             {note && <Tag color={note.level === 'error' ? 'red' : 'orange'}>{note.level === 'error' ? m('sourceGone') : m('outdated')}</Tag>}

@@ -165,7 +165,7 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
           </p>
           <Tag color={fullyMined ? 'green' : minedCount ? 'gold' : 'default'} className="!m-0">{fullyMined ? m('fullyMined') : translateOr(`tag.${overview.project.status}`, overview.project.status.toLowerCase())}</Tag>
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
+        <div className="h-1.5 overflow-hidden rounded-full bg-[var(--at-hover)]" aria-hidden="true">
           <div className="h-full rounded-full bg-[var(--at-link)] transition-[width] duration-500" style={{ width: `${minedPercent}%` }} />
         </div>
       </section> : <p className="text-sm text-[var(--at-muted)]">{m('notScanned')}</p>}
@@ -175,7 +175,7 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
           <span className="flex items-center gap-2 font-semibold text-[var(--at-text)]"><Loader2 size={16} className="animate-spin text-[var(--at-link)]" aria-hidden="true" />{active.kind === 'scan' ? m('scanning') : m('mining')}</span>
           <span className="text-sm font-semibold text-[var(--at-text)]">{active.progress}%</span>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
+        <div className="h-2 overflow-hidden rounded-full bg-[var(--at-hover)]" aria-hidden="true">
           <div className="h-full rounded-full bg-[var(--at-link)] transition-[width] duration-500" style={{ width: `${active.progress}%` }} />
         </div>
         <p className="text-sm text-[var(--at-muted)]">
@@ -203,7 +203,7 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
             <span>{m('perMonth')}{active ? '' : m('clickMonth')}</span>
             <span className="flex items-center gap-3">
               <span className="flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-[var(--at-link)]" />{m('minedLegend')}</span>
-              <span className="flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-sm border border-white/25 bg-white/10" />{m('notMinedLegend')}</span>
+              <span className="flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-sm border border-[var(--at-line-strong)] bg-[var(--at-hover)]" />{m('notMinedLegend')}</span>
             </span>
           </div>
           <div className="flex items-end gap-1 h-24 overflow-x-auto pb-1 pt-1">
@@ -211,7 +211,7 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
               const selected = range && r.month === range.since.slice(0, 7) && r.month === range.until.slice(0, 7);
               return <button key={r.month} type="button" disabled={!!active} aria-pressed={!!selected} aria-label={m('monthLabel', { month: r.month, mined: r.mined, total: r.total })}
                 title={m('monthTitle', { month: r.month, mined: r.mined, total: r.total })} onClick={() => setRange(monthBounds(r.month))}
-                className={`relative flex-1 min-w-[10px] overflow-hidden rounded-t-md border border-white/15 bg-white/10 transition-colors enabled:hover:border-white/40 disabled:cursor-default ${selected ? 'ring-2 ring-[var(--at-warn)] ring-offset-2 ring-offset-[var(--at-solid)]' : ''}`}
+                className={`relative flex-1 min-w-[10px] overflow-hidden rounded-t-md border border-[var(--at-line)] bg-[var(--at-hover)] transition-colors enabled:hover:border-[var(--at-line-strong)] disabled:cursor-default ${selected ? 'ring-2 ring-[var(--at-warn)] ring-offset-2 ring-offset-[var(--at-solid)]' : ''}`}
                 style={{ height: `${Math.max(6, (r.total / peak) * 100)}%`, opacity: 1 }}>
                 <span className="absolute bottom-0 left-0 right-0 bg-[var(--at-link)]" style={{ height: `${r.total ? (r.mined / r.total) * 100 : 0}%` }} />
               </button>;
@@ -240,7 +240,7 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
                   value: model.model,
                   label: (
                     <span className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${model.provider === 'anthropic' ? 'bg-purple-500' : model.provider === 'gemini' ? 'bg-sky-500' : 'bg-green-500'}`} />
+                      <span className={`w-2 h-2 rounded-full ${model.provider === 'anthropic' ? 'bg-[var(--at-link)]' : model.provider === 'gemini' ? 'bg-[var(--at-accent)]' : 'bg-[var(--at-muted)]'}`} />
                       {model.model}
                       {model.isDefault && <span className="text-xs text-[var(--at-muted)]">{m('default')}</span>}
                     </span>

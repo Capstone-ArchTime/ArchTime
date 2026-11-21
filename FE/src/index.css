@@ -124,131 +124,75 @@
     @apply bg-background text-foreground;
     margin: 0;
     min-width: 320px;
-    background: #080b0e;
-    color: #f4f4f6;
+    background: var(--at-page);
+    color: var(--at-text);
     font-family: "Inter", system-ui, sans-serif;
     font-variant-numeric: tabular-nums;
   }
 }
 
 /*
- * The app's palette as variables (used by the bg-[var(--at-…)], text-[var(--at-…)] classes). The defaults are the
- * original colours; a theme on <html data-theme="…"> overrides them. See features/ui-theme.ts.
+ * Themes. Every look is one file in src/theme/themes, listed in src/theme/registry.ts. Its tokens are written as the
+ * --at-* variables (src/theme/css.ts: the base theme on :root, the others on html[data-theme="<id>"], put in <head>
+ * before the first render). Pages paint only with those variables: bg-[var(--at-panel)], text-[var(--at-muted)],
+ * border-[var(--at-danger)]/40… The rules below are the same for every theme and read nothing but tokens. They apply
+ * under html[data-theme] only, so the base console look (no attribute) keeps its plain, flat defaults.
  */
-:root {
-  --at-page: #080b0e;
-  --at-sidebar: #0c1015;
-  --at-chrome: #0d1116;
-  --at-panel: #11161b;
-  --at-panel-2: #161d24;
-  /* An opaque surface for what floats over the page (drawers): the frost panels are translucent and would let the page show through. */
-  --at-solid: #11161b;
-  --at-line: #242527;
-  --at-text: #f4f4f6;
-  --at-muted: #94a3b8;
-  --at-link: #93c5fd;
-  --at-link-hover: #bfdbfe;
-  --at-accent: #3b82f6;
-  --at-fill: #1d4ed8;
-  --at-fill-hover: #1e40af;
-  --at-on-fill: #ffffff;
-  --at-warn: #ffb03a;
-  --at-glow: #00f0ff;
-  /* Added / removed / failed states only (DESIGN.md: Success and Error). --at-danger-text is for words on a red-tinted alert. */
-  --at-success: #4ade80;
-  --at-danger: #f87171;
-  --at-danger-text: #fca5a5;
-  /* A brighter border for hover on outlined controls; never a text colour. */
-  --at-line-strong: #5f636b;
-}
-
-/*
- * Frost: the developer-analyst workspace. A misty slate background with a few sparkles, frosted-glass panels with a
- * thin light edge and a soft glow, ice-blue text, light pill buttons with dark text, Montserrat. Panels are translucent
- * so the background shows through; every text colour keeps at least 7:1 against the panels.
- */
-/* `.at-frost-scope` wears the same palette and floor on one page whatever the theme on <html> (the 404 page). */
-html[data-theme="frost"], .at-frost-scope {
-  --at-page: rgb(14 19 24 / 0.5);
-  --at-sidebar: rgb(12 17 22 / 0.6);
-  --at-chrome: rgb(14 19 24 / 0.78);
-  --at-panel: rgb(214 225 240 / 0.07);
-  --at-panel-2: rgb(214 225 240 / 0.11);
-  --at-solid: #222a32;
-  --at-line: rgb(220 230 245 / 0.17);
-  --at-text: #eef2f8;
-  --at-muted: #b4c0ce;
-  --at-link: #d3def3;
-  --at-link-hover: #ffffff;
-  --at-accent: #9db3dc;
-  --at-fill: #e4eaf5;
-  --at-fill-hover: #ffffff;
-  --at-on-fill: #18212c;
-  --at-warn: #f0c27e;
-  --at-glow: #eaf1ff;
-  --at-line-strong: rgb(225 234 248 / 0.42);
-  background-color: #1b2228;
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C13 8 16 11 24 12C16 13 13 16 12 24C11 16 8 13 0 12C8 11 11 8 12 0Z' fill='%23f2f6ff' fill-opacity='0.55'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C13 8 16 11 24 12C16 13 13 16 12 24C11 16 8 13 0 12C8 11 11 8 12 0Z' fill='%23f2f6ff' fill-opacity='0.35'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C13 8 16 11 24 12C16 13 13 16 12 24C11 16 8 13 0 12C8 11 11 8 12 0Z' fill='%23f2f6ff' fill-opacity='0.3'/%3E%3C/svg%3E"),
-    linear-gradient(to bottom, rgb(240 245 255 / 0.28), rgb(240 245 255 / 0)),
-    linear-gradient(to bottom, rgb(240 245 255 / 0.22), rgb(240 245 255 / 0)),
-    radial-gradient(900px 520px at 12% 8%, rgb(120 140 160 / 0.32), transparent 65%),
-    radial-gradient(760px 480px at 88% 22%, rgb(96 118 140 / 0.3), transparent 62%),
-    radial-gradient(1000px 640px at 70% 100%, rgb(70 92 112 / 0.38), transparent 60%),
-    linear-gradient(160deg, #2a3138 0%, #1b2228 45%, #151b21 100%);
-  background-size: 22px 22px, 14px 14px, 16px 16px, 1px 160px, 1px 110px, auto, auto, auto, auto;
-  background-position: right 7% top 34%, right 15% bottom 26%, left 3% bottom 14%, right 4% top 0, right 6.5% top 0, 0 0, 0 0, 0 0, 0 0;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-}
-html[data-theme="frost"] body {
+html[data-theme] body {
   background: transparent;
   color: var(--at-text);
-  font-family: "Montserrat", system-ui, sans-serif;
-  letter-spacing: 0.005em;
+  font-family: var(--at-font-sans);
+  font-size: var(--at-body-size);
+  letter-spacing: var(--at-body-tracking);
 }
-html[data-theme="frost"] :is(h1, h2) { letter-spacing: -0.01em; text-shadow: 0 0 22px rgb(220 232 255 / 0.22); }
-/* Small upper-case labels: spaced-out Montserrat, as on the reference; hashes and code keep the monospace face. */
-html[data-theme="frost"] .uppercase:is(.font-mono, [style*="JetBrains Mono"]) {
-  font-family: "Montserrat", system-ui, sans-serif !important;
-  font-weight: 600;
-  letter-spacing: 0.14em;
+html[data-theme] ::selection { background: var(--at-selection-bg); color: var(--at-selection-text); }
+@layer components {
+  html[data-theme] :is(h1, h2, h3) { font-family: var(--at-font-display); letter-spacing: var(--at-heading-tracking); }
+  html[data-theme] :is(h1, h2) { text-shadow: var(--at-heading-shadow); }
 }
-/* Frosted-glass panels: rounded, a light edge and a soft glow. */
-html[data-theme="frost"] :is([class~="bg-[var(--at-panel)]"], [class~="bg-[var(--at-panel-2)]"]) {
-  border-radius: 14px;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 12px 32px -14px rgb(0 0 0 / 0.5), 0 0 24px -10px rgb(205 222 255 / 0.22);
+/* Small upper-case labels that pages write in monospace: the theme's label face (hashes and code keep monospace). */
+html[data-theme] .uppercase:is(.font-mono, [style*="JetBrains Mono"], [style*="--at-font-mono"]) {
+  font-family: var(--at-font-label) !important;
+  font-weight: var(--at-label-weight);
+  letter-spacing: var(--at-label-tracking);
 }
-html[data-theme="frost"] :is([class~="bg-[var(--at-panel)]"], [class~="bg-[var(--at-panel-2)]"])[class~="border"] { border-color: rgb(225 234 248 / 0.26); }
-html[data-theme="frost"] :is(aside, header)[class~="bg-[var(--at-sidebar)]"], html[data-theme="frost"] [class~="bg-[var(--at-chrome)]"] { backdrop-filter: blur(14px); }
-/* Solid buttons become light pills with dark text and a glow. */
-html[data-theme="frost"] [class~="bg-[var(--at-fill)]"] {
-  border-radius: 999px;
-  box-shadow: 0 0 16px rgb(214 228 255 / 0.32), inset 0 -1px 0 rgb(24 33 44 / 0.12);
+/* Cards and panels. */
+html[data-theme] :is([class~="bg-[var(--at-panel)]"], [class~="bg-[var(--at-panel-2)]"]) { border-radius: var(--at-radius-card); box-shadow: var(--at-shadow-card); }
+html[data-theme] :is([class~="bg-[var(--at-panel)]"], [class~="bg-[var(--at-panel-2)]"])[class~="border"] { border-color: var(--at-panel-edge); }
+html[data-theme] [class~="bg-[var(--at-panel-2)]"] { box-shadow: var(--at-shadow-nested); border-style: var(--at-nested-border-style); }
+html[data-theme] :is(aside, header)[class~="bg-[var(--at-sidebar)]"], html[data-theme] [class~="bg-[var(--at-chrome)]"] { backdrop-filter: var(--at-chrome-blur); }
+/* Solid actions and accent-tinted buttons. */
+html[data-theme] [class~="bg-[var(--at-fill)]"] { border-radius: var(--at-radius-action); box-shadow: var(--at-shadow-action); }
+html[data-theme] .ant-btn-primary, html[data-theme] :is(button, a)[class*="bg-[var(--at-accent)]/"] { border-radius: var(--at-radius-action); }
+/* What floats over the page. */
+html[data-theme] :is(.ant-modal-content, .ant-drawer-content, .ant-dropdown-menu, .ant-select-dropdown, .ant-popover-inner) {
+  border: 1px solid var(--at-overlay-edge);
+  box-shadow: var(--at-shadow-overlay);
 }
-/* The landing and sign-in pages use the warm accent for their highlights; in frost they turn ice blue, as on the reference. */
-html[data-theme="frost"] .at-home { --at-warn: #c9d7f2; }
-html[data-theme="frost"] .ant-btn-primary { border-radius: 999px; }
-html[data-theme="frost"] :is(button, a)[class*="bg-[var(--at-accent)]/"] { border-radius: 999px; }
-html[data-theme="frost"] :is(.ant-modal-content, .ant-drawer-content, .ant-dropdown-menu, .ant-select-dropdown, .ant-popover-inner) {
-  border: 1px solid rgb(225 234 248 / 0.22);
-  box-shadow: 0 0 28px -8px rgb(205 222 255 / 0.25), 0 20px 50px -20px rgb(0 0 0 / 0.6);
+/* Chips: neutral and accent tags from tokens; status tags tint their status colour. */
+html[data-theme] .ant-tag { border-radius: var(--at-radius-chip); padding-inline: 10px; background: var(--at-tag-bg); border-color: var(--at-tag-edge); color: var(--at-tag-text); }
+html[data-theme] :is(.ant-tag-blue, .ant-tag-processing, .ant-tag-geekblue, .ant-tag-cyan, .ant-tag-purple) { background: var(--at-tag-accent-bg); border-color: var(--at-tag-accent-edge); color: var(--at-tag-accent-text); }
+html[data-theme] :is(.ant-tag-green, .ant-tag-success) { --at-tag-tone: var(--at-success); }
+html[data-theme] :is(.ant-tag-red, .ant-tag-error) { --at-tag-tone: var(--at-danger); }
+html[data-theme] :is(.ant-tag-gold, .ant-tag-orange, .ant-tag-warning) { --at-tag-tone: var(--at-warn); }
+html[data-theme] :is(.ant-tag-green, .ant-tag-success, .ant-tag-red, .ant-tag-error, .ant-tag-gold, .ant-tag-orange, .ant-tag-warning) {
+  background: color-mix(in srgb, var(--at-tag-tone) var(--at-tag-tint), transparent);
+  border-color: color-mix(in srgb, var(--at-tag-tone) var(--at-tag-tint-edge), transparent);
+  color: var(--at-tag-tone);
 }
-/* Chips (DESIGN.md): small pills, a faint tint of their colour behind same-colour text. Success for added/healthy,
-   Error for removed/failed, Honey for changed/needs attention, ice tones for neutral tags; never saturated hues. */
-html[data-theme="frost"] .ant-tag { border-radius: 999px; padding-inline: 10px; background: rgb(214 225 240 / 0.08); border-color: rgb(220 230 245 / 0.22); color: #eef2f8; }
-html[data-theme="frost"] :is(.ant-tag-green, .ant-tag-success) { background: rgb(74 222 128 / 0.12); border-color: rgb(74 222 128 / 0.38); color: #4ade80; }
-html[data-theme="frost"] :is(.ant-tag-red, .ant-tag-error) { background: rgb(248 113 113 / 0.12); border-color: rgb(248 113 113 / 0.4); color: #f87171; }
-html[data-theme="frost"] :is(.ant-tag-gold, .ant-tag-orange, .ant-tag-warning) { background: rgb(240 194 126 / 0.12); border-color: rgb(240 194 126 / 0.4); color: #f0c27e; }
-html[data-theme="frost"] :is(.ant-tag-blue, .ant-tag-processing, .ant-tag-geekblue, .ant-tag-cyan, .ant-tag-purple) { background: rgb(157 179 220 / 0.14); border-color: rgb(157 179 220 / 0.4); color: #d3def3; }
-html[data-theme="frost"] ::selection { background: rgb(212 224 245 / 0.35); color: #ffffff; }
-/* A handwritten accent, like the "New Subscriber" flourish of the reference: for one or two words, never for reading. */
-html[data-theme="frost"] .at-script { font-family: "Great Vibes", cursive; font-weight: 400; font-size: 1.35em; letter-spacing: 0; text-transform: none; text-shadow: 0 0 18px rgb(230 238 255 / 0.45); }
+/* The one- or two-word flourish (DESIGN.md, Two-Word Script Rule). */
+html[data-theme] .at-script { font-family: var(--at-font-script); font-weight: var(--at-script-weight); font-size: var(--at-script-size); font-style: var(--at-script-style); letter-spacing: 0; text-transform: none; text-shadow: var(--at-script-shadow); }
+/* The landing and sign-in pages use the warm highlight; each theme says what it becomes there. */
+html[data-theme] .at-home { --at-warn: var(--at-home-warn); }
+/* Hero headline words: the theme's gradient through the letters (use with bg-clip-text text-transparent). */
+.at-headline-gradient { background-image: var(--at-headline-gradient); }
+/* Pictures drawn for the dark look, and the landing film. */
+html[data-theme] .at-illustration { filter: var(--at-illustration-filter); }
+html[data-theme] .at-home video { mix-blend-mode: var(--at-film-blend); filter: var(--at-film-filter); opacity: var(--at-film-opacity); }
 
 /* The 404 page (pages/NotFound.tsx): DESIGN.md glass and pearl pills over the background picture; the portal glow
-   breathes, the lantern flickers, stars twinkle and the mist drifts. With prefers-reduced-motion everything stands still. */
+   breathes, the lantern flickers, stars twinkle and the mist drifts. With prefers-reduced-motion everything stands still.
+   It always wears frost (.at-frost-scope is one of the frost theme's scopes, src/theme/themes/frost.ts). */
 .at-frost-scope { color: var(--at-text); font-family: "Montserrat", system-ui, sans-serif; letter-spacing: 0.005em; }
 .at-404-oops { font-size: clamp(3.5rem, 8vw, 6rem); line-height: 1; letter-spacing: -0.02em; color: #ffffff; text-shadow: 0 0 28px rgb(220 232 255 / 0.35); }
 .at-404-headline { font-size: clamp(2rem, 4.2vw, 3.25rem); line-height: 1.15; letter-spacing: -0.01em; color: #c3cdd9; text-shadow: 0 0 22px rgb(220 232 255 / 0.18); }
@@ -305,15 +249,15 @@ a.at-404-glass:hover { background: rgb(214 225 240 / 0.12); border-color: #d3def
    A white, glowing copy of the word sits over it and a moving mask shows it only where the streaks are: a faint one leads,
    a bright one follows. The copy shares the word's markup, so it fits the letters while "ArchTime" folds into "AT". */
 .at-brand-glint {
-  position: absolute; inset: 0; pointer-events: none; color: #ffffff !important;
-  text-shadow: 0 0 4px #ffffff, 0 0 12px rgb(200 222 255), 0 0 24px rgb(150 188 255 / 0.95), 0 0 42px rgb(120 165 255 / 0.7);
+  position: absolute; inset: 0; pointer-events: none; color: var(--at-text-strong) !important;
+  text-shadow: 0 0 4px var(--at-text-strong), 0 0 12px var(--at-glow), 0 0 24px color-mix(in srgb, var(--at-glow) 95%, transparent), 0 0 42px color-mix(in srgb, var(--at-glow) 70%, transparent);
   -webkit-mask-image: linear-gradient(100deg, transparent 0%, transparent 33%, #000 41%, #000 44%, transparent 51%, transparent 55%, rgb(0 0 0 / 0.65) 60%, transparent 66%, transparent 100%);
   mask-image: linear-gradient(100deg, transparent 0%, transparent 33%, #000 41%, #000 44%, transparent 51%, transparent 55%, rgb(0 0 0 / 0.65) 60%, transparent 66%, transparent 100%);
   -webkit-mask-size: 320% 100%; mask-size: 320% 100%;
   -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
   animation: at-brand-glint 700ms cubic-bezier(0.45, 0, 0.25, 1) forwards;
 }
-.at-brand-glint * { color: #ffffff !important;
+.at-brand-glint * { color: var(--at-text-strong) !important;
 }
 @keyframes at-brand-glint {
   from { -webkit-mask-position: 100% 0; mask-position: 100% 0; }
@@ -346,8 +290,8 @@ input, select, textarea { max-width: 100%; }
   left: 0.75rem;
   z-index: 1100;
   padding: 0.75rem 1rem;
-  background: #1d4ed8;
-  color: #ffffff;
+  background: var(--at-fill);
+  color: var(--at-on-fill);
   border-radius: 0.375rem;
   transform: translateY(-200%);
 }

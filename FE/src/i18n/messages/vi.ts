@@ -238,6 +238,7 @@ export const vi: Record<Exclude<MessageKey, `${string}_one`>, string> = {
   'layout.unread': '{count} chưa đọc',
   'layout.signOutTitle': 'Đăng xuất khỏi ArchTime?',
   'layout.signOutBody': 'Hãy lưu các chỉnh sửa trước khi đăng xuất. Những thay đổi chưa lưu sẽ bị mất.',
+  'layout.theme': 'Giao diện',
   'layout.staySignedIn': 'Ở lại',
   'layout.openAccountMenuFor': 'Mở menu tài khoản của {name}',
 

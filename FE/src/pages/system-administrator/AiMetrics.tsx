@@ -124,7 +124,7 @@ const leaderboardColumns = (): ColumnsType<LeaderboardRow> => [
   { title: <Tooltip title={tx('matchesTip')}>{tx('matches')}</Tooltip>, align: 'right', render: (_, r) => (typeof r.stats.agreementMean === 'number' ? formatPercent(Math.max(0, r.stats.agreementMean)) : '–') },
   { title: <Tooltip title={tx('stabilityTip')}>{tx('stability')}</Tooltip>, align: 'right', render: (_, r) => r.stats.n ? <Tooltip title={tx('stabilityDetail', { success: formatPercent(r.stats.successRate), first: formatPercent(r.stats.firstPassRate), errors: formatPercent(r.stats.providerErrorRate) })}>{formatPercent(r.components.stability)}</Tooltip> : '–' },
   { title: <Tooltip title={tx('latencyTip')}>{tx('latency')}</Tooltip>, align: 'right', render: (_, r) => r.stats.accepted ? <span className="text-xs">{formatMs(r.stats.latencyPer100)} <span className="text-[var(--at-muted)]">({formatMs(r.stats.latencyP95Ms)})</span></span> : '–' },
-  { title: <Tooltip title={tx('costTip')}>{tx('costSuccess')}</Tooltip>, align: 'right', render: (_, r) => !r.stats.n ? '–' : !r.stats.accepted ? <span className="text-red-400">{tx('noSuccess')}</span> : formatCost(r.stats.costPerSuccess) },
+  { title: <Tooltip title={tx('costTip')}>{tx('costSuccess')}</Tooltip>, align: 'right', render: (_, r) => !r.stats.n ? '–' : !r.stats.accepted ? <span className="text-[var(--at-danger)]">{tx('noSuccess')}</span> : formatCost(r.stats.costPerSuccess) },
   { title: <Tooltip title={tx('tokensTip')}>{tx('tokens100')}</Tooltip>, align: 'right', render: (_, r) => r.stats.accepted ? formatCompactTokens(r.stats.tokensPer100) : '–' },
   { title: tx('runs'), align: 'right', render: (_, r) => r.stats.n },
 ];

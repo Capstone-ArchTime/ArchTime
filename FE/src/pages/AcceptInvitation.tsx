@@ -76,7 +76,7 @@ export default function AcceptInvitation() {
       </> : state.step === 'declined' ? <>
         <h1 className="text-2xl font-semibold mb-3">{m('declined')}</h1>
         <p className="text-sm text-[var(--at-muted)] leading-relaxed mb-6">{m('declinedBody')}</p>
-        <Link to={user ? '/dashboard' : '/'} className="block text-center text-sm text-[var(--at-muted)] hover:text-white">{user ? m('backDashboard') : m('homePage')}</Link>
+        <Link to={user ? '/dashboard' : '/'} className="block text-center text-sm text-[var(--at-muted)] hover:text-[var(--at-text-strong)]">{user ? m('backDashboard') : m('homePage')}</Link>
       </> : <>
         <h1 className="text-2xl font-semibold mb-3">{m('invited')}</h1>
         <p className="text-sm text-[var(--at-muted)] leading-relaxed mb-6">{m(user ? 'invitedBody' : 'invitedBodySignedOut')}</p>
@@ -88,7 +88,7 @@ export default function AcceptInvitation() {
             : <Link to="/login" state={{ from: here }} className="flex-1"><Button type="primary" size="large" block disabled={busy}>{m('signInToAccept')}</Button></Link>}
           <Button size="large" loading={busy && state.action === 'decline'} disabled={busy} onClick={() => void answer('decline')}>{m('decline')}</Button>
         </div>}
-        <Link to={user ? '/dashboard' : '/login'} className="block text-center text-sm text-[var(--at-muted)] hover:text-white mt-5">{user ? m('backDashboard') : m('backSignIn')}</Link>
+        <Link to={user ? '/dashboard' : '/login'} className="block text-center text-sm text-[var(--at-muted)] hover:text-[var(--at-text-strong)] mt-5">{user ? m('backDashboard') : m('backSignIn')}</Link>
       </>}
     </div></div>
   </main>;

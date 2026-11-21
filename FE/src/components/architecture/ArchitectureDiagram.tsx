@@ -45,7 +45,7 @@ export default function ArchitectureDiagram(props: Omit<DiagramSvgProps, 'intera
   /** Lets controls outside the artboard (a layers panel) move the view. */
   apiRef?: MutableRefObject<Viewport | null>;
 }) {
-  const { className, gridColor = '#1e2732', overlay, apiRef, ...svgProps } = props;
+  const { className, gridColor = 'var(--at-grid)', overlay, apiRef, ...svgProps } = props;
   const { layout, highlight, selectedNode, theme, scene } = svgProps;
   const shell = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLDivElement>(null);

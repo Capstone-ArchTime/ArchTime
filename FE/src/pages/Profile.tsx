@@ -91,7 +91,7 @@ type What = 'whatOrgs' | 'whatWorkspaces' | 'whatPaths' | 'whatAi';
 
 const label = 'mb-1 block text-xs text-[var(--at-muted)]';
 const link = 'text-[var(--at-link)] hover:text-[var(--at-link-hover)]';
-const problem = (id: string, text?: string) => (text ? <p id={id} role="alert" className="mt-1 text-xs text-red-400">{text}</p> : null);
+const problem = (id: string, text?: string) => (text ? <p id={id} role="alert" className="mt-1 text-xs text-[var(--at-danger)]">{text}</p> : null);
 
 type Load<T> = { data: T | null; error: string | null; retry: () => void };
 
@@ -128,7 +128,7 @@ const loadAiTotals = async (signal: AbortSignal) => {
 function Tile<T>({ icon, title, load, children }: { icon: ReactNode; title: string; load: Load<T>; children: (data: T) => ReactNode }) {
   return <article aria-label={title} className={`${featurePanel} flex flex-col gap-2`}>
     <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--at-muted)]">{icon}{title}</h3>
-    {load.error ? <div className="space-y-2"><p role="alert" className="text-sm text-red-400">{load.error}</p><Button size="small" onClick={load.retry}>{message(MSG, 'retry')}</Button></div>
+    {load.error ? <div className="space-y-2"><p role="alert" className="text-sm text-[var(--at-danger)]">{load.error}</p><Button size="small" onClick={load.retry}>{message(MSG, 'retry')}</Button></div>
       : load.data === null ? <Skeleton active title={false} paragraph={{ rows: 2 }} /> : children(load.data)}
   </article>;
 }
@@ -357,7 +357,7 @@ export default function Profile() {
           <h3 className="text-2xl font-bold break-words">{user.name}</h3>
           <Tag color={role === 'system-administrator' ? 'gold' : 'blue'}>{accountTypeLabel(role)}</Tag>
         </div>
-        {user.username && <p className="text-sm text-slate-300">@{user.username}</p>}
+        {user.username && <p className="text-sm text-[var(--at-muted)]">@{user.username}</p>}
         <p className="text-sm text-[var(--at-muted)] break-all">{user.email}</p>
         {since && <p className="flex items-center gap-1.5 text-xs text-[var(--at-muted)]"><CalendarDays size={14} aria-hidden="true" />{since}</p>}
       </div>
@@ -372,7 +372,7 @@ export default function Profile() {
           {o.shown.length > 0 && <ul className="flex flex-wrap gap-2">{o.shown.map(org => {
             const to = `/organizations/${encodeURIComponent(org.id)}`;
             const chip = <><span className="max-w-40 truncate">{org.name}</span><span className="text-[var(--at-muted)]">{ORGANIZATION_ROLE_LABELS[org.myRole] ? organizationRoleLabel(org.myRole) : org.myRole}</span></>;
-            const chipClass = 'inline-flex max-w-full items-center gap-1.5 rounded border border-[var(--at-line)] px-2 py-1 text-xs text-slate-200';
+            const chipClass = 'inline-flex max-w-full items-center gap-1.5 rounded border border-[var(--at-line)] px-2 py-1 text-xs text-[var(--at-text)]';
             return <li key={org.id} className="max-w-full">{canOpen(to) ? <Link to={to} className={`${chipClass} hover:border-[var(--at-accent)] hover:text-[var(--at-link-hover)]`}>{chip}</Link> : <span className={chipClass}>{chip}</span>}</li>;
           })}</ul>}
           <TileLinks role={role} links={[['/organizations', !o.count ? m('startOne') : o.more ? m('seeAllMore', { more: o.more }) : m('seeAll')]]} />

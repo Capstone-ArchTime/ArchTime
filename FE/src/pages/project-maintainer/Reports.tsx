@@ -40,9 +40,9 @@ const MSG = defineMessages({
   off: 'Tắt', must: 'phải phụ thuộc vào', mustNot: 'không được phụ thuộc vào', noRules: 'Không có quy tắc kiến trúc.', noDecisions: 'Không có quyết định thiết kế.',
 });
 
-const mono = { fontFamily: '"JetBrains Mono", monospace' };
+const mono = { fontFamily: 'var(--at-font-mono)' };
 const panel = 'bg-[var(--at-panel)] border border-[var(--at-line)] p-6';
-const label = 'text-[11px] text-slate-300 uppercase tracking-widest block mb-2';
+const label = 'text-[11px] text-[var(--at-muted)] uppercase tracking-widest block mb-2';
 const when = (iso: string | null) => (iso ? formatDateTime(iso) : translate(MSG, 'unknownDate'));
 
 /** Saves a file the page received (a link would not carry the session's token). */
@@ -142,12 +142,12 @@ function ReportsView({ projects, managed }: { projects: ProjectSummary[]; manage
             </div>
             <Button type="primary" icon={<FileText size={14} />} loading={generating} disabled={!selectedProject} onClick={() => void handleGenerate()}>{m('create')}</Button>
           </div>
-        </section> : <p className="text-sm text-slate-300">{m('onlyMaintainers', { name: currentProject?.name ?? m('thisWorkspace') })}</p>}
+        </section> : <p className="text-sm text-[var(--at-muted)]">{m('onlyMaintainers', { name: currentProject?.name ?? m('thisWorkspace') })}</p>}
 
         <section aria-labelledby="report-list">
           <h3 id="report-list" className="text-sm font-bold text-[var(--at-text)] tracking-tight uppercase mb-4" style={mono}>{m('list')}</h3>
           {loading && reports.length === 0 ? (
-            <div className="p-12 text-center"><Spin /><p className="mt-3 text-slate-300">{m('loading')}</p></div>
+            <div className="p-12 text-center"><Spin /><p className="mt-3 text-[var(--at-muted)]">{m('loading')}</p></div>
           ) : reports.length === 0 ? (
             <Empty description={m('none')} />
           ) : (
@@ -155,10 +155,10 @@ function ReportsView({ projects, managed }: { projects: ProjectSummary[]; manage
               <ul className="divide-y divide-[var(--at-line)] border border-[var(--at-line)] bg-[var(--at-panel)]">
                 {pagination.items.map(report => (
                   <li key={report.id} className="flex flex-wrap items-center gap-4 px-5 py-4">
-                    <FileText size={16} className="shrink-0 text-slate-400" aria-hidden="true" />
+                    <FileText size={16} className="shrink-0 text-[var(--at-muted)]" aria-hidden="true" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-[var(--at-text)]">{report.title}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-[var(--at-muted)]">
                         {when(report.createdAt)} · {m('components', { count: report.figures.components })} · {m('decisions', { count: report.figures.decisions })} · {m('mined', { count: report.figures.minedCommits })}
                       </p>
                     </div>
@@ -195,7 +195,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   </section>;
 }
 
-const NotStored = () => <p className="text-sm text-slate-400">{translate(MSG, 'notStored')}</p>;
+const NotStored = () => <p className="text-sm text-[var(--at-muted)]">{translate(MSG, 'notStored')}</p>;
 const notStored = <NotStored />;
 
 /** What the report stored, laid out like its PDF. */
@@ -207,35 +207,35 @@ function ReportBody({ report: r }: { report: ReportView }) {
     [m('rules'), m('rulesValue', { n: f.rules, active: f.activeRules })], [m('designDecisions'), m('decisionsValue', { n: f.decisions, accepted: f.acceptedDecisions })],
     [m('minedCommits'), String(f.minedCommits)], [m('mapRevision'), f.mapRevision === null ? '-' : String(f.mapRevision)],
   ];
-  return <div className="max-h-[65vh] space-y-5 overflow-y-auto pr-1 text-sm text-slate-200">
-    <p className="text-xs text-slate-400">{m('made', { date: when(r.createdAt) })}{r.project.repoUrl ? ` · ${r.project.repoUrl}` : ''}</p>
+  return <div className="max-h-[65vh] space-y-5 overflow-y-auto pr-1 text-sm text-[var(--at-text)]">
+    <p className="text-xs text-[var(--at-muted)]">{m('made', { date: when(r.createdAt) })}{r.project.repoUrl ? ` · ${r.project.repoUrl}` : ''}</p>
     {r.summary && <p>{r.summary}</p>}
     <Section title={m('keyFigures')}>
       <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
-        {figures.map(([k, v]) => <div key={k}><dt className="text-xs text-slate-400">{k}</dt><dd className="font-semibold text-[var(--at-text)]">{v}</dd></div>)}
+        {figures.map(([k, v]) => <div key={k}><dt className="text-xs text-[var(--at-muted)]">{k}</dt><dd className="font-semibold text-[var(--at-text)]">{v}</dd></div>)}
       </dl>
     </Section>
     {(r.history.first || r.history.latest) && <Section title={m('history')}>
       {[[m('oldest'), r.history.first], [m('newest'), r.history.latest]].map(([k, c]) => c && typeof c === 'object' &&
-        <p key={k as string}><span className="text-slate-400">{k as string}: </span><code className="text-slate-100">{c.hash}</code> · {c.date?.slice(0, 10)} · {c.title}</p>)}
+        <p key={k as string}><span className="text-[var(--at-muted)]">{k as string}: </span><code className="text-[var(--at-text)]">{c.hash}</code> · {c.date?.slice(0, 10)} · {c.title}</p>)}
     </Section>}
     <Section title={m('componentsTitle')}>
       {r.components.length ? <ul className="space-y-1.5">{r.components.map((c, i) => <li key={`${c.name}-${i}`}>
-        <span className="font-medium text-[var(--at-text)]">{c.name}</span>{c.kind && <span className="text-slate-400"> · {c.kind}</span>}
-        {c.description && <p className="text-xs text-slate-400">{c.description}</p>}
-      </li>)}</ul> : <p className="text-slate-400">{m('noComponents')}</p>}
+        <span className="font-medium text-[var(--at-text)]">{c.name}</span>{c.kind && <span className="text-[var(--at-muted)]"> · {c.kind}</span>}
+        {c.description && <p className="text-xs text-[var(--at-muted)]">{c.description}</p>}
+      </li>)}</ul> : <p className="text-[var(--at-muted)]">{m('noComponents')}</p>}
     </Section>
     <Section title={m('dependencies')}>
-      {r.dependencies === null ? notStored : r.dependencies.length ? <ul className="space-y-1">{r.dependencies.map((d, i) => <li key={i}>{d.source} → {d.target}{d.label && <span className="text-slate-400"> ({d.label})</span>}</li>)}</ul> : <p className="text-slate-400">{m('noDependencies')}</p>}
+      {r.dependencies === null ? notStored : r.dependencies.length ? <ul className="space-y-1">{r.dependencies.map((d, i) => <li key={i}>{d.source} → {d.target}{d.label && <span className="text-[var(--at-muted)]"> ({d.label})</span>}</li>)}</ul> : <p className="text-[var(--at-muted)]">{m('noDependencies')}</p>}
     </Section>
     <Section title={m('rules')}>
       {r.rules === null ? notStored : r.rules.length ? <ul className="space-y-1.5">{r.rules.map((x, i) => <li key={i}>
         <span className="font-medium text-[var(--at-text)]">{x.name}</span>{!x.enabled && <Tag className="ml-2">{m('off')}</Tag>}
-        <p className="text-xs text-slate-400">{x.source} {x.constraint === 'required' ? m('must') : m('mustNot')} {x.target} · {x.severity}</p>
-      </li>)}</ul> : <p className="text-slate-400">{m('noRules')}</p>}
+        <p className="text-xs text-[var(--at-muted)]">{x.source} {x.constraint === 'required' ? m('must') : m('mustNot')} {x.target} · {x.severity}</p>
+      </li>)}</ul> : <p className="text-[var(--at-muted)]">{m('noRules')}</p>}
     </Section>
     <Section title={m('designDecisions')}>
-      {r.decisions === null ? notStored : r.decisions.length ? <ul className="space-y-1">{r.decisions.map(d => <li key={d.number}>ADR-{d.number}: {d.title} <span className="text-slate-400">· {d.status}</span></li>)}</ul> : <p className="text-slate-400">{m('noDecisions')}</p>}
+      {r.decisions === null ? notStored : r.decisions.length ? <ul className="space-y-1">{r.decisions.map(d => <li key={d.number}>ADR-{d.number}: {d.title} <span className="text-[var(--at-muted)]">· {d.status}</span></li>)}</ul> : <p className="text-[var(--at-muted)]">{m('noDecisions')}</p>}
     </Section>
   </div>;
 }

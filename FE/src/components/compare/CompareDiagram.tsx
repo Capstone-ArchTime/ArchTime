@@ -8,7 +8,7 @@ export const GROUP_WIDTH = 200;
 export const GROUP_HEIGHT = 62;
 
 // Colours come from the theme variables, so the drawing follows the page's look (style, not SVG attributes, reads them).
-const COLOUR = { added: '#4ade80', removed: '#f87171', changed: 'var(--at-warn)', line: 'var(--at-muted)', text: 'var(--at-text)', muted: 'var(--at-muted)', box: 'var(--at-panel-2)' };
+const COLOUR = { added: 'var(--at-success)', removed: 'var(--at-danger)', changed: 'var(--at-warn)', line: 'var(--at-muted)', text: 'var(--at-text)', muted: 'var(--at-muted)', box: 'var(--at-panel-2)' };
 
 type Side = 'base' | 'target';
 const filesOn = (g: CompareGroup, side: Side) => (side === 'base' ? g.inBase : g.inTarget);
@@ -64,7 +64,7 @@ function CompareDiagram({ graph, layout, side, label, selected, onOpen }: {
         const tone = linkTone(link, side);
         return <g key={e.id}>
           <path d={e.path} strokeWidth={width} markerEnd={`url(#${arrow(tone)})`} style={{ stroke: COLOUR[tone], opacity: link.status === 'same' ? 0.5 : 0.95 }} />
-          {n > 1 && <text x={e.labelAt.x} y={e.labelAt.y} textAnchor="middle" dominantBaseline="middle" fontSize="11" style={{ fill: COLOUR.muted, paintOrder: 'stroke', stroke: 'rgba(10,14,18,0.85)', strokeWidth: 3 }}>{n}</text>}
+          {n > 1 && <text x={e.labelAt.x} y={e.labelAt.y} textAnchor="middle" dominantBaseline="middle" fontSize="11" style={{ fill: COLOUR.muted, paintOrder: 'stroke', stroke: 'var(--at-solid)', strokeWidth: 3 }}>{n}</text>}
         </g>;
       })}
     </g>
@@ -85,7 +85,7 @@ function CompareDiagram({ graph, layout, side, label, selected, onOpen }: {
         } : {})}>
         <title>{open ? `${summary}. Click to see its files.` : summary}</title>
         <rect width={node.width} height={node.height} rx="12" strokeWidth={isSelected ? 3 : files && tone !== 'line' ? 2 : 1} strokeDasharray={files || isSelected ? undefined : '5 4'}
-          style={{ fill: files ? COLOUR.box : 'transparent', stroke: isSelected ? 'var(--at-link-hover)' : COLOUR[tone], filter: isSelected ? 'drop-shadow(0 0 8px rgba(214, 228, 255, 0.45))' : undefined }} />
+          style={{ fill: files ? COLOUR.box : 'transparent', stroke: isSelected ? 'var(--at-link-hover)' : COLOUR[tone], filter: isSelected ? 'drop-shadow(0 0 8px color-mix(in srgb, var(--at-glow) 45%, transparent))' : undefined }} />
         <circle cx="17" cy={node.height / 2} r="4" style={{ fill: COLOUR[tone] }} />
         <text x="30" y="26" fontSize="14" fontWeight="600" style={{ fill: COLOUR.text }}>{shortLabel(g.label, 22)}</text>
         <text x="30" y="46" fontSize="12" style={{ fill: COLOUR.muted }}>{files ? `${files} file${files === 1 ? '' : 's'}${delta}` : 'not in this revision'}</text>

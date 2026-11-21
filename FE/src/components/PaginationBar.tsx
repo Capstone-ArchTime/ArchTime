@@ -37,7 +37,7 @@ export default function PaginationBar({ current, pageSize, total, onChange }: Pr
   return (
     <nav aria-label={t('pagination.label')} className="flex items-center justify-between border-t border-[var(--at-line)] pt-4 mt-2">
       {/* Items Range Info */}
-      <div className="text-[10px] font-mono text-[var(--at-muted)] uppercase hidden md:block" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+      <div className="text-[10px] font-mono text-[var(--at-muted)] uppercase hidden md:block" style={{ fontFamily: 'var(--at-font-mono)' }}>
         {t('pagination.range', { start: startItem, end: endItem, total })}
       </div>
 
@@ -62,10 +62,10 @@ export default function PaginationBar({ current, pageSize, total, onChange }: Pr
               aria-current={page === current ? 'page' : undefined}
               className={`h-8 w-8 flex items-center justify-center text-xs font-mono font-bold rounded-sm border transition-all duration-200 ${
                 page === current 
-                  ? 'bg-[var(--at-accent)]/10 border-[var(--at-accent)] text-[var(--at-link)] shadow-[0_0_10px_rgba(56,189,248,0.2)]' 
+                  ? 'bg-[var(--at-accent)]/10 border-[var(--at-accent)] text-[var(--at-link)] shadow-[0_0_10px_color-mix(in_srgb,var(--at-accent)_20%,transparent)]' 
                   : 'bg-[var(--at-panel)] border-[var(--at-line)] text-[var(--at-muted)] hover:bg-[var(--at-line)] hover:text-[var(--at-text)]'
               }`}
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}
+              style={{ fontFamily: 'var(--at-font-mono)' }}
             >
               {page}
             </button>
@@ -85,13 +85,13 @@ export default function PaginationBar({ current, pageSize, total, onChange }: Pr
 
       {/* Page Size Selector (Optional display for larger screens) */}
       <div className="hidden md:flex items-center gap-2">
-        <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t('pagination.perPage')}</span>
+        <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase" style={{ fontFamily: 'var(--at-font-mono)' }}>{t('pagination.perPage')}</span>
         <select 
           aria-label={t('pagination.perPage')}
           value={pageSize}
           onChange={(e) => onChange(1, Number(e.target.value))}
           className="h-8 px-2 bg-[var(--at-panel)] border border-[var(--at-line)] text-xs font-mono text-[var(--at-text)] outline-none cursor-pointer hover:border-[var(--at-line-strong)] transition-colors"
-          style={{ fontFamily: '"JetBrains Mono", monospace' }}
+          style={{ fontFamily: 'var(--at-font-mono)' }}
         >
           <option value={5}>5</option>
           <option value={10}>10</option>

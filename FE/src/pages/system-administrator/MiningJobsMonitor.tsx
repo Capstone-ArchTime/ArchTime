@@ -105,7 +105,7 @@ export default function MiningJobsMonitor() {
         <div>
           <h3 className={`${sectionTitle} mb-1`}>{m('defaultModel')}</h3>
           <p className="text-sm text-[var(--at-muted)]">{m.rich('defaultIntro', { link: <Link key="l" to="/system-administrator/ai-models" className="text-[var(--at-link)]">{m('aiModels')}</Link> })}</p>
-          {aiError && <p role="alert" className="text-xs text-red-400 mt-1">{aiError}</p>}
+          {aiError && <p role="alert" className="text-xs text-[var(--at-danger)] mt-1">{aiError}</p>}
           {!aiError && !aiModels.length && <p className="text-xs text-[var(--at-muted)] mt-1">{m('noModel')}</p>}
         </div>
         <Select
@@ -159,7 +159,7 @@ export default function MiningJobsMonitor() {
     {loading && !updated ? <div role="status" className="p-12 text-center"><Spin /><p>{m('loading')}</p></div> : !filtered.length && !error ? <Empty description={m('noMatch')} /> : null}
     <div className="space-y-3">{pagination.items.map(job => <article key={job.id} className={featurePanel}>
       <div className="flex flex-wrap justify-between gap-3"><div><Tag color={job.status === 'failed' ? 'red' : job.status === 'completed' ? 'green' : job.status === 'cancelled' ? 'default' : 'blue'}>{word(job.status)}</Tag><h3 className="text-base font-bold mt-2">{job.project}</h3><p className="text-xs text-[var(--at-muted)] mt-2">{m('requestedBy', { name: job.requestedBy })} · {job.createdAt ? formatDateTime(job.createdAt) : m('noTime')} · <Typography.Text className="text-xs text-[var(--at-muted)]" copyable={{ text: job.id, tooltips: [m('copyId'), m('copied')] }}>{m('job', { id: job.id.slice(-6) })}</Typography.Text></p></div>{(job.status === 'queued' || job.status === 'running') && <Button danger onClick={() => cancel(job.id)}>{job.status === 'queued' ? m('cancel') : m('stop')}</Button>}</div>
-      <p className="text-sm mt-3">{localizeStage(job.stage)}{job.kind === 'mine' && job.total > 0 ? ` · ${describeBatchProgress(job)}` : ''}</p><Progress percent={job.progress} status={job.status === 'failed' ? 'exception' : job.status === 'completed' ? 'success' : 'normal'} />{job.error && <p role="alert" className="text-sm text-red-400 break-words">{job.error}</p>}
+      <p className="text-sm mt-3">{localizeStage(job.stage)}{job.kind === 'mine' && job.total > 0 ? ` · ${describeBatchProgress(job)}` : ''}</p><Progress percent={job.progress} status={job.status === 'failed' ? 'exception' : job.status === 'completed' ? 'success' : 'normal'} />{job.error && <p role="alert" className="text-sm text-[var(--at-danger)] break-words">{job.error}</p>}
     </article>)}</div><PaginationBar {...pagination} />
   </FeaturePage>;
 }

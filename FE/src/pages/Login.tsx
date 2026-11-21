@@ -14,12 +14,9 @@ import { checkNewPassword } from '@/features/profile-validation';
 import { deadlineFrom, rememberOtpDeadline } from '@/features/otp-countdown';
 import { translate, useLanguage, useT } from '@/i18n';
 import LanguageSwitch from '@/components/LanguageSwitch';
+import { fontFamily } from '@/theme/fonts';
 
 
-const fontFamily = {
-  sans: '"Montserrat", system-ui, sans-serif',
-  mono: '"JetBrains Mono", monospace',
-};
 
 type FieldErrors = Partial<Record<'name' | 'email' | 'password' | 'confirmPassword', string>>;
 
@@ -149,7 +146,7 @@ const AuthPage: React.FC = () => {
 
   return (
     <div
-      className="min-h-dvh at-home bg-[var(--at-page)] text-[var(--at-text)] flex flex-col md:flex-row selection:bg-[#d3def3] selection:text-[#18212c]"
+      className="min-h-dvh at-home bg-[var(--at-page)] text-[var(--at-text)] flex flex-col md:flex-row"
       style={{ fontFamily: fontFamily.sans }}
     >
 
@@ -163,10 +160,10 @@ const AuthPage: React.FC = () => {
 
           {/* Mobile-only compact value prop (Right Panel's content is md:flex only) */}
           <div className="md:hidden mb-8 shrink-0 border border-[var(--at-line)] bg-[var(--at-panel)]/60 p-4">
-            <p className="text-lg font-bold tracking-tight text-white leading-snug">
+            <p className="text-lg font-bold tracking-tight text-[var(--at-text-strong)] leading-snug">
               {t('auth.pitch.lead')}{" "}
               <span
-                className="bg-gradient-to-r from-[#ffffff] via-[#d3def3] to-[#9db3dc] bg-clip-text text-transparent"
+                className="at-headline-gradient bg-clip-text text-transparent"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 {t('auth.pitch.evolves')}
@@ -189,7 +186,7 @@ const AuthPage: React.FC = () => {
                 transition={{ duration: 0.2, ease: "easeOut" }}
               >
                 <div className="mb-8">
-                  <h2 className="text-3xl font-bold tracking-tight text-white mb-2">
+                  <h2 className="text-3xl font-bold tracking-tight text-[var(--at-text-strong)] mb-2">
                     {isRegister ? t('auth.heading.register') : t('auth.heading.signIn')}
                   </h2>
                   <p className="text-[var(--at-muted)] text-sm font-light">
@@ -200,7 +197,7 @@ const AuthPage: React.FC = () => {
                 </div>
 
                 {!isRegister && notice && (
-                  <p role="status" className="mb-4 rounded border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm text-green-300">{notice}</p>
+                  <p role="status" className="mb-4 rounded border border-[var(--at-success)]/30 bg-[var(--at-success)]/10 px-3 py-2 text-sm text-[var(--at-success)]">{notice}</p>
                 )}
 
                 <form onSubmit={handleSubmit} noValidate className="space-y-4">
@@ -220,14 +217,14 @@ const AuthPage: React.FC = () => {
                           placeholder="Jane Doe"
                           aria-invalid={!!fieldErrors.name}
                           aria-describedby={fieldErrors.name ? 'auth-name-error' : undefined}
-                          className={`w-full h-11 bg-[var(--at-panel)] border pl-10 pr-4 text-sm text-white placeholder:text-[var(--at-muted)] focus:outline-none transition-colors disabled:opacity-50 ${
-                            fieldErrors.name ? 'border-red-500/60 focus:border-red-500' : 'border-[var(--at-line)] focus:border-[var(--at-accent)]'
+                          className={`w-full h-11 bg-[var(--at-panel)] border pl-10 pr-4 text-sm text-[var(--at-text-strong)] placeholder:text-[var(--at-muted)] focus:outline-none transition-colors disabled:opacity-50 ${
+                            fieldErrors.name ? 'border-[var(--at-danger)]/60 focus:border-[var(--at-danger)]' : 'border-[var(--at-line)] focus:border-[var(--at-accent)]'
                           }`}
                         />
                         <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--at-muted)] group-focus-within:text-[var(--at-link)] transition-colors" />
                       </div>
                       {fieldErrors.name && (
-                        <p id="auth-name-error" role="alert" className="text-xs text-red-400">{fieldErrors.name}</p>
+                        <p id="auth-name-error" role="alert" className="text-xs text-[var(--at-danger)]">{fieldErrors.name}</p>
                       )}
                     </div>
                   )}
@@ -247,14 +244,14 @@ const AuthPage: React.FC = () => {
                         placeholder={isRegister ? "developer@archtime.io" : t('auth.field.loginPlaceholder')}
                         aria-invalid={!!fieldErrors.email}
                         aria-describedby={fieldErrors.email ? 'auth-email-error' : undefined}
-                        className={`w-full h-11 bg-[var(--at-panel)] border pl-10 pr-4 text-sm text-white placeholder:text-[var(--at-muted)] focus:outline-none transition-colors disabled:opacity-50 ${
-                          fieldErrors.email ? 'border-red-500/60 focus:border-red-500' : 'border-[var(--at-line)] focus:border-[var(--at-accent)]'
+                        className={`w-full h-11 bg-[var(--at-panel)] border pl-10 pr-4 text-sm text-[var(--at-text-strong)] placeholder:text-[var(--at-muted)] focus:outline-none transition-colors disabled:opacity-50 ${
+                          fieldErrors.email ? 'border-[var(--at-danger)]/60 focus:border-[var(--at-danger)]' : 'border-[var(--at-line)] focus:border-[var(--at-accent)]'
                         }`}
                       />
                       <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--at-muted)] group-focus-within:text-[var(--at-link)] transition-colors" />
                     </div>
                     {fieldErrors.email && (
-                      <p id="auth-email-error" role="alert" className="text-xs text-red-400">{fieldErrors.email}</p>
+                      <p id="auth-email-error" role="alert" className="text-xs text-[var(--at-danger)]">{fieldErrors.email}</p>
                     )}
                   </div>
 
@@ -275,8 +272,8 @@ const AuthPage: React.FC = () => {
                         aria-invalid={!!fieldErrors.password}
                         aria-describedby={[fieldErrors.password && 'auth-password-error', isRegister && 'auth-password-rules'].filter(Boolean).join(' ') || undefined}
                         data-ms-reveal="false"
-                        className={`w-full h-11 bg-[var(--at-panel)] border pl-10 pr-10 text-sm text-white placeholder:text-[var(--at-muted)] focus:outline-none transition-colors tracking-wide disabled:opacity-50 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-textfield-decoration-container]:hidden [&::-webkit-credentials-auto-fill-button]:hidden [&::-webkit-contacts-auto-fill-button]:hidden ${
-                          fieldErrors.password ? 'border-red-500/60 focus:border-red-500' : 'border-[var(--at-line)] focus:border-[var(--at-accent)]'
+                        className={`w-full h-11 bg-[var(--at-panel)] border pl-10 pr-10 text-sm text-[var(--at-text-strong)] placeholder:text-[var(--at-muted)] focus:outline-none transition-colors tracking-wide disabled:opacity-50 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-textfield-decoration-container]:hidden [&::-webkit-credentials-auto-fill-button]:hidden [&::-webkit-contacts-auto-fill-button]:hidden ${
+                          fieldErrors.password ? 'border-[var(--at-danger)]/60 focus:border-[var(--at-danger)]' : 'border-[var(--at-line)] focus:border-[var(--at-accent)]'
                         }`}
                       />
                       <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--at-muted)] group-focus-within:text-[var(--at-link)] transition-colors" />
@@ -284,14 +281,14 @@ const AuthPage: React.FC = () => {
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--at-muted)] hover:text-slate-300 transition-colors focus:outline-none focus-visible:text-[var(--at-link)]"
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--at-muted)] hover:text-[var(--at-muted)] transition-colors focus:outline-none focus-visible:text-[var(--at-link)]"
                       >
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
 
                     {fieldErrors.password && (
-                      <p id="auth-password-error" role="alert" className="text-xs text-red-400">{fieldErrors.password}</p>
+                      <p id="auth-password-error" role="alert" className="text-xs text-[var(--at-danger)]">{fieldErrors.password}</p>
                     )}
 
                     {isRegister && <PasswordRequirements id="auth-password-rules" password={password} />}
@@ -312,14 +309,14 @@ const AuthPage: React.FC = () => {
                           placeholder="••••••••"
                           aria-invalid={!!fieldErrors.confirmPassword}
                           aria-describedby={fieldErrors.confirmPassword ? 'auth-confirm-password-error' : undefined}
-                          className={`w-full h-11 bg-[var(--at-panel)] border pl-10 pr-4 text-sm text-white placeholder:text-[var(--at-muted)] focus:outline-none transition-colors tracking-wide disabled:opacity-50 ${
-                            fieldErrors.confirmPassword ? 'border-red-500/60 focus:border-red-500' : 'border-[var(--at-line)] focus:border-[var(--at-accent)]'
+                          className={`w-full h-11 bg-[var(--at-panel)] border pl-10 pr-4 text-sm text-[var(--at-text-strong)] placeholder:text-[var(--at-muted)] focus:outline-none transition-colors tracking-wide disabled:opacity-50 ${
+                            fieldErrors.confirmPassword ? 'border-[var(--at-danger)]/60 focus:border-[var(--at-danger)]' : 'border-[var(--at-line)] focus:border-[var(--at-accent)]'
                           }`}
                         />
                         <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--at-muted)] group-focus-within:text-[var(--at-link)] transition-colors" />
                       </div>
                       {fieldErrors.confirmPassword && (
-                        <p id="auth-confirm-password-error" role="alert" className="text-xs text-red-400">{fieldErrors.confirmPassword}</p>
+                        <p id="auth-confirm-password-error" role="alert" className="text-xs text-[var(--at-danger)]">{fieldErrors.confirmPassword}</p>
                       )}
                     </div>
                   )}
@@ -337,7 +334,7 @@ const AuthPage: React.FC = () => {
                   )}
 
                   {formError && (
-                    <p role="alert" className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">{formError}</p>
+                    <p role="alert" className="rounded border border-[var(--at-danger)]/40 bg-[var(--at-danger)]/10 px-3 py-2 text-sm text-[var(--at-danger-text)]">{formError}</p>
                   )}
 
                   <button
@@ -370,7 +367,7 @@ const AuthPage: React.FC = () => {
                     } catch { message.error(t('auth.error.storage')); }
                   }}
                   disabled={isLoading}
-                  className="w-full h-11 flex items-center justify-center gap-3 px-4 bg-[var(--at-panel)] hover:bg-[var(--at-panel-2)] border border-[var(--at-line)] transition-colors text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:border-[var(--at-accent)]"
+                  className="w-full h-11 flex items-center justify-center gap-3 px-4 bg-[var(--at-panel)] hover:bg-[var(--at-panel-2)] border border-[var(--at-line)] transition-colors text-[var(--at-text-strong)] text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:border-[var(--at-accent)]"
                 >
                   <Icon icon="mdi:github" width="18" height="18" />
                   {t('auth.github')}
@@ -431,10 +428,10 @@ const AuthPage: React.FC = () => {
               <span className="text-[10px] text-[var(--at-link)] tracking-wider font-semibold" style={{ fontFamily: fontFamily.mono }}>ARCHTIME OBSERVATORY</span>
             </div>
 
-            <h2 className="text-4xl lg:text-5xl font-bold tracking-tight text-white mb-4 leading-[1.1]">
+            <h2 className="text-4xl lg:text-5xl font-bold tracking-tight text-[var(--at-text-strong)] mb-4 leading-[1.1]">
               {t('auth.pitch.lead')}{" "}
               <span
-                className="bg-gradient-to-r from-[#ffffff] via-[#d3def3] to-[#9db3dc] bg-clip-text text-transparent"
+                className="at-headline-gradient bg-clip-text text-transparent"
                 style={{ fontFamily: fontFamily.mono }}
               >
                 {t('auth.pitch.evolves')}
@@ -456,7 +453,7 @@ const AuthPage: React.FC = () => {
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                   </div>
                   <span className="text-sm text-[var(--at-muted)] font-medium tracking-widest">{t('auth.visual.range')}</span>
-                  <span className="text-sm text-white font-bold">rev-8e41..HEAD</span>
+                  <span className="text-sm text-[var(--at-text-strong)] font-bold">rev-8e41..HEAD</span>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="px-3 py-1.5 bg-[var(--at-accent)]/10 border border-[var(--at-accent)]/20 text-[var(--at-link)] text-xs font-bold">
@@ -469,7 +466,7 @@ const AuthPage: React.FC = () => {
               {/* Eras Header */}
               <div className="grid grid-cols-4 w-full mb-6 z-20 px-4" style={{ fontFamily: fontFamily.mono }}>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#7d8996]"></div>
+                  <div className="w-2 h-2 rounded-full bg-[var(--at-muted)]"></div>
                   <span className="text-xs text-[var(--at-muted)]">01 Monolith</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -490,7 +487,7 @@ const AuthPage: React.FC = () => {
               <div className="flex-1 relative w-full h-full">
 
                 {/* Pure SVG Graph for Perfect Alignment */}
-                <svg viewBox="0 0 1000 400" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+                <svg viewBox="0 0 1000 400" className="at-illustration w-full h-full" preserveAspectRatio="xMidYMid meet">
                   <defs>
                     <linearGradient id="grad-cyan" x1="0%" y1="0%" x2="100%" y2="0%">
                       <stop offset="0%" stopColor="#c9d7f2" stopOpacity="0.5" />
@@ -650,17 +647,17 @@ const AuthPage: React.FC = () => {
           <div className="grid grid-cols-3 gap-6 shrink-0 border-t border-[var(--at-line)] pt-6">
             <div className="flex flex-col gap-1.5">
               <span className="text-xs text-[var(--at-link)] font-semibold" style={{ fontFamily: fontFamily.mono }}>01</span>
-              <h4 className="text-white text-sm font-medium">{t('auth.feature.mining.title')}</h4>
+              <h4 className="text-[var(--at-text-strong)] text-sm font-medium">{t('auth.feature.mining.title')}</h4>
               <p className="text-[var(--at-muted)] text-xs leading-relaxed font-light">{t('auth.feature.mining.body')}</p>
             </div>
             <div className="flex flex-col gap-1.5">
               <span className="text-xs text-[var(--at-warn)] font-semibold" style={{ fontFamily: fontFamily.mono }}>02</span>
-              <h4 className="text-white text-sm font-medium">{t('auth.feature.evolution.title')}</h4>
+              <h4 className="text-[var(--at-text-strong)] text-sm font-medium">{t('auth.feature.evolution.title')}</h4>
               <p className="text-[var(--at-muted)] text-xs leading-relaxed font-light">{t('auth.feature.evolution.body')}</p>
             </div>
             <div className="flex flex-col gap-1.5">
               <span className="text-xs text-[var(--at-glow)] font-semibold" style={{ fontFamily: fontFamily.mono }}>03</span>
-              <h4 className="text-white text-sm font-medium">{t('auth.feature.ai.title')}</h4>
+              <h4 className="text-[var(--at-text-strong)] text-sm font-medium">{t('auth.feature.ai.title')}</h4>
               <p className="text-[var(--at-muted)] text-xs leading-relaxed font-light">{t('auth.feature.ai.body')}</p>
             </div>
           </div>

@@ -34,8 +34,8 @@ const STATUS: Record<FileStatus, { label: 'added' | 'removed' | 'changed' | 'sam
   same: { label: 'same', color: 'default', text: 'sameText' },
 };
 const LINK_MARK: Record<FileLink['status'], { mark: string; className: string; label: 'linkAdded' | 'linkRemoved' | 'linkSame' }> = {
-  added: { mark: '+', className: 'text-green-300', label: 'linkAdded' },
-  removed: { mark: '−', className: 'text-red-300', label: 'linkRemoved' },
+  added: { mark: '+', className: 'text-[var(--at-success)]', label: 'linkAdded' },
+  removed: { mark: '−', className: 'text-[var(--at-danger-text)]', label: 'linkRemoved' },
   same: { mark: '·', className: 'text-[var(--at-muted)]', label: 'linkSame' },
 };
 /** Files rendered at a time; a folder can hold hundreds. */
