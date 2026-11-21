@@ -1,3 +1,5 @@
+import { apiRequest } from '../api/client.ts';
+
 export type MiningJob = { id: string; project: string; requestedBy: string; status: string; stage: string; progress: number; createdAt: string; error?: string; kind: string; total: number; processed: number; batchIndex: number; batchCount: number };
 export function parseMiningJobs(value: unknown): MiningJob[] {
   const body = value as { data?: { jobs?: Record<string, unknown>[] } };
@@ -13,3 +15,10 @@ function counts(job: Record<string, unknown>) {
   const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
   return { total: n(job.total), processed: n(job.processed), batchIndex: n(job.batchIndex), batchCount: n(job.batchCount) };
 }
+
+/**
+ * A System Administrator stops a job through the admin route: it records JOB_CANCEL in the audit log (DS-06a), which the
+ * workspace route used by maintainers does not.
+ */
+export const cancelJobAsAdministrator = (jobId: string) =>
+  apiRequest<{ data?: Record<string, unknown> }>(`/admin/jobs/${encodeURIComponent(jobId)}/cancel`, { method: 'POST' });
