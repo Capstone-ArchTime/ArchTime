@@ -40,9 +40,10 @@ test('the sidebar of a developer-analyst has six entries, seven with the Maintai
 test('every page still has a way in: the sidebar, the account menu, or (old maintainer reports, old history) a redirect', () => {
   const reachable = new Set([...navGroupsFor('developer-analyst', { maintains: true }).flatMap(group => group.items), ...accountMenuItems['developer-analyst']].map(item => item.path));
   assert.ok(!reachable.has('/history'), 'Architecture History was folded into Compare; /history redirects there');
-  for (const path of ['/dashboard', '/projects', '/architecture', '/compare', '/evidence', '/tasks', '/insights', '/learning', '/reports', '/ai-usage', '/profile', '/my-work']) assert.ok(reachable.has(path), path);
+  for (const path of ['/dashboard', '/projects', '/architecture', '/compare', '/evidence', '/tasks', '/insights', '/learning', '/reports', '/ai-usage', '/profile', '/my-work', '/settings']) assert.ok(reachable.has(path), path);
   assert.deepEqual(maintainerRoutes.filter(path => !reachable.has(path)), ['/project-maintainer/reports'], 'only the old reports page, which now redirects to /reports');
-  assert.deepEqual(accountMenuItems['developer-analyst'].map(item => item.path), ['/my-work', '/profile', '/ai-usage']);
+  assert.deepEqual(accountMenuItems['developer-analyst'].map(item => item.path), ['/my-work', '/profile', '/ai-usage', '/settings']);
+  assert.deepEqual(accountMenuItems['system-administrator'].map(item => item.path), ['/my-work', '/profile', '/settings']);
 });
 
 test('the Maintain group is only for developer-analysts who maintain a workspace', () => {

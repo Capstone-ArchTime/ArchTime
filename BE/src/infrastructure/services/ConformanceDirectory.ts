@@ -5,7 +5,7 @@ import { OrganizationMemberModel } from "../database/models/OrganizationMemberMo
 import { UserModel } from "../database/models/UserModel.js";
 import { MemberStatus, ProjectMemberRole } from "../../domain/entities/ProjectMember.js";
 import { OrganizationMemberStatus, OrganizationRole } from "../../domain/entities/Organization.js";
-import { UserStatus } from "../../domain/entities/User.js";
+import { normalizeLanguage, UserStatus } from "../../domain/entities/User.js";
 
 /** Who hears about conformance findings (BR-34): the project owner, its active maintainers and its organization's owners. */
 export const mongoConformanceDirectory: NotifierDirectory = {
@@ -23,8 +23,9 @@ export const mongoConformanceDirectory: NotifierDirectory = {
         : Promise.resolve([]),
     ]);
     const ids = [...new Set([project.userId, ...maintainers.map(m => m.userId), ...orgOwners.map(o => o.userId)].filter((id): id is string => !!id).map(String))];
-    const users = await UserModel.find({ _id: { $in: ids }, status: UserStatus.ACTIVE, isVerified: true }).select("email name").lean<{ email: string; name: string }[]>();
+    const users = await UserModel.find({ _id: { $in: ids }, status: UserStatus.ACTIVE, isVerified: true }).select("email name language").lean<{ email: string; name: string; language?: string }[]>();
     const seen = new Set<string>();
-    return users.filter(u => u.email && !seen.has(u.email.toLowerCase()) && seen.add(u.email.toLowerCase())).map((u): Recipient => ({ email: u.email, name: u.name }));
+    return users.filter(u => u.email && !seen.has(u.email.toLowerCase()) && seen.add(u.email.toLowerCase()))
+      .map((u): Recipient => ({ email: u.email, name: u.name, language: normalizeLanguage(u.language) }));
   },
 };

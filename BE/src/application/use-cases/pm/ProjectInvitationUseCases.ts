@@ -75,8 +75,11 @@ export class InviteProjectMemberTokenUseCase {
 
     if (this.emailService?.sendProjectInvitation) {
       const inviteUrl = `${this.frontendUrl.replace(/\/+$/, "")}/invitations/accept?token=${encodeURIComponent(token)}`;
+      // In the invitee's language when they have an account, otherwise in the language of whoever invited them.
+      const inviter = existingUser ? null : await this.userRepository.findById(input.invitedBy).catch(() => null);
+      const language = existingUser?.language ?? inviter?.language;
       this.emailService
-        .sendProjectInvitation(email, project.name, invitation.role, inviteUrl)
+        .sendProjectInvitation(email, project.name, invitation.role, inviteUrl, language)
         .catch((err: any) => {
           console.warn("[InviteProjectMemberToken] Failed to send email:", err);
         });

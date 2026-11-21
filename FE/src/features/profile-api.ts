@@ -16,6 +16,11 @@ export async function updateProfile(patch: ProfilePatch): Promise<Pick<AuthUser,
   return { name: user.name, username: typeof user.username === 'string' ? user.username : null };
 }
 
+/** Saves the account's language, so e-mails, reports and the next sign-in on any device use it. */
+export async function saveAccountLanguage(language: 'en' | 'vi'): Promise<void> {
+  await apiRequest('/auth/me', json('PATCH', { language }));
+}
+
 /** Changes the password. The server ends every session of the account, this one included, and returns no new tokens. */
 export async function changePassword(input: { oldPassword: string; newPassword: string; confirmNewPassword: string }): Promise<void> {
   await apiRequest('/auth/change-password', json('POST', input));

@@ -1,4 +1,5 @@
 import { apiRequest } from '../api/client.ts';
+import { hx } from './helper-messages.ts';
 
 // Project tasks & sprints (F-13, RF-07): imported from a Jira JSON export, linked to the mined commits that name them.
 // The server computes everything (progress included); this module reads it, checks its shape and words it for people.
@@ -78,7 +79,7 @@ export async function importJiraExport(projectId: string, fileText: string): Pro
   // apiRequest adds no Content-Type: without it the server's JSON parser ignores the body ("Attach the Jira export file").
   const body = await apiRequest<{ data?: ImportResult }>(`/projects/${encodeURIComponent(projectId)}/tasks/import`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: fileText }),
-  }, 60_000);
+  }, 120_000);
   if (!body?.data) throw new Error('The server did not confirm the import.');
   return body.data;
 }
@@ -91,19 +92,19 @@ export async function relinkCommits(projectId: string): Promise<ImportResult['li
 
 /** "2 / 3 done (67 %)", or "No tasks" for an empty sprint: 0 % would claim there is work left. */
 export function progressLabel(p: Progress): string {
-  if (!p.total) return 'No tasks';
-  return `${p.done} / ${p.total} done (${p.percent ?? Math.round((p.done / p.total) * 100)} %)`;
+  if (!p.total) return hx('noTasks');
+  return hx('done', { done: p.done, total: p.total, pct: p.percent ?? Math.round((p.done / p.total) * 100) });
 }
 
 export const STATUS_COLORS: Record<StatusCategory, string> = { todo: 'default', 'in-progress': 'processing', done: 'success' };
 
 /** One line for the person who imported: what changed, and which keys commits named that are no task of this workspace. */
 export function importSummary(r: ImportResult): string {
-  const parts = [`${r.created} new`, `${r.updated} updated`, `${r.unchanged} unchanged`];
-  if (r.removed) parts.push(`${r.removed} marked removed`);
-  if (r.restored) parts.push(`${r.restored} restored`);
-  let text = `Imported: ${parts.join(', ')}. ${r.links.linked} new commit link${r.links.linked === 1 ? '' : 's'}.`;
-  if (r.links.unknownKeys.length) text += ` Commits also name ${r.links.unknownKeys.slice(0, 5).join(', ')}${r.links.unknownKeys.length > 5 ? '…' : ''}, which are not tasks here.`;
+  const parts = [hx('created', { n: r.created }), hx('updated', { n: r.updated }), hx('unchanged', { n: r.unchanged })];
+  if (r.removed) parts.push(hx('markedRemoved', { n: r.removed }));
+  if (r.restored) parts.push(hx('restored', { n: r.restored }));
+  let text = hx('imported', { parts: parts.join(', '), count: r.links.linked });
+  if (r.links.unknownKeys.length) text += hx('unknownKeys', { keys: `${r.links.unknownKeys.slice(0, 5).join(', ')}${r.links.unknownKeys.length > 5 ? '…' : ''}` });
   return text;
 }
 
@@ -158,9 +159,9 @@ export const edgeLabel = (e: TaskCommitImpact['edges'][number]) =>
 
 /** One line for the whole task: how many of its commits changed the architecture, and where. */
 export function impactSummary(i: TaskImpact): string {
-  if (!i.commits.length) return 'No commit names this task yet.';
-  const deps = `${i.totals.depAdded} dependenc${i.totals.depAdded === 1 ? 'y' : 'ies'} added, ${i.totals.depRemoved} removed`;
-  if (!i.diagram) return `${i.totals.commits} commit${i.totals.commits === 1 ? '' : 's'}: ${deps}. Map path prefixes in the Component Diagram to see the components.`;
-  const where = i.totals.components.length ? ` in ${i.totals.components.join(', ')}` : '';
-  return `${i.totals.commits} commit${i.totals.commits === 1 ? '' : 's'}, ${i.totals.architecturalCommits} changing dependencies between components${where}; ${deps}.`;
+  if (!i.commits.length) return hx('noCommit');
+  const deps = hx('depsLine', { count: i.totals.depAdded, added: i.totals.depAdded, removed: i.totals.depRemoved });
+  if (!i.diagram) return hx('noDiagram', { count: i.totals.commits, deps });
+  const where = i.totals.components.length ? hx('inList', { list: i.totals.components.join(', ') }) : '';
+  return hx('taskSummary', { count: i.totals.commits, arch: i.totals.architecturalCommits, where, deps });
 }

@@ -2,6 +2,8 @@ import { canAccess } from '../auth/permissions.ts';
 import type { Role, SignInMethods } from '../auth/permissions.ts';
 import { orderPaths } from './my-work.ts';
 import { checkNewPassword } from './profile-validation.ts';
+import { translate } from '../i18n/index.ts';
+import { formatDate, formatNumber } from '../i18n/format.ts';
 
 // What the profile page shows about the signed-in person, worked out from what the server sent. Pure, so it is tested.
 
@@ -19,7 +21,7 @@ export function memberSince(createdAt: unknown): string | null {
   if (typeof createdAt !== 'string' || !createdAt) return null;
   const date = new Date(createdAt);
   if (Number.isNaN(date.getTime())) return null;
-  return `Member since ${date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`;
+  return translate('profile.memberSince', { date: formatDate(date, { year: 'numeric', month: 'long', day: 'numeric' }) });
 }
 
 /** The sign-in methods from GET /auth/me, or null when they are missing or not what we expect (then the page behaves as before). */
@@ -42,10 +44,10 @@ export type SetPasswordProblems = Partial<Record<keyof SetPasswordForm, string>>
 export function checkSetPasswordForm(form: SetPasswordForm): SetPasswordProblems {
   const problems: SetPasswordProblems = {};
   const rule = checkNewPassword(form.newPassword);
-  if (!form.newPassword) problems.newPassword = 'Enter a new password.';
+  if (!form.newPassword) problems.newPassword = translate('profile.enterNewPassword');
   else if (rule) problems.newPassword = rule;
-  if (!form.confirmNewPassword) problems.confirmNewPassword = 'Repeat the new password.';
-  else if (form.confirmNewPassword !== form.newPassword) problems.confirmNewPassword = 'New passwords do not match.';
+  if (!form.confirmNewPassword) problems.confirmNewPassword = translate('profile.repeatNewPassword');
+  else if (form.confirmNewPassword !== form.newPassword) problems.confirmNewPassword = translate('profile.newMismatch');
   return problems;
 }
 
@@ -56,7 +58,7 @@ export function listTotal(body: unknown, key: string): number {
   if (typeof total === 'number' && Number.isFinite(total) && total >= 0) return total;
   const rows = b?.data?.[key];
   if (Array.isArray(rows)) return rows.length;
-  throw new Error('The server returned an invalid list.');
+  throw new Error(translate('err.invalidList'));
 }
 
 export type OverviewTile = 'organizations' | 'workspaces' | 'learning' | 'ai';
@@ -65,14 +67,14 @@ const tilePages: [OverviewTile, string][] = [['organizations', '/organizations']
 /** The overview tiles whose page this account can open; a system administrator has none of them. */
 export const overviewTiles = (role: Role): OverviewTile[] => tilePages.filter(([, path]) => canAccess(role, path)).map(([tile]) => tile);
 
-/** "1 run", "2 runs". */
-export const plural = (n: number, one: string, many: string): string => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
+/** "1 run", "2 runs" (the number in the page language; callers pass words already translated). */
+export const plural = (n: number, one: string, many: string): string => `${formatNumber(n)} ${n === 1 ? one : many}`;
 
 /** "1 you own", and up to `max` organizations to show, owned ones first, then by name. */
 export function organizationOverview<T extends { name: string; myRole: 'owner' | 'member' }>(orgs: T[], max = 3) {
   const owned = orgs.filter(o => o.myRole === 'owner').length;
   const shown = [...orgs].sort((a, b) => Number(b.myRole === 'owner') - Number(a.myRole === 'owner') || a.name.localeCompare(b.name)).slice(0, max);
-  return { count: orgs.length, ownedText: `${owned} you own`, shown, more: Math.max(0, orgs.length - shown.length) };
+  return { count: orgs.length, ownedText: translate('profile.youOwn', { n: owned }), shown, more: Math.max(0, orgs.length - shown.length) };
 }
 
 /**
@@ -80,7 +82,7 @@ export function organizationOverview<T extends { name: string; myRole: 'owner' |
  * while an organization owner's organization workspaces count under managed.
  */
 export function workspaceOverview(counts: { owned: number; managed: number; participating: number }): string {
-  return `${counts.owned} you created · ${counts.managed} you can manage · ${counts.participating} as member`;
+  return translate('profile.workspaceOverview', { owned: counts.owned, managed: counts.managed, participating: counts.participating });
 }
 
 /** The unfinished path the person worked on last, to pick up again; null when every path is finished or has no steps. */

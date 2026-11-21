@@ -222,9 +222,9 @@ A cold, nearly monochrome palette: slate for the floor, white-tinted glass for s
 
 ## Layout
 
-The signed-in workspace is a fixed frame: a 256px sidebar (hidden behind a menu button below 1024px), a 64px header, and a single scrolling content area padded 16px, 24px from 640px and 36px from 1280px. Content sits in a centred column up to 1400px wide with 24px between sections. The page itself never scrolls; only the content area does, so nothing may be positioned outside it.
+The signed-in workspace is a fixed frame: a 256px sidebar (hidden behind a menu button below 1024px), a 72px header, and a single scrolling content area padded 16px, 24px from 640px and 36px from 1280px. Content sits in a centred column up to 1400px wide with 24px between sections. The page itself never scrolls; only the content area does, so nothing may be positioned outside it.
 
-Cards line up in 2 to 4 column grids that fall back to one column on phones. The Architecture Map is full-bleed with a 40px header and side panels that become drawers below 1100px; it has a full-screen mode with no header at all. The Compare page stacks its Before and After drawings until 1536px, then puts them side by side. Sign-in and sign-up split the screen 40/60 (form / illustration) from 768px and become one column below.
+Cards line up in 2 to 4 column grids that fall back to one column on phones. The Architecture Map is full-bleed with a 40px header and side panels that become drawers below 1100px; it has a full-screen mode with no header at all. The Compare page stacks its Before and After drawings until 1280px, then puts them side by side; its revision pickers are searchable by version, hash or commit message. Sign-in and sign-up split the screen 40/60 (form / illustration) from 768px and become one column below.
 
 ## Elevation & Depth
 
@@ -278,7 +278,7 @@ Everything is gently rounded. Glass panels and inputs use soft corners (14px); a
 ### Navigation
 
 - **Sidebar:** Sidebar Veil with frosted blur; items in Mist Text with an icon, hover brightens the glass; the current page is a Glass Raised rounded item with Snow Ink text and a Frost Edge border. Groups (Analyze, Maintain) fold and unfold.
-- **Header:** 64px, Frost Line bottom border, page name with its group label above it, "Find a page" search and the account avatar (pearl circle with the person's initials).
+- **Header:** 72px, Frost Line bottom border, page name with its group label above it, "Find a page" search and the account avatar (pearl circle with the person's initials).
 - **Mobile:** the sidebar becomes a drawer from a menu button.
 
 ### Diagram Nodes (signature)

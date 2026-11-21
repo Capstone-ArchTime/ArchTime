@@ -34,6 +34,7 @@ function userRepo(initial) {
       const user = users.find((u) => u.id === userId);
       if (!user) return null;
       if (patch.name !== undefined) user.name = patch.name;
+      if (patch.language !== undefined) user.language = patch.language;
       if (patch.username === null) delete user.username;
       else if (patch.username !== undefined) user.username = patch.username;
       return user;
@@ -119,6 +120,18 @@ test("UpdateProfile: validates input", async () => {
   await assert.rejects(uc.execute({ userId: "missing", name: "A" }), rejectsWith(404));
 });
 
+test("UpdateProfile: the language is saved alone or with other fields, and only en or vi is accepted", async () => {
+  const repo = userRepo([{ id: "u1", name: "A", email: "a@x.io" }]);
+  const uc = new UpdateProfileUseCase(repo);
+  assert.equal((await uc.execute({ userId: "u1", language: "vi" })).language, "vi");
+  const both = await uc.execute({ userId: "u1", language: "en", name: "Ann" });
+  assert.equal(both.language, "en");
+  assert.equal(both.name, "Ann");
+  for (const bad of ["fr", "VI", "", 1, null]) {
+    await assert.rejects(uc.execute({ userId: "u1", language: bad }), rejectsWith(400), String(bad));
+  }
+});
+
 test("UpdateProfile: a duplicate-key race on the unique index becomes 409", async () => {
   const repo = userRepo([{ id: "u1", name: "A", email: "a@x.io" }]);
   repo.updateProfile = async () => { throw Object.assign(new Error("E11000"), { code: 11000 }); };
@@ -174,7 +187,7 @@ const hasher = { hashPassword: async (p) => `hashed:${p}` };
 test("GetCurrentUser: returns only the listed fields, never the hash, the GitHub id or the token version", async () => {
   const user = await new GetCurrentUserUseCase(accounts()).execute({ userId: "pw" });
   assert.deepEqual(user, {
-    id: "pw", name: "Pat", email: "pat@x.io", username: "pat", role: UserRole.USER, status: UserStatus.ACTIVE, isVerified: true,
+    id: "pw", name: "Pat", email: "pat@x.io", username: "pat", language: "en", role: UserRole.USER, status: UserStatus.ACTIVE, isVerified: true,
     createdAt: created, updatedAt: created, signInMethods: { password: true, github: false },
   });
   for (const hidden of ["passwordHash", "githubId", "tokenVersion", "resetTokenHash"]) assert.equal(hidden in user, false, hidden);
@@ -272,7 +285,7 @@ test("HTTP: GET and PATCH /auth/me send the allow-listed user, and set-password 
     method: "POST", headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify({ newPassword: "NewPassword1!", confirmNewPassword: "NewPassword1!" }),
   });
 
-  const fields = ["createdAt", "email", "id", "isVerified", "name", "role", "signInMethods", "status", "updatedAt", "username"];
+  const fields = ["createdAt", "email", "id", "isVerified", "language", "name", "role", "signInMethods", "status", "updatedAt", "username"];
   const me = await (await fetch(`${base}/me`, { headers: as("pw") })).json();
   assert.deepEqual(Object.keys(me.data.user).sort(), fields);
   assert.equal(me.data.user.createdAt, created.toISOString());

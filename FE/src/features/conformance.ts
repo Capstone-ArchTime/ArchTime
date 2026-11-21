@@ -1,4 +1,5 @@
 import { apiRequest } from '../api/client.ts';
+import { cx } from './conformance-messages.ts';
 
 // The conformance check (RF-08, UC-40, UC-41): how the code of each snapshot after the baseline departs from the
 // confirmed component diagram. The server computes everything; this module reads it and words it for people.
@@ -50,27 +51,33 @@ export interface Overview {
   job?: CheckJob | null;
 }
 
-export const FINDING_TYPES: Record<FindingType, { label: string; help: string }> = {
-  'forbidden-dependency': { label: 'Forbidden dependency', help: 'A rule forbids this dependency, and the code has it.' },
-  'missing-required-dependency': { label: 'Missing required dependency', help: 'A rule requires this dependency, and the code does not have it.' },
-  'undeclared-dependency': { label: 'Undeclared dependency', help: 'The code has this dependency, but the confirmed diagram does not declare it.' },
-  convention: { label: 'Commit convention', help: 'The commit message is not "type(scope): summary" with Task: and Arch-Change:, or its Arch-Change differs from the dependencies the commit really changed.' },
+// Labels are read when shown, so they follow the chosen language.
+const typeOf = (label: 'forbidden' | 'missing' | 'undeclared' | 'convention') => ({ get label() { return cx(label); }, get help() { return cx(`${label}Help`); } });
+export const FINDING_TYPES: Record<FindingType, { readonly label: string; readonly help: string }> = {
+  'forbidden-dependency': typeOf('forbidden'),
+  'missing-required-dependency': typeOf('missing'),
+  'undeclared-dependency': typeOf('undeclared'),
+  convention: typeOf('convention'),
 };
 
-export const DECISIONS: Record<DecisionKind, { label: string; verb: string; color: string; help: string; needsNote: boolean }> = {
-  fix: { label: 'To fix', verb: 'Fix', color: 'red', help: 'A real departure: the code is to be changed.', needsNote: false },
-  accept: { label: 'Accepted', verb: 'Accept', color: 'blue', help: 'Intended: the diagram should follow, through an architecture change request. Carries over to later commits.', needsNote: true },
-  dismiss: { label: 'Dismissed', verb: 'Dismiss', color: 'default', help: 'Not a real problem (a false positive, generated code). Carries over to later commits.', needsNote: true },
+const decisionOf = (kind: DecisionKind, color: string, needsNote: boolean) => ({
+  color, needsNote, get label() { return cx(kind); }, get verb() { return cx(`${kind}Verb`); }, get help() { return cx(`${kind}Help`); },
+});
+export const DECISIONS: Record<DecisionKind, { readonly label: string; readonly verb: string; color: string; readonly help: string; needsNote: boolean }> = {
+  fix: decisionOf('fix', 'red', false),
+  accept: decisionOf('accept', 'blue', true),
+  dismiss: decisionOf('dismiss', 'default', true),
 };
 
 /** One line saying what the finding is, for lists and screen readers. */
 export function findingTitle(f: Pick<Finding, 'type' | 'sourceName' | 'targetName' | 'ruleName'>): string {
   // A convention finding (T5) carries its whole sentence.
-  if (f.type === 'convention') return f.ruleName ?? 'The commit does not follow the commit convention';
+  if (f.type === 'convention') return f.ruleName ?? cx('noConvention');
   const pair = `${f.sourceName} → ${f.targetName}`;
-  if (f.type === 'forbidden-dependency') return `${pair} is forbidden${f.ruleName ? ` by "${f.ruleName}"` : ''}`;
-  if (f.type === 'missing-required-dependency') return `${pair} is required${f.ruleName ? ` by "${f.ruleName}"` : ''} but missing`;
-  return `${pair} is not in the diagram`;
+  const by = f.ruleName ? cx('byRule', { rule: f.ruleName }) : '';
+  if (f.type === 'forbidden-dependency') return cx('isForbidden', { pair, by });
+  if (f.type === 'missing-required-dependency') return cx('isMissing', { pair, by });
+  return cx('notInDiagram', { pair });
 }
 
 /** The check to show first: the newest commit checked. */
@@ -106,9 +113,9 @@ export function startProblem(error: unknown): string {
   const status = (error as { status?: number })?.status;
   const message = error instanceof Error ? error.message : '';
   if (status === 409 && /already queued or running/i.test(message)) {
-    return 'Another job (mining, a scan or a check) is running for this workspace. Mining runs the check by itself when it finishes; otherwise try again then.';
+    return cx('otherJob');
   }
-  return message || 'The check could not start.';
+  return message || cx('cannotStart');
 }
 
 /** `problems`: what the e-mail lists (the same finding in several commits counts once). */
@@ -122,12 +129,12 @@ export async function notifyFindings(projectId: string): Promise<NotifyResult> {
 /** What to tell the maintainer after pressing "E-mail new findings". */
 export function notifyMessage(r: NotifyResult): { kind: 'success' | 'info' | 'warning' | 'error'; text: string } {
   const n = r.problems ?? r.findings;
-  const findings = `${n} new finding${n === 1 ? '' : 's'}`;
-  if (!r.findings) return { kind: 'info', text: 'Nothing new to e-mail: every open finding was already e-mailed, or has been decided.' };
-  if (!r.recipients) return { kind: 'warning', text: `${findings}, but nobody can receive them: the owner and maintainers need an active account with a verified e-mail. They will be e-mailed once someone can.` };
-  if (!r.sent) return { kind: 'error', text: `The e-mail about ${findings} could not be sent. Check the server's e-mail (SMTP) settings; they will be e-mailed on the next try.` };
-  const people = `${r.sent === r.recipients ? r.recipients : `${r.sent} of ${r.recipients}`} ${r.recipients === 1 ? 'person' : 'people'}`;
-  return { kind: 'success', text: `E-mailed ${findings} to ${people}.` };
+  const findings = cx('newFindings', { count: n });
+  if (!r.findings) return { kind: 'info', text: cx('nothingNew') };
+  if (!r.recipients) return { kind: 'warning', text: cx('nobody', { findings }) };
+  if (!r.sent) return { kind: 'error', text: cx('notSent', { findings }) };
+  const people = r.sent === r.recipients ? cx('people', { count: r.recipients }) : cx('someOf', { sent: r.sent, count: r.recipients });
+  return { kind: 'success', text: cx('mailed', { findings, people }) };
 }
 
 export async function decideFinding(projectId: string, findingId: string, decision: DecisionKind | 'reopen', note = ''): Promise<Finding> {

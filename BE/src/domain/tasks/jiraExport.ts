@@ -126,6 +126,11 @@ function categoryOf(status: unknown, name: string | null): TaskStatusCategory {
   if (key === "done") return "done";
   if (key === "indeterminate") return "in-progress";
   if (key === "new") return "todo";
+  // A board export writes the category by its name ("To Do", "In Progress", "Done") beside the status name.
+  const category = isObject(status) && typeof status.category === "string" ? status.category.trim() : "";
+  if (/^done$/i.test(category)) return "done";
+  if (/^in progress$/i.test(category)) return "in-progress";
+  if (/^to ?do$/i.test(category)) return "todo";
   if (!name) return "todo";
   if (/^(done|closed|resolved|complete|completed)$/i.test(name.trim())) return "done";
   if (/(progress|review|testing|qa)/i.test(name)) return "in-progress";
@@ -164,6 +169,18 @@ function parseSprint(raw: unknown, where: string, index: number): ParsedSprint {
   return { id, name, state: toState(value.state), startDate: toDate(value.startDate), endDate: toDate(value.endDate) };
 }
 
+/**
+ * Where an issue keeps its fields. The issue search format has them under "fields". A board export (Jira Software board
+ * exporters: { source, columns, issues: [{ key, summary, status, sprint, ..., rawFields }] }) writes them flattened on
+ * the issue and keeps Jira's own field set under "rawFields", which is read first since it has the status category and
+ * the custom fields; failing that, the flattened fields on the issue itself are read.
+ */
+function fieldsOf(issue: Record<string, unknown>): unknown {
+  if (issue.fields !== undefined && issue.fields !== null) return issue.fields;
+  if (isObject(issue.rawFields)) return issue.rawFields;
+  return issue;
+}
+
 /** Parses the text of a Jira JSON export (or the already parsed value). Throws JiraExportError when the file is refused. */
 export function parseJiraExport(input: unknown): ParsedJiraExport {
   let data: unknown = input;
@@ -198,7 +215,7 @@ export function parseJiraExport(input: unknown): ParsedJiraExport {
     if (seen.has(key)) refuse(`Task ${key} appears twice in the file.`, n);
     seen.add(key);
 
-    const fields = issue.fields === undefined || issue.fields === null ? {} : issue.fields;
+    const fields = fieldsOf(issue);
     if (!isObject(fields)) refuse(`Task ${key}: "fields" must be an object.`, n);
 
     const summary = fields.summary ?? "";

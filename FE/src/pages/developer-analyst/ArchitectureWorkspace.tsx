@@ -25,20 +25,59 @@ import { useHash, useProjectArchitecture } from '@/features/architecture/useProj
 import { getProjects } from '@/features/project-data';
 import type { ProjectSummary } from '@/features/project-data';
 import { getWorkspace } from '@/features/workspace-summary';
+import { formatDate, formatDateTime } from '@/i18n/format';
+import { defineMessages, useMessages } from '@/i18n/define';
+
+const MSG = defineMessages({
+  aiRefinement: 'AI refinement', accepted: 'Accepted after {count} attempts', accepted_one: 'Accepted after 1 attempt', namesOnly: ' (names only)', namesOnlyNarrowed: ' (names only: {narrowed})', moved: '; {pct}% of files moved',
+  noAnswer: 'No usable AI answer; the grouping by dependencies is shown. Verifier codes per attempt:',
+  evolution: 'Evolution', firstSnapshot: 'The first snapshot with components: nothing earlier to compare with.', since: 'Since {hash}', noChange: ': no component was added, split, merged, renamed or removed.', gone: 'GONE',
+  matchedFiles: 'Matched through the files each component holds. A split or merge needs files added, deleted or moved, as in Compare.',
+  workspace: 'Workspace', pageTitle: '{title} · Architecture · ArchTime', sample: 'Sample · {label}',
+  refine: 'Refine with AI', group: 'Group with AI', aiUnavailable: 'AI refinement is not available', sendsPaths: 'Sends file paths to {host} ({model}); asks first', usesLocal: 'Uses {model} on {host}; nothing leaves your network',
+  architecture: 'Architecture', computed: 'Computed, not the canonical map. The canonical map is the component diagram a maintainer confirms.', snapshot: 'Snapshot {hash}', generated: ' · generated {date}',
+  howMade: 'How these components were made', madeAi: 'Grouped by dependency clustering, then named and refined by an AI model; the answer was verified, and every arrow still comes from file dependencies.',
+  madeCluster: 'Grouped by dependency clustering and named from folder names.', quality: 'Quality', aboutSample: 'About this sample',
+  sampleBody: 'A hand-built example that follows the same rules as real output. Open one of your workspaces to see its own architecture.',
+  backLabel: 'Back to the previous page', back: 'Back', homeLabel: 'ArchTime: dashboard', switchLabel: 'Switch workspace (now {title})', snapshotLabel: 'Snapshot', latest: 'Latest snapshot',
+  readOnlyTip: 'Only maintainers of this workspace can mine it or define its architecture with AI.', readOnly: 'Read only', mineTip: "Scan and mine the repository's history", mine: 'Mine',
+  regenerateTip: 'Group the files again by their dependencies (no AI)', regenerate: 'Regenerate', details: 'Workspace details', compare: 'Compare revisions', usage: 'AI usage',
+  dashboard: 'Dashboard', workspaces: 'Workspaces', allArch: 'All architectures', more: 'More', snapshots: 'Snapshots', loading: 'Loading architecture…',
+  loadFailed: 'Could not load the architecture', retry: 'Retry', noComponents: 'No components for this snapshot yet', groupHint: 'Group its files into components to draw the architecture.',
+  notGrouped: 'A maintainer of this workspace has not grouped its files yet.', groupFiles: 'Group files into components', unknownSample: 'Unknown sample',
+}, {
+  aiRefinement: 'Tinh chỉnh bằng AI', accepted: 'Được chấp nhận sau {count} lần thử', namesOnly: ' (chỉ đặt tên)', namesOnlyNarrowed: ' (chỉ đặt tên: {narrowed})', moved: '; {pct}% tệp được chuyển chỗ',
+  noAnswer: 'Không có câu trả lời AI dùng được; đang hiển thị cách nhóm theo phụ thuộc. Mã kiểm chứng của từng lần thử:',
+  evolution: 'Tiến hoá', firstSnapshot: 'Ảnh chụp đầu tiên có thành phần: chưa có gì trước đó để so sánh.', since: 'Từ {hash}', noChange: ': không có thành phần nào được thêm, tách, gộp, đổi tên hay xoá.', gone: 'ĐÃ XOÁ',
+  matchedFiles: 'Đối chiếu theo các tệp mỗi thành phần chứa. Tách hay gộp cần có tệp được thêm, xoá hoặc chuyển chỗ, như trong So sánh.',
+  workspace: 'Không gian làm việc', pageTitle: '{title} · Kiến trúc · ArchTime', sample: 'Bản mẫu · {label}',
+  refine: 'Tinh chỉnh bằng AI', group: 'Nhóm bằng AI', aiUnavailable: 'Chưa dùng được tính năng tinh chỉnh bằng AI', sendsPaths: 'Gửi đường dẫn tệp tới {host} ({model}); sẽ hỏi trước', usesLocal: 'Dùng {model} trên {host}; không có gì rời khỏi mạng của bạn',
+  architecture: 'Kiến trúc', computed: 'Được tính tự động, chưa phải bản đồ chính thức. Bản đồ chính thức là sơ đồ thành phần do người bảo trì xác nhận.', snapshot: 'Ảnh chụp {hash}', generated: ' · tạo lúc {date}',
+  howMade: 'Các thành phần này được tạo thế nào', madeAi: 'Được nhóm bằng phân cụm phụ thuộc, sau đó mô hình AI đặt tên và tinh chỉnh; câu trả lời đã được kiểm chứng, và mọi mũi tên vẫn lấy từ phụ thuộc giữa các tệp.',
+  madeCluster: 'Được nhóm bằng phân cụm phụ thuộc và đặt tên theo tên thư mục.', quality: 'Chất lượng', aboutSample: 'Về bản mẫu này',
+  sampleBody: 'Một ví dụ dựng tay theo đúng quy tắc của kết quả thật. Hãy mở một không gian làm việc của bạn để xem kiến trúc của nó.',
+  backLabel: 'Quay lại trang trước', back: 'Quay lại', homeLabel: 'ArchTime: tổng quan', switchLabel: 'Đổi không gian làm việc (hiện tại: {title})', snapshotLabel: 'Ảnh chụp', latest: 'Ảnh chụp mới nhất',
+  readOnlyTip: 'Chỉ người bảo trì mới chạy mining hoặc định nghĩa kiến trúc bằng AI được.', readOnly: 'Chỉ xem', mineTip: 'Quét và chạy mining lịch sử repository', mine: 'Mining',
+  regenerateTip: 'Nhóm lại các tệp theo phụ thuộc (không dùng AI)', regenerate: 'Tạo lại', details: 'Chi tiết không gian làm việc', compare: 'So sánh phiên bản', usage: 'Mức dùng AI',
+  dashboard: 'Tổng quan', workspaces: 'Không gian làm việc', allArch: 'Mọi kiến trúc', more: 'Thêm', snapshots: 'Ảnh chụp', loading: 'Đang tải kiến trúc…',
+  loadFailed: 'Không tải được kiến trúc', retry: 'Thử lại', noComponents: 'Ảnh chụp này chưa có thành phần nào', groupHint: 'Hãy nhóm các tệp thành thành phần để vẽ kiến trúc.',
+  notGrouped: 'Người bảo trì chưa nhóm các tệp của không gian làm việc này.', groupFiles: 'Nhóm tệp thành các thành phần', unknownSample: 'Không có bản mẫu này',
+});
 
 const SAMPLE_IDS = new Set(FIXTURES.map(f => f.id));
 const sectionTitle = 'text-[10px] font-mono uppercase tracking-wider text-[var(--at-muted)]';
 
 function ReceiptSummary({ receipt }: { receipt: RefineReceipt }) {
   const failed = receipt.attempts.filter(a => !a.ok).length;
+  const m = useMessages(MSG);
   return <section className="space-y-2 text-xs">
-    <h3 className={sectionTitle}>AI refinement</h3>
+    <h3 className={sectionTitle}>{m('aiRefinement')}</h3>
     <RunUsage key={receipt.runId ?? receipt.model} receipt={receipt} />
     {receipt.accepted
-      ? <p className="text-[var(--at-muted)]">Accepted after {failed + 1} attempt{failed ? 's' : ''}{receipt.mode === 'name-only' ? ` (names only${receipt.narrowed ? `: ${receipt.narrowed}` : ''})` : receipt.movedRatio !== undefined ? `; ${Math.round(receipt.movedRatio * 100)}% of files moved` : ''}.</p>
+      ? <p className="text-[var(--at-muted)]">{m('accepted', { count: failed + 1 })}{receipt.mode === 'name-only' ? (receipt.narrowed ? m('namesOnlyNarrowed', { narrowed: receipt.narrowed }) : m('namesOnly')) : receipt.movedRatio !== undefined ? m('moved', { pct: Math.round(receipt.movedRatio * 100) }) : ''}.</p>
       // The Issues list explains the fallback; the attempts' verifier codes stay here for whoever digs deeper.
       : <div className="text-[var(--at-muted)]">
-        <p>No usable AI answer; the grouping by dependencies is shown. Verifier codes per attempt:</p>
+        <p>{m('noAnswer')}</p>
         <ol className="mt-1 list-decimal pl-4">{receipt.attempts.map(a => <li key={a.n}>{a.issues.slice(0, 2).map(i => i.code).join(', ') || 'ok'}</li>)}</ol>
       </div>}
   </section>;
@@ -47,20 +86,21 @@ function ReceiptSummary({ receipt }: { receipt: RefineReceipt }) {
 /** What changed in the components since the previous snapshot that has them; the names focus the component on the map. */
 function EvolutionSummary({ evolution, onFocus }: { evolution: Evolution; onFocus: (componentId: string) => void }) {
   const { previous, items } = evolution;
-  return <section className="space-y-2 text-xs" aria-label="Evolution">
-    <h3 className={sectionTitle}>Evolution</h3>
-    {!previous && <p className="text-[var(--at-muted)]">The first snapshot with components: nothing earlier to compare with.</p>}
-    {previous && <p className="text-[var(--at-muted)]">Since <code>{previous.hash.slice(0, 7)}</code>{previous.date ? ` (${new Date(previous.date).toLocaleDateString()})` : ''}{items.length ? '' : ': no component was added, split, merged, renamed or removed.'}</p>}
+  const m = useMessages(MSG);
+  return <section className="space-y-2 text-xs" aria-label={m('evolution')}>
+    <h3 className={sectionTitle}>{m('evolution')}</h3>
+    {!previous && <p className="text-[var(--at-muted)]">{m('firstSnapshot')}</p>}
+    {previous && <p className="text-[var(--at-muted)]">{m.rich('since', { hash: <code key="h">{previous.hash.slice(0, 7)}</code> })}{previous.date ? ` (${formatDate(previous.date)})` : ''}{items.length ? '' : m('noChange')}</p>}
     {items.length > 0 && <ul className="space-y-1">{items.map((item, i) => {
       const mark = item.kind === 'kept' || item.kind === 'removed' ? null : EVOLUTION_MARK[item.kind];
       return <li key={i} className="flex items-start gap-2">
-        <span className="mt-0.5 shrink-0 rounded-full border px-1 font-mono text-[9px] font-bold" style={mark ? { borderColor: mark.color, color: mark.color } : undefined}>{mark?.label ?? 'GONE'}</span>
+        <span className="mt-0.5 shrink-0 rounded-full border px-1 font-mono text-[11px] font-bold" style={mark ? { borderColor: mark.color, color: mark.color } : undefined}>{mark?.label ?? m('gone')}</span>
         {item.componentIds.length
           ? <button type="button" className="text-left text-slate-200 hover:text-white hover:underline" onClick={() => onFocus(item.componentIds[0])}>{item.text}</button>
           : <span className="text-[var(--at-muted)]">{item.text}</span>}
       </li>;
     })}</ul>}
-    {previous && <p className="text-[11px] leading-snug text-[var(--at-muted)]">Matched through the files each component holds. A split or merge needs files added, deleted or moved, as in Compare.</p>}
+    {previous && <p className="text-[11px] leading-snug text-[var(--at-muted)]">{m('matchedFiles')}</p>}
   </section>;
 }
 
@@ -71,6 +111,7 @@ function EvolutionSummary({ evolution, onFocus }: { evolution: Evolution; onFocu
 export default function ArchitectureWorkspace() {
   const { projectId: routeProject, sampleId } = useParams();
   const navigate = useNavigate();
+  const w = useMessages(MSG);
   const [hash, commit] = useHash();
   const parsed = parseHash(hash, { views: SAMPLE_IDS });
   const sample = sampleId ? getFixture(sampleId) : undefined;
@@ -107,8 +148,9 @@ export default function ArchitectureWorkspace() {
   const lineageData = lineage && lineage.projectId === projectId ? lineage.data : null;
 
   const project = projects.find(p => p.id === projectId);
-  const title = sample ? sample.label.split(':')[0] : project?.name ?? 'Workspace';
-  useEffect(() => { document.title = `${title} · Architecture · ArchTime`; }, [title]);
+  const title = sample ? sample.label.split(':')[0] : project?.name ?? w('workspace');
+  const pageTitle = w('pageTitle', { title });
+  useEffect(() => { document.title = pageTitle; }, [pageTitle]);
 
   const base: ViewerState = useMemo(() => (projectId ? { project: projectId, ...(snapshotParam ? { snapshot: snapshotParam } : {}) } : { view: sample?.id }), [projectId, snapshotParam, sample?.id]);
   const payload = arch.payload;
@@ -142,21 +184,21 @@ export default function ArchitectureWorkspace() {
     items: [
       ...projects.map(p => ({ key: `p:${p.id}`, label: p.name })),
       ...(projects.length ? [{ type: 'divider' as const }] : []),
-      ...FIXTURES.map(f => ({ key: `s:${f.id}`, label: <span className="text-[var(--at-muted)]">Sample · {f.label}</span> })),
+      ...FIXTURES.map(f => ({ key: `s:${f.id}`, label: <span className="text-[var(--at-muted)]">{w('sample', { label: f.label })}</span> })),
     ],
     onClick: ({ key }: { key: string }) => navigate(key.startsWith('p:') ? `/workspace/${key.slice(2)}` : `/workspace/sample/${key.slice(2)}`),
   };
 
   const aiControls = () => {
     const llm = payload?.llm;
-    const button = <Button size="small" type="primary" icon={<Sparkles size={13} />} aria-label={payload?.status === 'ready' ? 'Refine with AI' : 'Group with AI'} disabled={!llm?.enabled || busy} loading={!!arch.refining} onClick={arch.refine}>
-      <span className="hidden sm:inline">{payload?.status === 'ready' ? 'Refine with AI' : 'Group with AI'}</span>
+    const button = <Button size="small" type="primary" icon={<Sparkles size={13} />} aria-label={payload?.status === 'ready' ? w('refine') : w('group')} disabled={!llm?.enabled || busy} loading={!!arch.refining} onClick={arch.refine}>
+      <span className="hidden sm:inline">{payload?.status === 'ready' ? w('refine') : w('group')}</span>
     </Button>;
-    if (!llm?.enabled) return <Tooltip title={llm?.reason ?? 'AI refinement is not available'}><span>{button}</span></Tooltip>;
+    if (!llm?.enabled) return <Tooltip title={llm?.reason ?? w('aiUnavailable')}><span>{button}</span></Tooltip>;
     const t = arch.target();
     return <>
       <span className="hidden lg:inline-flex"><ModelPicker models={arch.models} value={arch.modelChoice} onChange={arch.setModelChoice} disabled={busy} /></span>
-      <Tooltip title={t.external ? `Sends file paths to ${t.host} (${t.model}); asks first` : `Uses ${t.model} on ${t.host}; nothing leaves your network`}>{button}</Tooltip>
+      <Tooltip title={t.external ? w('sendsPaths', { host: t.host ?? '', model: t.model ?? '' }) : w('usesLocal', { host: t.host ?? '', model: t.model ?? '' })}>{button}</Tooltip>
     </>;
   };
 
@@ -164,40 +206,40 @@ export default function ArchitectureWorkspace() {
   const mapKind = computedMapKind(payload?.mapping?.generator);
   const overview = payload?.status === 'ready' && payload.view && projectId ? <>
     <section className="space-y-1.5 text-xs">
-      <h3 className={sectionTitle}>Architecture</h3>
+      <h3 className={sectionTitle}>{w('architecture')}</h3>
       {mapKind && <p><Tooltip title={MAP_KIND[mapKind].description}><Tag color={MAP_KIND[mapKind].color}>{MAP_KIND[mapKind].label}</Tag></Tooltip>
-        <span className="text-[var(--at-muted)]">Computed, not the canonical map. The canonical map is the component diagram a maintainer confirms.</span></p>}
-      <p className="text-[var(--at-muted)]">Snapshot <code>{payload.snapshot?.hash}</code>{payload.mapping ? ` · generated ${new Date(payload.mapping.createdAt).toLocaleString()}` : ''}</p>
+        <span className="text-[var(--at-muted)]">{w('computed')}</span></p>}
+      <p className="text-[var(--at-muted)]">{w.rich('snapshot', { hash: <code key="h">{payload.snapshot?.hash}</code> })}{payload.mapping ? w('generated', { date: formatDateTime(payload.mapping.createdAt) }) : ''}</p>
       <details className="text-[var(--at-muted)]">
-        <summary className="cursor-pointer select-none text-slate-300 hover:text-white">How these components were made</summary>
+        <summary className="cursor-pointer select-none text-slate-300 hover:text-white">{w('howMade')}</summary>
         <p className="mt-1.5 leading-relaxed">{payload.mapping?.generator === 'cluster+llm'
-          ? 'Grouped by dependency clustering, then named and refined by an AI model; the answer was verified, and every arrow still comes from file dependencies.'
-          : 'Grouped by dependency clustering and named from folder names.'}</p>
+          ? w('madeAi')
+          : w('madeCluster')}</p>
       </details>
     </section>
     {evolution && <EvolutionSummary evolution={evolution} onFocus={id => commit({ ...base, focus: id })} />}
-    {payload.quality && <section className="space-y-2"><h3 className={sectionTitle}>Quality</h3>
+    {payload.quality && <section className="space-y-2"><h3 className={sectionTitle}>{w('quality')}</h3>
       <QualityPanel projectId={projectId} quality={payload.quality} view={payload.view} onSaved={arch.reload} canEdit={canMaintain} openEditorRef={openReference} /></section>}
     {payload.mapping?.receipt && <ReceiptSummary receipt={payload.mapping.receipt} />}
   </> : sample ? <details className="text-xs text-[var(--at-muted)]">
-    <summary className="cursor-pointer select-none font-mono text-[10px] uppercase tracking-wider text-slate-300 hover:text-white">About this sample</summary>
-    <p className="mt-1.5 leading-relaxed">A hand-built example that follows the same rules as real output. Open one of your workspaces to see its own architecture.</p></details> : null;
+    <summary className="cursor-pointer select-none font-mono text-[10px] uppercase tracking-wider text-slate-300 hover:text-white">{w('aboutSample')}</summary>
+    <p className="mt-1.5 leading-relaxed">{w('sampleBody')}</p></details> : null;
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-[var(--at-page)] text-[var(--at-text)]">
       {!focusMode && <header className="flex h-12 shrink-0 items-center gap-2 border-b border-[var(--at-line)] bg-[var(--at-chrome)] px-3">
-        <button type="button" onClick={goBack} aria-label="Back to the previous page" title="Back"
+        <button type="button" onClick={goBack} aria-label={w('backLabel')} title={w('back')}
           className="flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-[var(--at-line)] px-3 text-sm text-[var(--at-text)] hover:bg-white/10">
-          <ArrowLeft size={15} aria-hidden="true" /><span className="hidden sm:inline">Back</span>
+          <ArrowLeft size={15} aria-hidden="true" /><span className="hidden sm:inline">{w('back')}</span>
         </button>
-        <Link to={home} className="ml-1 shrink-0 font-bold tracking-tight text-[var(--at-link)] hover:text-white" aria-label="ArchTime: dashboard">Arch<span className="text-white">Time</span></Link>
+        <Link to={home} className="ml-1 shrink-0 font-bold tracking-tight text-[var(--at-link)] hover:text-white" aria-label={w('homeLabel')}>Arch<span className="text-white">Time</span></Link>
         <span className="text-[var(--at-muted)]" aria-hidden="true">/</span>
         <Dropdown trigger={['click']} menu={switcher}>
-          <button type="button" className="flex min-w-0 max-w-56 items-center gap-1 whitespace-nowrap rounded px-1.5 py-1 text-sm font-medium hover:bg-white/10" aria-label={`Switch workspace (now ${title})`}>
+          <button type="button" className="flex min-w-0 max-w-56 items-center gap-1 whitespace-nowrap rounded px-1.5 py-1 text-sm font-medium hover:bg-white/10" aria-label={w('switchLabel', { title })}>
             <span className="truncate">{title}</span> <ChevronDown size={14} className="shrink-0 text-[var(--at-muted)]" />
           </button>
         </Dropdown>
-        {projectId && <Select size="small" variant="borderless" aria-label="Snapshot" className="hidden w-44 shrink-0 md:inline-flex" placeholder="Latest snapshot" allowClear value={snapshotParam}
+        {projectId && <Select size="small" variant="borderless" aria-label={w('snapshotLabel')} className="hidden w-44 shrink-0 md:inline-flex" placeholder={w('latest')} allowClear value={snapshotParam}
           options={arch.snapshots.map(s => ({ value: s.id, label: `${s.hash} · ${s.title.split('\n')[0].slice(0, 40)}` }))}
           onChange={(id?: string) => commit({ project: projectId, ...(id ? { snapshot: id } : {}) }, true)} />}
 
@@ -207,21 +249,21 @@ export default function ArchitectureWorkspace() {
         </div>}
 
         <div className={`ml-auto flex shrink-0 items-center gap-2 ${arch.refining ? 'xl:ml-0' : ''}`}>
-          {projectId && !canMaintain && maintains?.projectId === projectId && <Tooltip title="Only maintainers of this workspace can mine it or define its architecture with AI."><span className="rounded border border-[var(--at-line)] px-2 py-0.5 text-xs text-slate-300">Read only</span></Tooltip>}
-          {canMaintain && <Tooltip title="Scan and mine the repository's history"><Button size="small" icon={<Pickaxe size={13} />} aria-label="Mine" onClick={() => setMining(true)}><span className="hidden lg:inline">Mine</span></Button></Tooltip>}
+          {projectId && !canMaintain && maintains?.projectId === projectId && <Tooltip title={w('readOnlyTip')}><span className="rounded border border-[var(--at-line)] px-2 py-0.5 text-xs text-slate-300">{w('readOnly')}</span></Tooltip>}
+          {canMaintain && <Tooltip title={w('mineTip')}><Button size="small" icon={<Pickaxe size={13} />} aria-label={w('mine')} onClick={() => setMining(true)}><span className="hidden lg:inline">{w('mine')}</span></Button></Tooltip>}
           {canMaintain && payload && aiControls()}
-          {canMaintain && payload?.status === 'ready' && <Tooltip title="Group the files again by their dependencies (no AI)"><Button size="small" icon={<RefreshCw size={13} />} aria-label="Regenerate" loading={arch.generating} disabled={busy} onClick={() => void arch.generate()} /></Tooltip>}
+          {canMaintain && payload?.status === 'ready' && <Tooltip title={w('regenerateTip')}><Button size="small" icon={<RefreshCw size={13} />} aria-label={w('regenerate')} loading={arch.generating} disabled={busy} onClick={() => void arch.generate()} /></Tooltip>}
           <Dropdown trigger={['click']} menu={{ items: [
             ...(projectId ? [
-              { key: 'detail', label: <Link to={`/project?projectId=${projectId}`}>Workspace details</Link> },
-              { key: 'compare', label: <Link to={`/compare?projectId=${projectId}`}>Compare revisions</Link> },
-              { key: 'usage', label: <Link to="/ai-usage">AI usage</Link> },
+              { key: 'detail', label: <Link to={`/project?projectId=${projectId}`}>{w('details')}</Link> },
+              { key: 'compare', label: <Link to={`/compare?projectId=${projectId}`}>{w('compare')}</Link> },
+              { key: 'usage', label: <Link to="/ai-usage">{w('usage')}</Link> },
               { type: 'divider' as const },
             ] : []),
-            { key: 'dashboard', label: <Link to={home}>Dashboard</Link> },
-            { key: 'workspaces', label: <Link to="/projects">Workspaces</Link> },
-            { key: 'maps', label: <Link to="/architecture">All architectures</Link> },
-          ] }}><Button size="small" aria-label="More">⋯</Button></Dropdown>
+            { key: 'dashboard', label: <Link to={home}>{w('dashboard')}</Link> },
+            { key: 'workspaces', label: <Link to="/projects">{w('workspaces')}</Link> },
+            { key: 'maps', label: <Link to="/architecture">{w('allArch')}</Link> },
+          ] }}><Button size="small" aria-label={w('more')}>⋯</Button></Dropdown>
           <div className="flex h-8 w-8 items-center justify-center"><div className="scale-[0.8]"><AccountMenu onNavigate={() => {}} /></div></div>
         </div>
       </header>}
@@ -234,27 +276,27 @@ export default function ArchitectureWorkspace() {
           {...(projectId ? { snapshots: arch.snapshots, snapshotId: snapshotParam ?? payload?.snapshot?.id, onSnapshot: (id: string) => commit({ project: projectId, snapshot: id }, true) } : {})} />}
 
         {/* No drawing for this snapshot (yet): keep the snapshot list, like a design file's pages, so another can be opened. */}
-        {projectId && !view && arch.snapshots.length > 0 && <aside aria-label="Snapshots" className="absolute inset-y-0 left-0 z-10 hidden w-72 border-r border-[var(--at-line)] bg-[var(--at-chrome)] lg:block">
+        {projectId && !view && arch.snapshots.length > 0 && <aside aria-label={w('snapshots')} className="absolute inset-y-0 left-0 z-10 hidden w-72 border-r border-[var(--at-line)] bg-[var(--at-chrome)] lg:block">
           <LayersPanel snapshots={arch.snapshots} snapshotId={snapshotParam ?? payload?.snapshot?.id} onSnapshot={id => commit({ project: projectId, snapshot: id }, true)} />
         </aside>}
-        {projectId && arch.current?.status === 'loading' && <div role="status" className="flex h-full flex-col items-center justify-center gap-3"><Spin /><p className="text-sm text-[var(--at-muted)]">Loading architecture…</p></div>}
+        {projectId && arch.current?.status === 'loading' && <div role="status" className="flex h-full flex-col items-center justify-center gap-3"><Spin /><p className="text-sm text-[var(--at-muted)]">{w('loading')}</p></div>}
         {projectId && arch.current?.status === 'error' && <div className="mx-auto max-w-xl p-10">
-          <Alert type="error" showIcon title="Could not load the architecture" description={arch.current.message}
-            action={<div className="flex gap-2"><Button onClick={arch.reload}>Retry</Button>{canMaintain && <Button onClick={() => setMining(true)}>Mine</Button>}</div>} />
+          <Alert type="error" showIcon title={w('loadFailed')} description={arch.current.message}
+            action={<div className="flex gap-2"><Button onClick={arch.reload}>{w('retry')}</Button>{canMaintain && <Button onClick={() => setMining(true)}>{w('mine')}</Button>}</div>} />
         </div>}
         {/* Centred in the space left of the snapshot list, which sits over the left of the canvas on wide screens. */}
         {projectId && payload?.status === 'missing' && <div className={`flex h-full items-center justify-center p-6 ${arch.snapshots.length ? 'lg:pl-72' : ''}`}>
           <section aria-labelledby="no-components-title" className="w-full max-w-md rounded-2xl border border-[var(--at-line)] bg-[var(--at-solid)] p-8 text-center">
             <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--at-panel-2)] text-[var(--at-link)]"><Workflow size={22} aria-hidden="true" /></span>
-            <h2 id="no-components-title" className="mt-4 text-lg font-semibold text-[var(--at-text)]">No components for this snapshot yet</h2>
+            <h2 id="no-components-title" className="mt-4 text-lg font-semibold text-[var(--at-text)]">{w('noComponents')}</h2>
             {payload.snapshot && <p className="mt-2 truncate text-sm text-[var(--at-muted)]" title={payload.snapshot.title}>
               <code className="text-[var(--at-link)]">{payload.snapshot.hash}</code> · {payload.snapshot.title.split('\n')[0]}
             </p>}
-            <p className="mt-3 text-sm text-[var(--at-muted)]">{canMaintain ? 'Group its files into components to draw the architecture.' : 'A maintainer of this workspace has not grouped its files yet.'}</p>
-            {canMaintain && <Button type="primary" className="mt-6" loading={arch.generating} disabled={busy} onClick={() => void arch.generate()}>Group files into components</Button>}
+            <p className="mt-3 text-sm text-[var(--at-muted)]">{canMaintain ? w('groupHint') : w('notGrouped')}</p>
+            {canMaintain && <Button type="primary" className="mt-6" loading={arch.generating} disabled={busy} onClick={() => void arch.generate()}>{w('groupFiles')}</Button>}
           </section>
         </div>}
-        {sampleId && !sample && <div className="p-10"><Alert type="error" showIcon title="Unknown sample" action={<Link to="/architecture"><Button>All architectures</Button></Link>} /></div>}
+        {sampleId && !sample && <div className="p-10"><Alert type="error" showIcon title={w('unknownSample')} action={<Link to="/architecture"><Button>{w('allArch')}</Button></Link>} /></div>}
       </main>
 
       {mining && canMaintain && projectId && <MiningPanel project={{ id: projectId, name: title }} open onClose={() => setMining(false)} onChanged={arch.reload} />}

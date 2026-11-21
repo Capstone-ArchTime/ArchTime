@@ -32,6 +32,11 @@ import type { SnapshotSummary } from '@/features/architecture/api';
 import { useCommitImpacts } from '@/features/useCommitImpacts';
 import { EVOLUTION_MARK } from '@/features/architecture/evolution';
 import type { EvolutionMark, HistoryEntry } from '@/features/architecture/evolution';
+import { readDiagramTheme } from '@/features/display-prefs';
+import { translateOr } from '@/i18n';
+import { formatDate } from '@/i18n/format';
+import { useMessages } from '@/i18n/define';
+import { ARCH } from './messages';
 
 const isTyping = (target: EventTarget | null) => target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 /** What "Show in diagram" highlights when an issue involves several components; valid only for the URL it was made at. */
@@ -71,7 +76,9 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
   mappingVersion?: string;
 }) {
   const { message } = App.useApp();
-  const [themeName, setThemeName] = useState<'dark' | 'light'>('dark');
+  const t = useMessages(ARCH);
+  // Starts in the colours chosen in Settings; the toolbar (or T) switches for this visit only.
+  const [themeName, setThemeName] = useState<'dark' | 'light'>(readDiagramTheme);
   const [weights, setWeights] = useState(false);
   const [hoverEdge, setHoverEdge] = useState<string | undefined>();
   const [helpOpen, setHelpOpen] = useState(false);
@@ -99,7 +106,7 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
   /** The exit button disappears with the mode, so a keyboard user would land on <body>; hand focus to the toolbar's own full screen button (or "More" when it is folded). */
   const exitFocus = () => {
     changeFocus(false);
-    requestAnimationFrame(() => root.current?.querySelector<HTMLElement>('[role="toolbar"] [aria-label="Full screen"], [role="toolbar"] [aria-label="More"]')?.focus());
+    requestAnimationFrame(() => root.current?.querySelector<HTMLElement>(`[role="toolbar"] [aria-label="${t('fullScreen')}"], [role="toolbar"] [aria-label="${t('more')}"]`)?.focus());
   };
   const [legend, setLegend] = useState(false);
   const [pin, setPin] = useState<Pin | null>(null);
@@ -205,18 +212,18 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
   async function run(format: ExportFormat) {
     setExporting(true);
     try { await exportDiagram(format, { scene, layout, theme, title: caption.title, caption }, view, theme.background, exportFileBase({ ...exportInfo, detail: detailName })); }
-    catch (cause) { message.error(`Could not export the ${format.toUpperCase()} file: ${cause instanceof Error ? cause.message : 'unknown error'}`); }
+    catch (cause) { message.error(t('exportFailed', { format: format.toUpperCase(), reason: cause instanceof Error ? cause.message : t('unknownError') })); }
     finally { setExporting(false); }
   }
 
   const options = scene.nodes.map(n => ({ value: n.id, label: n.title }));
   const markKinds = [...new Set(Object.values(marks ?? {}).map(m => m.kind))];
   const history = scene.mode === 'components' && state.focus && historyFor ? historyFor(state.focus) : [];
-  const roleOptions = COMPONENT_ROLES.filter(r => view.components.some(c => c.role === r)).map(r => ({ value: r, label: ROLE_LABEL[r] }));
-  const panel = 'rounded-lg border border-[#2a3441] bg-[var(--at-panel)]/95 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur';
+  const roleOptions = COMPONENT_ROLES.filter(r => view.components.some(c => c.role === r)).map(r => ({ value: r, label: translateOr(`archRole.${r}`, ROLE_LABEL[r]) }));
+  const panel = 'rounded-lg border border-[var(--at-line)] bg-[var(--at-panel)]/95 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur';
 
   if (errors.length > 0) {
-    return <div className="p-6"><Alert type="error" showIcon title="This view failed verification and is not drawn" description={<ul className="list-disc pl-5">{errors.slice(0, 8).map((i, n) => <li key={n}><code>{i.code}</code> {i.message}</li>)}</ul>} /></div>;
+    return <div className="p-6"><Alert type="error" showIcon title={t('failedVerification')} description={<ul className="list-disc pl-5">{errors.slice(0, 8).map((i, n) => <li key={n}><code>{i.code}</code> {i.message}</li>)}</ul>} /></div>;
   }
   // Over the artboard the panels start below the full-screen exit button so it stays reachable.
   const rightButton = focusMode || (overlay && !right);
@@ -224,8 +231,8 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
   const leftWidth = overlay ? 'w-60' : panelLayout === 'roomy' ? 'w-56' : 'w-52';
   const rightWidth = overlay || panelLayout === 'roomy' ? 'w-72' : 'w-64';
   return <div ref={root} className="relative flex h-full min-h-0">
-    {left && <aside aria-label="Layers" className={`${drawer} left-0 ${leftWidth} max-w-[85%] shrink-0 border-r border-[var(--at-line)] bg-[var(--at-chrome)]`}>
-      {overlay && <div className="flex justify-end border-b border-[var(--at-line)] px-2 py-1"><Button size="small" type="text" onClick={() => setSide('left', false)}>Close</Button></div>}
+    {left && <aside aria-label={t('layers')} className={`${drawer} left-0 ${leftWidth} max-w-[85%] shrink-0 border-r border-[var(--at-line)] bg-[var(--at-chrome)]`}>
+      {overlay && <div className="flex justify-end border-b border-[var(--at-line)] px-2 py-1"><Button size="small" type="text" onClick={() => setSide('left', false)}>{t('close')}</Button></div>}
       <LayersPanel scene={scene} theme={theme} highlight={highlight} selected={state.focus} onSelect={selectLayer} onOpen={openDetail}
         snapshots={snapshots} snapshotId={snapshotId} onSnapshot={onSnapshot} />
     </aside>}
@@ -237,34 +244,34 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
       overlay={vp => <>
         {/* Room is kept for the button at the top right (Exit full screen, Issues / Details), so on a phone the group wraps instead of sliding under it. */}
         <div data-overlay className={`absolute left-3 top-3 z-10 flex flex-wrap items-start gap-2 ${rightButton ? 'max-w-[calc(100%-9.5rem)]' : 'max-w-[calc(100%-1.5rem)]'}`}>
-          {overlay && !left && <Button size="small" icon={<Layers size={14} />} onClick={() => setSide('left', true)}>Layers</Button>}
-          {detailId && <Button size="small" icon={<ArrowLeft size={14} />} onClick={closeDetail}>All components{detailName ? ` · inside ${detailName}` : ''}</Button>}
+          {overlay && !left && <Button size="small" icon={<Layers size={14} />} onClick={() => setSide('left', true)}>{t('layers')}</Button>}
+          {detailId && <Button size="small" icon={<ArrowLeft size={14} />} onClick={closeDetail}>{t('allComponents')}{detailName ? t('inside', { name: detailName }) : ''}</Button>}
           <IssuesChip summary={summary} verified={verified} onClick={openIssues} />
           <div className={`${panel} text-xs`}>
-            <button type="button" className="flex items-center gap-1.5 px-2.5 py-1.5 text-[#cbd5e1] hover:text-white" aria-expanded={legend} onClick={() => setLegend(v => !v)}>
-              Legend {legend ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            <button type="button" className="flex items-center gap-1.5 px-2.5 py-1.5 text-[var(--at-text)] hover:text-white" aria-expanded={legend} onClick={() => setLegend(v => !v)}>
+              {t('legend')} {legend ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
             </button>
-            {legend && <ul className="space-y-1 px-3 pb-2.5 text-[var(--at-muted)]" aria-label="Legend">
+            {legend && <ul className="space-y-1 px-3 pb-2.5 text-[var(--at-muted)]" aria-label={t('legend')}>
               {roleOptions.map(r => <li key={r.value} className="flex items-center gap-2"><span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: theme.role[r.value as ComponentRole] }} />{r.label}</li>)}
-              <li className="flex items-center gap-2"><span className="inline-block w-5 border-t-2" style={{ borderColor: theme.cycle }} />circular dependency</li>
-              <li className="flex items-center gap-2"><span className="inline-block w-5 border-t-2 border-dashed" style={{ borderColor: theme.edge }} />points upward</li>
-              {scene.mode === 'components' && markKinds.map(kind => <li key={kind} className="flex items-center gap-2"><span className="rounded-full border px-1 font-mono text-[9px] font-bold" style={{ borderColor: EVOLUTION_MARK[kind].color, color: EVOLUTION_MARK[kind].color }}>{EVOLUTION_MARK[kind].label}</span>{EVOLUTION_MARK[kind].help}</li>)}
+              <li className="flex items-center gap-2"><span className="inline-block w-5 border-t-2" style={{ borderColor: theme.cycle }} />{t('circular')}</li>
+              <li className="flex items-center gap-2"><span className="inline-block w-5 border-t-2 border-dashed" style={{ borderColor: theme.edge }} />{t('upward')}</li>
+              {scene.mode === 'components' && markKinds.map(kind => <li key={kind} className="flex items-center gap-2"><span className="rounded-full border px-1 font-mono text-[11px] font-bold" style={{ borderColor: EVOLUTION_MARK[kind].color, color: EVOLUTION_MARK[kind].color }}>{EVOLUTION_MARK[kind].label}</span>{EVOLUTION_MARK[kind].help}</li>)}
             </ul>}
           </div>
         </div>
 
         {rightButton && <div data-overlay className="absolute right-3 top-3 z-30 flex items-start gap-2">
-          {!focusMode && <Button size="small" icon={<PanelRight size={14} />} onClick={() => setSide('right', true)}>{hasSelection ? 'Details' : summary.count ? `Issues · ${summary.count}` : 'Overview'}</Button>}
-          {focusMode && <Button size="small" type="primary" icon={<Minimize size={14} />} onClick={exitFocus}>Exit full screen</Button>}
+          {!focusMode && <Button size="small" icon={<PanelRight size={14} />} onClick={() => setSide('right', true)}>{hasSelection ? t('details') : summary.count ? t('issuesCount', { n: summary.count }) : t('overview')}</Button>}
+          {focusMode && <Button size="small" type="primary" icon={<Minimize size={14} />} onClick={exitFocus}>{t('exitFullScreen')}</Button>}
         </div>}
 
-        {activePin && <div data-overlay className="absolute bottom-[4.5rem] left-1/2 z-10 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-lg border border-[#2a3441] bg-[var(--at-panel)]/95 py-1 pl-3 pr-1 text-xs text-slate-200 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur">
-          <span className="min-w-0 truncate">Showing: {activePin.title}</span>
-          <Button size="small" type="text" onClick={clearSelection}>Clear highlight</Button>
+        {activePin && <div data-overlay className="absolute bottom-[4.5rem] left-1/2 z-10 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-lg border border-[var(--at-line)] bg-[var(--at-panel)]/95 py-1 pl-3 pr-1 text-xs text-slate-200 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur">
+          <span className="min-w-0 truncate">{t('showing', { title: activePin.title })}</span>
+          <Button size="small" type="text" onClick={clearSelection}>{t('clearHighlight')}</Button>
         </div>}
 
         {state.route && !highlight.primaryRoute &&<div data-overlay className="absolute left-1/2 top-3 z-10 -translate-x-1/2">
-          <Alert type="warning" showIcon title="No dependency path: the first does not depend on the second." />
+          <Alert type="warning" showIcon title={t('noPath')} />
         </div>}
 
         <FloatingToolbar viewport={vp} options={options} searchRef={searchRef} focus={state.focus}
@@ -280,42 +287,42 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
           focusMode={focusMode} onFocusMode={() => changeFocus(!focusMode)}
           exporting={exporting} onExport={format => { void run(format); }} onHelp={() => setHelpOpen(true)} hasSelection={hasSelection || !!activePin} />
 
-        <Modal open={helpOpen} onCancel={() => setHelpOpen(false)} footer={null} title="Keyboard and mouse" getContainer={vp.container}>
+        <Modal open={helpOpen} onCancel={() => setHelpOpen(false)} footer={null} title={t('keyboard')} getContainer={vp.container}>
           <dl className="grid grid-cols-[150px_1fr] gap-y-2 text-sm">
             {[
-              ['Scroll / two fingers', 'Pan'], ['Drag the background', 'Pan'], ['Ctrl + scroll / pinch', 'Zoom at the pointer'],
-              ['+  /  -', 'Zoom in / out'], ['0', 'Fit the whole diagram'], ['F', 'Zoom to the selection'], ['M', 'Show or hide the minimap'],
-              ['Shift + F', 'Full screen: only the diagram and its toolbar stay'],
-              ['Ctrl + \\', 'Hide or show the side panels'],
-              ['Click / Enter', 'Focus a component (click again to clear)'], ['Double-click / Shift+Enter', 'Show what is inside a component'],
-              ['/', 'Find a component'], ['Esc', 'Clear focus, route or selection; then leave the inner view; then leave full screen'],
-              ['T', 'Toggle light / dark theme'], ['W', 'Show dependency counts on all arrows'], ['?', 'This help'],
+              [t('keyScroll'), t('pan')], [t('keyDrag'), t('pan')], [t('keyCtrlScroll'), t('zoomPointer')],
+              ['+  /  -', t('zoomInOut')], ['0', t('fitWhole')], ['F', t('zoomSelection')], ['M', t('toggleMinimap')],
+              ['Shift + F', t('fullScreenHelp')],
+              ['Ctrl + \\', t('sidePanels')],
+              [t('keyClick'), t('focusComponent')], [t('keyDouble'), t('showInside')],
+              ['/', t('findComponent')], ['Esc', t('escHelp')],
+              ['T', t('toggleTheme')], ['W', t('showCounts')], ['?', t('thisHelp')],
             ].map(([k, v]) => <div key={k} className="contents"><dt className="font-mono text-xs text-[var(--at-link)]">{k}</dt><dd>{v}</dd></div>)}
           </dl>
         </Modal>
       </>} />
 
-    {right && <aside aria-label="Properties" className={`${drawer} right-0 ${rightWidth} max-w-[85%] shrink-0 overflow-auto border-l border-[var(--at-line)] bg-[var(--at-chrome)]`}>
+    {right && <aside aria-label={t('properties')} className={`${drawer} right-0 ${rightWidth} max-w-[85%] shrink-0 overflow-auto border-l border-[var(--at-line)] bg-[var(--at-chrome)]`}>
       {overlay && <div className="sticky top-0 z-10 flex justify-end border-b border-[var(--at-line)] bg-[var(--at-chrome)] px-2 py-1">
-        <Button size="small" type="text" onClick={() => setSide('right', false)}>Close</Button>
+        <Button size="small" type="text" onClick={() => setSide('right', false)}>{t('close')}</Button>
       </div>}
       <div className="space-y-4 p-3">
         {hasSelection && <button type="button" onClick={clearSelection} className="flex items-center gap-1.5 text-xs text-[var(--at-link)] hover:text-[var(--at-link-hover)]">
-          <ArrowLeft size={12} aria-hidden /> Overview and issues{summary.count ? ` (${summary.count})` : ''}
+          <ArrowLeft size={12} aria-hidden /> {summary.count ? t('overviewIssuesN', { n: summary.count }) : t('overviewIssues')}
         </button>}
         {!hasSelection && <IssuesPanel issues={issues} summary={summary} verified={verified} activeId={activePin?.id} inner={scene.mode !== 'components'} onShow={showIssue} onAction={onIssueAction} />}
         <Inspector view={view} scene={scene} theme={theme} selectedNode={state.focus} selectedEdge={state.edge} highlight={highlight} onSelectNode={focusNode} onSelectEdge={selectEdge} onOpen={openDetail}
           commits={projectId && snapshotId ? { projectId, state: commitImpacts, onRetry: commitImpacts.retry } : undefined} />
-        {state.focus && marks?.[state.focus] && <p className="text-xs text-[var(--at-muted)]"><span className="mr-1.5 rounded-full border px-1.5 font-mono text-[9px] font-bold" style={{ borderColor: marks[state.focus].color, color: marks[state.focus].color }}>{marks[state.focus].label}</span>
+        {state.focus && marks?.[state.focus] && <p className="text-xs text-[var(--at-muted)]"><span className="mr-1.5 rounded-full border px-1.5 font-mono text-[11px] font-bold" style={{ borderColor: marks[state.focus].color, color: marks[state.focus].color }}>{marks[state.focus].label}</span>
           {EVOLUTION_MARK[marks[state.focus].kind].help}{marks[state.focus].from.length ? `: ${marks[state.focus].from.join(', ')}` : ''}.</p>}
-        {history.length > 1 && <section aria-label="Earlier names">
-          <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-[var(--at-muted)]">Through the snapshots</h3>
+        {history.length > 1 && <section aria-label={t('earlierNames')}>
+          <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-[var(--at-muted)]">{t('throughSnapshots')}</h3>
           <ol className="space-y-1 text-xs">{history.map(h => <li key={h.snapshotId} className="flex items-baseline gap-2">
-            <button type="button" disabled={!onSnapshot || h.snapshotId === snapshotId} onClick={() => onSnapshot?.(h.snapshotId)} className="shrink-0 font-mono text-[var(--at-link)] hover:text-[var(--at-link-hover)] disabled:cursor-default disabled:text-[var(--at-muted)]" aria-label={`Open snapshot ${h.snapshot?.hash ?? h.snapshotId}`}>{h.snapshot?.hash.slice(0, 7) ?? '?'}</button>
+            <button type="button" disabled={!onSnapshot || h.snapshotId === snapshotId} onClick={() => onSnapshot?.(h.snapshotId)} className="shrink-0 font-mono text-[var(--at-link)] hover:text-[var(--at-link-hover)] disabled:cursor-default disabled:text-[var(--at-muted)]" aria-label={t('openSnapshot', { hash: h.snapshot?.hash ?? h.snapshotId })}>{h.snapshot?.hash.slice(0, 7) ?? '?'}</button>
             <span className="min-w-0 truncate text-slate-200">{h.name}</span>
-            {h.snapshot?.date && <span className="ml-auto shrink-0 text-[var(--at-muted)]">{new Date(h.snapshot.date).toLocaleDateString()}</span>}
+            {h.snapshot?.date && <span className="ml-auto shrink-0 text-[var(--at-muted)]">{formatDate(h.snapshot.date)}</span>}
           </li>)}</ol>
-          <p className="mt-1 text-[11px] leading-snug text-[var(--at-muted)]">Matched through the files it holds, snapshot by snapshot. A new grouping of the same files is not counted as a change.</p>
+          <p className="mt-1 text-[11px] leading-snug text-[var(--at-muted)]">{t('matchedFiles')}</p>
         </section>}
         {!hasSelection && overview}
       </div>

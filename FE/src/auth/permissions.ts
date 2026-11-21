@@ -6,7 +6,9 @@ export const roles = ['developer-analyst', 'system-administrator'] as const;
 export type Role = typeof roles[number];
 /** How the account can sign in, as GET /auth/me reports it (older servers leave it out). */
 export type SignInMethods = { password: boolean; github: boolean };
-export type AuthUser = { id: string; name: string; email: string; role: Role; username?: string | null; createdAt?: string; signInMethods?: SignInMethods };
+/** The account's language, as GET /auth/me reports it (older servers leave it out). */
+export type AccountLanguage = 'en' | 'vi';
+export type AuthUser = { id: string; name: string; email: string; role: Role; username?: string | null; createdAt?: string; signInMethods?: SignInMethods; language?: AccountLanguage };
 
 export const roleHome: Record<Role, string> = {
   'developer-analyst': '/dashboard',
@@ -31,7 +33,7 @@ const prefixes: Record<Role, readonly string[]> = {
 };
 
 /** Pages every signed-in account has, whatever its role. */
-const sharedRoutes: readonly string[] = ['/profile', '/my-work', '/invitations/accept'];
+const sharedRoutes: readonly string[] = ['/profile', '/my-work', '/settings', '/invitations/accept'];
 
 export function canAccess(role: Role, path: string) {
   const pathname = path.split(/[?#]/)[0].replace(/\/+$/, '') || '/';

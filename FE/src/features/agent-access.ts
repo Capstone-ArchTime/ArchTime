@@ -1,4 +1,5 @@
 import { apiDownload, apiRequest } from '../api/client.ts';
+import { hx } from './helper-messages.ts';
 import { API_BASE_URL } from '../auth/session.ts';
 
 // Agent access (RF-09, UC-42 – UC-44): project tokens a coding agent uses to ask ArchTime about the architecture, and
@@ -19,9 +20,9 @@ export const EXPIRY_CHOICES = [7, 30, 60, 90] as const;
 export const DEFAULT_EXPIRY = 30;
 
 export const STATUS_LABEL: Record<AgentToken['status'], { label: string; color: string }> = {
-  active: { label: 'Active', color: 'green' },
-  expired: { label: 'Expired', color: 'default' },
-  revoked: { label: 'Revoked', color: 'red' },
+  active: { get label() { return hx('active'); }, color: 'green' },
+  expired: { get label() { return hx('expired'); }, color: 'default' },
+  revoked: { get label() { return hx('revoked'); }, color: 'red' },
 };
 
 /** How an agent asks about one file, with the token in an environment variable rather than on the command line. */

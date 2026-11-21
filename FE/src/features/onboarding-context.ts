@@ -1,3 +1,4 @@
+import { hx } from './helper-messages.ts';
 import type { DecisionSource, MyPath, StepKind, WorkspaceDecision, WorkspaceRefs } from './onboarding-api';
 import { evidenceHref } from './chat-answer.ts';
 
@@ -47,7 +48,10 @@ export type SourceItem = {
   href: string | null;
 };
 
-const SOURCE_LABEL: Record<DecisionSource['kind'], string> = { commit: 'Commit', snapshot: 'Snapshot', evidence: 'Evidence', approval: 'Approved request' };
+const SOURCE_KEY = { commit: 'srcCommit', snapshot: 'srcSnapshot', evidence: 'srcEvidence', approval: 'srcApproval' } as const;
+// Read when shown, so the words follow the chosen language.
+const SOURCE_LABEL: Record<DecisionSource['kind'], string> = Object.defineProperties({} as Record<DecisionSource['kind'], string>,
+  Object.fromEntries(Object.entries(SOURCE_KEY).map(([kind, key]) => [kind, { enumerable: true, get: () => hx(key) }])));
 
 export function sourceItems(projectId: string, sources: readonly DecisionSource[]): SourceItem[] {
   return sources.map(source => {
@@ -95,19 +99,19 @@ export function mentorQuestion(subject: MentorSubject): string {
   const text = (() => {
     if (subject.kind === 'component') {
       const name = subject.componentName ?? subject.title;
-      return `What does the ${name} component do in this workspace? What does it depend on, what depends on it, and how has it changed over the commit history?`;
+      return hx('askComponent', { name });
     }
     if (subject.kind === 'adr') {
-      const what = subject.decision ? `${subject.decision.label} "${subject.decision.title}"` : `the design decision "${subject.title}"`;
-      return `Why was ${what} decided? Which commits and components does it concern, and what are its consequences?`;
+      const what = subject.decision ? `${subject.decision.label} "${subject.decision.title}"` : hx('theDecision', { title: subject.title });
+      return hx('askDecision', { what });
     }
     if (subject.kind === 'commit') {
       const hash = subject.commit?.hash.slice(0, 7);
-      if (!hash) return `What changed in the architecture in the commit "${subject.title}", and why?`;
-      return `What changed in the architecture in commit ${hash}${subject.commit?.title ? ` ("${subject.commit.title}")` : ''}, and why?`;
+      if (!hash) return hx('askCommitTitle', { title: subject.title });
+      return hx('askCommit', { hash, title: subject.commit?.title ? ` ("${subject.commit.title}")` : '' });
     }
     // A check question: ask for help thinking it through, not for the answer.
-    return `Help me understand what this question is about, without telling me the answer: ${subject.prompt ?? subject.title}`;
+    return hx('askQuestion', { prompt: subject.prompt ?? subject.title });
   })();
   return text.slice(0, MENTOR_QUESTION_MAX);
 }
@@ -139,8 +143,8 @@ export function openingWorkspace(
     projectId: first,
     question: '',
     note: opened.question
-      ? 'The workspace of that learning step is not available to you here, so its question was not filled in.'
-      : 'That workspace is not available to you here.',
+      ? hx('stepUnavailable')
+      : hx('workspaceUnavailable'),
   };
 }
 

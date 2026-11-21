@@ -1,5 +1,4 @@
 import { Icon } from "@iconify/react";
-import { App } from "antd";
 
 import { useAuth } from "@/auth/auth-context";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
@@ -7,9 +6,15 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Mascot } from "page-mascot";
 import { Logo } from "@/components/Logo";
-import { useComingSoon } from "@/hooks/useComingSoon";
+import { roleHome } from "@/auth/permissions";
+import { useT } from "@/i18n";
+import LanguageSwitch from "@/components/LanguageSwitch";
 
 const AccountMenu = lazy(() => import('@/components/AccountMenu'));
+const MotionLink = motion.create(Link);
+
+/** A sample analysis anyone signed in can open; signed out, the route guard sends them to sign in first. */
+const SAMPLE_WORKSPACE = "/workspace/sample/shophub";
 
 const particles = [
   { left: "14%", size: 3, duration: 4.5, delay: 0 },
@@ -119,21 +124,15 @@ function RevealSection({
 }
 
 export default function HomePage() {
+  const t = useT();
   const { user, loading: authLoading } = useAuth();
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
   const [navScrolled, setNavScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [subscribeEmail, setSubscribeEmail] = useState("");
   const prefersReducedMotion = useReducedMotion();
-  const notifyComingSoon = useComingSoon();
-  const { message } = App.useApp();
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!subscribeEmail.trim()) return;
-    message.success("Thanks for subscribing! We'll keep you posted.");
-    setSubscribeEmail("");
-  };
+  // The main call to action starts the real flow: sign up, or straight into the app for someone already signed in.
+  const startHref = user ? roleHome[user.role] : "/register";
+  const startLabel = user ? t("home.start.signedIn") : t("home.start.signedOut");
 
   const particleList = useMemo(() => particles, []);
 
@@ -156,7 +155,8 @@ export default function HomePage() {
       className="min-h-screen overflow-x-hidden at-home bg-[var(--at-page)] text-[var(--at-text)] antialiased selection:bg-[#d3def3] selection:text-[#18212c]"
       style={{ fontFamily: fontFamily.sans }}
     >
-      <div className="fixed bottom-6 right-6 z-[60]">
+      {/* Phones: hidden, the fixed mascot would sit on top of the hero's buttons. */}
+      <div className="fixed bottom-6 right-6 z-[60] hidden sm:block">
         <Mascot
           directions="/mascots/crt-directions.webp"
           reactions="/mascots/crt-reactions.webp"
@@ -221,50 +221,45 @@ export default function HomePage() {
             className="hidden items-center gap-8 text-xs uppercase tracking-widest text-white md:flex"
             style={{ fontFamily: fontFamily.mono }}
           >
-            <a href="#architecture" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
-              Architecture
+            <a href="#how-it-works" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
+              {t("home.nav.howItWorks")}
             </a>
-            <a href="#console" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
-              Console
+            <a href="#diff" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
+              {t("home.nav.diff")}
             </a>
-            <a href="#modules" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
-              Modules
+            <a href="#change-types" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
+              {t("home.nav.changeTypes")}
             </a>
-            <a href="#hardware" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
-              Evidence
+            <a href="#evidence" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">
+              {t("home.nav.evidence")}
             </a>
           </div>
 
           <div className="flex items-center gap-4">
-            <span
-              className="hidden border border-[var(--at-line)] bg-[var(--at-panel)] px-3 py-1 text-[10px] text-[var(--at-warn)] sm:inline-block"
-              style={{ fontFamily: fontFamily.mono }}
-            >
-              EVIDENCE // VERIFIED
-            </span>
+            <LanguageSwitch />
             {authLoading ? (
-              <span role="status" aria-label="Loading account" className="h-10 w-10 animate-pulse rounded-full border border-[var(--at-line)] bg-[var(--at-panel)] motion-reduce:animate-none" />
+              <span role="status" aria-label={t("home.loadingAccount")} className="h-10 w-10 animate-pulse rounded-full border border-[var(--at-line)] bg-[var(--at-panel)] motion-reduce:animate-none" />
             ) : user ? (
-              <Suspense fallback={<span className="h-10 w-10" role="status" aria-label="Loading account menu" />}><AccountMenu onNavigate={() => setMobileMenuOpen(false)} /></Suspense>
+              <Suspense fallback={<span className="h-10 w-10" role="status" aria-label={t("home.loadingAccountMenu")} />}><AccountMenu onNavigate={() => setMobileMenuOpen(false)} /></Suspense>
             ) : (<>
             <Link
               to="/login"
               className="hidden text-xs uppercase tracking-widest text-slate-300 transition-colors hover:text-white md:inline-block"
               style={{ fontFamily: fontFamily.mono }}
             >
-              Log In
+              {t("common.signIn")}
             </Link>
             <Link
               to="/register"
               className="hidden border border-[var(--at-accent)]/30 bg-[var(--at-panel)] px-5 py-2.5 text-xs uppercase tracking-widest text-white transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-[var(--at-glow)] hover:text-[var(--at-glow)] md:inline-block"
               style={{ fontFamily: fontFamily.mono }}
             >
-              Sign Up
+              {t("common.signUp")}
             </Link>
             </>)}
             <button
               onClick={() => setMobileMenuOpen((v) => !v)}
-              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-label={mobileMenuOpen ? t("home.closeMenu") : t("home.openMenu")}
               aria-expanded={mobileMenuOpen}
               aria-controls="mobile-nav-menu"
               className="border border-[var(--at-line)] bg-[var(--at-panel)] p-2.5 text-slate-300 transition-colors hover:border-[var(--at-glow)] hover:text-white md:hidden"
@@ -289,32 +284,32 @@ export default function HomePage() {
                 style={{ fontFamily: fontFamily.mono }}
               >
                 <a
-                  href="#architecture"
+                  href="#how-it-works"
                   onClick={() => setMobileMenuOpen(false)}
                   className="border-b border-[var(--at-line)]/60 py-3 text-white visited:text-white transition-colors hover:text-[var(--at-link)]"
                 >
-                  Architecture
+                  {t("home.nav.howItWorks")}
                 </a>
                 <a
-                  href="#console"
+                  href="#diff"
                   onClick={() => setMobileMenuOpen(false)}
                   className="border-b border-[var(--at-line)]/60 py-3 text-white visited:text-white transition-colors hover:text-[var(--at-link)]"
                 >
-                  Console
+                  {t("home.nav.diff")}
                 </a>
                 <a
-                  href="#modules"
+                  href="#change-types"
                   onClick={() => setMobileMenuOpen(false)}
                   className="border-b border-[var(--at-line)]/60 py-3 text-white visited:text-white transition-colors hover:text-[var(--at-link)]"
                 >
-                  Modules
+                  {t("home.nav.changeTypes")}
                 </a>
                 <a
-                  href="#hardware"
+                  href="#evidence"
                   onClick={() => setMobileMenuOpen(false)}
                   className="border-b border-[var(--at-line)]/60 py-3 text-white visited:text-white transition-colors hover:text-[var(--at-link)]"
                 >
-                  Evidence
+                  {t("home.nav.evidence")}
                 </a>
                 {!authLoading && !user && (<>
                 <Link
@@ -322,25 +317,23 @@ export default function HomePage() {
                   onClick={() => setMobileMenuOpen(false)}
                   className="py-3 transition-colors hover:text-[var(--at-glow)]"
                 >
-                  Log In
+                  {t("common.signIn")}
                 </Link>
                 <Link
                   to="/register"
                   onClick={() => setMobileMenuOpen(false)}
                   className="mt-2 border border-[var(--at-accent)]/30 bg-[var(--at-panel)] px-5 py-2.5 text-center text-white transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-[var(--at-glow)] hover:text-[var(--at-glow)]"
                 >
-                  Sign Up
+                  {t("common.signUp")}
                 </Link>
                 </>)}
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    notifyComingSoon("Repository analysis");
-                  }}
+                <Link
+                  to={startHref}
+                  onClick={() => setMobileMenuOpen(false)}
                   className="mt-2 border border-[var(--at-line)] bg-transparent px-5 py-2.5 text-center text-[var(--at-muted)] transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400 hover:text-white"
                 >
-                  Analyze Repository
-                </button>
+                  {startLabel}
+                </Link>
               </nav>
             </motion.div>
           )}
@@ -371,26 +364,26 @@ export default function HomePage() {
                 className="text-xs uppercase tracking-widest text-slate-300"
                 style={{ fontFamily: fontFamily.mono }}
               >
-                Evidence-Based Architecture Reasoning
+                {t("home.hero.badge")}
               </span>
             </div>
 
             <h1 className="text-5xl font-bold leading-[1.1] tracking-tight text-white sm:text-6xl md:text-7xl">
-              Reconstruct How Your <br />
+              {t("home.hero.title1")} <br />
               <span
                 className="bg-gradient-to-r from-[#ffffff] via-[#d3def3] to-[#9db3dc] bg-clip-text text-transparent"
               >
-                Architecture Evolved.
+                {t("home.hero.title2")}
               </span>
             </h1>
 
             <p className="max-w-xl text-base font-light leading-relaxed text-[var(--at-muted)] sm:text-lg">
-              ArchTime mines Git history and source code to rebuild the evolution of your software architecture, backed by traceable evidence instead of guesswork.
+              {t("home.hero.body")}
             </p>
 
             <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
-              <motion.a
-                href="#console"
+              <MotionLink
+                to={startHref}
                 className="rounded-full bg-[var(--at-fill)] px-8 py-4 text-center text-xs font-bold uppercase tracking-widest text-[var(--at-on-fill)] transition-colors hover:bg-[var(--at-fill-hover)]"
                 style={{ fontFamily: fontFamily.mono }}
                 whileHover={{
@@ -401,14 +394,14 @@ export default function HomePage() {
                   boxShadow: "0 0 30px rgba(214, 228, 255, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.15)",
                 }}
               >
-                Run Analysis
-              </motion.a>
+                {startLabel}
+              </MotionLink>
               <a
-                href="#architecture"
+                href="#how-it-works"
                 className="rounded-full border border-[var(--at-line)] bg-[var(--at-panel)]/40 px-8 py-4 text-center text-xs font-light uppercase tracking-widest text-slate-300 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-slate-400"
                 style={{ fontFamily: fontFamily.mono }}
               >
-                Explore Pipeline
+                {t("home.hero.seeHow")}
               </a>
             </div>
           </div>
@@ -416,33 +409,33 @@ export default function HomePage() {
       </header>
 
       <div className="relative z-10">
-        <RevealSection id="architecture" className="mx-auto max-w-7xl px-6 py-32">
+        <RevealSection id="how-it-works" className="mx-auto max-w-7xl px-6 py-32">
           <div className="grid items-center gap-12 lg:grid-cols-12">
             <div className="space-y-6 lg:col-span-5">
               <span
                 className="block text-xs uppercase tracking-widest text-[var(--at-warn)]"
                 style={{ fontFamily: fontFamily.mono }}
               >
-                Repository Mining
+                {t("home.mining.eyebrow")}
               </span>
               <h2 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
-                From Git History to Knowledge Graph
+                {t("home.mining.title")}
               </h2>
               <p className="leading-relaxed text-[var(--at-muted)] font-light">
-                ArchTime parses source code with an Abstract Syntax Tree and combines it with Git metadata &mdash; commits, authors, timestamps, diffs &mdash; to build a knowledge graph of your system across versions.
+                {t("home.mining.body")}
               </p>
               <div className="grid grid-cols-2 gap-4 pt-4">
                 <div className="border-l-2 border-[var(--at-accent)] pl-4">
                   <div className="text-xl font-bold text-white">
                     AST
                   </div>
-                  <div className="text-xs uppercase tracking-wider text-[var(--at-muted)]">Structural Parsing</div>
+                  <div className="text-xs uppercase tracking-wider text-[var(--at-muted)]">{t("home.mining.astLabel")}</div>
                 </div>
                 <div className="border-l-2 border-[var(--at-warn)] pl-4">
                   <div className="text-xl font-bold text-white">
-                    Git History
+                    {t("home.mining.gitTitle")}
                   </div>
-                  <div className="text-xs uppercase tracking-wider text-[var(--at-muted)]">Evidence Source</div>
+                  <div className="text-xs uppercase tracking-wider text-[var(--at-muted)]">{t("home.mining.gitLabel")}</div>
                 </div>
               </div>
             </div>
@@ -451,42 +444,42 @@ export default function HomePage() {
               <IsometricCard
                 icon="ph:graph-light"
                 iconColor="#9db3dc"
-                title="Knowledge Graph"
-                description="Represents modules, packages, classes and their dependencies across every version of the system."
+                title={t("home.card.graph.title")}
+                description={t("home.card.graph.body")}
               />
               <IsometricCard
                 icon="ph:git-diff-light"
                 iconColor="#d3def3"
-                title="Architectural Diff"
-                description="Detects module boundary changes, splits, merges and dependency direction shifts between versions."
+                title={t("home.card.diff.title")}
+                description={t("home.card.diff.body")}
               />
               <IsometricCard
                 icon="ph:brain-light"
                 iconColor="#b4c0ce"
-                title="Evidence-Based Reasoning"
-                description="A local LLM turns diffs, commit messages and code changes into a readable narrative of what changed."
+                title={t("home.card.reasoning.title")}
+                description={t("home.card.reasoning.body")}
               />
               <IsometricCard
                 icon="ph:shield-check-light"
                 iconColor="#eaf1ff"
                 title="FACT / INFERENCE / UNKNOWN"
-                description="Every AI statement is labeled by evidence strength, reducing hallucination and keeping claims traceable."
+                description={t("home.card.labels.body")}
               />
             </div>
           </div>
         </RevealSection>
 
-        <RevealSection id="console" className="border-y border-[var(--at-line)] bg-[var(--at-panel)]/50 py-32">
+        <RevealSection id="diff" className="border-y border-[var(--at-line)] bg-[var(--at-panel)]/50 py-32">
           <div className="mx-auto max-w-7xl px-6">
             <div className="mx-auto mb-16 max-w-2xl text-center">
               <span
                 className="mb-3 block text-xs uppercase tracking-widest text-[var(--at-link)]"
                 style={{ fontFamily: fontFamily.mono }}
               >
-                Evolution Analysis
+                {t("home.diff.eyebrow")}
               </span>
               <h2 className="text-3xl font-bold tracking-tight text-white sm:text-5xl">
-                See the Diff Between Any Two Versions
+                {t("home.diff.title")}
               </h2>
             </div>
 
@@ -523,7 +516,7 @@ export default function HomePage() {
                   <span className="text-slate-300">cat architectural_diff.json</span>
                 </div>
                 <div className="border border-[var(--at-line)]/60 bg-[var(--at-panel-2)]/50 p-4 leading-relaxed text-[var(--at-warn)]">
-                  &quot;Module `billing-service` was split from `core-monolith` at commit 4af21c9. Evidence: 3 commits, 2 authors, dependency direction reversed.&quot;
+                  &quot;{t("home.diff.quote")}&quot;
                 </div>
                 <div className="flex items-center gap-2 pt-2">
                   <span className="text-[var(--at-link)]">archtime@repo:~$</span>
@@ -534,19 +527,19 @@ export default function HomePage() {
           </div>
         </RevealSection>
 
-        <RevealSection id="modules" className="mx-auto max-w-7xl px-6 py-32">
+        <RevealSection id="change-types" className="mx-auto max-w-7xl px-6 py-32">
           <div className="mb-16 flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
             <div>
               <span
                 className="mb-3 block text-xs uppercase tracking-widest text-[var(--at-warn)]"
                 style={{ fontFamily: fontFamily.mono }}
               >
-                Detected Changes
+                {t("home.changes.eyebrow")}
               </span>
-              <h2 className="text-4xl font-bold tracking-tight text-white">Architectural Change Types</h2>
+              <h2 className="text-4xl font-bold tracking-tight text-white">{t("home.changes.title")}</h2>
             </div>
             <p className="max-w-xs text-sm font-light text-[var(--at-muted)]">
-              ArchTime classifies structural changes detected between architecture snapshots.
+              {t("home.changes.body")}
             </p>
           </div>
 
@@ -558,21 +551,21 @@ export default function HomePage() {
                     <Icon icon="ph:cube-light" />
                   </div>
                   <span className="text-xs text-[var(--at-muted)]" style={{ fontFamily: fontFamily.mono }}>
-                    01 / CHANGE
+                    {t("home.changes.counter", { n: "01" })}
                   </span>
                 </div>
                 <h3 className="mb-2 text-xl font-bold text-white transition-colors group-hover:text-[var(--at-link)]">
-                  Module Split / Merge
+                  {t("home.changes.split.title")}
                 </h3>
                 <p className="text-sm leading-relaxed text-[var(--at-muted)] font-light">
-                  Detects when a module or service is divided into multiple parts, or when separate modules are consolidated.
+                  {t("home.changes.split.body")}
                 </p>
               </div>
               <div
                 className="text-[11px] uppercase tracking-widest text-[var(--at-muted)]"
                 style={{ fontFamily: fontFamily.mono }}
               >
-                Status: Graph Diff Verified
+                {t("home.changes.split.status")}
               </div>
             </div>
 
@@ -583,21 +576,21 @@ export default function HomePage() {
                     <Icon icon="ph:sliders-horizontal-light" />
                   </div>
                   <span className="text-xs text-[var(--at-muted)]" style={{ fontFamily: fontFamily.mono }}>
-                    02 / CHANGE
+                    {t("home.changes.counter", { n: "02" })}
                   </span>
                 </div>
                 <h3 className="mb-2 text-xl font-bold text-white transition-colors group-hover:text-[var(--at-warn)]">
-                  Dependency Shift
+                  {t("home.changes.shift.title")}
                 </h3>
                 <p className="text-sm leading-relaxed text-[var(--at-muted)] font-light">
-                  Flags new, removed, or reversed dependency relationships between packages and classes.
+                  {t("home.changes.shift.body")}
                 </p>
               </div>
               <div
                 className="text-[11px] uppercase tracking-widest text-[var(--at-muted)]"
                 style={{ fontFamily: fontFamily.mono }}
               >
-                Status: Direction Tracked
+                {t("home.changes.shift.status")}
               </div>
             </div>
 
@@ -608,27 +601,27 @@ export default function HomePage() {
                     <Icon icon="ph:command-light" />
                   </div>
                   <span className="text-xs text-[var(--at-muted)]" style={{ fontFamily: fontFamily.mono }}>
-                    03 / CHANGE
+                    {t("home.changes.counter", { n: "03" })}
                   </span>
                 </div>
                 <h3 className="mb-2 text-xl font-bold text-white transition-colors group-hover:text-[var(--at-glow)]">
-                  Package Restructure
+                  {t("home.changes.package.title")}
                 </h3>
                 <p className="text-sm leading-relaxed text-[var(--at-muted)] font-light">
-                  Identifies package reorganizations and module boundary changes across commits.
+                  {t("home.changes.package.body")}
                 </p>
               </div>
               <div
                 className="text-[11px] uppercase tracking-widest text-[var(--at-muted)]"
                 style={{ fontFamily: fontFamily.mono }}
               >
-                Status: Boundary Mapped
+                {t("home.changes.package.status")}
               </div>
             </div>
           </div>
         </RevealSection>
 
-        <RevealSection id="hardware" className="border-t border-[var(--at-line)] bg-[var(--at-panel-2)]/30 py-32">
+        <RevealSection id="evidence" className="border-t border-[var(--at-line)] bg-[var(--at-panel-2)]/30 py-32">
           <div className="mx-auto grid max-w-7xl items-center gap-16 px-6 lg:grid-cols-12">
             <div className="relative order-2 lg:col-span-6 lg:order-1">
               <div className="pointer-events-none absolute inset-0 rounded-full bg-[var(--at-accent)]/5 blur-[100px]" />
@@ -637,24 +630,24 @@ export default function HomePage() {
                 style={{ fontFamily: fontFamily.mono }}
               >
                 <div className="flex justify-between border-b border-[var(--at-line)]/40 pb-3 text-[var(--at-muted)]">
-                  <span>EVIDENCE RECORD</span>
+                  <span>{t("home.evidence.record")}</span>
                   <span>COMMIT 4af21c9</span>
                 </div>
                 <div className="flex justify-between border-b border-[var(--at-line)]/40 pb-2">
-                  <span className="text-[var(--at-muted)]">Author</span>
+                  <span className="text-[var(--at-muted)]">{t("home.evidence.author")}</span>
                   <span className="text-white">j.tran@example.com</span>
                 </div>
                 <div className="flex justify-between border-b border-[var(--at-line)]/40 pb-2">
-                  <span className="text-[var(--at-muted)]">Files Changed</span>
-                  <span className="text-white">14 modified, 3 added</span>
+                  <span className="text-[var(--at-muted)]">{t("home.evidence.files")}</span>
+                  <span className="text-white">{t("home.evidence.filesValue")}</span>
                 </div>
                 <div className="flex justify-between border-b border-[var(--at-line)]/40 pb-2">
-                  <span className="text-[var(--at-muted)]">Claim Type</span>
+                  <span className="text-[var(--at-muted)]">{t("home.evidence.claim")}</span>
                   <span className="text-white">FACT</span>
                 </div>
                 <div className="flex justify-between pb-1">
-                  <span className="text-[var(--at-muted)]">Confidence</span>
-                  <span className="text-[var(--at-warn)]">Evidence Coverage 92%</span>
+                  <span className="text-[var(--at-muted)]">{t("home.evidence.confidence")}</span>
+                  <span className="text-[var(--at-warn)]">{t("home.evidence.coverage")}</span>
                 </div>
               </div>
             </div>
@@ -664,62 +657,55 @@ export default function HomePage() {
                 className="block text-xs uppercase tracking-widest text-[var(--at-link)]"
                 style={{ fontFamily: fontFamily.mono }}
               >
-                Evidence-Based Reasoning
+                {t("home.evidence.eyebrow")}
               </span>
               <h2 className="text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl">
-                Every explanation traces back to a commit.
+                {t("home.evidence.title")}
               </h2>
               <p className="leading-relaxed text-[var(--at-muted)] font-light">
-                AI never invents a reason. If a change lacks enough evidence, ArchTime marks it as UNKNOWN instead of guessing &mdash; keeping every narrative verifiable against real Git history.
+                {t("home.evidence.body")}
               </p>
               <div className="pt-2">
-                <button
-                  onClick={() => notifyComingSoon("Evidence trail view")}
-                  className="rounded-full bg-[var(--at-fill)] px-8 py-4 text-xs font-bold uppercase tracking-widest text-[var(--at-on-fill)] shadow-[0_0_18px_rgba(214,228,255,0.35)] transition-colors hover:bg-[var(--at-fill-hover)]"
+                <Link
+                  to={SAMPLE_WORKSPACE}
+                  className="inline-block rounded-full bg-[var(--at-fill)] px-8 py-4 text-xs font-bold uppercase tracking-widest text-[var(--at-on-fill)] shadow-[0_0_18px_rgba(214,228,255,0.35)] transition-colors hover:bg-[var(--at-fill-hover)]"
                   style={{ fontFamily: fontFamily.mono }}
                 >
-                  View Evidence Trail
-                </button>
+                  {t("home.evidence.sample")}
+                </Link>
               </div>
             </div>
           </div>
         </RevealSection>
 
-        <RevealSection id="subscribe" className="relative mx-auto max-w-4xl overflow-hidden px-6 py-32 text-center">
+        {/* The closing call to action. (A newsletter form stood here, but nothing stored the address, so it promised mail
+            that never came.) */}
+        <RevealSection id="get-started" className="relative mx-auto max-w-4xl overflow-hidden px-6 py-32 text-center">
           <div className="pointer-events-none absolute inset-0 rounded-full bg-[var(--at-warn)]/5 blur-3xl" />
           <div className="relative z-10 space-y-8">
-            <Icon icon="ph:fingerprint-light" className="animate-pulse motion-reduce:animate-none text-4xl text-[var(--at-link)]" />
+            <Icon icon="ph:fingerprint-light" aria-hidden="true" className="animate-pulse motion-reduce:animate-none text-4xl text-[var(--at-link)]" />
             <h2 className="text-3xl font-bold tracking-tight text-white sm:text-5xl">
-              Follow the ArchTime Build Log
+              {t("home.cta.title")}
             </h2>
             <p className="mx-auto max-w-xl text-sm font-light leading-relaxed text-[var(--at-muted)] sm:text-base">
-              Get updates on new evaluation benchmarks, pipeline releases and Java/Spring Boot repository support.
+              {t("home.cta.body")}
             </p>
-            <form
-              onSubmit={handleSubscribe}
-              className="mx-auto flex max-w-md flex-col items-center gap-4 sm:flex-row"
-            >
-              <label htmlFor="subscribe-email" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="subscribe-email"
-                type="email"
-                required
-                value={subscribeEmail}
-                onChange={(e) => setSubscribeEmail(e.target.value)}
-                placeholder="you@domain.com"
-                className="w-full border border-[var(--at-line)] bg-[var(--at-panel-2)] px-5 py-4 text-xs text-white placeholder:text-[var(--at-muted)] focus:border-[var(--at-accent)] focus:outline-none transition-colors"
-                style={{ fontFamily: fontFamily.mono }}
-              />
-              <button
-                type="submit"
-                className="w-full whitespace-nowrap bg-[var(--at-fill)] px-8 py-4 text-xs font-bold uppercase tracking-widest text-[var(--at-on-fill)] transition-colors hover:bg-[var(--at-fill-hover)] sm:w-auto"
+            <div className="mx-auto flex max-w-md flex-col items-stretch gap-4 sm:flex-row sm:justify-center">
+              <Link
+                to={startHref}
+                className="whitespace-nowrap bg-[var(--at-fill)] px-8 py-4 text-center text-xs font-bold uppercase tracking-widest text-[var(--at-on-fill)] transition-colors hover:bg-[var(--at-fill-hover)]"
                 style={{ fontFamily: fontFamily.mono }}
               >
-                Subscribe
-              </button>
-            </form>
+                {startLabel}
+              </Link>
+              <Link
+                to={SAMPLE_WORKSPACE}
+                className="whitespace-nowrap border border-[var(--at-line)] px-8 py-4 text-center text-xs uppercase tracking-widest text-slate-300 transition-colors hover:border-slate-400 hover:text-white"
+                style={{ fontFamily: fontFamily.mono }}
+              >
+                {t("home.cta.sample")}
+              </Link>
+            </div>
           </div>
         </RevealSection>
 
@@ -728,7 +714,7 @@ export default function HomePage() {
             <div className="space-y-6 lg:col-span-5">
               <Logo />
               <p className="max-w-sm text-sm font-light leading-relaxed text-[var(--at-muted)]">
-                Evidence-based software architecture evolution reconstruction, built on Git history and AST analysis.
+                {t("home.footer.about")}
               </p>
             </div>
 
@@ -738,13 +724,13 @@ export default function HomePage() {
                   className="mb-6 text-xs font-bold uppercase tracking-widest text-[var(--at-warn)]"
                   style={{ fontFamily: fontFamily.mono }}
                 >
-                  Pipeline
+                  {t("home.footer.pipeline")}
                 </h4>
                 <ul className="space-y-4 text-xs">
-                  <li><a href="#architecture" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">Repository Mining</a></li>
-                  <li><a href="#console" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">Evolution Analysis</a></li>
-                  <li><a href="#hardware" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">Evidence-Based Reasoning</a></li>
-                  <li><a href="#modules" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">Architectural Diff</a></li>
+                  <li><a href="#how-it-works" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">{t("home.footer.mining")}</a></li>
+                  <li><a href="#diff" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">{t("home.footer.evolution")}</a></li>
+                  <li><a href="#evidence" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">{t("home.footer.reasoning")}</a></li>
+                  <li><a href="#change-types" className="text-white visited:text-white transition-colors hover:text-[var(--at-link)]">{t("home.footer.diff")}</a></li>
                 </ul>
               </div>
               <div>
@@ -752,13 +738,14 @@ export default function HomePage() {
                   className="mb-6 text-xs font-bold uppercase tracking-widest text-[var(--at-warn)]"
                   style={{ fontFamily: fontFamily.mono }}
                 >
-                  Scope
+                  {t("home.footer.scope")}
                 </h4>
                 <ul className="space-y-4 text-xs text-[var(--at-muted)]">
-                  <li>Java / Spring Boot</li>
-                  <li>Git History Analysis</li>
-                  <li>Knowledge Graph</li>
-                  <li>Benchmarks</li>
+                  <li>JavaScript / TypeScript</li>
+                  <li>Java, C#, Python, Go</li>
+                  <li>{t("home.footer.gitAnalysis")}</li>
+                  <li>{t("home.footer.graph")}</li>
+                  <li>{t("home.footer.benchmarks")}</li>
                 </ul>
               </div>
               <div className="col-span-2 md:col-span-1">
@@ -766,16 +753,16 @@ export default function HomePage() {
                   className="mb-6 text-xs font-bold uppercase tracking-widest text-[var(--at-warn)]"
                   style={{ fontFamily: fontFamily.mono }}
                 >
-                  Project
+                  {t("home.footer.project")}
                 </h4>
-                <div className="flex gap-4 text-xl text-[var(--at-muted)]" aria-label="Links coming soon">
-                  <span className="cursor-not-allowed opacity-60" aria-disabled="true" title="Coming soon">
+                <div className="flex gap-4 text-xl text-[var(--at-muted)]" aria-label={t("home.footer.linksSoon")}>
+                  <span className="cursor-not-allowed opacity-60" aria-disabled="true" title={t("common.comingSoon")}>
                     <Icon icon="ph:github-logo-light" />
                   </span>
-                  <span className="cursor-not-allowed opacity-60" aria-disabled="true" title="Coming soon">
+                  <span className="cursor-not-allowed opacity-60" aria-disabled="true" title={t("common.comingSoon")}>
                     <Icon icon="ph:terminal-light" />
                   </span>
-                  <span className="cursor-not-allowed opacity-60" aria-disabled="true" title="Coming soon">
+                  <span className="cursor-not-allowed opacity-60" aria-disabled="true" title={t("common.comingSoon")}>
                     <Icon icon="ph:cpu-light" />
                   </span>
                 </div>
@@ -787,8 +774,8 @@ export default function HomePage() {
             className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-[var(--at-line)]/40 pt-8 text-[10px] uppercase tracking-widest text-[var(--at-muted)] sm:flex-row"
             style={{ fontFamily: fontFamily.mono }}
           >
-            <p>&copy; 2026 ArchTime. Capstone Project.</p>
-            <div className="flex gap-8" aria-label="Evidence classification legend">
+            <p>{t("home.footer.copyright")}</p>
+            <div className="flex gap-8" aria-label={t("home.footer.legend")}>
               <span>FACT</span>
               <span>INFERENCE</span>
               <span>UNKNOWN</span>

@@ -1,4 +1,16 @@
 import type { ArchClass, ArchComponent, ArchEdge, ArchitectureView, ComponentRole, Evidence, Provenance } from './types.ts';
+import { defineMessages, message } from '../../i18n/define.ts';
+import { translateOr } from '../../i18n/index.ts';
+
+const TEXT = defineMessages({
+  file: 'file', files: 'files', class: 'class', classes: 'classes',
+  aria: '{name}, {role}, {count} {unit}, {label}. Depends on {out} components, used by {into}.', classAria: '{name}, {unit} in {component}, {path}.',
+}, {
+  file: 'tệp', files: 'tệp', class: 'lớp', classes: 'lớp',
+  aria: '{name}, {role}, {count} {unit}, {label}. Phụ thuộc vào {out} thành phần, được {into} thành phần dùng.', classAria: '{name}, {unit} trong {component}, {path}.',
+});
+/** A role as people read it, in the chosen language. */
+const roleName = (role: ComponentRole) => translateOr(`archRole.${role}`, ROLE_LABEL[role]);
 
 // A scene is what gets drawn: either the component map or the classes inside one component.
 export type SceneMode = 'components' | 'classes';
@@ -29,7 +41,7 @@ export const ROLE_LABEL: Record<ComponentRole, string> = {
 };
 export const unitWord = (view: Pick<ArchitectureView, 'unit'>, n: number) => {
   const file = view.unit === 'file';
-  return n === 1 ? (file ? 'file' : 'class') : file ? 'files' : 'classes';
+  return message(TEXT, n === 1 ? (file ? 'file' : 'class') : file ? 'files' : 'classes');
 };
 
 export function componentScene(view: ArchitectureView): Scene {
@@ -37,9 +49,9 @@ export function componentScene(view: ArchitectureView): Scene {
   const into = new Map<string, number>();
   for (const e of view.edges) { out.set(e.source, (out.get(e.source) ?? 0) + 1); into.set(e.target, (into.get(e.target) ?? 0) + 1); }
   const nodes = view.components.map((c): SceneNode => ({
-    id: c.id, kind: 'component', title: c.name, subtitle: `${ROLE_LABEL[c.role]} · ${c.memberIds.length} ${unitWord(view, c.memberIds.length)}`, role: c.role, tag: c.label,
+    id: c.id, kind: 'component', title: c.name, subtitle: `${roleName(c.role)} · ${c.memberIds.length} ${unitWord(view, c.memberIds.length)}`, role: c.role, tag: c.label,
     width: 196, height: 84, layer: c.layer,
-    aria: `${c.name}, ${ROLE_LABEL[c.role]}, ${c.memberIds.length} ${unitWord(view, c.memberIds.length)}, ${c.label}. Depends on ${out.get(c.id) ?? 0} components, used by ${into.get(c.id) ?? 0}.`,
+    aria: message(TEXT, 'aria', { name: c.name, role: roleName(c.role), count: c.memberIds.length, unit: unitWord(view, c.memberIds.length), label: c.label, out: out.get(c.id) ?? 0, into: into.get(c.id) ?? 0 }),
   }));
   const edges = view.edges.map((e): SceneEdge => ({ id: e.id, source: e.source, target: e.target, weight: e.weight, evidence: e.evidence, kinds: e.kinds }));
   return { mode: 'components', nodes, edges };
@@ -59,7 +71,7 @@ export function classScene(view: ArchitectureView, componentId: string): Scene {
   for (const id of component.memberIds) {
     const c = classById.get(id);
     if (!c) continue;
-    nodes.push({ id, kind: 'class', title: c.name, subtitle: c.path.split('/').slice(-2).join('/'), role: component.role, width: 188, height: 52, aria: `${c.name}, ${view.unit === 'file' ? 'file' : 'class'} in ${component.name}, ${c.path}.` });
+    nodes.push({ id, kind: 'class', title: c.name, subtitle: c.path.split('/').slice(-2).join('/'), role: component.role, width: 188, height: 52, aria: message(TEXT, 'classAria', { name: c.name, unit: message(TEXT, view.unit === 'file' ? 'file' : 'class'), component: component.name, path: c.path }) });
   }
   const add = (source: string, target: string, ev: Evidence) => {
     const id = `${source}->${target}`;

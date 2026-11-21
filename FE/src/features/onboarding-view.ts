@@ -1,12 +1,15 @@
 import type { AnswerResult, LearnerProgress, MentorPath, PathPayload, PathStatus, PathSummary, Progress, StepAssessment, StepKind } from './onboarding-api';
 
+import { lx } from './onboarding-messages.ts';
+
 // What the learning-path pages show and send, kept out of the components so it can be tested without rendering them.
 
-export const STEP_KINDS: { kind: StepKind; label: string; hint: string }[] = [
-  { kind: 'component', label: 'Component', hint: 'Explain one component of the architecture' },
-  { kind: 'commit', label: 'Commit', hint: 'Walk through one mined commit and its evidence' },
-  { kind: 'adr', label: 'Design decision', hint: 'Read one design decision (ADR)' },
-  { kind: 'question', label: 'Question', hint: 'Check understanding with a multiple-choice question' },
+// Label and hint are read when shown, so they follow the chosen language.
+const kind = (k: StepKind, label: 'kindComponent' | 'kindCommit' | 'kindAdr' | 'kindQuestion') => ({
+  kind: k, get label() { return lx(label); }, get hint() { return lx(`${label}Hint`); },
+});
+export const STEP_KINDS: { kind: StepKind; readonly label: string; readonly hint: string }[] = [
+  kind('component', 'kindComponent'), kind('commit', 'kindCommit'), kind('adr', 'kindAdr'), kind('question', 'kindQuestion'),
 ];
 export const kindLabel = (kind: StepKind): string => STEP_KINDS.find(k => k.kind === kind)?.label ?? kind;
 
@@ -21,21 +24,21 @@ export function assessmentNote(assessment: StepAssessment | undefined): { level:
   if (assessment.status === 'outdated') {
     // The server says what changed: the step's own component or design decision, never just "something in the workspace".
     const changed = assessment.issues.filter(issue => issue.code === 'MAP_CHANGED').map(issue => issue.message);
-    return { level: 'warning', text: changed.length ? `${changed.join(' ')} The step may describe it as it was.` : 'What this step is about changed after it was written, so it may describe an older version.' };
+    return { level: 'warning', text: changed.length ? lx('mayDescribe', { changed: changed.join(' ') }) : lx('changed') };
   }
   const gone = assessment.issues.filter(issue => issue.code !== 'MAP_CHANGED').map(issue => issue.message);
-  return { level: 'error', text: gone.length ? gone.join(' ') : 'What this step was written about is no longer in the repository.' };
+  return { level: 'error', text: gone.length ? gone.join(' ') : lx('gone') };
 }
 
 /** The step's component or design decision was removed from the workspace: re-pinning cannot help, only choosing another. */
 export const refGone = (assessment: StepAssessment | undefined): boolean => !!assessment?.issues.some(issue => issue.code === 'REF_GONE');
 
-export const progressText = (progress: Progress): string => `${progress.done} of ${progress.total} step${progress.total === 1 ? '' : 's'}`;
+export const progressText = (progress: Progress): string => lx('progress', { done: progress.done, count: progress.total });
 
 /** What a learner is told after answering a question. */
 export function answerFeedback(result: Pick<AnswerResult, 'correct' | 'attempts'>): { type: 'success' | 'error'; text: string } {
-  if (result.correct) return { type: 'success', text: result.attempts === 1 ? 'Correct, on the first try.' : `Correct, after ${result.attempts} tries.` };
-  return { type: 'error', text: 'Not quite. Read the step again and try another answer.' };
+  if (result.correct) return { type: 'success', text: result.attempts === 1 ? lx('correctFirst') : lx('correctAfter', { n: result.attempts }) };
+  return { type: 'error', text: lx('notQuite') };
 }
 
 /** The first step that is not done yet, or -1 when the path is finished. */
@@ -44,14 +47,14 @@ export function firstOpenStep(steps: readonly { progress: { completed: boolean }
 }
 
 export function pathStatusTag(status: PathStatus): { color: string; label: string } {
-  return status === 'published' ? { color: 'green', label: 'Published' } : { color: 'default', label: 'Draft' };
+  return status === 'published' ? { color: 'green', label: lx('published') } : { color: 'default', label: lx('draft') };
 }
 
 /** How many steps of a path a mentor should look at, in words; empty when none. */
 export function attentionText(path: Pick<PathSummary, 'outdatedSteps' | 'missingSteps'>): string {
   const parts: string[] = [];
-  if (path.missingSteps) parts.push(`${path.missingSteps} step${path.missingSteps === 1 ? ' points' : 's point'} at something that is gone`);
-  if (path.outdatedSteps) parts.push(`${path.outdatedSteps} may be out of date`);
+  if (path.missingSteps) parts.push(lx('missing', { count: path.missingSteps }));
+  if (path.outdatedSteps) parts.push(lx('outdated', { n: path.outdatedSteps }));
   return parts.join(', ');
 }
 
@@ -60,6 +63,10 @@ export function learnerState(progress: Pick<LearnerProgress, 'done' | 'total'>):
   if (progress.total > 0 && progress.done >= progress.total) return 'finished';
   return progress.done > 0 ? 'in progress' : 'not started';
 }
+
+const STATE_KEY = { 'not started': 'notStarted', 'in progress': 'inProgress', finished: 'finished' } as const;
+/** The state in words of the chosen language. */
+export const learnerStateLabel = (state: LearnerState): string => lx(STATE_KEY[state]);
 
 /** Questions answered wrongly more than once point at a step that may be unclear. */
 export const struggled = (attempts: number, completed: boolean): boolean => attempts >= 3 && !completed;
@@ -158,22 +165,22 @@ const REF_FIELD: Partial<Record<StepKind, 'componentId' | 'adrId'>> = { componen
 /** What is missing in a draft, named like the server's `fields` (for example "steps[2].title"); the server checks everything again. */
 export function checkDraft(draft: PathDraft): Record<string, string> {
   const problems: Record<string, string> = {};
-  if (!draft.title.trim()) problems.title = 'Give the path a title.';
-  if (draft.status === 'published' && !draft.steps.length) problems.steps = 'A published path needs at least one step.';
-  if (draft.steps.length > MAX_STEPS) problems.steps = `At most ${MAX_STEPS} steps.`;
+  if (!draft.title.trim()) problems.title = lx('needTitle');
+  if (draft.status === 'published' && !draft.steps.length) problems.steps = lx('needStep');
+  if (draft.steps.length > MAX_STEPS) problems.steps = lx('maxSteps', { n: MAX_STEPS });
   draft.steps.forEach((step, i) => {
     const at = (name: string) => `steps[${i}].${name}`;
-    if (!step.title.trim()) problems[at('title')] = 'Give the step a title.';
+    if (!step.title.trim()) problems[at('title')] = lx('stepTitle');
     const ref = REF_FIELD[step.kind];
-    if (ref && !step[ref]) problems[at(ref)] = step.kind === 'component' ? 'Choose a component.' : 'Choose a design decision.';
-    if (step.kind === 'commit' && !step.commit.trim() && !step.id) problems[at('commit')] = 'Choose a commit.';
+    if (ref && !step[ref]) problems[at(ref)] = step.kind === 'component' ? lx('chooseComponent') : lx('chooseAdr');
+    if (step.kind === 'commit' && !step.commit.trim() && !step.id) problems[at('commit')] = lx('chooseCommit');
     if (step.kind === 'question') {
       const q = step.question;
-      if (!q.prompt.trim()) problems[at('question.prompt')] = 'Write the question.';
+      if (!q.prompt.trim()) problems[at('question.prompt')] = lx('writeQuestion');
       const options = q.options.map(option => option.trim());
-      if (options.some(option => !option)) problems[at('question.options')] = 'Fill in every answer, or remove the empty ones.';
-      else if (new Set(options.map(option => option.toLowerCase())).size !== options.length) problems[at('question.options')] = 'Two answers are the same.';
-      if (q.correctIndex < 0 || q.correctIndex >= q.options.length) problems[at('question.correctIndex')] = 'Mark the right answer.';
+      if (options.some(option => !option)) problems[at('question.options')] = lx('fillAnswers');
+      else if (new Set(options.map(option => option.toLowerCase())).size !== options.length) problems[at('question.options')] = lx('sameAnswers');
+      if (q.correctIndex < 0 || q.correctIndex >= q.options.length) problems[at('question.correctIndex')] = lx('markRight');
     }
   });
   return problems;

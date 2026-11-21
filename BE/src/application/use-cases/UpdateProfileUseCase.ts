@@ -1,4 +1,4 @@
-import type { IUser } from "../../domain/entities/User.js";
+import { USER_LANGUAGES, type IUser, type UserLanguage } from "../../domain/entities/User.js";
 import type { IUserRepository } from "../../domain/interfaces/IUserRepository.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../../shared/errors/AppError.js";
 
@@ -7,6 +7,8 @@ export interface UpdateProfileInput {
   name?: unknown;
   /** A string sets it, null or "" clears it, undefined leaves it unchanged. */
   username?: unknown;
+  /** "en" or "vi": the language of the interface, e-mails and reports. */
+  language?: unknown;
 }
 
 const NAME_MAX = 100;
@@ -22,7 +24,14 @@ export class UpdateProfileUseCase {
   constructor(private readonly userRepo: IUserRepository) {}
 
   async execute(input: UpdateProfileInput): Promise<Omit<IUser, "passwordHash">> {
-    const patch: { name?: string; username?: string | null } = {};
+    const patch: { name?: string; username?: string | null; language?: UserLanguage } = {};
+
+    if (input.language !== undefined) {
+      if (typeof input.language !== "string" || !(USER_LANGUAGES as readonly string[]).includes(input.language)) {
+        throw new BadRequestError(`Language must be one of: ${USER_LANGUAGES.join(", ")}.`, "VALIDATION_ERROR");
+      }
+      patch.language = input.language as UserLanguage;
+    }
 
     if (input.name !== undefined) {
       if (typeof input.name !== "string" || !input.name.trim()) {
@@ -52,8 +61,8 @@ export class UpdateProfileUseCase {
       }
     }
 
-    if (patch.name === undefined && patch.username === undefined) {
-      throw new BadRequestError("Nothing to update: send name and/or username.", "VALIDATION_ERROR");
+    if (patch.name === undefined && patch.username === undefined && patch.language === undefined) {
+      throw new BadRequestError("Nothing to update: send name, username and/or language.", "VALIDATION_ERROR");
     }
 
     // A username is chosen once: after that it can be sent again unchanged, but not changed or cleared.

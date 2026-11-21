@@ -6,11 +6,35 @@ import {
   countedItems, evidenceHref, parseAnswer, toggleDetail,
   type AnswerSegment, type ChatEvidence, type CitedItem, type EvidenceDetail,
 } from '@/features/chat-answer';
+import { formatDate } from '@/i18n/format';
+import { defineMessages, message } from '@/i18n/define';
+import type { Params } from '@/i18n';
+
+const MSG = defineMessages({
+  noDetails: 'No further details were recorded for {commit}.', snapshotOnly: 'Snapshot only: no architectural change evidence was recorded for this commit, so it is not counted in the totals above.',
+  filesInSnapshot: '{count} files in snapshot', filesInSnapshot_one: '1 file in snapshot', filesChanged: '{count} files changed', filesChanged_one: '1 file changed', deps: 'deps',
+  moreFiles: '+{n} more files', openEvidence: 'Open in Changes & Evidence', showCommit: 'Show evidence for commit {commit}',
+  skipped: '{count} cited commits have a snapshot but no change evidence and are not counted.', skipped_one: '1 cited commit has a snapshot but no change evidence and is not counted.',
+  details: 'Evidence details', closeDetails: 'Close evidence details', filesTitle: 'Files changed in the cited commits', files: '{count} files', files_one: '1 file', more: ' +{n} more',
+  filesTotal: 'Total: {files} files across {count} commits', filesTotal_one: 'Total: {files} files across 1 commit', depsTitle: 'Dependency changes in the cited commits', total: 'Total:',
+  cited: 'Evidence cited', selectHint: 'Select a commit, file count or dependency count for details', showFiles: 'Show the {n} files changed in the cited commits',
+  showDeps: 'Show dependency changes (+{added}/-{removed} deps)',
+}, {
+  noDetails: 'Không có thêm chi tiết nào được ghi lại cho {commit}.', snapshotOnly: 'Chỉ có ảnh chụp: commit này không có bằng chứng thay đổi kiến trúc, nên không được tính vào tổng ở trên.',
+  filesInSnapshot: '{count} tệp trong ảnh chụp', filesChanged: '{count} tệp thay đổi', deps: 'phụ thuộc',
+  moreFiles: '+{n} tệp nữa', openEvidence: 'Mở trong Thay đổi & Bằng chứng', showCommit: 'Xem bằng chứng cho commit {commit}',
+  skipped: '{count} commit được dẫn có ảnh chụp nhưng không có bằng chứng thay đổi nên không được tính.',
+  details: 'Chi tiết bằng chứng', closeDetails: 'Đóng chi tiết bằng chứng', filesTitle: 'Tệp thay đổi trong các commit được dẫn', files: '{count} tệp', more: ' +{n} nữa',
+  filesTotal: 'Tổng: {files} tệp trên {count} commit', depsTitle: 'Thay đổi phụ thuộc trong các commit được dẫn', total: 'Tổng:',
+  cited: 'Bằng chứng được dẫn', selectHint: 'Chọn một commit, số tệp hoặc số phụ thuộc để xem chi tiết', showFiles: 'Xem {n} tệp thay đổi trong các commit được dẫn',
+  showDeps: 'Xem thay đổi phụ thuộc (+{added}/-{removed})',
+});
+const tx = (key: Parameters<typeof message<typeof MSG.en>>[1], params?: Params) => message(MSG, key, params);
 
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
 
 const LABEL_STYLES = {
-  FACT: 'bg-[#22c55e]/15 text-[#22c55e] border-[#22c55e]/30',
+  FACT: 'bg-[var(--at-success)]/15 text-[var(--at-success)] border-[var(--at-success)]/30',
   INFERENCE: 'bg-[var(--at-warn)]/15 text-[var(--at-warn)] border-[var(--at-warn)]/30',
   UNKNOWN: 'bg-[var(--at-muted)]/15 text-[var(--at-muted)] border-[var(--at-muted)]/30'
 } as const;
@@ -24,11 +48,11 @@ const COMMIT_LINK = 'font-mono text-[11px] text-[var(--at-link)] underline decor
 
 const when = (iso: string) => {
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString();
+  return Number.isNaN(date.getTime()) ? '' : formatDate(date);
 };
 
 function Deps({ added, removed }: { added: number; removed: number }) {
-  return <><span className="text-[#22c55e]">+{added}</span> / <span className="text-[#ef4444]">-{removed}</span></>;
+  return <><span className="text-[var(--at-success)]">+{added}</span> / <span className="text-[var(--at-danger)]">-{removed}</span></>;
 }
 
 interface ChipButtonProps { expanded: boolean; controls: string; label: string; tone: string; onClick: () => void; children: ReactNode }
@@ -44,32 +68,32 @@ function ChipButton({ expanded, controls, label, tone, onClick, children }: Chip
 }
 
 function CommitCard({ item, commit, projectId }: { item: CitedItem | undefined; commit: string; projectId: string }) {
-  if (!item) return <p className="text-xs text-[var(--at-muted)] pr-8">No further details were recorded for <code style={mono}>{commit}</code>.</p>;
+  if (!item) return <p className="text-xs text-[var(--at-muted)] pr-8">{tx('noDetails', { commit })}</p>;
   const snapshotOnly = item.kind === 'snapshot';
   return (
     <div className="space-y-3 pr-8">
       <div>
-        <span className="px-2 py-1 bg-[var(--at-warn)]/10 border border-[var(--at-warn)]/20 text-[var(--at-warn)] text-[9px] font-mono font-bold uppercase tracking-widest inline-block mb-2" style={mono}>{item.type}</span>
+        <span className="px-2 py-1 bg-[var(--at-warn)]/10 border border-[var(--at-warn)]/20 text-[var(--at-warn)] text-[11px] font-mono font-bold uppercase tracking-widest inline-block mb-2" style={mono}>{item.type}</span>
         <h4 className="text-sm font-bold text-[var(--at-text)] leading-snug break-words">{item.title}</h4>
         <p className="mt-1 text-[10px] text-[var(--at-muted)] font-mono" style={mono}>{[item.commit, when(item.date), item.author].filter(Boolean).join(' · ')}</p>
       </div>
       {item.summary && <p className="text-xs text-[var(--at-muted)] leading-relaxed">{item.summary}</p>}
-      {snapshotOnly && <p className="text-xs text-[var(--at-warn)] leading-relaxed">Snapshot only: no architectural change evidence was recorded for this commit, so it is not counted in the totals above.</p>}
+      {snapshotOnly && <p className="text-xs text-[var(--at-warn)] leading-relaxed">{tx('snapshotOnly')}</p>}
       <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono text-[var(--at-text)]" style={mono}>
-        <span>{item.files} files{snapshotOnly ? ' in snapshot' : ' changed'}</span>
-        <span><Deps {...item.dependencies} /> deps</span>
+        <span>{tx(snapshotOnly ? 'filesInSnapshot' : 'filesChanged', { count: item.files })}</span>
+        <span><Deps {...item.dependencies} /> {tx('deps')}</span>
       </p>
       {item.sourceFiles.length > 0 && (
         <ul className="border border-[var(--at-line)] divide-y divide-[var(--at-line)] max-h-48 overflow-y-auto">
           {item.sourceFiles.map(file => (
             <li key={file} className="px-3 py-1.5 text-xs font-mono text-[var(--at-text)] truncate" style={mono} title={file}>{file}</li>
           ))}
-          {item.moreFiles > 0 && <li className="px-3 py-1.5 text-[10px] text-[var(--at-muted)]">+{item.moreFiles} more files</li>}
+          {item.moreFiles > 0 && <li className="px-3 py-1.5 text-[10px] text-[var(--at-muted)]">{tx('moreFiles', { n: item.moreFiles })}</li>}
         </ul>
       )}
       {!snapshotOnly && (
         <Link to={evidenceHref(projectId, item.commit)} className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-[var(--at-link)] hover:underline uppercase" style={mono}>
-          Open in Changes &amp; Evidence <ExternalLink size={10} />
+          {tx('openEvidence')} <ExternalLink size={10} />
         </Link>
       )}
     </div>
@@ -85,7 +109,7 @@ function Breakdown({ title, rows, skipped, total, onPick, detail, extra }: Break
         {rows.map(item => (
           <li key={item.commit} className="py-2">
             <div className="flex items-center gap-3">
-              <button type="button" onClick={() => onPick(item.commit)} aria-label={`Show evidence for commit ${item.commit}`} className={`${COMMIT_LINK} ${FOCUSABLE}`} style={mono}>{item.commit}</button>
+              <button type="button" onClick={() => onPick(item.commit)} aria-label={tx('showCommit', { commit: item.commit })} className={`${COMMIT_LINK} ${FOCUSABLE}`} style={mono}>{item.commit}</button>
               <span className="flex-1 min-w-0 truncate text-xs text-[var(--at-text)]" title={item.title}>{item.title}</span>
               <span className="shrink-0 text-xs font-mono text-[var(--at-muted)]" style={mono}>{detail(item)}</span>
             </div>
@@ -96,7 +120,7 @@ function Breakdown({ title, rows, skipped, total, onPick, detail, extra }: Break
       <p className="mt-2 pt-2 border-t border-[var(--at-line)] text-xs font-mono text-[var(--at-text)]" style={mono}>{total}</p>
       {skipped > 0 && (
         <p className="mt-1 text-[10px] text-[var(--at-muted)]">
-          {skipped} cited {skipped === 1 ? 'commit has' : 'commits have'} a snapshot but no change evidence and {skipped === 1 ? 'is' : 'are'} not counted.
+          {tx('skipped', { count: skipped })}
         </p>
       )}
     </div>
@@ -111,28 +135,28 @@ function DetailPanel({ id, innerRef, detail, evidence, items, projectId, onPick,
   const rows = countedItems(items);
   const skipped = items.length - rows.length;
   return (
-    <div ref={innerRef} id={id} role="region" aria-label="Evidence details" className="relative mt-3 bg-[var(--at-page)] border border-[var(--at-line)] p-4">
-      <button type="button" onClick={onClose} aria-label="Close evidence details" className={`absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-[var(--at-muted)] hover:text-[var(--at-text)] hover:bg-[var(--at-line)] ${FOCUSABLE}`}>
+    <div ref={innerRef} id={id} role="region" aria-label={tx('details')} className="relative mt-3 bg-[var(--at-page)] border border-[var(--at-line)] p-4">
+      <button type="button" onClick={onClose} aria-label={tx('closeDetails')} className={`absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-[var(--at-muted)] hover:text-[var(--at-text)] hover:bg-[var(--at-line)] ${FOCUSABLE}`}>
         <X size={14} />
       </button>
       {detail.kind === 'commit' && <CommitCard item={items.find(item => item.commit === detail.commit)} commit={detail.commit} projectId={projectId} />}
       {detail.kind === 'files' && (
         <Breakdown
-          title="Files changed in the cited commits" rows={rows} skipped={skipped} onPick={onPick}
-          detail={item => `${item.files} files`}
+          title={tx('filesTitle')} rows={rows} skipped={skipped} onPick={onPick}
+          detail={item => tx('files', { count: item.files })}
           extra={item => item.sourceFiles.length > 0 && (
             <p className="mt-1 text-[10px] font-mono text-[var(--at-muted)] truncate" style={mono} title={item.sourceFiles.join('\n')}>
-              {item.sourceFiles.slice(0, 3).join(', ')}{item.files > 3 ? ` +${item.files - 3} more` : ''}
+              {item.sourceFiles.slice(0, 3).join(', ')}{item.files > 3 ? tx('more', { n: item.files - 3 }) : ''}
             </p>
           )}
-          total={`Total: ${evidence.files} files across ${rows.length} ${rows.length === 1 ? 'commit' : 'commits'}`}
+          total={tx('filesTotal', { files: evidence.files, count: rows.length })}
         />
       )}
       {detail.kind === 'deps' && (
         <Breakdown
-          title="Dependency changes in the cited commits" rows={rows} skipped={skipped} onPick={onPick}
+          title={tx('depsTitle')} rows={rows} skipped={skipped} onPick={onPick}
           detail={item => <Deps {...item.dependencies} />}
-          total={<>Total: <Deps {...evidence.dependencies} /> deps</>}
+          total={<>{tx('total')} <Deps {...evidence.dependencies} /> {tx('deps')}</>}
         />
       )}
     </div>
@@ -170,7 +194,7 @@ export default function AssistantMessage({ content, evidence, projectId }: Props
       return <code key={index} className="px-1 bg-[var(--at-line)]/60 text-[var(--at-link)] text-[12px]" style={mono}>{segment.value}</code>;
     }
     if (segment.kind === 'commit') {
-      const label = `Show evidence for commit ${segment.commit}`;
+      const label = tx('showCommit', { commit: segment.commit });
       return interactive ? (
         <button
           key={index} type="button" onClick={() => toggle({ kind: 'commit', commit: segment.commit })}
@@ -226,42 +250,42 @@ export default function AssistantMessage({ content, evidence, projectId }: Props
       {evidence && (
         <div className="mt-4 pt-4 border-t border-[var(--at-line)]">
           <div className="flex items-center gap-2 mb-3">
-            <CheckCircle2 size={12} className="text-[#22c55e]" />
-            <span className="text-[10px] font-mono font-semibold text-[#22c55e] uppercase tracking-wider" style={mono}>Evidence cited</span>
-            {interactive && <span className="text-[10px] text-[var(--at-muted)]">Select a commit, file count or dependency count for details</span>}
+            <CheckCircle2 size={12} className="text-[var(--at-success)]" />
+            <span className="text-[10px] font-mono font-semibold text-[var(--at-success)] uppercase tracking-wider" style={mono}>{tx('cited')}</span>
+            {interactive && <span className="text-[10px] text-[var(--at-muted)]">{tx('selectHint')}</span>}
           </div>
           <div className="flex flex-wrap gap-2">
             {evidence.commits.map(commit => interactive ? (
               <ChipButton
-                key={commit} expanded={isOpen('commit', commit)} controls={panelId} label={`Show evidence for commit ${commit}`}
+                key={commit} expanded={isOpen('commit', commit)} controls={panelId} label={tx('showCommit', { commit })}
                 tone="text-[var(--at-link)]" onClick={() => toggle({ kind: 'commit', commit })}
               >
                 <GitCommit size={10} /> {commit}
               </ChipButton>
             ) : (
-              <Link key={commit} to={evidenceHref(projectId, commit)} aria-label={`Show evidence for commit ${commit}`} className={`${CHIP} ${CHIP_IDLE} ${CHIP_HOVER} ${FOCUSABLE} text-[var(--at-link)]`} style={mono}>
+              <Link key={commit} to={evidenceHref(projectId, commit)} aria-label={tx('showCommit', { commit })} className={`${CHIP} ${CHIP_IDLE} ${CHIP_HOVER} ${FOCUSABLE} text-[var(--at-link)]`} style={mono}>
                 <GitCommit size={10} /> {commit}
               </Link>
             ))}
             {evidence.files > 0 && (interactive ? (
               <ChipButton
-                expanded={isOpen('files')} controls={panelId} label={`Show the ${evidence.files} files changed in the cited commits`}
+                expanded={isOpen('files')} controls={panelId} label={tx('showFiles', { n: evidence.files })}
                 tone="text-[var(--at-muted)]" onClick={() => toggle({ kind: 'files' })}
               >
-                <FileCode size={10} /> {evidence.files} files
+                <FileCode size={10} /> {tx('files', { count: evidence.files })}
               </ChipButton>
             ) : (
-              <span className={`${CHIP} ${CHIP_IDLE} text-[var(--at-muted)]`} style={mono}><FileCode size={10} /> {evidence.files} files</span>
+              <span className={`${CHIP} ${CHIP_IDLE} text-[var(--at-muted)]`} style={mono}><FileCode size={10} /> {tx('files', { count: evidence.files })}</span>
             ))}
             {(evidence.dependencies.added > 0 || evidence.dependencies.removed > 0) && (interactive ? (
               <ChipButton
-                expanded={isOpen('deps')} controls={panelId} label={`Show dependency changes (+${evidence.dependencies.added}/-${evidence.dependencies.removed} deps)`}
+                expanded={isOpen('deps')} controls={panelId} label={tx('showDeps', { added: evidence.dependencies.added, removed: evidence.dependencies.removed })}
                 tone="text-[var(--at-muted)]" onClick={() => toggle({ kind: 'deps' })}
               >
-                <Network size={10} /> +{evidence.dependencies.added}/-{evidence.dependencies.removed} deps
+                <Network size={10} /> +{evidence.dependencies.added}/-{evidence.dependencies.removed} {tx('deps')}
               </ChipButton>
             ) : (
-              <span className={`${CHIP} ${CHIP_IDLE} text-[var(--at-muted)]`} style={mono}><Network size={10} /> +{evidence.dependencies.added}/-{evidence.dependencies.removed} deps</span>
+              <span className={`${CHIP} ${CHIP_IDLE} text-[var(--at-muted)]`} style={mono}><Network size={10} /> +{evidence.dependencies.added}/-{evidence.dependencies.removed} {tx('deps')}</span>
             ))}
           </div>
           {interactive && detail && (

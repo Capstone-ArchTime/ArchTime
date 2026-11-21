@@ -2,6 +2,8 @@ import { Tooltip } from 'antd';
 import { CircleCheck, TriangleAlert } from 'lucide-react';
 import type { Issue, IssueAction, IssueSeverity, IssueSummary } from '@/features/architecture/issues';
 import { Details } from '@/components/PageHeader';
+import { message, useMessages } from '@/i18n/define';
+import { ARCH } from './messages';
 
 // Red for high, amber for medium, slate for low; text colours are chosen to read on the #11161b panels.
 const TONE: Record<IssueSeverity | 'hint', { bar: string; text: string; label: string; chip: string }> = {
@@ -11,13 +13,14 @@ const TONE: Record<IssueSeverity | 'hint', { bar: string; text: string; label: s
   hint: { bar: '#3b82f6', text: 'text-[var(--at-link)]', label: 'Tip', chip: '' },
 };
 
-const breakdown = (s: IssueSummary) => (['high', 'medium', 'low'] as const).filter(k => s.bySeverity[k]).map(k => `${s.bySeverity[k]} ${TONE[k].label.toLowerCase()}`).join(', ');
+const breakdown = (s: IssueSummary) => (['high', 'medium', 'low'] as const).filter(k => s.bySeverity[k]).map(k => `${s.bySeverity[k]} ${message(ARCH, k).toLowerCase()}`).join(', ');
 
 /** Always on the canvas, also in full screen: how many problems there are, coloured by the worst, and a way to the list. */
 export function IssuesChip({ summary, verified, onClick, className = '' }: { summary: IssueSummary; verified: string; onClick: () => void; className?: string }) {
+  const m = useMessages(ARCH);
   const tone = summary.worst ? TONE[summary.worst].chip : 'border-[#22c55e]/50 bg-[#14532d]/40 text-[#86efac]';
-  return <Tooltip placement="bottom" title={<span>{summary.count ? `${summary.label}: ${breakdown(summary)}. Click to read them.` : 'Nothing wrong was found. Click for the details.'}<br />✓ Consistent with the import graph: {verified}</span>}>
-    <button type="button" data-overlay onClick={onClick} aria-label={`${summary.label}. Open the list`}
+  return <Tooltip placement="bottom" title={<span>{summary.count ? m('issuesTip', { label: summary.label, breakdown: breakdown(summary) }) : m('issuesNone')}<br />{m('consistent', { verified })}</span>}>
+    <button type="button" data-overlay onClick={onClick} aria-label={m('openList', { label: summary.label })}
       className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur hover:brightness-125 ${tone} ${className}`}>
       {summary.count ? <TriangleAlert size={13} aria-hidden /> : <CircleCheck size={13} aria-hidden />}
       {summary.label}
@@ -26,8 +29,8 @@ export function IssuesChip({ summary, verified, onClick, className = '' }: { sum
 }
 
 const ACTION_LABEL: Record<IssueAction, (issue: Issue) => string> = {
-  'set-reference': issue => (issue.kind === 'hint' ? 'Set reference architecture' : 'Review reference'),
-  regenerate: () => 'Regenerate components',
+  'set-reference': issue => message(ARCH, issue.kind === 'hint' ? 'setReference' : 'reviewReference'),
+  regenerate: () => message(ARCH, 'regenerate'),
 };
 
 function Card({ issue, active, onShow, onAction }: { issue: Issue; active: boolean; onShow: (issue: Issue) => void; onAction?: (action: IssueAction) => void }) {
@@ -37,15 +40,15 @@ function Card({ issue, active, onShow, onAction }: { issue: Issue; active: boole
     <span aria-hidden className="w-1 shrink-0" style={{ background: tone.bar }} />
     <div className="min-w-0 flex-1 space-y-1.5 p-2.5 text-xs">
       <p className="flex items-start gap-2">
-        <span className={`mt-px shrink-0 font-mono text-[10px] font-bold uppercase tracking-wider ${tone.text}`}>{tone.label}</span>
+        <span className={`mt-px shrink-0 font-mono text-[10px] font-bold uppercase tracking-wider ${tone.text}`}>{message(ARCH, issue.kind === 'hint' ? 'tip' : issue.severity)}</span>
         <span className="text-[13px] font-semibold leading-snug text-slate-100">{issue.title}</span>
       </p>
       <Details bodyClassName="text-xs" defaultOpen={active}>
         <p className="text-slate-300">{issue.explanation}</p>
-        <p className="text-slate-300"><span className="font-semibold text-[var(--at-link)]">What to do: </span>{issue.suggestion}</p>
+        <p className="text-slate-300"><span className="font-semibold text-[var(--at-link)]">{message(ARCH, 'whatToDo')}</span>{issue.suggestion}</p>
       </Details>
       {(showable || (issue.action && onAction)) && <div className="flex flex-wrap gap-2 pt-1">
-        {showable && <button type="button" onClick={() => onShow(issue)} className="h-7 border border-[var(--at-accent)]/50 px-2.5 text-[11px] font-bold text-[var(--at-link)] hover:bg-[var(--at-accent)]/10 hover:text-[var(--at-link-hover)]">Show in diagram</button>}
+        {showable && <button type="button" onClick={() => onShow(issue)} className="h-7 border border-[var(--at-accent)]/50 px-2.5 text-[11px] font-bold text-[var(--at-link)] hover:bg-[var(--at-accent)]/10 hover:text-[var(--at-link-hover)]">{message(ARCH, 'showInDiagram')}</button>}
         {issue.action && onAction && <button type="button" onClick={() => onAction(issue.action!)} className="h-7 bg-[var(--at-fill)] px-2.5 text-[11px] font-bold text-[var(--at-on-fill)] hover:bg-[var(--at-fill-hover)]">{ACTION_LABEL[issue.action](issue)}</button>}
       </div>}
     </div>
@@ -61,17 +64,17 @@ export default function IssuesPanel({ issues, summary, verified, activeId, inner
 }) {
   const problems = issues.filter(i => i.kind === 'problem');
   const hints = issues.filter(i => i.kind === 'hint');
-  return <section id="architecture-issues" aria-label="Issues" className="space-y-2">
+  return <section id="architecture-issues" aria-label={message(ARCH, 'issues')} className="space-y-2">
     <div className="flex items-baseline justify-between gap-2">
-      <h3 className="text-[10px] font-mono uppercase tracking-wider text-slate-300">{inner ? 'Issues for the whole map' : 'Issues'}</h3>
+      <h3 className="text-[10px] font-mono uppercase tracking-wider text-slate-300">{inner ? message(ARCH, 'issuesWhole') : message(ARCH, 'issues')}</h3>
       <span className={`text-xs font-medium ${summary.worst ? TONE[summary.worst].text : 'text-[#4ade80]'}`}>{summary.label}{summary.count ? ` · ${breakdown(summary)}` : ''}</span>
     </div>
     {!problems.length && <p className="flex items-start gap-2 rounded border border-[#14532d] bg-[#14532d]/20 p-2.5 text-xs leading-relaxed text-[#86efac]">
       <CircleCheck size={14} className="mt-px shrink-0" aria-hidden /><span>Nothing wrong was found. Consistent with the import graph: {verified}.</span></p>}
-    {problems.length > 0 && <ul className="space-y-2" aria-label="Problems">{problems.map(i => <Card key={i.id} issue={i} active={i.id === activeId} onShow={onShow} onAction={onAction} />)}</ul>}
+    {problems.length > 0 && <ul className="space-y-2" aria-label={message(ARCH, 'problems')}>{problems.map(i => <Card key={i.id} issue={i} active={i.id === activeId} onShow={onShow} onAction={onAction} />)}</ul>}
     {hints.length > 0 && <>
-      <h4 className="pt-1 text-[10px] font-mono uppercase tracking-wider text-slate-300">Suggestions</h4>
-      <ul className="space-y-2" aria-label="Suggestions">{hints.map(i => <Card key={i.id} issue={i} active={i.id === activeId} onShow={onShow} onAction={onAction} />)}</ul>
+      <h4 className="pt-1 text-[10px] font-mono uppercase tracking-wider text-slate-300">{message(ARCH, 'suggestions')}</h4>
+      <ul className="space-y-2" aria-label={message(ARCH, 'suggestions')}>{hints.map(i => <Card key={i.id} issue={i} active={i.id === activeId} onShow={onShow} onAction={onAction} />)}</ul>
     </>}
   </section>;
 }

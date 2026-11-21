@@ -5,8 +5,8 @@ import { featurePanel } from '@/components/FeaturePage';
 import { addMember, checkEmail, listMembers, memberActions, removeMember, updateMemberRole } from '@/features/organizations-api';
 import type { Organization, OrganizationMember, OrganizationRole } from '@/features/organizations-api';
 import { Details } from '@/components/PageHeader';
-
-const ROLE_OPTIONS = [{ value: 'member', label: 'Member' }, { value: 'owner', label: 'Owner' }];
+import { message as translate, useMessages } from '@/i18n/define';
+import { ORG } from './messages';
 
 /**
  * Members of an organization. Owners add people by the email of their account, change roles and remove members;
@@ -25,6 +25,8 @@ export default function MembersTab({ organization, userId, onCountChange, onLeft
   const [busy, setBusy] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [form] = Form.useForm<{ email: string; role: OrganizationRole }>();
+  const m = useMessages(ORG);
+  const ROLE_OPTIONS = [{ value: 'member', label: m('member') }, { value: 'owner', label: m('owner') }];
   // RF-14: while suspended the server refuses every change by owners except leaving, so only Leave is offered.
   const suspended = !!organization.suspension;
   const owner = organization.myRole === 'owner' && !suspended;
@@ -33,12 +35,12 @@ export default function MembersTab({ organization, userId, onCountChange, onLeft
     const controller = new AbortController();
     listMembers(organization.id, controller.signal)
       .then(list => setMembers([...list].sort((a, b) => Number(b.role === 'owner') - Number(a.role === 'owner') || a.name.localeCompare(b.name))))
-      .catch(cause => { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Could not load the members.'); });
+      .catch(cause => { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : translate(ORG, 'membersFailed')); });
     return () => controller.abort();
   }, [organization.id, attempt]);
 
   // Only people who accepted count as members; owners also see the invitations still waiting for an answer.
-  const update = (next: OrganizationMember[]) => { setMembers(next); onCountChange(next.filter(m => m.status !== 'invited').length); };
+  const update = (next: OrganizationMember[]) => { setMembers(next); onCountChange(next.filter(x => x.status !== 'invited').length); };
 
   async function add(values: { email: string; role: OrganizationRole }) {
     setAdding(true);
@@ -46,9 +48,9 @@ export default function MembersTab({ organization, userId, onCountChange, onLeft
       const added = await addMember(organization.id, { email: values.email.trim().toLowerCase(), role: values.role });
       update([...(members ?? []), added]);
       form.resetFields();
-      message.success(`${added.name} was invited as ${added.role === 'owner' ? 'an owner' : 'a member'}. They join once they accept.`);
+      message.success(m(added.role === 'owner' ? 'invitedAsOwner' : 'invitedAsMember', { name: added.name }));
     } catch (cause) {
-      message.error(cause instanceof Error ? cause.message : 'Could not add this person.');
+      message.error(cause instanceof Error ? cause.message : m('addFailed'));
     } finally {
       setAdding(false);
     }
@@ -58,10 +60,10 @@ export default function MembersTab({ organization, userId, onCountChange, onLeft
     setBusy(member.id);
     try {
       await updateMemberRole(organization.id, member.id, role);
-      update((members ?? []).map(m => (m.id === member.id ? { ...m, role } : m)));
-      message.success(`${member.name} is now ${role === 'owner' ? 'an owner' : 'a member'}.`);
+      update((members ?? []).map(x => (x.id === member.id ? { ...x, role } : x)));
+      message.success(m(role === 'owner' ? 'nowOwner' : 'nowMember', { name: member.name }));
     } catch (cause) {
-      message.error(cause instanceof Error ? cause.message : 'Could not change the role.');
+      message.error(cause instanceof Error ? cause.message : m('roleFailed'));
     } finally {
       setBusy(null);
     }
@@ -71,74 +73,71 @@ export default function MembersTab({ organization, userId, onCountChange, onLeft
     setBusy(member.id);
     try {
       const { removedProjectMemberships, cancelledInvitations } = await removeMember(organization.id, member.id);
-      const ended = (removedProjectMemberships
-        ? ` ${removedProjectMemberships} workspace ${removedProjectMemberships === 1 ? 'role' : 'roles'} in it ended.`
-        : '') + (cancelledInvitations
-        ? ` ${cancelledInvitations} pending workspace ${cancelledInvitations === 1 ? 'invitation was' : 'invitations were'} withdrawn.`
-        : '');
+      const ended = (removedProjectMemberships ? m('rolesEnded', { count: removedProjectMemberships }) : '')
+        + (cancelledInvitations ? m('invitationsWithdrawn', { count: cancelledInvitations }) : '');
       if (self) {
-        message.success(`You left ${organization.name}.${ended}`);
+        message.success(m('youLeft', { name: organization.name, ended }));
         onLeft();
         return;
       }
-      update((members ?? []).filter(m => m.id !== member.id));
-      message.success(`${member.name} was removed from the organization.${ended}`);
+      update((members ?? []).filter(x => x.id !== member.id));
+      message.success(m('removed', { name: member.name, ended }));
     } catch (cause) {
-      message.error(cause instanceof Error ? cause.message : 'Could not remove this member.');
+      message.error(cause instanceof Error ? cause.message : m('removeFailed'));
     } finally {
       setBusy(null);
     }
   }
 
-  if (error) return <Alert type="error" showIcon title={error} action={<Button size="small" onClick={() => { setError(null); setMembers(null); setAttempt(a => a + 1); }}>Retry</Button>} />;
+  if (error) return <Alert type="error" showIcon title={error} action={<Button size="small" onClick={() => { setError(null); setMembers(null); setAttempt(a => a + 1); }}>{m('retry')}</Button>} />;
   if (!members) return <Skeleton active paragraph={{ rows: 3 }} />;
 
   return (
     <div className="space-y-4">
       {owner && (
         <div className={featurePanel}>
-          <h3 className="mb-3 flex items-center gap-2 font-semibold"><UserPlus size={16} className="text-[var(--at-link)]" />Add a member</h3>
+          <h3 className="mb-3 flex items-center gap-2 font-semibold"><UserPlus size={16} className="text-[var(--at-link)]" />{m('addMember')}</h3>
           <Form form={form} layout="inline" onFinish={add} initialValues={{ role: 'member' }} className="flex flex-wrap gap-y-2">
             <Form.Item name="email" className="min-w-64 flex-1" rules={[{ validator: (_, v) => { const p = checkEmail(v ?? ''); return p ? Promise.reject(new Error(p)) : Promise.resolve(); } }]}>
-              <Input type="email" placeholder="Email of their ArchTime account" aria-label="Email of the person to add" />
+              <Input type="email" placeholder={m('emailPlaceholder')} aria-label={m('emailLabel')} />
             </Form.Item>
-            <Form.Item name="role"><Select options={ROLE_OPTIONS} aria-label="Role" className="w-32" /></Form.Item>
-            <Form.Item><Button type="primary" htmlType="submit" loading={adding}>Add</Button></Form.Item>
+            <Form.Item name="role"><Select options={ROLE_OPTIONS} aria-label={m('role')} className="w-32" /></Form.Item>
+            <Form.Item><Button type="primary" htmlType="submit" loading={adding}>{m('add')}</Button></Form.Item>
           </Form>
-          <p className="mt-2 text-xs text-[var(--at-muted)]">The person needs an ArchTime account first.</p>
-          <Details className="mt-1" bodyClassName="text-xs"><p>Members see only the workspaces they are given a role in; owners maintain every workspace of the organization.</p></Details>
+          <p className="mt-2 text-xs text-[var(--at-muted)]">{m('needsAccount')}</p>
+          <Details className="mt-1" bodyClassName="text-xs"><p>{m('membersDetails')}</p></Details>
         </div>
       )}
 
-      {!members.length ? <div className={featurePanel}><Empty description="No members." /></div> : (
-        <ul className={`${featurePanel} divide-y divide-[var(--at-line)]`} aria-label="Members">
-          {members.map(m => {
-            const self = m.userId === userId;
-            const can = memberActions(members, m, { userId, role: suspended ? 'member' : organization.myRole });
+      {!members.length ? <div className={featurePanel}><Empty description={m('noMembers')} /></div> : (
+        <ul className={`${featurePanel} divide-y divide-[var(--at-line)]`} aria-label={m('membersTab')}>
+          {members.map(member => {
+            const self = member.userId === userId;
+            const can = memberActions(members, member, { userId, role: suspended ? 'member' : organization.myRole });
             return (
-              <li key={m.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+              <li key={member.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                 <div className="min-w-0">
-                  <p className="font-medium break-words">{m.name}{self && <span className="ml-2 text-xs text-[var(--at-muted)]">(you)</span>}
-                    {m.status === 'invited' && <Tag className="ml-2" color="gold">Invited · waiting for an answer</Tag>}</p>
-                  <p className="text-xs text-[var(--at-muted)] break-all">{m.email}</p>
+                  <p className="font-medium break-words">{member.name}{self && <span className="ml-2 text-xs text-[var(--at-muted)]">{m('you')}</span>}
+                    {member.status === 'invited' && <Tag className="ml-2" color="gold">{m('invited')}</Tag>}</p>
+                  <p className="text-xs text-[var(--at-muted)] break-all">{member.email}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {can.changeRole ? (
-                    <Select size="small" value={m.role} options={ROLE_OPTIONS} className="w-28" disabled={busy === m.id} aria-label={`Role of ${m.name}`}
-                      onChange={(role: OrganizationRole) => changeRole(m, role)} />
+                    <Select size="small" value={member.role} options={ROLE_OPTIONS} className="w-28" disabled={busy === member.id} aria-label={m('roleOf', { name: member.name })}
+                      onChange={(role: OrganizationRole) => changeRole(member, role)} />
                   ) : (
-                    <Tooltip title={can.reason}><Tag color={m.role === 'owner' ? 'blue' : undefined}>{m.role === 'owner' ? 'Owner' : 'Member'}</Tag></Tooltip>
+                    <Tooltip title={can.reason}><Tag color={member.role === 'owner' ? 'blue' : undefined}>{member.role === 'owner' ? m('owner') : m('member')}</Tag></Tooltip>
                   )}
                   {can.remove && (
-                    <Popconfirm title={m.status === 'invited' ? `Withdraw the invitation to ${m.name}?` : `Remove ${m.name}?`}
-                      description={m.status === 'invited' ? 'They will not be able to accept it.' : "Their roles in this organization's workspaces end too."}
-                      okText={m.status === 'invited' ? 'Withdraw' : 'Remove'} okButtonProps={{ danger: true }} onConfirm={() => remove(m, false)}>
-                      <Button size="small" danger loading={busy === m.id}>{m.status === 'invited' ? 'Withdraw' : 'Remove'}</Button>
+                    <Popconfirm title={m(member.status === 'invited' ? 'withdrawTitle' : 'removeTitle', { name: member.name })}
+                      description={member.status === 'invited' ? m('withdrawBody') : m('removeBody')}
+                      okText={member.status === 'invited' ? m('withdraw') : m('remove')} okButtonProps={{ danger: true }} onConfirm={() => remove(member, false)}>
+                      <Button size="small" danger loading={busy === member.id}>{member.status === 'invited' ? m('withdraw') : m('remove')}</Button>
                     </Popconfirm>
                   )}
                   {can.leave && (
-                    <Popconfirm title={`Leave ${organization.name}?`} description="You lose access to its workspaces, including ones you created in it." okText="Leave" okButtonProps={{ danger: true }} onConfirm={() => remove(m, true)}>
-                      <Button size="small" danger loading={busy === m.id}>Leave</Button>
+                    <Popconfirm title={m('leaveTitle', { name: organization.name })} description={m('leaveBody')} okText={m('leave')} okButtonProps={{ danger: true }} onConfirm={() => remove(member, true)}>
+                      <Button size="small" danger loading={busy === member.id}>{m('leave')}</Button>
                     </Popconfirm>
                   )}
                 </div>

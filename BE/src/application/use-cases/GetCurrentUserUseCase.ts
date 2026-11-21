@@ -1,4 +1,4 @@
-import type { UserRole, UserStatus } from "../../domain/entities/User.js";
+import { normalizeLanguage, type UserLanguage, type UserRole, type UserStatus } from "../../domain/entities/User.js";
 import type { IUserRepository } from "../../domain/interfaces/IUserRepository.js";
 import { NotFoundError } from "../../shared/errors/AppError.js";
 import { signInMethodsOf, type SignInMethods } from "./SignInMethods.js";
@@ -9,6 +9,7 @@ export interface CurrentUserDto {
   name: string;
   email: string;
   username: string | null;
+  language: UserLanguage;
   role: UserRole;
   status: UserStatus;
   isVerified: boolean;
@@ -33,6 +34,7 @@ export class GetCurrentUserUseCase {
       name: user.name,
       email: user.email,
       username: user.username ?? null,
+      language: normalizeLanguage(user.language),
       role: user.role,
       status: user.status,
       isVerified: user.isVerified,

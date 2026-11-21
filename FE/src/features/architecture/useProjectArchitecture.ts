@@ -7,6 +7,7 @@ import type { ViewerState } from './url-state';
 import { getMiningOverview } from '@/features/mining-api';
 import { getUserModels, selectedModel } from '@/features/llm-api';
 import type { UserModels } from '@/features/llm-api';
+import { localizeStage } from '@/i18n';
 
 /** The viewer state lives in the URL hash, so a view can be shared and the back button works. */
 export function useHash() {
@@ -78,10 +79,10 @@ export function useProjectArchitecture(projectId: string | undefined, snapshotPa
     const timer = setInterval(() => {
       getMiningOverview(projectId, controller.signal).then(overview => {
         const job = overview.activeJob;
-        if (job) { setRefining({ stage: job.stage || 'Working', progress: job.progress }); return; }
+        if (job) { setRefining({ stage: localizeStage(job.stage || 'Working'), progress: job.progress }); return; }
         setRefining(null);
         setReloads(v => v + 1);
-        message[overview.lastJob?.status === 'failed' ? 'error' : 'success'](overview.lastJob?.stage || 'The refinement finished.');
+        message[overview.lastJob?.status === 'failed' ? 'error' : 'success'](localizeStage(overview.lastJob?.stage || 'The refinement finished.'));
       }).catch(() => { /* keep polling; a transient error should not end the wait */ });
     }, 1500);
     return () => { controller.abort(); clearInterval(timer); };
