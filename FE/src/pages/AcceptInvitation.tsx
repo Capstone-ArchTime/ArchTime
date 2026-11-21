@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { Alert, Button } from 'antd';
 import { MailPlus } from 'lucide-react';
 import { Logo } from '@/components/Logo';
@@ -10,20 +10,22 @@ import { defineMessages, message, useMessages } from '@/i18n/define';
 
 const MSG = defineMessages({
   incomplete: 'This invitation link is incomplete. Open it again from your email.', pageTitle: 'Workspace invitation · ArchTime', failed: 'The invitation could not be answered.',
-  joined: 'You joined the workspace', nowRole: 'You are now a {role} of this workspace.', signInToOpen: ' Sign in with the email address the invitation was sent to to open it.',
-  openWorkspaces: 'Open your workspaces', signIn: 'Sign in', declined: 'Invitation declined', declinedBody: 'You will not be added to the workspace. Ask its owner for a new invitation if you change your mind.',
+  joined: 'You joined the workspace', nowRole: 'You are now a {role} of this workspace.',
+  openWorkspaces: 'Open your workspaces', declined: 'Invitation declined', declinedBody: 'You will not be added to the workspace. Ask its owner for a new invitation if you change your mind.',
   backDashboard: 'Back to your dashboard', homePage: 'Go to the home page', invited: "You've been invited to a workspace",
   invitedBody: 'Accept to join it with the role your invitation gives you. The invitation belongs to the email address it was sent to.',
-  needsAccount: 'Use the email address the invitation was sent to: {create} or {signIn}, then open the link from your email again.', createAccount: 'create an account', signInLower: 'sign in',
-  accept: 'Accept invitation', decline: 'Decline', backSignIn: 'Back to sign in',
+  invitedBodySignedOut: 'Accept to join it with the role your invitation gives you. The invitation belongs to the email address it was sent to: sign in with that address to accept it.',
+  needsAccount: 'Use the email address the invitation was sent to: {create} or {signIn} with it, and you will come back here.', createAccount: 'create an account', signInLower: 'sign in',
+  accept: 'Accept invitation', signInToAccept: 'Sign in to accept', decline: 'Decline', backSignIn: 'Back to sign in',
 }, {
   incomplete: 'Liên kết mời này không đầy đủ. Hãy mở lại từ email.', pageTitle: 'Lời mời tham gia · ArchTime', failed: 'Không phản hồi được lời mời.',
-  joined: 'Bạn đã tham gia không gian làm việc', nowRole: 'Bạn hiện là {role} của không gian làm việc này.', signInToOpen: ' Hãy đăng nhập bằng email đã nhận lời mời để mở nó.',
-  openWorkspaces: 'Mở không gian làm việc', signIn: 'Đăng nhập', declined: 'Đã từ chối lời mời', declinedBody: 'Bạn sẽ không được thêm vào không gian làm việc. Nếu đổi ý, hãy xin chủ sở hữu một lời mời mới.',
+  joined: 'Bạn đã tham gia không gian làm việc', nowRole: 'Bạn hiện là {role} của không gian làm việc này.',
+  openWorkspaces: 'Mở không gian làm việc', declined: 'Đã từ chối lời mời', declinedBody: 'Bạn sẽ không được thêm vào không gian làm việc. Nếu đổi ý, hãy xin chủ sở hữu một lời mời mới.',
   backDashboard: 'Quay về Tổng quan', homePage: 'Về trang chủ', invited: 'Bạn được mời vào một không gian làm việc',
   invitedBody: 'Chấp nhận để tham gia với vai trò ghi trong lời mời. Lời mời thuộc về địa chỉ email đã nhận nó.',
-  needsAccount: 'Hãy dùng email đã nhận lời mời: {create} hoặc {signIn}, rồi mở lại liên kết trong email.', createAccount: 'tạo tài khoản', signInLower: 'đăng nhập',
-  accept: 'Chấp nhận lời mời', decline: 'Từ chối', backSignIn: 'Quay lại đăng nhập',
+  invitedBodySignedOut: 'Chấp nhận để tham gia với vai trò ghi trong lời mời. Lời mời thuộc về địa chỉ email đã nhận nó: hãy đăng nhập bằng địa chỉ đó để chấp nhận.',
+  needsAccount: 'Hãy dùng email đã nhận lời mời: {create} hoặc {signIn} bằng email đó, rồi bạn sẽ quay lại đây.', createAccount: 'tạo tài khoản', signInLower: 'đăng nhập',
+  accept: 'Chấp nhận lời mời', signInToAccept: 'Đăng nhập để chấp nhận', decline: 'Từ chối', backSignIn: 'Quay lại đăng nhập',
 });
 
 type State =
@@ -40,6 +42,9 @@ type State =
 export default function AcceptInvitation() {
   const [params] = useSearchParams();
   const token = params.get('token') ?? '';
+  const { pathname, search } = useLocation();
+  /** Where sign-in (or sign-up) returns to, with the token, so the person can accept right after. */
+  const here = `${pathname}${search}`;
   const { user } = useAuth();
   const [state, setState] = useState<State>(token ? { step: 'ready' } : { step: 'error', message: message(MSG, 'incomplete'), needsAccount: false });
   const m = useMessages(MSG);
@@ -66,19 +71,21 @@ export default function AcceptInvitation() {
       <MailPlus size={30} className="text-[var(--at-link)] mb-5" aria-hidden="true" />
       {state.step === 'accepted' ? <>
         <h1 className="text-2xl font-semibold mb-3">{m('joined')}</h1>
-        <p className="text-sm text-[var(--at-muted)] leading-relaxed mb-6">{m('nowRole', { role: projectRoleLabel(state.role).toLowerCase() })}{user ? '' : m('signInToOpen')}</p>
-        <Link to={user ? '/projects' : '/login'}><Button type="primary" block size="large">{user ? m('openWorkspaces') : m('signIn')}</Button></Link>
+        <p className="text-sm text-[var(--at-muted)] leading-relaxed mb-6">{m('nowRole', { role: projectRoleLabel(state.role).toLowerCase() })}</p>
+        <Link to="/projects"><Button type="primary" block size="large">{m('openWorkspaces')}</Button></Link>
       </> : state.step === 'declined' ? <>
         <h1 className="text-2xl font-semibold mb-3">{m('declined')}</h1>
         <p className="text-sm text-[var(--at-muted)] leading-relaxed mb-6">{m('declinedBody')}</p>
         <Link to={user ? '/dashboard' : '/'} className="block text-center text-sm text-[var(--at-muted)] hover:text-white">{user ? m('backDashboard') : m('homePage')}</Link>
       </> : <>
         <h1 className="text-2xl font-semibold mb-3">{m('invited')}</h1>
-        <p className="text-sm text-[var(--at-muted)] leading-relaxed mb-6">{m('invitedBody')}</p>
+        <p className="text-sm text-[var(--at-muted)] leading-relaxed mb-6">{m(user ? 'invitedBody' : 'invitedBodySignedOut')}</p>
         {state.step === 'error' && <Alert type="error" showIcon role="alert" className="mb-5" title={state.message}
-          description={state.needsAccount ? <span>{m.rich('needsAccount', { create: <Link key="c" to="/register">{m('createAccount')}</Link>, signIn: <Link key="s" to="/login">{m('signInLower')}</Link> })}</span> : undefined} />}
+          description={state.needsAccount ? <span>{m.rich('needsAccount', { create: <Link key="c" to="/register" state={{ from: here }}>{m('createAccount')}</Link>, signIn: <Link key="s" to="/login" state={{ from: here }}>{m('signInLower')}</Link> })}</span> : undefined} />}
         {token && <div className="flex gap-3">
-          <Button type="primary" size="large" className="flex-1" loading={busy && state.action === 'accept'} disabled={busy} onClick={() => void answer('accept')}>{m('accept')}</Button>
+          {user
+            ? <Button type="primary" size="large" className="flex-1" loading={busy && state.action === 'accept'} disabled={busy} onClick={() => void answer('accept')}>{m('accept')}</Button>
+            : <Link to="/login" state={{ from: here }} className="flex-1"><Button type="primary" size="large" block disabled={busy}>{m('signInToAccept')}</Button></Link>}
           <Button size="large" loading={busy && state.action === 'decline'} disabled={busy} onClick={() => void answer('decline')}>{m('decline')}</Button>
         </div>}
         <Link to={user ? '/dashboard' : '/login'} className="block text-center text-sm text-[var(--at-muted)] hover:text-white mt-5">{user ? m('backDashboard') : m('backSignIn')}</Link>

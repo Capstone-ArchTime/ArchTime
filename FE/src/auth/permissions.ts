@@ -33,7 +33,7 @@ const prefixes: Record<Role, readonly string[]> = {
 };
 
 /** Pages every signed-in account has, whatever its role. */
-const sharedRoutes: readonly string[] = ['/profile', '/my-work', '/settings'];
+const sharedRoutes: readonly string[] = ['/profile', '/my-work', '/settings', '/invitations/accept'];
 
 export function canAccess(role: Role, path: string) {
   const pathname = path.split(/[?#]/)[0].replace(/\/+$/, '') || '/';

@@ -468,9 +468,9 @@ export default function Profile() {
               {m('setOneToo')}
             </p>
             {firstPasswordProblems.general && <Alert type="error" showIcon title={firstPasswordProblems.general} />}
-            <PasswordField id="setpw-newPassword" text={m('newPassword')} autoComplete="off" value={firstPassword.newPassword} error={firstPasswordProblems.newPassword} rules
+            <PasswordField id="setpw-newPassword" text={m('newPassword')} autoComplete="new-password" value={firstPassword.newPassword} error={firstPasswordProblems.newPassword} rules
               onChange={value => setFirstPassword(p => ({ ...p, newPassword: value }))} />
-            <PasswordField id="setpw-confirmNewPassword" text={m('repeatPassword')} autoComplete="off" value={firstPassword.confirmNewPassword} error={firstPasswordProblems.confirmNewPassword}
+            <PasswordField id="setpw-confirmNewPassword" text={m('repeatPassword')} autoComplete="new-password" value={firstPassword.confirmNewPassword} error={firstPasswordProblems.confirmNewPassword}
               onChange={value => setFirstPassword(p => ({ ...p, confirmNewPassword: value }))} />
             <Button type="primary" htmlType="submit" loading={settingPassword}>{m('setPasswordButton')}</Button>
             <p className="text-xs text-[var(--at-muted)]">
@@ -491,7 +491,7 @@ export default function Profile() {
               {!methods && <p className="text-xs text-[var(--at-muted)]">{m('githubCannotChange')}</p>}
               {passwordProblems.general && <Alert type="error" showIcon title={passwordProblems.general} />}
               {(['oldPassword', 'newPassword', 'confirmNewPassword'] as const).map(field => {
-                const copy = { oldPassword: [m('currentPassword'), 'current-password'], newPassword: [m('newPassword'), 'off'], confirmNewPassword: [m('repeatPassword'), 'off'] }[field];
+                const copy = { oldPassword: [m('currentPassword'), 'current-password'], newPassword: [m('newPassword'), 'new-password'], confirmNewPassword: [m('repeatPassword'), 'new-password'] }[field];
                 return <PasswordField key={field} id={`pw-${field}`} text={copy[0]} autoComplete={copy[1]} value={passwords[field]} error={passwordProblems[field]} rules={field === 'newPassword'}
                   onChange={value => setPasswords(p => ({ ...p, [field]: value }))} />;
               })}

@@ -87,7 +87,7 @@ app.use(
     projectMaintainerController,
   ),
 );
-app.use("/api/invitations", createInvitationRouter(projectMaintainerController));
+app.use("/api/invitations", createInvitationRouter(projectMaintainerController, jwtTokenService));
 app.get(
   "/api/team/members",
   createAuthenticateMiddleware(jwtTokenService),
