@@ -1,7 +1,6 @@
 import { app } from "./app.js";
 import { env } from "./config/env.js";
 import { connectDb } from "./config/db.js";
-import open from "open";
 import { MiningService } from "./infrastructure/services/MiningService.js";
 import { LlmModelRegistry } from "./infrastructure/llm/registry.js";
 import { MongoUserRepository } from "./infrastructure/repositories/MongoUserRepository.js";
@@ -16,15 +15,9 @@ async function start(): Promise<void> {
   await MiningService.recoverInterruptedJobs();
   await LlmModelRegistry.seedFromEnv();
   const url = `http://localhost:${env.port}`;
-  app.listen(env.port, async () => {
+  app.listen(env.port, () => {
     console.log(`ArchTime BE listening on ${url}`);
-
-    // Automatically open Swagger UI in default browser
-    try {
-      await open(`${url}/api-docs`);
-    } catch (err) {
-      console.error("Failed to open browser:", err);
-    }
+    console.log(`Swagger UI: ${url}/api-docs`);
   });
 }
 
