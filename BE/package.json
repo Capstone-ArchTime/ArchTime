@@ -32,7 +32,6 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.7.0",
     "nodemailer": "^10.0.10",
-    "open": "^11.0.4",
     "pdfkit": "^0.20.2",
     "simple-git": "^4.0.2",
     "swagger-jsdoc": "^6.3.0",
