@@ -284,7 +284,7 @@ sequenceDiagram
     A->>A: status must be pending, else 400 (MSG12)
     A->>W: findByProjectId
     A->>W: save(proposed diagram, confirmed, baseline = latest commit)
-    A-->>PM: 200 approved; the confirmed map moves to the proposal
+    A-->>PM: 200 approved, the confirmed map moves to the proposal
 ```
 
 ### DS-04b: two tabs save the same workspace
@@ -302,7 +302,7 @@ sequenceDiagram
     TB->>S: PUT /workspace (expectedRevision 7)
     S->>W: save(..., 7)
     W-->>S: conflict: current revision is 8
-    S-->>TB: 409 CONFLICT (MSG11); tab A's save is kept
+    S-->>TB: 409 CONFLICT (MSG11), tab A's save is kept
 ```
 
 ### Confirming and locking the diagram (F-07)
@@ -322,7 +322,7 @@ sequenceDiagram
     S->>K: editsLockedDiagram(stored, incoming)
     K-->>S: true
     S-->>PM: 409 DIAGRAM_LOCKED
-    Note over PM,S: path prefixes can still be mapped; POST /diagram/unconfirm makes it a draft again
+    Note over PM,S: path prefixes can still be mapped, POST /diagram/unconfirm makes it a draft again
 ```
 
 ### DS-06a: an administrator cancels a job and suspends a user
@@ -335,6 +335,7 @@ sequenceDiagram
     participant Q as MiningService
     participant S as SuspendUserUseCase
     participant L as AuditService
+    participant MW as auth middleware
     AD->>J: POST /admin/jobs/{id}/cancel
     J->>J: job must be queued or running
     J->>Q: cancelJob (the running worker stops)
@@ -344,8 +345,9 @@ sequenceDiagram
     S->>S: not yourself, not the last administrator
     S->>S: status suspended, token version increased
     S-->>AD: 200 suspended
-    U->>AD: next request with the old token
-    Note over U: 401: every token issued before the suspension is refused
+    U->>MW: next request with the old token
+    MW->>MW: reads status and token version from the database
+    MW-->>U: 401: every token issued before the suspension is refused
 ```
 
 ### Component evolution on the map (RF-18)
