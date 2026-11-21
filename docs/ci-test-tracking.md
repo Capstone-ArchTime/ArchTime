@@ -33,7 +33,7 @@ Fill in your row when your tests are merged (committed / automated in CI are the
 | --- | --- | --- | --- | --- | --- |
 | WF-01 | | | | | |
 | WF-02 | | | | | |
-| WF-03 | Công | | | | |
+| WF-03 Organize a team | Công | 13 | 7 | F-02 part (Bảo): FE-02-TC01..03, SM-03 ×3, SM-04 | `BE/tests/f02-projects-team.test.mjs` |
 | WF-04 Govern the architecture | Bảo | 9 | 5 | 10 + 2 extra (F-07 path prefix, diagram lock) | `BE/tests/wf04-govern-architecture.test.mjs` |
 | WF-05 | Đức | | | | |
 | WF-06 Operate the platform | Bảo | 14 | 7 | 14 + N-04, N-05 | `BE/tests/wf06-operate-platform.test.mjs` |
@@ -62,6 +62,16 @@ Fill in your row when your tests are merged (committed / automated in CI are the
 | WF-06 end to end | DS-06a: add and default a model, cancel a running job, suspend a user who is signed out |
 | N-04 | 10 failed sign-ins per 15 minutes (with FE-01-TC02); access token lasts 60 minutes |
 | N-05 | Two organizations: a foreign project answers 404 on every project route tried, and is not listed |
+
+## F-02 Projects & team (Bảo, part of WF-03)
+
+| ID | What is checked |
+| --- | --- |
+| FE-02-TC01 | A private repository without a token or credential → 400, nothing created; with a token it is created and the token not returned |
+| FE-02-TC02 | An invitation expires 7 days after it is sent; accepting it later → 400, no membership |
+| FE-02-TC03 | A Member changing a role (their own or a colleague's) or inviting → 403, the role stays; the maintainer may |
+| SM-03 ×3 | Invitation pending → accepted (joins with the invited role, single use), pending → declined, pending → expired (final) |
+| SM-04 | Organization membership invited → active: no access while invited, active member after accepting |
 
 Both files run the whole back end (`src/app.ts` with the Mongo repositories) on a throwaway database through
 `BE/tests/workflow-harness.mjs`.
