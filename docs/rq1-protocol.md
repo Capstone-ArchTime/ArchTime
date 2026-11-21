@@ -32,13 +32,17 @@ Phần tính toán nằm ở `BE/src/domain/evaluation/rq1.ts` (phiếu nhãn, �
 | Ngưỡng ghép component | dominance 0,5 | Tập phát triển |
 | Tolerance của anchored | 0,02 | Tập phát triển |
 | Cách dựng mốc | phân cụm + AI tinh chỉnh (`--mode refine`) | Mục 2 |
-| Commit BE được đánh giá | **ghi khi chạy C11** | — |
+| Commit BE được đánh giá | `0c5e1f8` (chạy rq1 ngày 21/11/2026) | — |
 
 **Ghi chép khi chạy C11 (18/11/2026):**
 
 - Workspace: 5 workspace tên `<repo> (C11 test set)`, chủ là tài khoản Nguyễn Duy Công. Mine bằng `mode: range` từ 2024-11-18 tới thời điểm commit cố định của từng repo (bảng mục "Tập kiểm tra"), để mốc mới nhất không mới hơn phiên bản đã viết tham chiếu.
 - Môi trường (Windows): bật `core.longpaths` cho thư mục `BE/mining-cache/<workspace>`. Trước đó docusaurus bỏ qua 1.288 commit vì `Filename too long`; các commit đó được mine lại.
 - Sửa lỗi: một commit của docusaurus làm bản ghi evidence vượt giới hạn 16 MB của MongoDB (bản ghi lưu nguyên patch), khiến cả job thất bại. Patch trong evidence nay giới hạn 1.000.000 ký tự (`capPatch`, `domain/mining/miningPlan.ts`). Patch chỉ để hiển thị; RQ1, phân cụm và mentor không đọc nó (`select("-diffBefore")`), nên phương pháp đóng băng không đổi.
+- Mốc (21/11/2026): chọn theo loại release, chưa xem kết quả nào; 12 mốc rải đều, dựng bằng `--mode refine`. Quy tắc chung là release minor (`x.y.0`) của nhánh chính:
+  - react-router: `--tags '^react-router@[78]\.\d+\.0$'`. Mặc định có lẫn tag bảo trì v6 (6.29/6.30) chen giữa dòng thời gian v7/v8.
+  - react-admin, actual, outline: `--tags '^v\d+\.\d+\.0$'`. Outline có nhiều tag tiền phát hành `v0.82.1-N`.
+  - docusaurus: chỉ có 4 bản minor trong cửa sổ nên lấy cả 11 bản ổn định, `--tags '^v\d+\.\d+\.\d+$'`. Lọc này bỏ 5 tag `alpha` cùng ngày.
 
 Lệnh chạy tập kiểm tra: `npm run rq1 -- --milestones --anchored --tolerance 0.02` (Windows PowerShell 5.1: `npx tsx scripts/rq1.ts --milestones --anchored --tolerance 0.02`). Không dùng `--no-evidence` trên tập kiểm tra.
 
