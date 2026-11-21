@@ -68,7 +68,7 @@ test("FE-02-TC02 (F-02): an invitation expires after 7 days and can no longer be
 
   // Eight days later.
   await ProjectInvitationModel.updateOne({ _id: invitation._id }, { expiresAt: new Date(Date.now() - DAY) });
-  const late = await h.call(null, "POST", `/invitations/${invitation.token}/accept`);
+  const late = await h.call(await h.tokenOf(invitee), "POST", `/invitations/${invitation.token}/accept`);
   assert.equal(late.status, 400, late.text);
   assert.match(late.body.error.message, /expired/i);
   assert.equal(await ProjectMemberModel.countDocuments({ projectId: ws.projectId, userId: invitee.id }), 0);
@@ -108,7 +108,13 @@ test("SM-03 pending -> accepted: the invitee joins with the invited role, and th
   const pending = await h.call(ws.ownerToken, "GET", `/projects/${ws.projectId}/invitations`);
   assert.deepEqual(pending.body.data.invitations.map((i) => i.email), [invitee.email]);
 
-  const res = await h.call(await h.tokenOf(invitee), "POST", `/invitations/${invitation.token}/accept`);
+  // The e-mailed link alone is not enough: only the invited account, signed in, may accept.
+  const anonymous = await h.call(null, "POST", `/invitations/${invitation.token}/accept`);
+  assert.equal(anonymous.status, 401, anonymous.text);
+  assert.equal(await statusOf(invitation._id), InvitationStatus.PENDING);
+
+  const inviteeToken = await h.tokenOf(invitee);
+  const res = await h.call(inviteeToken, "POST", `/invitations/${invitation.token}/accept`);
   assert.equal(res.status, 200, res.text);
   assert.equal(await statusOf(invitation._id), InvitationStatus.ACCEPTED);
   const membership = await ProjectMemberModel.findOne({ projectId: ws.projectId, userId: invitee.id }).lean();
@@ -116,7 +122,7 @@ test("SM-03 pending -> accepted: the invitee joins with the invited role, and th
   assert.equal(membership.status, "active");
   assert.equal((await h.call(await h.tokenOf(invitee), "GET", `/projects/${ws.projectId}`)).status, 200);
 
-  const again = await h.call(null, "POST", `/invitations/${invitation.token}/accept`);
+  const again = await h.call(inviteeToken, "POST", `/invitations/${invitation.token}/accept`);
   assert.equal(again.status, 404, again.text);
   assert.equal((await h.call(ws.ownerToken, "GET", `/projects/${ws.projectId}/invitations`)).body.data.invitations.length, 0);
 });
@@ -132,7 +138,7 @@ test("SM-03 pending -> declined: no membership is created, and the declined invi
   assert.equal(await statusOf(invitation._id), InvitationStatus.DECLINED);
   assert.equal(await ProjectMemberModel.countDocuments({ projectId: ws.projectId, userId: invitee.id }), 0);
 
-  const accept = await h.call(null, "POST", `/invitations/${invitation.token}/accept`);
+  const accept = await h.call(await h.tokenOf(invitee), "POST", `/invitations/${invitation.token}/accept`);
   assert.equal(accept.status, 404, accept.text);
   assert.equal(await ProjectMemberModel.countDocuments({ projectId: ws.projectId, userId: invitee.id }), 0);
 });
@@ -144,12 +150,13 @@ test("SM-03 pending -> expired: an answer after the deadline marks it expired an
   const invitation = await invite(ws, invitee.email);
   await ProjectInvitationModel.updateOne({ _id: invitation._id }, { expiresAt: new Date(Date.now() - 1000) });
 
-  const res = await h.call(await h.tokenOf(invitee), "POST", `/invitations/${invitation.token}/accept`);
+  const inviteeToken = await h.tokenOf(invitee);
+  const res = await h.call(inviteeToken, "POST", `/invitations/${invitation.token}/accept`);
   assert.equal(res.status, 400, res.text);
   assert.equal(await statusOf(invitation._id), InvitationStatus.EXPIRED);
   assert.equal(await ProjectMemberModel.countDocuments({ projectId: ws.projectId, userId: invitee.id }), 0);
   // Expired is final: neither a second accept nor a decline brings it back.
-  assert.equal((await h.call(null, "POST", `/invitations/${invitation.token}/accept`)).status, 404);
+  assert.equal((await h.call(inviteeToken, "POST", `/invitations/${invitation.token}/accept`)).status, 404);
   assert.equal((await h.call(null, "POST", `/invitations/${invitation.token}/decline`)).status, 404);
   assert.equal(await statusOf(invitation._id), InvitationStatus.EXPIRED);
 });
