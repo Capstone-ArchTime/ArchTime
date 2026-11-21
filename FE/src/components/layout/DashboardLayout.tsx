@@ -2,7 +2,7 @@
 import type { ElementType, KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { App, Button, Drawer, Dropdown, Input, Modal, Tooltip } from 'antd';
-import { ArrowLeft, ArrowUpRight, LogOut, Menu, PanelLeftClose, Search } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, LogOut, Menu, Search } from 'lucide-react';
 import { readBack } from './back-link';
 import { useAuth } from '@/auth/auth-context';
 import { accountMenuItems, navGroupsFor, navHeadingByRole } from './navigation';
@@ -22,6 +22,11 @@ const GLINT_MS = 700;
 const HOVER_LABEL = 'inline-block transition-[color,text-shadow,transform] duration-200 ease-out group-hover:translate-x-1 group-hover:text-white group-hover:[text-shadow:0_0_14px_rgb(214_228_255/0.65)] group-focus-visible:translate-x-1 group-focus-visible:text-white';
 const HOVER_ICON = 'shrink-0 transition-[color,transform] duration-200 ease-out group-hover:scale-110 group-hover:text-[var(--at-link-hover)] group-focus-visible:text-[var(--at-link-hover)]';
 const GLINT_UNFOLD_DELAY_MS = 180;
+/**
+ * One timing for everything that moves when the sidebar folds (width, paddings, the name), so it all moves together:
+ * a soft start and a long settle. `at-sidebar-motion` keeps a short version of it with reduced motion (index.css).
+ */
+const SIDEBAR_MOTION = 'at-sidebar-motion duration-[380ms] ease-[cubic-bezier(0.32,0.72,0,1)]';
 /** The names shown beside the icons of the folded sidebar: light text on a dark surface, like the other floating panels. */
 const NAV_TIP = { color: '#27303a', styles: { container: { color: '#eef2f8', border: '1px solid rgb(225 234 248 / 0.22)' } } } as const;
 
@@ -132,8 +137,8 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
   });
   const linkClass = (active: boolean) => `relative flex items-center gap-3 rounded-md border px-[14px] py-3 text-sm transition-colors ${active ? 'border-[var(--at-accent)]/30 bg-[var(--at-accent)]/10 text-[var(--at-link)]' : 'border-transparent text-[var(--at-muted)] hover:bg-[var(--at-panel-2)] hover:text-white'}`;
   const unreadOf = (path: string) => (path === CONFORMANCE_PATH ? unread.total : 0);
-  // What hides when the sidebar folds: it fades and slides out fast, and on unfolding waits for the width before coming back.
-  const fade = (compact: boolean) => `whitespace-nowrap transition-[opacity,transform] ease-out ${compact ? 'opacity-0 -translate-x-2 duration-150' : 'opacity-100 translate-x-0 duration-300 delay-100'}`;
+  // What hides when the sidebar folds: it fades out fast, and on unfolding waits for most of the width before fading back in.
+  const fade = (compact: boolean) => `at-sidebar-motion whitespace-nowrap transition-opacity ease-out ${compact ? 'opacity-0 duration-150' : 'opacity-100 duration-300 delay-150'}`;
   /** A count beside the label, or a dot on the icon while the sidebar is folded. */
   const badge = (count: number, compact: boolean) => count <= 0 ? null : compact
     ? <span className="absolute left-[30px] top-2 h-2 w-2 rounded-full bg-[var(--at-fill)] ring-2 ring-[var(--at-sidebar)]" aria-label={t('layout.unread', { count })} />
@@ -156,40 +161,35 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
     })}
   </nav>;
   // "Arch" and "Time" fold into the monogram "AT": the letters between narrow to nothing.
-  const squeeze = `inline-block overflow-hidden align-bottom transition-[max-width,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${collapsed ? 'max-w-0 opacity-0' : 'max-w-[3.4ch] opacity-100'}`;
+  const squeeze = `inline-block overflow-hidden align-bottom transition-[max-width,opacity] ${SIDEBAR_MOTION} ${collapsed ? 'max-w-0 opacity-0' : 'max-w-[3.4ch] opacity-100'}`;
   const brandWord = <>A<span className={squeeze}>rch</span><span className="text-[var(--at-link)]">T</span><span className={`${squeeze} text-[var(--at-link)]`}>ime</span></>;
   const initials =user.name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]?.toUpperCase()).join('') || '?';
 
   return <div className="workspace-shell flex h-dvh bg-[var(--at-page)] text-[var(--at-text)] overflow-hidden">
     <a href="#main-content" className="skip-link">{t('layout.skipToContent')}</a>
     <aside id="app-sidebar" data-collapsed={collapsed}
-      className={`hidden lg:flex flex-col shrink-0 overflow-hidden border-r border-[var(--at-line)] bg-[var(--at-sidebar)] transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${collapsed ? 'w-[70px]' : 'w-64'}`}>
+      className={`hidden lg:flex flex-col shrink-0 overflow-hidden border-r border-[var(--at-line)] bg-[var(--at-sidebar)] transition-[width] ${SIDEBAR_MOTION} ${collapsed ? 'w-[70px]' : 'w-64'}`}>
       <button type="button" onClick={toggleSidebar} aria-expanded={!collapsed} aria-controls="app-sidebar" title={collapsed ? t('layout.expandSidebar') : t('layout.collapseSidebar')}
-        className={`group relative block w-full pt-7 pb-6 text-left transition-[padding] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${collapsed ? 'px-[18px]' : 'px-6'}`}>
+        className={`group relative block w-full pt-7 pb-6 text-left transition-[padding] ${SIDEBAR_MOTION} ${collapsed ? 'px-[18px]' : 'px-6'}`}>
         <span className="sr-only">{collapsed ? t('layout.expandSidebar') : t('layout.collapseSidebar')}</span>
         <span aria-hidden="true" className="relative inline-flex items-baseline whitespace-nowrap text-xl font-semibold tracking-tight">
           {brandWord}
           {glint > 0 && <span key={glint} className="at-brand-glint flex items-baseline" onAnimationEnd={() => setGlint(0)}>{brandWord}</span>}
         </span>
-        <span aria-hidden="true" className={`block overflow-hidden whitespace-nowrap text-[10px] uppercase tracking-[0.18em] text-[var(--at-muted)] transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${collapsed ? 'mt-0 max-h-0 opacity-0' : 'mt-2 max-h-6 opacity-100'}`}>{t('layout.tagline')}</span>
-        <PanelLeftClose size={16} aria-hidden="true" className={`absolute right-4 top-8 text-[var(--at-muted)] transition-opacity duration-200 group-hover:text-white ${collapsed ? 'opacity-0' : 'opacity-60 group-hover:opacity-100 group-focus-visible:opacity-100'}`} />
+        {/* Only fades: keeping its height means the links below never jump up or down while the sidebar folds. */}
+        <span aria-hidden="true" className={`mt-2 block overflow-hidden whitespace-nowrap text-[10px] uppercase tracking-[0.18em] text-[var(--at-muted)] ${fade(collapsed)}`}>{t('layout.tagline')}</span>
       </button>
       <div className="px-3 py-4 flex-1 overflow-y-auto overflow-x-hidden">
         <p className={`px-3 mb-3 text-[10px] uppercase tracking-widest text-[var(--at-muted)] ${fade(collapsed)}`}>{t.or(`navHeading:${user.role}`, navHeadingByRole[user.role])}</p>
         {renderNav(collapsed)}
       </div>
-      <div className={`border-t border-[var(--at-line)] py-4 transition-[padding] duration-300 ${collapsed ? 'px-[15px]' : 'px-4'}`}>
+      <div className={`border-t border-[var(--at-line)] py-4 transition-[padding] ${SIDEBAR_MOTION} ${collapsed ? 'px-[15px]' : 'px-4'}`}>
         <div className="flex items-center gap-3 min-w-0">
           <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--at-panel-2)] text-xs font-semibold text-[var(--at-link)]" title={collapsed ? `${user.name} · ${user.email}` : undefined}>{initials}</span>
           <div className={`min-w-0 ${fade(collapsed)}`}>
             <p className="truncate text-sm font-medium" title={user.name}>{user.name}</p><p className="truncate text-xs text-[var(--at-muted)]" title={user.email}>{user.email}</p>
           </div>
         </div>
-        <Tooltip title={collapsed ? t('common.signOut') : undefined} placement="right" {...NAV_TIP}>
-          <button type="button" onClick={logout} aria-label={t('common.signOut')} className="mt-3 flex items-center gap-2 rounded-md px-2.5 py-2 text-xs text-[var(--at-muted)] hover:bg-[var(--at-panel-2)] hover:text-white">
-            <LogOut size={15} aria-hidden="true" className="shrink-0" /><span className={fade(collapsed)}>{t('common.signOut')}</span>
-          </button>
-        </Tooltip>
       </div>
     </aside>
     <div className="flex flex-1 min-w-0 flex-col">

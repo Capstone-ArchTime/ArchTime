@@ -360,4 +360,11 @@ input, select, textarea { max-width: 100%; }
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+  /* Floating panels (menus, popovers, tooltips, pickers) are placed by moving them and measuring them at once. With the
+     forced duration above every property of theirs would transition, so the measurement read the old place
+     (-1000vh) and the panel opened off screen: the account menu under the avatar never showed. */
+  [class*="-placement-"] { transition: none !important; }
+  /* The sidebar still folds with a short, plain slide instead of snapping: it moves only when clicked, and a jump
+     loses track of where the links went. */
+  .at-sidebar-motion { transition-duration: 220ms !important; transition-delay: 0s !important; }
 }
