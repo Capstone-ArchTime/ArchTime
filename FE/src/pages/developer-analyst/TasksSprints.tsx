@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Alert, App, Button, Empty, Input, Progress as Bar, Segmented, Select, Spin, Switch, Table, Tag, Tooltip } from 'antd';
+import { Alert, App, Button, Empty, Input, Popconfirm, Progress as Bar, Segmented, Select, Spin, Switch, Table, Tag, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { FileSearch, GitCommitHorizontal, Link2, Upload } from 'lucide-react';
+import { FileSearch, GitCommitHorizontal, Link2, Trash2, Upload } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Details } from '@/components/PageHeader';
 import { getManagedProjects, getReadableProjects, type ProjectSummary } from '@/features/project-data';
 import {
-  STATUS_COLORS, edgeLabel, fetchTaskBoard, fetchTaskImpact, filterTasks, impactSummary, importJiraExport, importSummary, progressLabel, relinkCommits,
+  STATUS_COLORS, clearTasks, edgeLabel, fetchTaskBoard, fetchTaskImpact, filterTasks, impactSummary, importJiraExport, importSummary, progressLabel, relinkCommits,
 } from '@/features/tasks';
 import type { Sprint, Task, TaskBoard, TaskFilter, TaskImpact } from '@/features/tasks';
 import { ApiError } from '@/api/client';
+import JiraSync from './JiraSync';
 import { formatDate, formatDateTime } from '@/i18n/format';
 import { defineMessages, message as translate, useMessages } from '@/i18n/define';
 import type { Params } from '@/i18n';
@@ -25,11 +26,14 @@ const MSG = defineMessages({
   pointsCol: 'Points', sprint: 'Sprint', backlog: 'Backlog', commits: 'Commits', notImported: 'The export was not imported',
   tasks: '{count} tasks', tasks_one: '1 task', removedN: ', {n} removed', linkedCommits: ' · {count} linked commits', linkedCommits_one: ' · 1 linked commit', lastImport: ' · last import {date}', noTasks: 'No tasks imported yet.',
   exportFile: 'Jira export file', linkTip: 'Links every mined commit whose message names a task key (ARCH-12, T22) to that task. Mining does this after every batch.', linkAgain: 'Link commits again', importJira: 'Import Jira export',
-  emptyMaintainer: "Import a Jira JSON export (the issue search format) to see this workspace's tasks and sprints.", emptyReader: 'No tasks yet. A maintainer of this workspace imports them from Jira.', sprints: 'Sprints',
+  emptyMaintainer: "Connect Jira, or import a Jira JSON export, to see this workspace's tasks and sprints.", emptyReader: 'No tasks yet. A maintainer of this workspace imports them from Jira.', sprints: 'Sprints',
   allTasks: 'All tasks', pickSprint: 'Pick a sprint above', searchPlaceholder: 'Key, summary or assignee', searchLabel: 'Search tasks', showRemoved: 'Show removed tasks', noMatch: 'No task matches.',
   workspacesFailed: 'Could not load workspaces.', title: 'Tasks & Sprints', intro: 'Jira tasks, the commits that name them, and sprint progress.',
   details: 'Tasks come from a Jira JSON export (the issue search format). A commit is linked to a task when its message names the task key. Sprint progress is Done / all tasks of the sprint; removed tasks are not counted.',
   workspace: 'Workspace', noWorkspace: 'No workspace yet.',
+  deleteImport: 'Delete imported tasks', deleteTitle: 'Delete all imported tasks?',
+  deleteBody: 'This deletes the {count} tasks, the sprints and the commit links of this workspace. Mined commits stay; importing a file again links them again.',
+  deleteConfirm: 'Delete', cancel: 'Cancel', deleted: 'Deleted {tasks} tasks and {sprints} sprints.', deleteFailed: 'Could not delete the tasks.',
 }, {
   sprintRemoved: 'Bản xuất mới nhất không còn sprint này.', removed: 'đã xoá', progress: 'Tiến độ {name}', points: ' · {done} / {total} điểm',
   impactFailed: 'Không tải được ảnh hưởng.', unconfirmed: ' (thành phần lấy từ sơ đồ chưa xác nhận)', trailer: ' · Task: trailer', notMined: 'không còn trong lịch sử đã mining',
@@ -40,11 +44,14 @@ const MSG = defineMessages({
   pointsCol: 'Điểm', sprint: 'Sprint', backlog: 'Backlog', commits: 'Commit', notImported: 'Bản xuất chưa được nhập',
   tasks: '{count} task', removedN: ', {n} đã xoá', linkedCommits: ' · {count} commit được liên kết', lastImport: ' · lần nhập gần nhất {date}', noTasks: 'Chưa nhập task nào.',
   exportFile: 'Tệp xuất Jira', linkTip: 'Liên kết mọi commit đã mining có thông điệp nhắc tới mã task (ARCH-12, T22) với task đó. Mining tự làm việc này sau mỗi đợt.', linkAgain: 'Liên kết commit lại', importJira: 'Nhập bản xuất Jira',
-  emptyMaintainer: 'Hãy nhập bản xuất JSON của Jira (định dạng issue search) để xem task và sprint của không gian làm việc này.', emptyReader: 'Chưa có task nào. Người bảo trì không gian làm việc này sẽ nhập chúng từ Jira.', sprints: 'Sprint',
+  emptyMaintainer: 'Hãy kết nối Jira, hoặc nhập bản xuất JSON của Jira, để xem task và sprint của không gian làm việc này.', emptyReader: 'Chưa có task nào. Người bảo trì không gian làm việc này sẽ nhập chúng từ Jira.', sprints: 'Sprint',
   allTasks: 'Mọi task', pickSprint: 'Chọn một sprint ở trên', searchPlaceholder: 'Mã, tóm tắt hoặc người nhận', searchLabel: 'Tìm task', showRemoved: 'Hiện task đã xoá', noMatch: 'Không có task nào khớp.',
   workspacesFailed: 'Không tải được các không gian làm việc.', title: 'Task & Sprint', intro: 'Task Jira, các commit nhắc tới chúng, và tiến độ sprint.',
   details: 'Task lấy từ bản xuất JSON của Jira (định dạng issue search). Commit được liên kết với task khi thông điệp của nó nhắc tới mã task. Tiến độ sprint là Done / tổng task của sprint; task đã xoá không được tính.',
   workspace: 'Không gian làm việc', noWorkspace: 'Chưa có không gian làm việc nào.',
+  deleteImport: 'Xoá dữ liệu đã nhập', deleteTitle: 'Xoá mọi task đã nhập?',
+  deleteBody: 'Thao tác này xoá {count} task, các sprint và liên kết commit của không gian làm việc này. Commit đã mining vẫn giữ nguyên; nhập lại tệp sẽ liên kết lại chúng.',
+  deleteConfirm: 'Xoá', cancel: 'Huỷ', deleted: 'Đã xoá {tasks} task và {sprints} sprint.', deleteFailed: 'Không xoá được các task.',
 });
 const tx = (key: Parameters<typeof translate<typeof MSG.en>>[1], params?: Params) => translate(MSG, key, params);
 
@@ -122,6 +129,7 @@ function Board({ project, maintains }: { project: string; maintains: boolean }) 
   const [filter, setFilter] = useState<TaskFilter>({ sprint: 'all', showRemoved: false, query: '' });
   const [importing, setImporting] = useState(false);
   const [linking, setLinking] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [refusal, setRefusal] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const m = useMessages(MSG);
@@ -163,6 +171,19 @@ function Board({ project, maintains }: { project: string; maintains: boolean }) 
     } finally { setLinking(false); }
   }
 
+  async function deleteImport() {
+    setDeleting(true);
+    try {
+      const r = await clearTasks(project);
+      message.success(m('deleted', { tasks: r.tasks, sprints: r.sprints }));
+      setRefusal(null);
+      setFilter({ sprint: 'all', showRemoved: false, query: '' });
+      setRevision(v => v + 1);
+    } catch (cause) {
+      message.error(cause instanceof Error ? cause.message : m('deleteFailed'));
+    } finally { setDeleting(false); }
+  }
+
   if (error && !board) return <Alert type="error" showIcon title={error} action={<Button size="small" onClick={() => setRevision(v => v + 1)}>{m('retry')}</Button>} />;
   if (!board) return <div className="py-20 flex justify-center"><Spin /></div>;
 
@@ -190,7 +211,12 @@ function Board({ project, maintains }: { project: string; maintains: boolean }) 
         <Tooltip title={m('linkTip')}>
           <Button icon={<Link2 size={14} />} loading={linking} disabled={!board.tasks.length} onClick={relink}>{m('linkAgain')}</Button>
         </Tooltip>
-        <Button type="primary" icon={<Upload size={14} />} loading={importing} onClick={() => fileInput.current?.click()}>{m('importJira')}</Button>
+        {board.tasks.length > 0 && <Popconfirm title={m('deleteTitle')} description={<p className="max-w-xs">{m('deleteBody', { count: board.tasks.length })}</p>}
+          okText={m('deleteConfirm')} cancelText={m('cancel')} okButtonProps={{ danger: true }} onConfirm={deleteImport}>
+          <Button danger icon={<Trash2 size={14} />} loading={deleting} disabled={importing}>{m('deleteImport')}</Button>
+        </Popconfirm>}
+        <Button icon={<Upload size={14} />} loading={importing} onClick={() => fileInput.current?.click()}>{m('importJira')}</Button>
+        <JiraSync project={project} onSynced={() => setRevision(v => v + 1)} />
       </div>}
     </div>
 

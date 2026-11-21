@@ -71,6 +71,15 @@ export class MongoTaskRepository implements ITaskRepository {
   async listLinks(projectId: string): Promise<ITaskCommitLink[]> {
     return (await TaskCommitModel.find({ projectId }).sort({ date: -1, hash: 1 }).lean()).map(toLink);
   }
+
+  async clearProject(projectId: string): Promise<{ tasks: number; sprints: number; links: number }> {
+    // Links first, then tasks, then sprints: a failure part way leaves tasks without links (a relink restores them),
+    // never links or tasks pointing at what is gone.
+    const links = await TaskCommitModel.deleteMany({ projectId });
+    const tasks = await TaskModel.deleteMany({ projectId });
+    const sprints = await SprintModel.deleteMany({ projectId });
+    return { tasks: tasks.deletedCount ?? 0, sprints: sprints.deletedCount ?? 0, links: links.deletedCount ?? 0 };
+  }
 }
 
 /** Mined commits of a project, read from its snapshots (no graph), still in the history. */
