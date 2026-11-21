@@ -6,7 +6,7 @@ the current count, and where each workflow stands. Owner of this page: Bảo (B9
 ## How a test counts
 
 1. **It runs in CI.** `.github/workflows/ci.yml` runs `npm test` in `BE/` (with a MongoDB 8 service) and in `FE/` on every
-   push to `Develop` / `main` and every pull request. Every `*.test.mjs` file under `BE/tests` and `FE/tests` is included,
+   push, on every branch. Every `*.test.mjs` file under `BE/tests` and `FE/tests` is included,
    so a test that is merged and green is in CI. Tests that need MongoDB skip themselves locally when none is running, but
    run in CI.
 2. **Its name starts with the BM04 ID**, so it can be found and shown at the defense:
@@ -27,20 +27,35 @@ The script reads the test names only; it does not run anything.
 
 ## Status per workflow
 
-Fill in your row when your tests are merged (committed / automated in CI are the BM04 figures).
+Committed and "in CI" are the BM04 §8.1 figures. "Found now" counts the tests whose name carries a BM04 ID
+(`node scripts/committed-tests.mjs`). A test that already checks a criterion counts as soon as its name starts with
+the ID, for example `FE-11-TC01 (F-10): the last owner cannot be demoted or removed`. Status on 21/11/2026, `Develop`
+at `b421690`: **48 found, 52 needed in CI.**
 
-| Workflow | Owner | Committed | In CI (BM04) | Found in CI now | Test file(s) |
-| --- | --- | --- | --- | --- | --- |
-| WF-01 | | | | | |
-| WF-02 | | | | | |
-| WF-03 Organize a team | Công | 13 | 7 | F-02 part (Bảo): FE-02-TC01..03, SM-03 ×3, SM-04 | `BE/tests/f02-projects-team.test.mjs` |
-| WF-04 Govern the architecture | Bảo | 9 | 5 | 10 + 2 extra (F-07 path prefix, diagram lock) | `BE/tests/wf04-govern-architecture.test.mjs` |
-| WF-05 | Đức | | | | |
-| WF-06 Operate the platform | Bảo | 14 | 7 | 14 + N-04, N-05 | `BE/tests/wf06-operate-platform.test.mjs` |
-| WF-07 | Trường | | | | |
-| WF-08 | Đức | | | | |
-| WF-09 | Đức | | | | |
-| **Total** | | **101** | **≥ 52** | | |
+| Workflow | Owner | Committed | In CI (BM04) | Found now | Still without an ID | Test file(s) |
+| --- | --- | --- | --- | --- | --- | --- |
+| WF-01 Onboard a repository | Công | 22 | 11 | 0 | FE-03-TC01..03, FE-06-TC01..03, SM-01 ×8, SM-02 ×5, DS-01a, DS-01b, N-03, N-06 | |
+| WF-02 Analyse architecture evolution | Trường | 8 | 4 | 3: DS-02a, N-02 ×2 | FE-04-TC01..03, FE-07-TC01..03, DS-02b | `wf02-architecture-evolution.test.mjs` |
+| WF-03 Organize a team | Công (F-02: Bảo) | 13 | 7 | 7: FE-02-TC01..03, SM-03 ×3, SM-04 | FE-11-TC01..03, DS-03a, DS-03b, WF-03 end to end | `f02-projects-team.test.mjs` |
+| WF-04 Govern the architecture | Bảo | 9 | 5 | 12 (all, + F-07 extras) | none | `wf04-govern-architecture.test.mjs` |
+| WF-05 Onboard a newcomer with a learning path | Đức | 10 | 5 | 0 | FE-12-TC01..03, FE-13-TC01..03, SM-06 ×2, DS-05a, DS-05b, N-01 | |
+| WF-06 Operate the platform | Bảo | 14 | 7 | 16 (all, + N-04, N-05) | none | `wf06-operate-platform.test.mjs` |
+| WF-07 Track project work against architecture changes | Trường | 10 | 5 | 9: SM-09 ×4, SM-10 ×2, DS-07a ×2, DS-07b | FE-14-TC01..03 | `wf07-*.test.mjs`, `task-impact.test.mjs`, `jira-export-parser.test.mjs` |
+| WF-08 Check architecture conformance of new commits | Đức | 8 | 4 | 2: N-07 ×2 | FE-15-TC01..03, SM-11 ×3, DS-08a, DS-08b | `nfr-n07-n08.test.mjs`, `conformance.test.mjs` |
+| WF-09 Give AI coding agents the architecture context | Đức | 7 | 4 | 1: N-08 | FE-16-TC01..03, SM-12 ×2, DS-09a, DS-09b | `nfr-n07-n08.test.mjs` |
+| **Total** | | **101** | **≥ 52** | **48** | | |
+
+### Existing tests that only need the ID in their name
+
+These already check a committed criterion; renaming them is enough to count them.
+
+| ID | Test today | File |
+| --- | --- | --- |
+| FE-11 (F-10) | "Organization: the last owner cannot be demoted or removed" (MSG16) | `organizations.test.mjs` |
+| FE-11 (F-10) | "Organization: removing a member also removes them from every project of the organization" | `organizations.test.mjs` |
+| FE-14 (F-13) | "WF07-02 importing the same export again creates no duplicate task or sprint" | `wf07-task-tracking.test.mjs` |
+| FE-07 (F-06) | "Mentor labels: a citation to a commit that was never mined is removed, and its FACT downgraded" | `mentor-claim-labels.test.mjs` |
+| FE-16 / SM-12 (F-15) | covered inside "N-08: a project token reads only its own project, … stops when revoked or expired" | `nfr-n07-n08.test.mjs` |
 
 ## WF-04 and WF-06 in detail
 
