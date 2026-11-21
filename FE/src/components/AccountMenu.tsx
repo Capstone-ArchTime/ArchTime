@@ -13,7 +13,7 @@ export default function AccountMenu({ onNavigate }: { onNavigate: () => void }) 
                 trigger={['click']}
                 placement="bottomRight"
                 menu={{ items: [
-                  { key: 'identity', label: <div className="max-w-60 py-1 normal-case"><p className="truncate font-semibold">{user.name}</p><p className="truncate text-xs text-slate-400">{user.email}</p></div>, disabled: true },
+                  { key: 'identity', label: <div className="max-w-60 py-1 normal-case"><p className="truncate font-semibold">{user.name}</p><p className="truncate text-xs text-[var(--at-muted)]">{user.email}</p></div>, disabled: true },
                   { type: 'divider' },
                   { key: 'my-work', label: <Link to="/my-work" onClick={() => onNavigate()}>{t('nav:/my-work')}</Link> },
                   { key: 'profile', label: <Link to="/profile" onClick={() => onNavigate()}>{t('nav:/profile')}</Link> },

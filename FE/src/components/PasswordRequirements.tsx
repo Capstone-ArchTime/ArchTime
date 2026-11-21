@@ -9,11 +9,11 @@ export default function PasswordRequirements({ id, password }: { id: string; pas
   const met = rules.filter(rule => rule.met).length;
   return <div id={id} className="relative mt-2 rounded border border-[var(--at-line)] bg-[var(--at-panel)] p-3">
     <div className="mb-2 flex gap-1" aria-hidden="true">
-      {rules.map((rule, index) => <div key={rule.label} className={`h-1 flex-1 transition-colors ${index < met ? (met === rules.length ? 'bg-green-400' : 'bg-amber-400') : 'bg-[var(--at-line)]'}`} />)}
+      {rules.map((rule, index) => <div key={rule.label} className={`h-1 flex-1 transition-colors ${index < met ? (met === rules.length ? 'bg-[var(--at-success)]' : 'bg-[var(--at-warn)]') : 'bg-[var(--at-line)]'}`} />)}
     </div>
-    <p className="mb-1.5 text-xs text-slate-300">{t('password.needs')}</p>
+    <p className="mb-1.5 text-xs text-[var(--at-muted)]">{t('password.needs')}</p>
     <ul className="grid gap-1 sm:grid-cols-2">
-      {rules.map(rule => <li key={rule.label} className={`flex items-center gap-1.5 text-xs ${rule.met ? 'text-green-300' : 'text-slate-400'}`}>
+      {rules.map(rule => <li key={rule.label} className={`flex items-center gap-1.5 text-xs ${rule.met ? 'text-[var(--at-success)]' : 'text-[var(--at-muted)]'}`}>
         {rule.met ? <Check size={13} aria-hidden="true" /> : <Circle size={11} aria-hidden="true" />}
         <span>{rule.label}<span className="sr-only"> {rule.met ? t('password.done') : t('password.missing')}</span></span>
       </li>)}

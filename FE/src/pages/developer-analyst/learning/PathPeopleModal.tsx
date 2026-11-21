@@ -81,7 +81,7 @@ export default function PathPeopleModal({ projectId, path, onClose, onChanged }:
         {l.steps.map((s, i) => {
           const hard = struggled(s.attempts, s.completed);
           const label = `${i + 1}. ${steps[i]?.title ?? m('step')}: ${s.completed ? m('done') : s.attempts ? m('notDone', { count: s.attempts }) : m('notStarted')}`;
-          return <Tooltip key={s.stepId} title={label}><span role="listitem" aria-label={label} className={`h-3 w-3 rounded-sm ${s.completed ? 'bg-green-500' : hard ? 'bg-red-500' : s.attempts ? 'bg-amber-500' : 'bg-[#2a3038]'}`} /></Tooltip>;
+          return <Tooltip key={s.stepId} title={label}><span role="listitem" aria-label={label} className={`h-3 w-3 rounded-sm ${s.completed ? 'bg-[var(--at-success)]' : hard ? 'bg-[var(--at-danger)]' : s.attempts ? 'bg-[var(--at-warn)]' : 'bg-[var(--at-line)]'}`} /></Tooltip>;
         })}
       </div>,
     },

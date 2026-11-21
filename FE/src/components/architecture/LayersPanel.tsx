@@ -38,7 +38,7 @@ export default function LayersPanel({ scene, theme, highlight, selected, onSelec
   const shownSnapshots = (snapshots ?? []).map((s, i) => ({ s, i })).filter(({ s }) => !sq || s.hash.toLowerCase().includes(sq) || s.title.toLowerCase().includes(sq));
   const label = (key: string) => (key === 'neighbour' ? 'Neighbours' : ROLE_LABEL[key as keyof typeof ROLE_LABEL] ?? key);
   const toggle = (key: string) => setClosed(s => { const next = new Set(s); if (next.has(key)) next.delete(key); else next.add(key); return next; });
-  const tabClass = (t: string) => `px-2 py-1 text-xs font-medium rounded ${tab === t ? 'text-white bg-white/10' : 'text-[var(--at-muted)] hover:text-white'}`;
+  const tabClass = (t: string) => `px-2 py-1 text-xs font-medium rounded ${tab === t ? 'text-[var(--at-text-strong)] bg-[var(--at-hover)]' : 'text-[var(--at-muted)] hover:text-[var(--at-text-strong)]'}`;
 
   return <div className="flex h-full min-h-0 flex-col">
     <div className="flex items-center gap-1 border-b border-[var(--at-line)] px-2 py-1.5" role="tablist">
@@ -53,7 +53,7 @@ export default function LayersPanel({ scene, theme, highlight, selected, onSelec
       </label>
       <div className="min-h-0 flex-1 overflow-auto pb-3" role="tree" aria-label={m('layers')}>
         {[...groups].map(([key, items]) => <div key={key} role="group" aria-label={label(key)}>
-          <button type="button" className="flex w-full items-center gap-1 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-[var(--at-muted)] hover:text-white" aria-expanded={!closed.has(key)} onClick={() => toggle(key)}>
+          <button type="button" className="flex w-full items-center gap-1 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-[var(--at-muted)] hover:text-[var(--at-text-strong)]" aria-expanded={!closed.has(key)} onClick={() => toggle(key)}>
             {closed.has(key) ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
             <span className="inline-block h-2 w-2 rounded-sm" style={{ background: key === 'neighbour' ? theme.muted : theme.role[key as keyof typeof theme.role] ?? theme.muted }} />
             {label(key)} <span className="ml-auto font-mono text-[var(--at-muted)]">{items.length}</span>
@@ -62,7 +62,7 @@ export default function LayersPanel({ scene, theme, highlight, selected, onSelec
             const isSel = n.id === selected;
             const dim = !!highlight.nodes && !highlight.nodes.has(n.id);
             return <div key={n.id} role="treeitem" aria-selected={isSel} tabIndex={0}
-              className={`mx-1 flex cursor-pointer flex-col rounded px-5 py-1 outline-none focus-visible:ring-1 focus-visible:ring-[var(--at-accent)] ${isSel ? 'bg-[var(--at-accent)]/15 text-white' : 'text-[var(--at-text)] hover:bg-white/5'} ${dim ? 'opacity-50' : ''}`}
+              className={`mx-1 flex cursor-pointer flex-col rounded px-5 py-1 outline-none focus-visible:ring-1 focus-visible:ring-[var(--at-accent)] ${isSel ? 'bg-[var(--at-accent)]/15 text-[var(--at-text-strong)]' : 'text-[var(--at-text)] hover:bg-[var(--at-hover)]'} ${dim ? 'opacity-50' : ''}`}
               onClick={() => onSelect?.(n.id)} onDoubleClick={() => onOpen?.(n.id)}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (e.shiftKey) onOpen?.(n.id); else onSelect?.(n.id); } }}>
               <span className="truncate text-xs">{n.title}</span>
@@ -84,9 +84,9 @@ export default function LayersPanel({ scene, theme, highlight, selected, onSelec
           const current = s.id === snapshotId || (!snapshotId && i === 0);
           return <li key={s.id}>
             <button type="button" aria-current={current} onClick={() => onSnapshot?.(s.id)} title={s.title}
-              className={`relative flex w-full flex-col gap-0.5 px-4 py-2 text-left transition-colors ${current ? 'bg-white/[0.08]' : 'hover:bg-white/5'}`}>
+              className={`relative flex w-full flex-col gap-0.5 px-4 py-2 text-left transition-colors ${current ? 'bg-[var(--at-hover)]' : 'hover:bg-[var(--at-hover)]'}`}>
               {current && <span aria-hidden="true" className="absolute inset-y-1.5 left-1 w-0.5 rounded-full bg-[var(--at-link)]" />}
-              <span className={`truncate text-[13px] ${current ? 'font-medium text-white' : 'text-[var(--at-text)]'}`}>{s.title.split('\n')[0]}</span>
+              <span className={`truncate text-[13px] ${current ? 'font-medium text-[var(--at-text-strong)]' : 'text-[var(--at-text)]'}`}>{s.title.split('\n')[0]}</span>
               <span className="flex items-center gap-1.5 text-[11px] text-[var(--at-muted)]">
                 <code className="text-[var(--at-link)]">{s.hash}</code>
                 {s.date && <span>· {formatDate(s.date)}</span>}

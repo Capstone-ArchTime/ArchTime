@@ -27,12 +27,12 @@ function Card({ to, title, subtitle, icon, sample }: { to: string; title: string
   const m = useMessages(MSG);
   return <Link to={to} className="group flex flex-col overflow-hidden rounded-lg border border-[var(--at-line)] bg-[var(--at-panel)] transition-colors hover:border-[var(--at-accent)]/60 focus-visible:outline-2 focus-visible:outline-[var(--at-accent)]">
     <div className="relative flex h-36 items-center justify-center border-b border-[var(--at-line)] bg-[var(--at-page)]"
-      style={{ backgroundImage: 'radial-gradient(circle, #1c2530 1px, transparent 1px)', backgroundSize: '16px 16px' }}>
+      style={{ backgroundImage: 'radial-gradient(circle, var(--at-grid) 1px, transparent 1px)', backgroundSize: '16px 16px' }}>
       <div className="text-[var(--at-link)] opacity-70 transition-opacity group-hover:opacity-100">{icon}</div>
       {sample && <span className="absolute left-2 top-2 rounded border border-[var(--at-accent)]/30 bg-[var(--at-accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--at-link)]">{m('sample')}</span>}
     </div>
     <div className="px-3 py-2.5">
-      <p className="truncate text-sm font-medium group-hover:text-white">{title}</p>
+      <p className="truncate text-sm font-medium group-hover:text-[var(--at-text-strong)]">{title}</p>
       <p className="truncate text-xs text-[var(--at-muted)]">{subtitle}</p>
     </div>
   </Link>;

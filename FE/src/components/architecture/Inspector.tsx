@@ -89,7 +89,7 @@ export function ChangedInCommits({ projectId, componentId, state, onRetry }: { p
   const m = useMessages(MSG);
   let body;
   if (state.status === 'error') {
-    body = <p className="text-xs text-slate-300">{m('loadFailed', { message: state.message })} <button type="button" onClick={onRetry} className="text-[var(--at-link)] underline hover:text-[var(--at-link-hover)]">{m('tryAgain')}</button></p>;
+    body = <p className="text-xs text-[var(--at-muted)]">{m('loadFailed', { message: state.message })} <button type="button" onClick={onRetry} className="text-[var(--at-link)] underline hover:text-[var(--at-link-hover)]">{m('tryAgain')}</button></p>;
   } else if (state.status !== 'done') {
     body = <p role="status" className="text-xs text-[var(--at-muted)]">{m('looking')}</p>;
   } else if (!state.impacts.grouped) {
@@ -104,7 +104,7 @@ export function ChangedInCommits({ projectId, componentId, state, onRetry }: { p
         return <li key={c.evidenceId || c.commit} className="border border-[var(--at-line)] p-2 text-xs">
           <div className="flex items-center gap-2">
             <Link to={evidenceLink(projectId, c.commit)} aria-label={m('openEvidence', { hash: shortHash(c.commit) })} className="shrink-0 border border-[var(--at-accent)]/50 px-1.5 font-mono text-[var(--at-link)] hover:bg-[var(--at-accent)]/10 hover:text-[var(--at-link-hover)]">{shortHash(c.commit)}</Link>
-            <span className="min-w-0 truncate text-slate-200" title={c.title}>{c.title || m('untitled')}</span>
+            <span className="min-w-0 truncate text-[var(--at-text)]" title={c.title}>{c.title || m('untitled')}</span>
           </div>
           <div className="mt-0.5 text-[var(--at-muted)]">{[shortDate(c.date), delta].filter(Boolean).join(' · ')}</div>
         </li>;
@@ -189,8 +189,8 @@ export default function Inspector({ view, scene, theme, selectedNode, selectedEd
         ? <><span className="text-[var(--at-success)]" title={m('consistentTip')}>{m('consistent')}</span>{m(fileUnit ? 'overviewFile' : 'overviewClass', { nodes: scene.nodes.length, edges: scene.edges.length })}</>
         : <>{m(fileUnit ? 'innerFiles' : 'innerClasses', { n: scene.nodes.filter(n => n.kind === 'class').length })}</>}</p></div>
     <details className="group text-xs">
-      <summary className="cursor-pointer select-none font-mono text-[10px] uppercase tracking-wider text-slate-300 hover:text-white">{m('howTo')}</summary>
-      <ul className="mt-2 space-y-1 leading-relaxed text-slate-300">
+      <summary className="cursor-pointer select-none font-mono text-[10px] uppercase tracking-wider text-[var(--at-muted)] hover:text-[var(--at-text-strong)]">{m('howTo')}</summary>
+      <ul className="mt-2 space-y-1 leading-relaxed text-[var(--at-muted)]">
         {(['how1', 'how2', 'how3', 'how4', 'how5'] as const).map(key => <Fragment key={key}><li>{m(key)}</li></Fragment>)}
       </ul>
     </details>

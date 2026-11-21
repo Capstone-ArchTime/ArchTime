@@ -10,9 +10,9 @@ import { ARCH } from './messages';
 type Option = { value: string; label: string };
 
 function Tool({ label, shortcut, active, disabled, onClick, children }: { label: string; shortcut?: string; active?: boolean; disabled?: boolean; onClick?: () => void; children: ReactNode }) {
-  return <Tooltip title={shortcut ? <span>{label} <kbd className="ml-1 rounded bg-white/10 px-1 font-mono text-[10px]">{shortcut}</kbd></span> : label} placement="top">
+  return <Tooltip title={shortcut ? <span>{label} <kbd className="ml-1 rounded bg-[var(--at-hover)] px-1 font-mono text-[10px]">{shortcut}</kbd></span> : label} placement="top">
     <button type="button" aria-label={label} aria-pressed={active} disabled={disabled} onClick={onClick}
-      className={`h-8 min-w-8 shrink-0 px-1.5 flex items-center justify-center rounded-md text-[var(--at-text)] transition-colors hover:bg-white/10 hover:text-white disabled:opacity-35 disabled:hover:bg-transparent ${active ? 'bg-[var(--at-accent)]/15 text-[var(--at-link)]' : ''}`}>
+      className={`h-8 min-w-8 shrink-0 px-1.5 flex items-center justify-center rounded-md text-[var(--at-text)] transition-colors hover:bg-[var(--at-hover)] hover:text-[var(--at-text-strong)] disabled:opacity-35 disabled:hover:bg-transparent ${active ? 'bg-[var(--at-accent)]/15 text-[var(--at-link)]' : ''}`}>
       {children}
     </button>
   </Tooltip>;
@@ -68,7 +68,7 @@ export default function FloatingToolbar({ searchRef, ...p }: {
         items: [{ key: 'direct', label: m('directNeighbours') }, { key: 'upstream', label: m('usedByAll') }, { key: 'downstream', label: m('dependsOnAll') }],
         onClick: ({ key }) => p.onReach(key as 'direct' | 'upstream' | 'downstream'),
       }}>
-        <button type="button" aria-label={m('reach')} className="flex h-8 shrink-0 items-center gap-1 rounded-md px-2 text-xs text-[var(--at-link)] hover:bg-white/10">
+        <button type="button" aria-label={m('reach')} className="flex h-8 shrink-0 items-center gap-1 rounded-md px-2 text-xs text-[var(--at-link)] hover:bg-[var(--at-hover)]">
           {p.reach === 'upstream' ? m('usedBy') : p.reach === 'downstream' ? m('dependsOn') : m('direct')} <ChevronDown size={12} />
         </button>
       </Dropdown>}
@@ -95,7 +95,7 @@ export default function FloatingToolbar({ searchRef, ...p }: {
         ],
         onClick: ({ key }) => (key === 'fit' ? v.fit() : key === 'sel' ? v.frameSelection() : key === 'in' ? v.zoomIn() : key === 'out' ? v.zoomOut() : v.setZoom(Number(key))),
       }}>
-        <button type="button" aria-label={m('zoomLevel', { pct: Math.round(v.zoom * 100) })} className="h-8 w-12 shrink-0 rounded-md font-mono text-xs text-[var(--at-text)] hover:bg-white/10">{Math.round(v.zoom * 100)}%</button>
+        <button type="button" aria-label={m('zoomLevel', { pct: Math.round(v.zoom * 100) })} className="h-8 w-12 shrink-0 rounded-md font-mono text-xs text-[var(--at-text)] hover:bg-[var(--at-hover)]">{Math.round(v.zoom * 100)}%</button>
       </Dropdown>
       {!tiny && <>
       <Tool label={m('zoomIn')} shortcut="+" onClick={v.zoomIn}><Plus size={16} /></Tool>

@@ -100,13 +100,13 @@ export default function VerifyEmail() {
         <Form.Item name="otp" label={m('code')} rules={[{ required: true, pattern: /^\d{6}$/, message: m('codeInvalid') }]}><Input inputMode="numeric" autoComplete="one-time-code" name="otp" maxLength={6} placeholder="123456" disabled={!!busy} className="tracking-[0.3em]" /></Form.Item>
         {msLeft !== null && (expired
           ? <Alert type="warning" showIcon className="mb-4" role="alert" title={m('expired')} description={m('expiredBody')} />
-          : <p role="timer" aria-label={m('expiresLabel', { time: formatCountdown(msLeft) })} className={`-mt-2 mb-4 text-sm ${msLeft < 60_000 ? 'text-amber-300' : 'text-slate-300'}`}>
+          : <p role="timer" aria-label={m('expiresLabel', { time: formatCountdown(msLeft) })} className={`-mt-2 mb-4 text-sm ${msLeft < 60_000 ? 'text-[var(--at-warn)]' : 'text-[var(--at-muted)]'}`}>
               {m.rich('expiresIn', { time: <span key="t" className="font-mono font-semibold">{formatCountdown(msLeft)}</span> })}
             </p>)}
         <Button type="primary" htmlType="submit" block size="large" loading={busy === 'verify'} disabled={!!busy || expired}>{m('verify')}</Button>
       </Form>
       <Button type="link" block className="mt-3" loading={busy === 'resend'} disabled={!!busy || cooldown > 0} onClick={() => void submit(true)}>{cooldown ? resendLabel(cooldown) : m('resend')}</Button>
-      <Link to="/login" className="block text-center text-sm text-[var(--at-muted)] hover:text-white mt-5">{m('back')}</Link>
+      <Link to="/login" className="block text-center text-sm text-[var(--at-muted)] hover:text-[var(--at-text-strong)] mt-5">{m('back')}</Link>
     </div></div>
   </main>;
 }

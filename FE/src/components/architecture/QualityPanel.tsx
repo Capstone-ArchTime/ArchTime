@@ -110,7 +110,7 @@ export default function QualityPanel({ projectId, quality, view, onSaved, canEdi
     <Modal open={editing !== null} title={m('reference')} okText={m('save')} cancelText={m('cancel')} confirmLoading={saving} okButtonProps={{ disabled: !!parsed?.errors.length }} onOk={save} onCancel={() => setEditing(null)} width={680} destroyOnHidden>
       <p className="text-sm text-[var(--at-muted)] mb-2">{m.rich('editorHelp', { format: <code key="f">Name: path/prefix, other/prefix</code> })}</p>
       <Input.TextArea value={editing ?? ''} onChange={e => setEditing(e.target.value)} autoSize={{ minRows: 8, maxRows: 18 }} className="font-mono text-xs" aria-label={m('reference')} />
-      {parsed?.errors.length ? <ul className="mt-2 text-xs text-red-400">{parsed.errors.slice(0, 5).map(e => <li key={e}>{e}</li>)}</ul> : null}
+      {parsed?.errors.length ? <ul className="mt-2 text-xs text-[var(--at-danger)]">{parsed.errors.slice(0, 5).map(e => <li key={e}>{e}</li>)}</ul> : null}
     </Modal>
   </section>;
 }

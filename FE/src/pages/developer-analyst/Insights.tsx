@@ -347,7 +347,7 @@ const Insights: React.FC = () => {
                 </button>
               </div>
 
-              {historyNotice && <p role="alert" className="shrink-0 px-4 py-2 text-xs text-red-300 bg-red-500/10 border-b border-red-500/30">{historyNotice}</p>}
+              {historyNotice && <p role="alert" className="shrink-0 px-4 py-2 text-xs text-[var(--at-danger-text)] bg-[var(--at-danger)]/10 border-b border-[var(--at-danger)]/30">{historyNotice}</p>}
 
               <div className="flex-1 overflow-y-auto min-h-0 py-1">
                 {historyStatus === 'loading' && (
@@ -375,7 +375,7 @@ const Insights: React.FC = () => {
                             <span className="block mt-0.5 text-[11px] text-[var(--at-muted)]">{describeWhen(conversation.updatedAt)} · {m('messages', { count: conversation.messageCount })}</span>
                           </button>
                           <button type="button" onClick={() => removeConversation(conversation)} aria-label={m('deleteSaved', { title: conversation.title })}
-                            className="shrink-0 w-9 flex items-center justify-center rounded-lg text-[var(--at-muted)] opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-red-400">
+                            className="shrink-0 w-9 flex items-center justify-center rounded-lg text-[var(--at-muted)] opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-[var(--at-danger)]">
                             <Trash2 size={14} />
                           </button>
                         </li>
@@ -422,17 +422,17 @@ const Insights: React.FC = () => {
                         <motion.div key={message.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                           className={`flex gap-3 ${user ? 'justify-end' : ''}`}>
                           {!user && (
-                            <span className={`mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${message.isError ? 'bg-red-500/20' : 'bg-[var(--at-panel-2)]'}`}>
-                              {message.isError ? <AlertTriangle size={13} className="text-red-400" /> : <Sparkles size={13} className="text-[var(--at-link)]" />}
+                            <span className={`mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${message.isError ? 'bg-[var(--at-danger)]/20' : 'bg-[var(--at-panel-2)]'}`}>
+                              {message.isError ? <AlertTriangle size={13} className="text-[var(--at-danger)]" /> : <Sparkles size={13} className="text-[var(--at-link)]" />}
                             </span>
                           )}
                           <div className={`flex max-w-[85%] flex-col ${user ? 'items-end' : 'min-w-0'}`}>
                             <div className={`rounded-2xl px-4 py-3 ${user
                               ? 'rounded-br-md border border-[var(--at-line)] bg-[var(--at-panel-2)]'
-                              : message.isError ? 'border border-red-500/30 bg-red-500/10' : 'rounded-tl-md border border-[var(--at-line)] bg-[var(--at-panel)]'}`}>
+                              : message.isError ? 'border border-[var(--at-danger)]/30 bg-[var(--at-danger)]/10' : 'rounded-tl-md border border-[var(--at-line)] bg-[var(--at-panel)]'}`}>
                               {!user && !message.isError
                                 ? <AssistantMessage content={message.content} evidence={message.evidence} projectId={selectedProjectId} />
-                                : <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${message.isError ? 'text-red-300' : 'text-[var(--at-text)]'}`}>{message.content}</p>}
+                                : <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${message.isError ? 'text-[var(--at-danger-text)]' : 'text-[var(--at-text)]'}`}>{message.content}</p>}
                             </div>
                             <p className="mt-1 px-1 text-[11px] text-[var(--at-muted)]">
                               {time(message.timestamp)}{labelCheckNote(message.labelCheck) ? ` · ${labelCheckNote(message.labelCheck)}` : ''}

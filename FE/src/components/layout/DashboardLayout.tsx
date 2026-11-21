@@ -2,7 +2,7 @@
 import type { ElementType, KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { App, Button, Drawer, Dropdown, Input, Modal, Tooltip } from 'antd';
-import { ArrowLeft, ArrowUpRight, LogOut, Menu, Search } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Check, LogOut, Menu, Search } from 'lucide-react';
 import { readBack } from './back-link';
 import { useAuth } from '@/auth/auth-context';
 import { accountMenuItems, navGroupsFor, navHeadingByRole } from './navigation';
@@ -11,15 +11,17 @@ import { matchNavItem } from './nav-match';
 import BackgroundJobs from './BackgroundJobs';
 import { unreadMessage, useUnreadFindings } from '@/features/unread-findings';
 import { readSidebarCollapsed, SIDEBAR_EVENT, writeSidebarCollapsed } from '@/features/display-prefs';
-import { useT } from '@/i18n';
+import { useLanguage, useT } from '@/i18n';
 import type { NavItem } from './navigation';
+import { setThemeChoice, useThemeChoice } from '@/features/ui-theme';
+import { SELECTABLE_THEMES } from '@/theme/registry';
 
 const CONFORMANCE_PATH = '/project-maintainer/conformance';
 
 /** How long the light runs across the name (.at-brand-glint in index.css), and when it starts after the sidebar unfolds. */
 const GLINT_MS = 700;
 /** A sidebar entry under the pointer (or keyboard focus): its name lights up, glows and leans in; its icon brightens. */
-const HOVER_LABEL = 'inline-block transition-[color,text-shadow,transform] duration-200 ease-out group-hover:translate-x-1 group-hover:text-white group-hover:[text-shadow:0_0_14px_rgb(214_228_255/0.65)] group-focus-visible:translate-x-1 group-focus-visible:text-white';
+const HOVER_LABEL = 'inline-block transition-[color,text-shadow,transform] duration-200 ease-out group-hover:translate-x-1 group-hover:text-[var(--at-text-strong)] group-hover:[text-shadow:0_0_14px_color-mix(in_srgb,var(--at-glow)_65%,transparent)] group-focus-visible:translate-x-1 group-focus-visible:text-[var(--at-text-strong)]';
 const HOVER_ICON = 'shrink-0 transition-[color,transform] duration-200 ease-out group-hover:scale-110 group-hover:text-[var(--at-link-hover)] group-focus-visible:text-[var(--at-link-hover)]';
 const GLINT_UNFOLD_DELAY_MS = 180;
 /**
@@ -28,7 +30,7 @@ const GLINT_UNFOLD_DELAY_MS = 180;
  */
 const SIDEBAR_MOTION = 'at-sidebar-motion duration-[380ms] ease-[cubic-bezier(0.32,0.72,0,1)]';
 /** The names shown beside the icons of the folded sidebar: light text on a dark surface, like the other floating panels. */
-const NAV_TIP = { color: '#27303a', styles: { container: { color: '#eef2f8', border: '1px solid rgb(225 234 248 / 0.22)' } } } as const;
+const NAV_TIP = { color: 'var(--at-solid)', styles: { container: { color: 'var(--at-text)', border: '1px solid var(--at-overlay-edge)' } } } as const;
 
 /** The workspace chosen on one page of a group, kept when moving to another page of the same group. */
 function carriedWorkspace(search: string): string {
@@ -44,6 +46,7 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
   const { user, signOut } = useAuth();
   const { modal } = App.useApp();
   const t = useT();
+  const language = useLanguage();
   // Page names follow the language; navigation.ts keeps the English ones (keys are built from the path).
   const navLabel = (item: NavItem) => t.or(`nav:${item.path}`, item.label);
   const tabLabel = (item: NavItem) => t.or(`navTab:${item.path}`, item.tab ?? navLabel(item));
@@ -87,6 +90,7 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
   const [activeResult, setActiveResult] = useState(0);
   const mainRef = useRef<HTMLElement>(null);
   const tabsRef = useRef<HTMLElement>(null);
+  const themeChoice = useThemeChoice();
   const maintains = useMaintainsWorkspaces(user?.id, user?.role === 'developer-analyst');
   const unread = useUnreadFindings(!!maintains);
   const groups = user ? navGroupsFor(user.role, { maintains, pathname }) : [];
@@ -135,7 +139,7 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
     title: t('layout.signOutTitle'), content: t('layout.signOutBody'),
     okText: t('common.signOut'), cancelText: t('layout.staySignedIn'), onOk: signOut,
   });
-  const linkClass = (active: boolean) => `relative flex items-center gap-3 rounded-md border px-[14px] py-3 text-sm transition-colors ${active ? 'border-[var(--at-accent)]/30 bg-[var(--at-accent)]/10 text-[var(--at-link)]' : 'border-transparent text-[var(--at-muted)] hover:bg-[var(--at-panel-2)] hover:text-white'}`;
+  const linkClass = (active: boolean) => `relative flex items-center gap-3 rounded-md border px-[14px] py-3 text-sm transition-colors ${active ? 'border-[var(--at-accent)]/30 bg-[var(--at-accent)]/10 text-[var(--at-link)]' : 'border-transparent text-[var(--at-muted)] hover:bg-[var(--at-panel-2)] hover:text-[var(--at-text-strong)]'}`;
   const unreadOf = (path: string) => (path === CONFORMANCE_PATH ? unread.total : 0);
   // What hides when the sidebar folds: it fades out fast, and on unfolding waits for most of the width before fading back in.
   const fade = (compact: boolean) => `at-sidebar-motion whitespace-nowrap transition-opacity ease-out ${compact ? 'opacity-0 duration-150' : 'opacity-100 duration-300 delay-150'}`;
@@ -216,6 +220,11 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
             { type: 'divider' as const },
             ...accountMenuItems[user.role].map(item => ({ key: item.path, label: <Link to={item.path}>{navLabel(item)}</Link> })),
             { type: 'divider' as const },
+            { type: 'group' as const, key: 'theme', label: t('layout.theme'), children: SELECTABLE_THEMES.map(option => ({
+              key: `theme:${option.id}`, onClick: () => setThemeChoice(option.id), role: 'menuitemradio', 'aria-checked': themeChoice === option.id,
+              label: <span className="flex items-center gap-3"><span className="w-4 shrink-0">{themeChoice === option.id && <Check size={15} aria-hidden="true" />}</span><span><span className="block">{option.label[language]}</span><span className="block text-xs text-[var(--at-muted)]">{option.hint[language]}</span></span></span>,
+            })) },
+            { type: 'divider' as const },
             { key: 'sign-out', icon: <LogOut size={15} aria-hidden="true" />, label: t('common.signOut'), onClick: logout },
           ] }}>
             <button type="button" aria-label={t('layout.accountMenu')} title={user.name}
@@ -230,7 +239,7 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
             const count = unreadOf(item.path);
             return <Link key={item.path} to={`${item.path}${carriedWorkspace(search)}`} state={back ? { back } : undefined} aria-current={active ? 'page' : undefined}
               title={item.path === CONFORMANCE_PATH ? unreadMessage(unread) ?? undefined : undefined}
-              className={`relative flex items-center gap-2 whitespace-nowrap px-3 text-sm transition-colors ${active ? 'text-white font-medium' : 'text-[var(--at-muted)] hover:text-white'}`}>
+              className={`relative flex items-center gap-2 whitespace-nowrap px-3 text-sm transition-colors ${active ? 'text-[var(--at-text-strong)] font-medium' : 'text-[var(--at-muted)] hover:text-[var(--at-text-strong)]'}`}>
               <span>{tabLabel(item)}</span>{badge(count, false)}
               {active && <span aria-hidden="true" className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-[var(--at-link)]" />}
             </Link>;

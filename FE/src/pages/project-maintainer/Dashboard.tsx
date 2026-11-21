@@ -23,10 +23,10 @@ import type { ProjectDashboard, Approval } from '@/features/pm-api';
 import { projectRoleLabel } from '@/features/role-labels';
 import { filterTeamRows, teamRows, type TeamRow } from './team-rows';
 
-const fontFamily = { mono: '"JetBrains Mono", monospace' };
 
 import { formatDate } from '@/i18n/format';
 import { defineMessages, message as translate, useMessages } from '@/i18n/define';
+import { fontFamily } from '@/theme/fonts';
 
 const MSG = defineMessages({
   pending: 'PENDING', approved: 'APPROVED', rejected: 'REJECTED', title: 'Maintainer overview', loadFailed: 'This workspace could not be loaded.',
@@ -127,7 +127,7 @@ function ProjectMaintainerDashboardView({ projects }: { projects: ProjectSummary
         </div>
 
         <UnreadFindingsNotice />
-        {error && <p className="text-red-400">{error}</p>}
+        {error && <p className="text-[var(--at-danger)]">{error}</p>}
 
         {loading ? (
           <div className="p-12 text-center"><Spin /><p className="mt-3 text-[var(--at-muted)]">{m('loading')}</p></div>

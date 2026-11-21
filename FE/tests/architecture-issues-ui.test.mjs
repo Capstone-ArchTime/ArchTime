@@ -53,9 +53,9 @@ test('the chip shows the count in the worst colour, or a green "No issues"', () 
   const chip = summary => renderToStaticMarkup(createElement(IssuesChip, { summary, verified: '3 components', onClick() {} }));
   const bad = chip(summarize(issuesFor({ view, quality, canEdit: true })));
   assert.match(bad, />3 issues</);
-  assert.match(bad, /text-\[#fca5a5\]/);
+  assert.match(bad, /text-\[var\(--at-danger-text\)\]/);
   const fine = chip(summarize([]));
   assert.match(fine, />No issues</);
-  assert.match(fine, /text-\[#86efac\]/);
-  assert.doesNotMatch(fine, /fca5a5/);
+  assert.match(fine, /text-\[var\(--at-success\)\]/);
+  assert.doesNotMatch(fine, /--at-danger/);
 });

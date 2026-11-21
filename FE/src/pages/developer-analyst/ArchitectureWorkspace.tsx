@@ -96,7 +96,7 @@ function EvolutionSummary({ evolution, onFocus }: { evolution: Evolution; onFocu
       return <li key={i} className="flex items-start gap-2">
         <span className="mt-0.5 shrink-0 rounded-full border px-1 font-mono text-[11px] font-bold" style={mark ? { borderColor: mark.color, color: mark.color } : undefined}>{mark?.label ?? m('gone')}</span>
         {item.componentIds.length
-          ? <button type="button" className="text-left text-slate-200 hover:text-white hover:underline" onClick={() => onFocus(item.componentIds[0])}>{item.text}</button>
+          ? <button type="button" className="text-left text-[var(--at-text)] hover:text-[var(--at-text-strong)] hover:underline" onClick={() => onFocus(item.componentIds[0])}>{item.text}</button>
           : <span className="text-[var(--at-muted)]">{item.text}</span>}
       </li>;
     })}</ul>}
@@ -211,7 +211,7 @@ export default function ArchitectureWorkspace() {
         <span className="text-[var(--at-muted)]">{w('computed')}</span></p>}
       <p className="text-[var(--at-muted)]">{w.rich('snapshot', { hash: <code key="h">{payload.snapshot?.hash}</code> })}{payload.mapping ? w('generated', { date: formatDateTime(payload.mapping.createdAt) }) : ''}</p>
       <details className="text-[var(--at-muted)]">
-        <summary className="cursor-pointer select-none text-slate-300 hover:text-white">{w('howMade')}</summary>
+        <summary className="cursor-pointer select-none text-[var(--at-muted)] hover:text-[var(--at-text-strong)]">{w('howMade')}</summary>
         <p className="mt-1.5 leading-relaxed">{payload.mapping?.generator === 'cluster+llm'
           ? w('madeAi')
           : w('madeCluster')}</p>
@@ -222,20 +222,20 @@ export default function ArchitectureWorkspace() {
       <QualityPanel projectId={projectId} quality={payload.quality} view={payload.view} onSaved={arch.reload} canEdit={canMaintain} openEditorRef={openReference} /></section>}
     {payload.mapping?.receipt && <ReceiptSummary receipt={payload.mapping.receipt} />}
   </> : sample ? <details className="text-xs text-[var(--at-muted)]">
-    <summary className="cursor-pointer select-none font-mono text-[10px] uppercase tracking-wider text-slate-300 hover:text-white">{w('aboutSample')}</summary>
+    <summary className="cursor-pointer select-none font-mono text-[10px] uppercase tracking-wider text-[var(--at-muted)] hover:text-[var(--at-text-strong)]">{w('aboutSample')}</summary>
     <p className="mt-1.5 leading-relaxed">{w('sampleBody')}</p></details> : null;
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-[var(--at-page)] text-[var(--at-text)]">
       {!focusMode && <header className="flex h-12 shrink-0 items-center gap-2 border-b border-[var(--at-line)] bg-[var(--at-chrome)] px-3">
         <button type="button" onClick={goBack} aria-label={w('backLabel')} title={w('back')}
-          className="flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-[var(--at-line)] px-3 text-sm text-[var(--at-text)] hover:bg-white/10">
+          className="flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-[var(--at-line)] px-3 text-sm text-[var(--at-text)] hover:bg-[var(--at-hover)]">
           <ArrowLeft size={15} aria-hidden="true" /><span className="hidden sm:inline">{w('back')}</span>
         </button>
-        <Link to={home} className="ml-1 shrink-0 font-bold tracking-tight text-[var(--at-link)] hover:text-white" aria-label={w('homeLabel')}>Arch<span className="text-white">Time</span></Link>
+        <Link to={home} className="ml-1 shrink-0 font-bold tracking-tight text-[var(--at-link)] hover:text-[var(--at-text-strong)]" aria-label={w('homeLabel')}>Arch<span className="text-[var(--at-text-strong)]">Time</span></Link>
         <span className="text-[var(--at-muted)]" aria-hidden="true">/</span>
         <Dropdown trigger={['click']} menu={switcher}>
-          <button type="button" className="flex min-w-0 max-w-56 items-center gap-1 whitespace-nowrap rounded px-1.5 py-1 text-sm font-medium hover:bg-white/10" aria-label={w('switchLabel', { title })}>
+          <button type="button" className="flex min-w-0 max-w-56 items-center gap-1 whitespace-nowrap rounded px-1.5 py-1 text-sm font-medium hover:bg-[var(--at-hover)]" aria-label={w('switchLabel', { title })}>
             <span className="truncate">{title}</span> <ChevronDown size={14} className="shrink-0 text-[var(--at-muted)]" />
           </button>
         </Dropdown>
@@ -249,7 +249,7 @@ export default function ArchitectureWorkspace() {
         </div>}
 
         <div className={`ml-auto flex shrink-0 items-center gap-2 ${arch.refining ? 'xl:ml-0' : ''}`}>
-          {projectId && !canMaintain && maintains?.projectId === projectId && <Tooltip title={w('readOnlyTip')}><span className="rounded border border-[var(--at-line)] px-2 py-0.5 text-xs text-slate-300">{w('readOnly')}</span></Tooltip>}
+          {projectId && !canMaintain && maintains?.projectId === projectId && <Tooltip title={w('readOnlyTip')}><span className="rounded border border-[var(--at-line)] px-2 py-0.5 text-xs text-[var(--at-muted)]">{w('readOnly')}</span></Tooltip>}
           {canMaintain && <Tooltip title={w('mineTip')}><Button size="small" icon={<Pickaxe size={13} />} aria-label={w('mine')} onClick={() => setMining(true)}><span className="hidden lg:inline">{w('mine')}</span></Button></Tooltip>}
           {canMaintain && payload && aiControls()}
           {canMaintain && payload?.status === 'ready' && <Tooltip title={w('regenerateTip')}><Button size="small" icon={<RefreshCw size={13} />} aria-label={w('regenerate')} loading={arch.generating} disabled={busy} onClick={() => void arch.generate()} /></Tooltip>}

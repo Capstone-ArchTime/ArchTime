@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
-const fontFamilyMono = '"JetBrains Mono", monospace';
+const fontFamilyMono = 'var(--at-font-mono)';
 
 export function Logo({
   to = "/",
@@ -25,7 +25,7 @@ export function Logo({
     <Link
       to={to}
       onClick={handleClick}
-      className={cn("flex items-center gap-3 text-base font-bold tracking-wider text-white", className)}
+      className={cn("flex items-center gap-3 text-base font-bold tracking-wider text-[var(--at-text-strong)]", className)}
       style={{ fontFamily: fontFamilyMono }}
     >
       <span className="relative flex h-2 w-2 shrink-0">
@@ -35,7 +35,7 @@ export function Logo({
       <span>
         ARCHTIME
         {tagline && (
-          <p className="mt-0.5 text-[10px] font-normal uppercase tracking-widest text-slate-500">{tagline}</p>
+          <p className="mt-0.5 text-[10px] font-normal uppercase tracking-widest text-[var(--at-muted)]">{tagline}</p>
         )}
       </span>
     </Link>

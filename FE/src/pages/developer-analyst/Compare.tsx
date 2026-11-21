@@ -194,7 +194,7 @@ const Compare: React.FC = () => {
           <div className="mt-6 mb-2 flex items-center gap-4">
             <div className="relative group flex items-center h-10 rounded-[10px] bg-[var(--at-panel-2)] border border-[var(--at-line)] hover:border-[var(--at-line-strong)] transition-colors">
               <FolderKanban size={16} className="text-[var(--at-muted)] ml-4" />
-              <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase pl-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('workspace')}</span>
+              <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase pl-2" style={{ fontFamily: 'var(--at-font-mono)' }}>{m('workspace')}</span>
               <select 
                 value={selectedProjectId} 
                 onChange={(e) => { setSelectedProjectId(e.target.value); setCompareData(null); setMatch(null); }}
@@ -232,7 +232,7 @@ const Compare: React.FC = () => {
               <GitCommit size={64} className="text-[var(--at-muted)]" />
             </div>
             <h3 className="text-[10px] font-mono font-semibold text-[var(--at-muted)] tracking-widest uppercase mb-4"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('baseRevision')}</h3>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{m('baseRevision')}</h3>
             <div className="flex items-center gap-4 relative z-10">
               <Select
                 showSearch
@@ -274,7 +274,7 @@ const Compare: React.FC = () => {
               <GitCommit size={64} className="text-[var(--at-link)]" />
             </div>
             <h3 className="text-[10px] font-mono font-semibold text-[var(--at-link)] tracking-widest uppercase mb-4"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('targetRevision')}</h3>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{m('targetRevision')}</h3>
             <div className="flex items-center gap-4 relative z-10">
               <Select
                 showSearch
@@ -303,9 +303,9 @@ const Compare: React.FC = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 shrink-0">
             <div className="bg-[var(--at-panel-2)] border border-[var(--at-line)] p-4 flex flex-col justify-between">
               <h4 className="text-[10px] font-mono font-semibold text-[var(--at-muted)] tracking-widest uppercase mb-2"
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('modules')}</h4>
+              style={{ fontFamily: 'var(--at-font-mono)' }}>{m('modules')}</h4>
               <div className="text-xl font-bold font-mono flex items-center gap-2"
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+              style={{ fontFamily: 'var(--at-font-mono)' }}>
                 <span className="text-[var(--at-success)]">+{compareData.diff.nodesAdded.length}</span>
                 <span className="text-[var(--at-muted)]">/</span>
                 <span className="text-[var(--at-danger)]">-{compareData.diff.nodesRemoved.length}</span>
@@ -314,9 +314,9 @@ const Compare: React.FC = () => {
             
             <div className="bg-[var(--at-panel-2)] border border-[var(--at-line)] p-4 flex flex-col justify-between">
               <h4 className="text-[10px] font-mono font-semibold text-[var(--at-muted)] tracking-widest uppercase mb-2"
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('dependencies')}</h4>
+              style={{ fontFamily: 'var(--at-font-mono)' }}>{m('dependencies')}</h4>
               <div className="flex items-center gap-2 text-xl font-bold font-mono"
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+              style={{ fontFamily: 'var(--at-font-mono)' }}>
                 <span className="text-[var(--at-success)]">+{compareData.diff.edgesAdded.length}</span>
                 <span className="text-[var(--at-muted)]">/</span>
                 <span className="text-[var(--at-danger)]">-{compareData.diff.edgesRemoved.length}</span>
@@ -325,7 +325,7 @@ const Compare: React.FC = () => {
 
             <div className="bg-[var(--at-panel-2)] border border-[var(--at-line)] p-4 flex flex-col justify-between">
               <h4 className="text-[10px] font-mono font-semibold text-[var(--at-muted)] tracking-widest uppercase mb-2"
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('files')}</h4>
+              style={{ fontFamily: 'var(--at-font-mono)' }}>{m('files')}</h4>
               <div className="text-xl font-bold text-[var(--at-text)] flex items-center gap-2">
                 {compareData.targetSnapshot.files} <span className="text-xs font-sans text-[var(--at-muted)] font-normal">{m('totalTarget')}</span>
               </div>
@@ -334,9 +334,9 @@ const Compare: React.FC = () => {
             <div className="bg-[var(--at-panel-2)] border border-[var(--at-warn)]/30 p-4 flex flex-col justify-between relative overflow-hidden">
               <div className="absolute inset-0 bg-[var(--at-warn)]/5 pointer-events-none"></div>
               <h4 className="text-[10px] font-mono font-semibold text-[var(--at-warn)] tracking-widest uppercase mb-2 z-10"
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('structural')}</h4>
+              style={{ fontFamily: 'var(--at-font-mono)' }}>{m('structural')}</h4>
               <div className="text-xl font-bold font-mono text-[var(--at-warn)] flex items-center gap-1 z-10"
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+              style={{ fontFamily: 'var(--at-font-mono)' }}>
                 {(() => { const n = compareData.diff.nodesAdded.length + compareData.diff.nodesRemoved.length + compareData.diff.edgesAdded.length + compareData.diff.edgesRemoved.length; return n ? m('changes', { count: n }) : m('noChanges'); })()}
               </div>
             </div>
@@ -358,7 +358,7 @@ const Compare: React.FC = () => {
                 <span className="text-xs font-bold text-[var(--at-text)] tracking-wide uppercase">{m('before')}</span>
               </div>
               <div className="text-[10px] font-mono text-[var(--at-muted)]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{getBaseSnapshot()?.version || getBaseSnapshot()?.hash.substring(0, 7) || m('selectBase')}</div>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{getBaseSnapshot()?.version || getBaseSnapshot()?.hash.substring(0, 7) || m('selectBase')}</div>
             </div>
             
             <div className="relative w-full h-[420px] p-3">
@@ -374,7 +374,7 @@ const Compare: React.FC = () => {
                 <span className="text-xs font-bold text-[var(--at-text)] tracking-wide uppercase">{m('after')}</span>
               </div>
               <div className="text-[10px] font-mono text-[var(--at-muted)]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{getTargetSnapshot()?.version || getTargetSnapshot()?.hash.substring(0, 7) || m('selectTarget')}</div>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{getTargetSnapshot()?.version || getTargetSnapshot()?.hash.substring(0, 7) || m('selectTarget')}</div>
             </div>
             
             <div className="relative w-full h-[420px] p-3">
@@ -394,22 +394,22 @@ const Compare: React.FC = () => {
           <div className="flex items-center gap-2">
              <div className="w-2.5 h-2.5 bg-[var(--at-success)] shadow-[0_0_5px_var(--at-success)]"></div>
              <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('added')}</span>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{m('added')}</span>
           </div>
           <div className="flex items-center gap-2">
              <div className="w-2.5 h-2.5 bg-[var(--at-danger)] shadow-[0_0_5px_var(--at-danger)]"></div>
              <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('removed')}</span>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{m('removed')}</span>
           </div>
           <div className="flex items-center gap-2">
              <div className="w-2.5 h-2.5 bg-[var(--at-muted)]"></div>
              <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('unchanged')}</span>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{m('unchanged')}</span>
           </div>
           <div className="flex items-center gap-2">
              <div className="w-2.5 h-2.5 bg-[var(--at-warn)]"></div>
              <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('changed')}</span>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{m('changed')}</span>
           </div>
         </div>
 
@@ -428,7 +428,7 @@ const Compare: React.FC = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="px-2 py-0.5 bg-[var(--at-success)]/10 border border-[var(--at-success)]/20 text-[var(--at-success)] text-[11px] font-mono font-bold uppercase tracking-widest"
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('moduleAdded')}</span>
+              style={{ fontFamily: 'var(--at-font-mono)' }}>{m('moduleAdded')}</span>
                     </div>
                     <div className="text-sm font-bold text-[var(--at-text)] mb-1">{node.name}</div>
                     <p className="text-xs text-[var(--at-muted)]">{m('moduleAddedBody')}</p>
@@ -445,7 +445,7 @@ const Compare: React.FC = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="px-2 py-0.5 bg-[var(--at-danger)]/10 border border-[var(--at-danger)]/20 text-[var(--at-danger)] text-[11px] font-mono font-bold uppercase tracking-widest"
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('moduleRemoved')}</span>
+              style={{ fontFamily: 'var(--at-font-mono)' }}>{m('moduleRemoved')}</span>
                     </div>
                     <div className="text-sm font-bold text-[var(--at-text)] mb-1">{node.name}</div>
                     <p className="text-xs text-[var(--at-muted)]">{m('moduleRemovedBody')}</p>
@@ -465,9 +465,9 @@ const Compare: React.FC = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="px-2 py-0.5 bg-[var(--at-accent)]/10 border border-[var(--at-accent)]/20 text-[var(--at-link)] text-[11px] font-mono font-bold uppercase tracking-widest"
-                style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('depAdded')}</span>
+                style={{ fontFamily: 'var(--at-font-mono)' }}>{m('depAdded')}</span>
                         <span className="px-2 py-0.5 bg-[var(--at-panel-2)] border border-[var(--at-line)] text-[var(--at-muted)] text-[11px] font-mono"
-                style={{ fontFamily: '"JetBrains Mono", monospace' }}>{edge.type || 'imports'}</span>
+                style={{ fontFamily: 'var(--at-font-mono)' }}>{edge.type || 'imports'}</span>
                       </div>
                       <div className="text-sm font-bold text-[var(--at-text)] mb-1 flex items-center gap-2">{src} <ArrowRight size={14} className="text-[var(--at-link)]" /> {tgt}</div>
                       <p className="text-xs text-[var(--at-muted)]">{m('depAddedBody')}</p>
@@ -484,9 +484,9 @@ const Compare: React.FC = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="px-2 py-0.5 bg-[var(--at-danger)]/10 border border-[var(--at-danger)]/20 text-[var(--at-danger)] text-[11px] font-mono font-bold uppercase tracking-widest"
-                style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m('depRemoved')}</span>
+                style={{ fontFamily: 'var(--at-font-mono)' }}>{m('depRemoved')}</span>
                         <span className="px-2 py-0.5 bg-[var(--at-panel-2)] border border-[var(--at-line)] text-[var(--at-muted)] text-[11px] font-mono"
-                style={{ fontFamily: '"JetBrains Mono", monospace' }}>{edge.type || 'imports'}</span>
+                style={{ fontFamily: 'var(--at-font-mono)' }}>{edge.type || 'imports'}</span>
                       </div>
                       <div className="text-sm font-bold text-[var(--at-text)] mb-1 flex items-center gap-2 line-through opacity-70">{src} <ArrowRight size={14} className="text-[var(--at-danger)]" /> {tgt}</div>
                       <p className="text-xs text-[var(--at-muted)]">{m('depRemovedBody')}</p>

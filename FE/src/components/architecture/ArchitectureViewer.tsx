@@ -24,8 +24,7 @@ import { escapeAction, escapeTaken, isFocusKey, loadPanelChoice, resolvePanels, 
 import type { PanelChoice, PanelInput, Side } from '@/features/architecture/panels';
 import { parseHash, serializeHash } from '@/features/architecture/url-state';
 import type { ViewerState } from '@/features/architecture/url-state';
-import { FROST, THEMES } from '@/features/architecture/theme';
-import { useUiTheme } from '@/features/ui-theme';
+import { useThemeDefinition } from '@/features/ui-theme';
 import { COMPONENT_ROLES } from '@/features/architecture/types';
 import type { ArchitectureView, ComponentRole } from '@/features/architecture/types';
 import type { SnapshotSummary } from '@/features/architecture/api';
@@ -112,8 +111,8 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
   const [pin, setPin] = useState<Pin | null>(null);
   const searchRef = useRef<{ focus: () => void } | null>(null);
   const viewport = useRef<Viewport | null>(null);
-  const frost = useUiTheme() === 'frost';
-  const theme = frost && themeName === 'dark' ? FROST : THEMES[themeName];
+  // Each look names its drawing colours for the viewer's dark and light modes (src/theme/themes).
+  const theme = useThemeDefinition().diagram[themeName];
 
   // Ids in the URL are checked against what is actually on screen: first against the components, then against the class view if one is open.
   const detailId = parseHash(hash, { components: new Set(view.components.map(c => c.id)) }).detail;
@@ -238,7 +237,7 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
     </aside>}
 
     <ArchitectureDiagram className="h-full min-w-0 flex-1" apiRef={viewport}
-      gridColor={themeName === 'light' ? '#dbe2ea' : frost ? '#323c45' : '#1c2530'} scene={scene} layout={layout} theme={theme} title={caption.title} highlight={highlight}
+      gridColor={theme.grid} scene={scene} layout={layout} theme={theme} title={caption.title} highlight={highlight}
       selectedNode={state.focus} selectedEdge={state.edge} hoverEdge={hoverEdge} showWeights={weights} marks={scene.mode === 'components' ? marks : undefined}
       onNodeClick={focusNode} onNodeOpen={openDetail} onEdgeClick={selectEdge} onEdgeHover={setHoverEdge}
       overlay={vp => <>
@@ -248,7 +247,7 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
           {detailId && <Button size="small" icon={<ArrowLeft size={14} />} onClick={closeDetail}>{t('allComponents')}{detailName ? t('inside', { name: detailName }) : ''}</Button>}
           <IssuesChip summary={summary} verified={verified} onClick={openIssues} />
           <div className={`${panel} text-xs`}>
-            <button type="button" className="flex items-center gap-1.5 px-2.5 py-1.5 text-[var(--at-text)] hover:text-white" aria-expanded={legend} onClick={() => setLegend(v => !v)}>
+            <button type="button" className="flex items-center gap-1.5 px-2.5 py-1.5 text-[var(--at-text)] hover:text-[var(--at-text-strong)]" aria-expanded={legend} onClick={() => setLegend(v => !v)}>
               {t('legend')} {legend ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
             </button>
             {legend && <ul className="space-y-1 px-3 pb-2.5 text-[var(--at-muted)]" aria-label={t('legend')}>
@@ -265,7 +264,7 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
           {focusMode && <Button size="small" type="primary" icon={<Minimize size={14} />} onClick={exitFocus}>{t('exitFullScreen')}</Button>}
         </div>}
 
-        {activePin && <div data-overlay className="absolute bottom-[4.5rem] left-1/2 z-10 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-lg border border-[var(--at-line)] bg-[var(--at-panel)]/95 py-1 pl-3 pr-1 text-xs text-slate-200 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur">
+        {activePin && <div data-overlay className="absolute bottom-[4.5rem] left-1/2 z-10 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-lg border border-[var(--at-line)] bg-[var(--at-panel)]/95 py-1 pl-3 pr-1 text-xs text-[var(--at-text)] shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur">
           <span className="min-w-0 truncate">{t('showing', { title: activePin.title })}</span>
           <Button size="small" type="text" onClick={clearSelection}>{t('clearHighlight')}</Button>
         </div>}
@@ -319,7 +318,7 @@ export default function ArchitectureViewer({ view, base, hash, commit, overview,
           <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-[var(--at-muted)]">{t('throughSnapshots')}</h3>
           <ol className="space-y-1 text-xs">{history.map(h => <li key={h.snapshotId} className="flex items-baseline gap-2">
             <button type="button" disabled={!onSnapshot || h.snapshotId === snapshotId} onClick={() => onSnapshot?.(h.snapshotId)} className="shrink-0 font-mono text-[var(--at-link)] hover:text-[var(--at-link-hover)] disabled:cursor-default disabled:text-[var(--at-muted)]" aria-label={t('openSnapshot', { hash: h.snapshot?.hash ?? h.snapshotId })}>{h.snapshot?.hash.slice(0, 7) ?? '?'}</button>
-            <span className="min-w-0 truncate text-slate-200">{h.name}</span>
+            <span className="min-w-0 truncate text-[var(--at-text)]">{h.name}</span>
             {h.snapshot?.date && <span className="ml-auto shrink-0 text-[var(--at-muted)]">{formatDate(h.snapshot.date)}</span>}
           </li>)}</ol>
           <p className="mt-1 text-[11px] leading-snug text-[var(--at-muted)]">{t('matchedFiles')}</p>

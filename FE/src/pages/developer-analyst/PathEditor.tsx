@@ -61,7 +61,7 @@ const MSG = defineMessages({
 const tx = (key: Parameters<typeof translate<typeof MSG.en>>[1], params?: Params) => translate(MSG, key, params);
 
 const NONE: FieldProblems = { path: {}, steps: {} };
-const fieldError = (problem: string | undefined) => (problem ? <p role="alert" className="mt-1 text-xs text-red-400">{problem}</p> : null);
+const fieldError = (problem: string | undefined) => (problem ? <p role="alert" className="mt-1 text-xs text-[var(--at-danger)]">{problem}</p> : null);
 
 type StepEditorProps = {
   index: number; count: number; step: DraftStep; problems: Record<string, string>; assessment?: StepAssessment;

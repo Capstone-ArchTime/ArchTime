@@ -90,7 +90,7 @@ function SuspensionControls({ detail, onChanged }: { detail: AdminOrganizationDe
       <p className="text-sm mb-3">{m('suspendBody', { workspaces: m('workspaces', { count: detail.projectCount }), members: m('members', { count: detail.memberCount }) })}</p>
       <label htmlFor="suspension-reason" className="block text-xs text-[var(--at-muted)] mb-1">{m('reason')}</label>
       <Input.TextArea id="suspension-reason" rows={3} maxLength={SUSPENSION_REASON.max} showCount value={reason} onChange={e => setReason(e.target.value)} status={reason && reasonError ? 'error' : undefined} />
-      {reason && reasonError && <p className="text-xs text-red-500 mt-1">{reasonError}</p>}
+      {reason && reasonError && <p className="text-xs text-[var(--at-danger)] mt-1">{reasonError}</p>}
       {error && <Alert className="!mt-3" type="error" showIcon title={error} />}
     </Modal>
   </section>;

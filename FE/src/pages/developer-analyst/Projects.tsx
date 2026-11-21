@@ -330,7 +330,7 @@ const Projects: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-[var(--at-accent)] shadow-[0_0_5px_var(--at-glow)]"></div>
                   <h2 id="create-project-title" className="text-[var(--at-text)] font-bold tracking-tight uppercase text-sm font-mono tracking-widest"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t('ws.create.title')}</h2>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{t('ws.create.title')}</h2>
                 </div>
                 <button
                   onClick={closeModal}
@@ -347,7 +347,7 @@ const Projects: React.FC = () => {
                 </p>
                 <div className="space-y-1.5">
                   <label htmlFor="project-name" className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider block"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t('ws.create.name')}</label>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{t('ws.create.name')}</label>
                   <input
                     id="project-name"
                     type="text"
@@ -360,7 +360,7 @@ const Projects: React.FC = () => {
 
                 <div className="space-y-1.5">
                   <label htmlFor="project-description" className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider block"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t('ws.create.description')} <span className="text-[var(--at-muted)]">{t('common.optional')}</span></label>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{t('ws.create.description')} <span className="text-[var(--at-muted)]">{t('common.optional')}</span></label>
                   <textarea
                     id="project-description"
                     value={projectDescription}
@@ -372,7 +372,7 @@ const Projects: React.FC = () => {
 
                 <div className="space-y-1.5">
                   <label htmlFor="project-space" className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider block"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t('ws.create.space')}</label>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{t('ws.create.space')}</label>
                   <select
                     id="project-space"
                     value={organizationId}
@@ -391,7 +391,7 @@ const Projects: React.FC = () => {
 
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider block"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t('ws.create.provider')}</span>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{t('ws.create.provider')}</span>
                   <div className="grid grid-cols-2 gap-3">
                     <label className="flex items-center justify-center gap-2 h-10 bg-[var(--at-panel-2)] border border-[var(--at-line)] cursor-pointer hover:border-[var(--at-muted)] transition-colors has-[:checked]:border-[var(--at-accent)] has-[:checked]:bg-[var(--at-accent)]/5 group">
                       <input type="radio" name="provider" className="sr-only" defaultChecked />
@@ -408,7 +408,7 @@ const Projects: React.FC = () => {
 
                 <div className="space-y-1.5">
                   <label htmlFor="repository-url" className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider block"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t('ws.create.repoUrl')}</label>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{t('ws.create.repoUrl')}</label>
                   <input
                     id="repository-url"
                     type="text"
@@ -416,13 +416,13 @@ const Projects: React.FC = () => {
                     onChange={(e) => setRepoUrl(e.target.value)}
                     placeholder="https://github.com/organization/repo"
                     className="w-full h-10 bg-[var(--at-panel-2)] border border-[var(--at-line)] px-3 text-sm font-mono text-[var(--at-text)] placeholder:text-[var(--at-muted)] focus:outline-none focus:border-[var(--at-accent)]/50 focus:ring-1 focus:ring-[var(--at-accent)]/20 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}
+            style={{ fontFamily: 'var(--at-font-mono)' }}
                   />
                 </div>
 
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider block"
-            style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t('ws.create.visibility')}</span>
+            style={{ fontFamily: 'var(--at-font-mono)' }}>{t('ws.create.visibility')}</span>
                   <div className="grid grid-cols-2 gap-3">
                     <label className="flex items-center justify-center gap-2 h-10 bg-[var(--at-panel-2)] border border-[var(--at-line)] cursor-pointer hover:border-[var(--at-muted)] transition-colors has-[:checked]:border-[var(--at-accent)] has-[:checked]:bg-[var(--at-accent)]/5 group">
                       <input type="radio" name="visibility" value="public" className="sr-only" checked={visibility === 'public'} onChange={() => setVisibility('public')} />
@@ -440,7 +440,7 @@ const Projects: React.FC = () => {
                 {visibility === 'private' && organizationId && (
                   <div className="space-y-1.5">
                     <span className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider block"
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t('ws.create.cloneWith')}</span>
+              style={{ fontFamily: 'var(--at-font-mono)' }}>{t('ws.create.cloneWith')}</span>
                     {credentials === null ? (
                       <p className="text-xs text-[var(--at-muted)]">{t('ws.create.loadingCredentials')}</p>
                     ) : credentials.length ? (
@@ -475,7 +475,7 @@ const Projects: React.FC = () => {
                 {visibility === 'private' && effectiveAccess === 'token' && (
                   <div className="space-y-1.5">
                     <label htmlFor="auth-token" className="text-[10px] font-mono text-[var(--at-muted)] uppercase tracking-wider block"
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t('ws.create.token')}</label>
+              style={{ fontFamily: 'var(--at-font-mono)' }}>{t('ws.create.token')}</label>
                     <input
                       id="auth-token"
                       type="password"
@@ -483,7 +483,7 @@ const Projects: React.FC = () => {
                       value={token}
                       onChange={(e) => setToken(e.target.value)}
                       className="w-full h-10 bg-[var(--at-panel-2)] border border-[var(--at-line)] px-3 text-sm font-mono text-[var(--at-text)] placeholder:text-[var(--at-muted)] focus:outline-none focus:border-[var(--at-accent)]/50 focus:ring-1 focus:ring-[var(--at-accent)]/20 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
-                      style={{ fontFamily: '"JetBrains Mono", monospace' }}
+                      style={{ fontFamily: 'var(--at-font-mono)' }}
                     />
                     <p className="text-[10px] text-[var(--at-muted)]">{t('ws.create.tokenHelp')}</p>
                   </div>

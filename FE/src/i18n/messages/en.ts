@@ -240,6 +240,7 @@ export const en = {
   'layout.unread': '{count} unread',
   'layout.signOutTitle': 'Sign out of ArchTime?',
   'layout.signOutBody': 'Save any edits before signing out. Unsaved changes will be lost.',
+  'layout.theme': 'Theme',
   'layout.staySignedIn': 'Stay signed in',
   'layout.openAccountMenuFor': 'Open account menu for {name}',
 

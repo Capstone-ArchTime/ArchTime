@@ -64,17 +64,17 @@ export default function ResetPassword() {
       if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : m('failed'));
     } finally { if (!controller.signal.aborted) setBusy(false); }
   }
-  const inputClass = 'w-full rounded border border-[var(--at-line)] bg-[var(--at-panel)] p-3 text-white';
-  return <main className="min-h-dvh bg-[var(--at-page)] text-slate-200 flex items-center justify-center p-6">
+  const inputClass = 'w-full rounded border border-[var(--at-line)] bg-[var(--at-panel)] p-3 text-[var(--at-text-strong)]';
+  return <main className="min-h-dvh bg-[var(--at-page)] text-[var(--at-text)] flex items-center justify-center p-6">
     <section className="w-full max-w-md space-y-6">
       <Logo />
       <h1 className="text-2xl font-bold">{done ? m('titleDone') : m('title')}</h1>
       {notice && <p role="status" className="text-[var(--at-link)]">{notice}</p>}
-      {error && <p role="alert" className="text-red-400">{error}</p>}
+      {error && <p role="alert" className="text-[var(--at-danger)]">{error}</p>}
       {!done && <form onSubmit={submit} noValidate className="space-y-4">
         <label className="block">{m('email')}<input className={inputClass} type="email" autoComplete="email" maxLength={254} value={email} disabled={sent || busy} onChange={e => setEmail(e.target.value)} /></label>
         {sent && <>
-          <p className="text-sm text-slate-400">{m('codeHint')}</p>
+          <p className="text-sm text-[var(--at-muted)]">{m('codeHint')}</p>
           <label className="block">{m('code')}<input className={inputClass} autoComplete="one-time-code" value={token} disabled={busy} onChange={e => setToken(e.target.value)} /></label>
           <div><label className="block">{m('newPassword')}<input className={inputClass} type="password" autoComplete="new-password" aria-describedby="reset-password-rules" value={password} disabled={busy} onChange={e => setPassword(e.target.value)} /></label>
           <PasswordRequirements id="reset-password-rules" password={password} /></div>

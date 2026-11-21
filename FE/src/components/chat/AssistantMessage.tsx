@@ -31,7 +31,7 @@ const MSG = defineMessages({
 });
 const tx = (key: Parameters<typeof message<typeof MSG.en>>[1], params?: Params) => message(MSG, key, params);
 
-const mono = { fontFamily: '"JetBrains Mono", monospace' };
+const mono = { fontFamily: 'var(--at-font-mono)' };
 
 const LABEL_STYLES = {
   FACT: 'bg-[var(--at-success)]/15 text-[var(--at-success)] border-[var(--at-success)]/30',
