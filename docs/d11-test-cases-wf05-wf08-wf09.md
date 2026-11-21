@@ -6,7 +6,7 @@
 | Ngày | 2026-11-15 |
 | Nguồn | BM04 §6.5 (WF-05), §6.8 (WF-08), §6.9 (WF-09); danh sách việc D11 |
 | Kế hoạch kiểm thử chung | [report5-test-plan.md](report5-test-plan.md) |
-| CI | `.github/workflows/ci.yml`: mỗi lần push, chạy toàn bộ test BE (trên MongoDB 7) và FE, `tsc`, `oxlint`, build. Job fail nếu có test bị bỏ qua |
+| CI | `.github/workflows/ci.yml`: mỗi lần push, chạy toàn bộ test BE (trên MongoDB 8) và FE, `tsc`, `oxlint`, build. Job fail nếu có test bị bỏ qua |
 
 Luồng và chức năng (BM04):
 
