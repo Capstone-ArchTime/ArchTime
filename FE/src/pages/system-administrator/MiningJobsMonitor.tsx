@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom';
 import { Alert, App, Button, Empty, Progress, Select, Spin, Tag, Typography } from 'antd';
 import FeaturePage, { featurePanel } from '@/components/FeaturePage';
 import { apiRequest } from '@/api/client';
-import { parseMiningJobs } from '@/features/mining-jobs';
-import { cancelMiningJob } from '@/features/mining-api';
+import { cancelJobAsAdministrator, parseMiningJobs } from '@/features/mining-jobs';
 import { describeBatchProgress } from '@/features/mining-coverage';
 import type { MiningJob } from '@/features/mining-jobs';
 import { usePagination } from '@/hooks/usePagination';
@@ -56,7 +55,7 @@ export default function MiningJobsMonitor() {
   const m = useMessages(MSG);
   async function cancel(id: string) {
     setCancelError(null);
-    try { await cancelMiningJob(id); setRevision(v => v + 1); }
+    try { await cancelJobAsAdministrator(id); setRevision(v => v + 1); }
     catch (cause) { setCancelError(cause instanceof Error ? cause.message : m('cancelFailed')); }
   }
 
