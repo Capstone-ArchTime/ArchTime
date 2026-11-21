@@ -188,6 +188,7 @@ export const en = {
   'nav:/compare': 'Compare',
   'nav:/evidence': 'Changes & Evidence',
   'nav:/tasks': 'Tasks & Sprints',
+  'nav:/propose-change': 'Propose a change',
   'nav:/insights': 'AI Insights',
   'nav:/project-maintainer': 'Maintainer overview',
   'nav:/project-maintainer/approvals': 'Approval Queue',

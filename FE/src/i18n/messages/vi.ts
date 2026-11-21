@@ -186,6 +186,7 @@ export const vi: Record<Exclude<MessageKey, `${string}_one`>, string> = {
   'nav:/compare': 'So sánh',
   'nav:/evidence': 'Thay đổi & Bằng chứng',
   'nav:/tasks': 'Công việc & Sprint',
+  'nav:/propose-change': 'Đề xuất thay đổi',
   'nav:/insights': 'Phân tích AI',
   'nav:/project-maintainer': 'Tổng quan bảo trì',
   'nav:/project-maintainer/approvals': 'Hàng chờ duyệt',

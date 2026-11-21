@@ -190,6 +190,33 @@ test("WF-04 end to end (DS-04a): edit and confirm the diagram, add a rule, a mem
   assert.equal((accepted.decision ?? accepted).status, "Accepted");
 });
 
+test("DS-04a (Propose a change page): a proposal sent without path prefixes keeps the confirmed components' prefixes when approved", async (t) => {
+  if (unavailable) return t.skip(unavailable);
+  const ws = await reset();
+  const confirmed = await saveWorkspace(leadToken, ws.revision, { ...ws.diagram, confirmedAt: new Date().toISOString() });
+  assert.equal(confirmed.status, 200, confirmed.text);
+  // The body the member's page sends (FE/src/features/proposal.ts): components without pathPrefixes, the changes listed.
+  const bare = ({ id, name, kind, description }) => ({ id, name, kind, description });
+  const proposal = await h.call(newcomerToken, "POST", `${P()}/approvals`, {
+    title: "Add a queue", description: "Changes:\n- Adds component queue (Queue)\n- Adds dependency api → queue", type: "architecture_change",
+    data: { diagram: {
+      components: [...confirmed.body.data.workspace.diagram.components.map(bare), { id: "queue", name: "queue", kind: "Queue", description: "" }],
+      dependencies: [...confirmed.body.data.workspace.diagram.dependencies, { id: "e3", source: "api", target: "queue", label: "" }],
+    } },
+  });
+  assert.equal(proposal.status, 201, proposal.text);
+  const mine = await h.call(newcomerToken, "GET", `${P()}/approvals?type=architecture_change&limit=50`);
+  assert.equal(mine.status, 200, "a member reads the queue to follow their proposal");
+  assert.ok(mine.body.data.approvals.some((a) => a.id === proposal.body.data.approval.id && a.status === "pending"));
+
+  const approved = await h.call(leadToken, "POST", `${P()}/approvals/${proposal.body.data.approval.id}/approve`, {});
+  assert.equal(approved.status, 200, approved.text);
+  const after = await workspace();
+  assert.deepEqual(after.diagram.components.map((c) => [c.id, c.pathPrefixes]), [["web", ["src/web"]], ["api", ["src/api"]], ["db", []], ["queue", []]]);
+  assert.ok(after.diagram.dependencies.some((d) => d.source === "api" && d.target === "queue"));
+  assert.ok(after.diagram.confirmedAt, "the approved proposal is the canonical map");
+});
+
 test("DS-04b: the diagram open in two tabs; tab B's save after tab A's gets 409 and tab A's save is kept", async (t) => {
   if (unavailable) return t.skip(unavailable);
   const loaded = await reset(); // both tabs load this revision

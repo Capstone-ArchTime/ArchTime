@@ -33,14 +33,14 @@ test('all navigation destinations are authorized for their displayed role', () =
 test('the sidebar of a developer-analyst has six entries, seven with the Maintain group', () => {
   assert.deepEqual(topLevel(navGroupsFor('developer-analyst', { maintains: false })), ['Dashboard', 'Workspaces', 'Organizations', 'Analyze', 'Learning', 'Reports']);
   assert.deepEqual(topLevel(navGroupsFor('developer-analyst', { maintains: true })), ['Dashboard', 'Workspaces', 'Organizations', 'Analyze', 'Learning', 'Reports', 'Maintain']);
-  assert.deepEqual(analyzeNavItems.map(item => item.path), ['/architecture', '/compare', '/evidence', '/tasks', '/insights']);
+  assert.deepEqual(analyzeNavItems.map(item => item.path), ['/architecture', '/compare', '/evidence', '/tasks', '/insights', '/propose-change']);
   assert.equal(topLevel(navGroupsFor('system-administrator', { maintains: true })).length, 8, 'administrators keep their own eight pages (Organizations added for T44)');
 });
 
 test('every page still has a way in: the sidebar, the account menu, or (old maintainer reports, old history) a redirect', () => {
   const reachable = new Set([...navGroupsFor('developer-analyst', { maintains: true }).flatMap(group => group.items), ...accountMenuItems['developer-analyst']].map(item => item.path));
   assert.ok(!reachable.has('/history'), 'Architecture History was folded into Compare; /history redirects there');
-  for (const path of ['/dashboard', '/projects', '/architecture', '/compare', '/evidence', '/tasks', '/insights', '/learning', '/reports', '/ai-usage', '/profile', '/my-work', '/settings']) assert.ok(reachable.has(path), path);
+  for (const path of ['/dashboard', '/projects', '/architecture', '/compare', '/evidence', '/tasks', '/insights', '/propose-change', '/learning', '/reports', '/ai-usage', '/profile', '/my-work', '/settings']) assert.ok(reachable.has(path), path);
   assert.deepEqual(maintainerRoutes.filter(path => !reachable.has(path)), ['/project-maintainer/reports'], 'only the old reports page, which now redirects to /reports');
   assert.deepEqual(accountMenuItems['developer-analyst'].map(item => item.path), ['/my-work', '/profile', '/ai-usage', '/settings']);
   assert.deepEqual(accountMenuItems['system-administrator'].map(item => item.path), ['/my-work', '/profile', '/settings']);
