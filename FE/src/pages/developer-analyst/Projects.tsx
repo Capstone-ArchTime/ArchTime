@@ -1,5 +1,6 @@
 import { apiRequest } from '@/api/client';
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { activeJobsKey, useBackgroundJobs } from '@/features/background-jobs';
 import { App } from 'antd';
 import { motion, AnimatePresence } from 'motion/react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -92,6 +93,15 @@ const Projects: React.FC = () => {
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
+
+  // A job starting or ending (from the mining window, another tab or the header) changes what the cards should say.
+  const jobsKey = activeJobsKey(useBackgroundJobs());
+  const seenJobsKey = useRef(jobsKey);
+  useEffect(() => {
+    if (seenJobsKey.current === jobsKey) return;
+    seenJobsKey.current = jobsKey;
+    fetchProjects();
+  }, [jobsKey, fetchProjects]);
 
   const handleConnect = async () => {
     const built = buildRegistration({

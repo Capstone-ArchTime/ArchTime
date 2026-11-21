@@ -2,6 +2,8 @@
 // are grouped by folder (as deep as keeps the drawing readable) and folders are joined by the imports between their
 // files. Both revisions are laid out together, so a folder sits in the same place on both sides.
 
+import { layoutGraph, type GraphLayout } from './architecture/layout.ts';
+
 export type RawNode = { id?: unknown };
 export type RawEdge = { source?: unknown; target?: unknown };
 export type RawSnapshot = { nodes?: RawNode[] | null; edges?: RawEdge[] | null } | null | undefined;
@@ -129,6 +131,31 @@ export function buildCompareGraph(base: RawSnapshot, target: RawSnapshot, maxGro
     depth, groups: groupList, links: linkList, folded: Math.max(0, ranked.length - kept.size), totals: { baseFiles: baseFiles.length, targetFiles: targetFiles.length },
     fileGroup: Object.fromEntries(all.map(f => [f, groupOf(f)])),
   };
+}
+
+/**
+ * Lays out the folder boxes. Folders joined by imports keep the layered drawing; folders with no import to or from
+ * another are wrapped into rows under it, a few per row. Without this, a revision whose folders do not import each
+ * other (or a CommonJS repository) put every box in one long row, shrunk until its names could not be read.
+ */
+export function layoutCompareGraph(graph: Pick<CompareGraph, 'groups' | 'links'>, box: { width: number; height: number }, options = { nodeGap: 22, layerGap: 70 }): GraphLayout {
+  const linked = new Set(graph.links.flatMap(l => (l.source === l.target ? [] : [l.source, l.target])));
+  const edges = graph.links.map(l => ({ id: l.id, source: l.source, target: l.target }));
+  const connected = graph.groups.filter(g => linked.has(g.id));
+  const loose = graph.groups.filter(g => !linked.has(g.id));
+  // Depth of the connected part, from a first pass over it alone (its layers are its longest-path depths, 0..max).
+  const first = connected.length ? layoutGraph(connected.map(g => ({ id: g.id, ...box })), edges, options) : null;
+  const firstRow = first ? first.layers.length : 0;
+  const widest = first ? Math.max(...first.layers.map(layer => first.nodes.filter(n => n.layer === layer.index).length)) : 0;
+  // Columns for a block about twice as wide as tall (from the box size and gaps), three to eight a row, and no narrower
+  // than the drawing above it.
+  const columns = Math.ceil(Math.sqrt(loose.length * 2 * (box.height + options.layerGap) / (box.width + options.nodeGap)));
+  const perRow = Math.max(widest, Math.min(8, Math.max(3, columns)));
+  const nodes = [
+    ...connected.map(g => ({ id: g.id, ...box })),
+    ...loose.map((g, i) => ({ id: g.id, ...box, layer: firstRow + Math.floor(i / perRow) })),
+  ];
+  return layoutGraph(nodes, edges, options);
 }
 
 /** "src/web/controllers" shown as "…/web/controllers" when it does not fit. */

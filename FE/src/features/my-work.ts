@@ -63,7 +63,7 @@ export const WORKSPACE_ROLE_LABELS: Record<WorkspaceRole, string> = {
 };
 
 export const STATUS_VIEW: Record<WorkspaceStatus, { label: string; color: string }> = {
-  PENDING: { label: 'Not scanned', color: 'default' },
+  PENDING: { label: 'Not mined', color: 'default' },
   ANALYZING: { label: 'Mining', color: 'blue' },
   PARTIAL: { label: 'Partly mined', color: 'gold' },
   COMPLETED: { label: 'Mined', color: 'green' },
