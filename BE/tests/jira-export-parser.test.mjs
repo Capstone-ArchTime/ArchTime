@@ -153,3 +153,33 @@ test('the line scanner skips brackets inside strings, reads a root array, and co
   assert.deepEqual(issueLines('{"issues":[]}'), []);
   assert.deepEqual(issueLines('{"a":"\\"issues\\"","issues":[{}]}'), [1]);
 });
+
+// A board export (Jira Software board exporters) writes each issue's fields flattened on the issue, with the status
+// category by name, and keeps Jira's own field set under "rawFields". Before this was read, such a file imported every
+// task with no summary, no status, no assignee and no sprint.
+test('a board export is read from rawFields, or from the flattened fields when it has none', () => {
+  const sprint = { id: 1, name: 'SCRUM Sprint 1', state: 'active', startDate: '2026-09-14T11:55:40.518Z', endDate: '2026-09-19T04:55:14.000Z' };
+  const board = {
+    exportedAt: '2026-11-18T13:12:09.039Z',
+    source: { site: 'https://example.atlassian.net', boardId: 1, boardName: 'SCRUM board' },
+    columns: [{ columnName: 'Done', issues: [] }],
+    issues: [
+      {
+        key: 'SCRUM-16', summary: 'bi', status: { name: 'Done', category: 'Done' }, assignee: { displayName: 'Truong' }, sprint: [sprint],
+        rawFields: {
+          summary: 'bi', status: { name: 'Done', statusCategory: { key: 'done' } }, assignee: { displayName: 'Truong' },
+          customfield_10016: 5, sprint: { ...sprint, self: 'https://example.atlassian.net/rest/agile/1.0/sprint/1' }, customfield_10020: [sprint],
+        },
+      },
+      { key: 'SCRUM-17', summary: 'Wire the API', status: { name: 'In Progress', category: 'In Progress' }, assignee: null, sprint: [sprint] },
+      { key: 'SCRUM-18', summary: 'Backlog idea', status: { name: 'Canceled', category: 'To Do' }, assignee: { displayName: 'Bob' }, sprint: [] },
+    ],
+  };
+  const { tasks, sprints } = parseJiraExport(JSON.stringify(board));
+  assert.deepEqual(tasks, [
+    { key: 'SCRUM-16', summary: 'bi', status: 'Done', statusCategory: 'done', assignee: 'Truong', storyPoints: 5, sprint: 'jira:1' },
+    { key: 'SCRUM-17', summary: 'Wire the API', status: 'In Progress', statusCategory: 'in-progress', assignee: null, storyPoints: null, sprint: 'jira:1' },
+    { key: 'SCRUM-18', summary: 'Backlog idea', status: 'Canceled', statusCategory: 'todo', assignee: 'Bob', storyPoints: null, sprint: null },
+  ]);
+  assert.deepEqual(sprints.map(s => [s.id, s.name, s.state]), [['jira:1', 'SCRUM Sprint 1', 'active']]);
+});

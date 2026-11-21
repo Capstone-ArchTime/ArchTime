@@ -52,6 +52,9 @@ app.set("trust proxy", env.trustProxy);
 // ── Core Middleware ──
 // Content-Disposition carries the name of downloaded files (report PDFs), which the page reads.
 app.use(cors({ origin: env.corsOrigin, credentials: true, exposedHeaders: ["Content-Disposition"] }));
+// A Jira export of a large project is several MB (F-13): only its import route reads bodies up to 25 MB (a 20 MB file,
+// plus the escaping of its text inside the JSON body). A body read here is not read again by the parser below.
+app.use("/api/projects/:id/tasks/import", express.json({ limit: "25mb" }));
 // A learning path can hold 50 steps of up to 4000 characters each (Vietnamese text takes up to 3 bytes a character), more than the 100 KB default.
 app.use(express.json({ limit: "2mb" }));
 

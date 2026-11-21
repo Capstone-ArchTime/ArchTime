@@ -19,7 +19,7 @@ const MSG = defineMessages({
   sprintRemoved: 'The latest export no longer has this sprint.', removed: 'removed', progress: '{name} progress', points: ' · {done} / {total} points',
   impactFailed: 'Could not load the impact.', unconfirmed: ' (components from an unconfirmed diagram)', trailer: ' · Task: trailer', notMined: 'no longer in the mined history',
   deps: '+{added} / −{removed} dependencies', inside: 'inside {list}', openEvidence: 'Open the evidence of commit {hash}', viewEvidence: 'View evidence',
-  tasksFailed: 'Could not load the tasks.', tooLarge: 'The file is larger than 2 MB. Export fewer issues at a time.', importFailed: 'The import failed.',
+  tasksFailed: 'Could not load the tasks.', tooLarge: 'The file is larger than 20 MB. Export fewer issues at a time.', importFailed: 'The import failed.',
   linked: '{linked} new commit links from {count} mined commits.', linked_one: '{linked} new commit links from 1 mined commit.', linkFailed: 'Linking failed.', retry: 'Retry',
   key: 'Key', summary: 'Summary', noSummary: 'No summary', notInExport: 'Not in the export imported on {date}.', status: 'Status', noStatus: 'No status', assignee: 'Assignee', unassigned: 'Unassigned',
   pointsCol: 'Points', sprint: 'Sprint', backlog: 'Backlog', commits: 'Commits', notImported: 'The export was not imported',
@@ -34,7 +34,7 @@ const MSG = defineMessages({
   sprintRemoved: 'Bản xuất mới nhất không còn sprint này.', removed: 'đã xoá', progress: 'Tiến độ {name}', points: ' · {done} / {total} điểm',
   impactFailed: 'Không tải được ảnh hưởng.', unconfirmed: ' (thành phần lấy từ sơ đồ chưa xác nhận)', trailer: ' · Task: trailer', notMined: 'không còn trong lịch sử đã mining',
   deps: '+{added} / −{removed} phụ thuộc', inside: 'trong {list}', openEvidence: 'Mở bằng chứng của commit {hash}', viewEvidence: 'Xem bằng chứng',
-  tasksFailed: 'Không tải được các task.', tooLarge: 'Tệp lớn hơn 2 MB. Hãy xuất ít issue hơn mỗi lần.', importFailed: 'Nhập thất bại.',
+  tasksFailed: 'Không tải được các task.', tooLarge: 'Tệp lớn hơn 20 MB. Hãy xuất ít issue hơn mỗi lần.', importFailed: 'Nhập thất bại.',
   linked: '{linked} liên kết commit mới từ {count} commit đã mining.', linkFailed: 'Liên kết thất bại.', retry: 'Thử lại',
   key: 'Mã', summary: 'Tóm tắt', noSummary: 'Không có tóm tắt', notInExport: 'Không có trong bản xuất được nhập ngày {date}.', status: 'Trạng thái', noStatus: 'Không có trạng thái', assignee: 'Người nhận', unassigned: 'Chưa giao',
   pointsCol: 'Điểm', sprint: 'Sprint', backlog: 'Backlog', commits: 'Commit', notImported: 'Bản xuất chưa được nhập',
@@ -53,7 +53,8 @@ const tx = (key: Parameters<typeof translate<typeof MSG.en>>[1], params?: Params
 
 const panel = 'rounded-xl border border-[var(--at-border)] bg-[var(--at-surface)] p-4';
 const day = (iso: string | null) => (iso ? formatDate(iso) : '—');
-const MAX_FILE_BYTES = 2_000_000;
+/** As the server accepts (TaskUseCases MAX_EXPORT_CHARS): a large project's Jira export is several MB. */
+const MAX_FILE_BYTES = 20_000_000;
 
 function SprintCard({ sprint, selected, onSelect }: { sprint: Sprint; selected: boolean; onSelect: () => void }) {
   const { progress } = sprint;
