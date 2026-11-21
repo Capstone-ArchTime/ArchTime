@@ -14,6 +14,7 @@ export const analyzeNavItems: readonly NavItem[] = [
   { path: '/evidence', label: 'Changes & Evidence', icon: FileSearch },
   { path: '/tasks', label: 'Tasks & Sprints', icon: ListChecks },
   { path: '/insights', label: 'AI Insights', icon: Sparkles },
+  { path: '/propose-change', label: 'Propose a change', icon: GitPullRequest },
 ];
 
 /** Pages for the workspaces this account maintains; the server decides which those are. Reports live under Reports. */

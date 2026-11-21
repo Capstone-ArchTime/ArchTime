@@ -15,6 +15,7 @@ import PageErrorBoundary from '@/components/PageErrorBoundary';
 
 const AuthPage = lazy(() => import("@/pages/Login"));
 const ApprovalQueue = lazy(() => import("@/pages/project-maintainer/ApprovalQueue"));
+const ProposeChange = lazy(() => import("@/pages/developer-analyst/ProposeChange"));
 const Team = lazy(() => import("@/pages/project-maintainer/Team"));
 const UserManagement = lazy(() => import("@/pages/system-administrator/UserManagement"));
 const AdminOrganizations = lazy(() => import("@/pages/system-administrator/Organizations"));
@@ -102,6 +103,7 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path="/evidence" element={<Evidence />} />
       <Route path="/tasks" element={<TasksSprints />} />
       <Route path="/insights" element={<Insights />} />
+      <Route path="/propose-change" element={<ProposeChange />} />
       <Route path="/reports" element={<ProjectMaintainerReports />} />
       <Route path="/ai-usage" element={<AiUsage />} />
       <Route path="/profile" element={<Profile />} />
