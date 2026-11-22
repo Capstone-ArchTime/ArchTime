@@ -14,9 +14,14 @@ export type UiTheme = string;
 /** Pages anyone can open signed out: they wear the chosen look for every visitor, signed in or not. */
 const PUBLIC_PATHS = ['/', '/login', '/register', '/verify-email', '/forgot-password', '/reset-password', '/invitations/accept', '/auth/github/callback'];
 
-export function themeFor(role: string | undefined, pathname: string, choice: string = DEFAULT_CHOICE): UiTheme {
+/**
+ * `pending`: the session is still being checked. Every role the app supports wears the chosen look, so the check wears
+ * it too; otherwise a reload flashed the dark base theme before a light look such as Halftone ink.
+ */
+export function themeFor(role: string | undefined, pathname: string, choice: string = DEFAULT_CHOICE, pending = false): UiTheme {
   const path = pathname.replace(/\/+$/, '') || '/';
   if (PUBLIC_PATHS.includes(path)) return choice;
+  if (pending && !role) return choice;
   return role === 'developer-analyst' || role === 'system-administrator' ? choice : BASE_THEME.id;
 }
 

@@ -21,6 +21,14 @@ export interface TrackedJob {
 }
 
 export const ACTIVE = ['queued', 'running'];
+
+/**
+ * Which workspaces have a job running, and of what kind: it changes when a job starts or ends, not on every progress
+ * tick. Pages that list workspaces reload when it changes, so a card says "Mining" as soon as mining starts.
+ */
+export function activeJobsKey(jobs: readonly Pick<TrackedJob, 'projectId' | 'kind' | 'status'>[]): string {
+  return [...new Set(jobs.filter(job => ACTIVE.includes(job.status)).map(job => `${job.projectId}:${job.kind}`))].sort().join('|');
+}
 const POLL_MS = 3000;
 
 export const KIND_LABEL: Record<string, string> = {

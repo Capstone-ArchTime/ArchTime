@@ -17,8 +17,7 @@ import { App, Select } from 'antd';
 import ComponentMatchPanel from '@/components/compare/ComponentMatchPanel';
 import CompareDiagram, { GROUP_HEIGHT, GROUP_WIDTH } from '@/components/compare/CompareDiagram';
 import CompareFilesDrawer from '@/components/compare/CompareFilesDrawer';
-import { OTHER, buildCompareGraph, compareFiles } from '@/features/compare-graph';
-import { layoutGraph } from '@/features/architecture/layout';
+import { OTHER, buildCompareGraph, layoutCompareGraph, compareFiles } from '@/features/compare-graph';
 import { getComponentMatch } from '@/features/component-matching';
 import type { ComponentMatchResult } from '@/features/component-matching';
 import { formatDate } from '@/i18n/format';
@@ -157,7 +156,7 @@ const Compare: React.FC = () => {
 
   // Both revisions grouped by folder and laid out together, so a folder sits in the same place on both sides.
   const graph = useMemo(() => (compareData ? buildCompareGraph(compareData.baseSnapshot, compareData.targetSnapshot) : null), [compareData]);
-  const graphLayout = useMemo(() => (graph ? layoutGraph(graph.groups.map(g => ({ id: g.id, width: GROUP_WIDTH, height: GROUP_HEIGHT })), graph.links.map(l => ({ id: l.id, source: l.source, target: l.target })), { nodeGap: 22, layerGap: 70 }) : null), [graph]);
+  const graphLayout = useMemo(() => (graph ? layoutCompareGraph(graph, { width: GROUP_WIDTH, height: GROUP_HEIGHT }) : null), [graph]);
 
   // Clicking a folder box lists its files; a file shows its imports before and after.
   const files = useMemo(() => (compareData && graph ? compareFiles(compareData.baseSnapshot, compareData.targetSnapshot, graph.fileGroup) : new Map()), [compareData, graph]);

@@ -137,7 +137,7 @@ export const vi: Record<Exclude<MessageKey, `${string}_one`>, string> = {
   'archRole.gateway': 'Gateway', 'archRole.config': 'Cấu hình', 'archRole.util': 'Tiện ích', 'archRole.external': 'Bên ngoài', 'archRole.other': 'Khác',
 
   // ── Trạng thái ngắn ──
-  'tag.PENDING': 'Chưa quét',
+  'tag.PENDING': 'Chưa mining',
   'tag.ANALYZING': 'Đang mining',
   'tag.PARTIAL': 'Mining một phần',
   'tag.COMPLETED': 'Đã mining',

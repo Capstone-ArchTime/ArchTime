@@ -138,7 +138,7 @@ export const en = {
   'archRole.gateway': 'Gateway', 'archRole.config': 'Config', 'archRole.util': 'Utility', 'archRole.external': 'External', 'archRole.other': 'Other',
 
   // ── Short workspace statuses (tags) ──
-  'tag.PENDING': 'Not scanned',
+  'tag.PENDING': 'Not mined', // scanning does not change the status; only mining does
   'tag.ANALYZING': 'Mining',
   'tag.PARTIAL': 'Partly mined',
   'tag.COMPLETED': 'Mined',
