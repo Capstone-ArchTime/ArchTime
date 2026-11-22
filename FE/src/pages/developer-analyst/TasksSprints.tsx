@@ -4,7 +4,6 @@ import { Alert, App, Button, Empty, Input, Popconfirm, Progress as Bar, Segmente
 import type { ColumnsType } from 'antd/es/table';
 import { ChevronRight, FileSearch, GitCommitHorizontal, Link2, Trash2, Upload } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { Details } from '@/components/PageHeader';
 import { getManagedProjects, getReadableProjects, type ProjectSummary } from '@/features/project-data';
 import {
   STATUS_COLORS, clearTasks, edgeLabel, fetchTaskBoard, fetchTaskImpact, filterTasks, impactSummary, importJiraExport, importSummary, progressLabel, relinkCommits,
@@ -29,7 +28,6 @@ const MSG = defineMessages({
   emptyMaintainer: "Connect Jira, or import a Jira JSON export, to see this workspace's tasks and sprints.", emptyReader: 'No tasks yet. A maintainer of this workspace imports them from Jira.', sprints: 'Sprints',
   allTasks: 'All tasks', pickSprint: 'Pick a sprint above', searchPlaceholder: 'Key, summary or assignee', searchLabel: 'Search tasks', showRemoved: 'Show removed tasks', noMatch: 'No task matches.',
   workspacesFailed: 'Could not load workspaces.', title: 'Tasks & Sprints', intro: 'Jira tasks, the commits that name them, and sprint progress.',
-  details: 'Tasks come from Jira. A commit is linked to a task when its message names the task key. Sprint progress = Done / all tasks.',
   workspace: 'Workspace', noWorkspace: 'No workspace yet.',
   deleteImport: 'Delete imported tasks', deleteTitle: 'Delete all imported tasks?',
   deleteBody: 'Deletes {count} tasks with their sprints and commit links. Mined commits stay.',
@@ -47,7 +45,6 @@ const MSG = defineMessages({
   emptyMaintainer: 'Hãy kết nối Jira, hoặc nhập bản xuất JSON của Jira, để xem task và sprint của không gian làm việc này.', emptyReader: 'Chưa có task nào. Người bảo trì không gian làm việc này sẽ nhập chúng từ Jira.', sprints: 'Sprint',
   allTasks: 'Mọi task', pickSprint: 'Chọn một sprint ở trên', searchPlaceholder: 'Mã, tóm tắt hoặc người nhận', searchLabel: 'Tìm task', showRemoved: 'Hiện task đã xoá', noMatch: 'Không có task nào khớp.',
   workspacesFailed: 'Không tải được các không gian làm việc.', title: 'Task & Sprint', intro: 'Task Jira, các commit nhắc tới chúng, và tiến độ sprint.',
-  details: 'Task lấy từ Jira. Commit được liên kết với task khi message nhắc tới mã task. Tiến độ sprint = Done / tổng task.',
   workspace: 'Không gian làm việc', noWorkspace: 'Chưa có không gian làm việc nào.',
   deleteImport: 'Xoá dữ liệu đã nhập', deleteTitle: 'Xoá mọi task đã nhập?',
   deleteBody: 'Xoá {count} task cùng sprint và liên kết commit. Commit đã mining vẫn giữ nguyên.',
@@ -283,7 +280,6 @@ export default function TasksSprints() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">{m('title')}</h2>
           <p className="mt-2 text-sm text-[var(--at-muted)] max-w-2xl">{m('intro')}</p>
-          <Details className="mt-2"><p>{m('details')}</p></Details>
         </div>
         {projects && projects.length > 0 && <div className="w-full sm:w-72">
           <label htmlFor="tasks-workspace" className="block text-xs text-[var(--at-muted)] mb-1">{m('workspace')}</label>
