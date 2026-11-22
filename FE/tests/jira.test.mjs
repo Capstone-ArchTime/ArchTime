@@ -49,3 +49,16 @@ test('sync and disconnect call their routes; an unconfirmed sync is an error', a
   await assert.rejects(syncJira('p1'), /did not confirm the sync/);
   assert.equal(siteLabel('https://archtime.atlassian.net'), 'archtime.atlassian.net');
 });
+
+import { readJiraUrl } from '../src/features/jira.ts';
+
+test('a pasted Jira address gives the site and, on a project page, its key', () => {
+  assert.deepEqual(readJiraUrl('https://dntruongproject.atlassian.net/jira/software/projects/KAN/boards/2?filter=&groupBy=none'), { site: 'dntruongproject.atlassian.net', projectKey: 'KAN' });
+  assert.deepEqual(readJiraUrl('https://archtime.atlassian.net/browse/SCRUM-16'), { site: 'archtime.atlassian.net', projectKey: 'SCRUM' });
+  assert.deepEqual(readJiraUrl(' https://Team-1.atlassian.net/jira/software/projects/KAN/boards/2/backlog?selectedIssue=KAN-2 '), { site: 'team-1.atlassian.net', projectKey: 'KAN' });
+  assert.deepEqual(readJiraUrl('archtime.atlassian.net/jira/for-you'), { site: 'archtime.atlassian.net', projectKey: null });
+  assert.deepEqual(readJiraUrl('archtime.atlassian.net'), { site: 'archtime.atlassian.net', projectKey: null });
+  for (const text of ['archtime', 'https://evil.io/x.atlassian.net/projects/KAN', 'https://archtime.atlassian.net.evil.io/projects/KAN', '']) {
+    assert.deepEqual(readJiraUrl(text), { site: null, projectKey: null }, text);
+  }
+});

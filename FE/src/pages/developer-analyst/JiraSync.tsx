@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
-import { App, Button, Form, Input, Modal, Popconfirm, Tooltip } from 'antd';
-import { PlugZap, RefreshCw } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { App, Button, Collapse, Form, Input, Modal, Popconfirm, Tooltip } from 'antd';
+import type { FormInstance } from 'antd';
+import { ExternalLink, PlugZap, RefreshCw } from 'lucide-react';
 import { ApiError } from '@/api/client';
 import {
-  fetchJiraConnection, removeJiraConnection, saveJiraConnection, siteLabel, syncJira, type JiraConnection, type JiraConnectionInput,
+  fetchJiraConnection, readJiraUrl, removeJiraConnection, saveJiraConnection, siteLabel, syncJira, type JiraConnection, type JiraConnectionInput,
 } from '@/features/jira';
 import { importSummary } from '@/features/tasks';
 import { formatDateTime } from '@/i18n/format';
@@ -12,11 +13,13 @@ import { defineMessages, useMessages } from '@/i18n/define';
 const MSG = defineMessages({
   connect: 'Connect Jira', settings: 'Jira settings', sync: 'Sync from Jira', title: 'Jira Cloud connection',
   syncTip: '{site} · {jql}', never: 'never synced', lastSync: 'last sync {date}',
-  site: 'Jira site', siteExtra: 'Your Jira Cloud address, such as your-team.atlassian.net.',
-  email: 'Account e-mail', emailExtra: 'The e-mail of the Jira account the API token belongs to.',
-  token: 'API token', tokenExtra: 'Create one at id.atlassian.com → Security → API tokens. It is stored encrypted.',
+  site: 'Jira site', email: 'Account e-mail', emailInvalid: 'Enter a valid e-mail.', token: 'API token', jql: 'JQL',
+  guide: 'How to fill this in',
+  g1: 'Site', g1Body: 'paste the address of any Jira page.',
+  g2: 'E-mail', g2Body: 'the one you sign in to Atlassian with.',
+  g3: 'API token', g3Body: 'Create API token → Copy (shown once).', g3Link: 'Create a token',
+  g4: 'JQL', g4Body: 'usually the whole project (KAN-12 → KAN):',
   tokenKeep: 'Stored token ••••{last4}. Leave empty to keep it.',
-  jql: 'JQL', jqlExtra: 'Which issues to read, such as project = SCRUM. Issues no longer matched are marked removed at the next sync.',
   required: 'Required.', saveSync: 'Save and sync', cancel: 'Cancel', disconnect: 'Disconnect',
   disconnectTitle: 'Disconnect Jira?', disconnectBody: 'The stored token is deleted. The tasks synced so far stay.',
   disconnected: 'Jira disconnected.', connected: 'Connected as {account}.', synced: 'Jira: {issues} issues. {summary}',
@@ -24,16 +27,45 @@ const MSG = defineMessages({
 }, {
   connect: 'Kết nối Jira', settings: 'Cài đặt Jira', sync: 'Đồng bộ từ Jira', title: 'Kết nối Jira Cloud',
   syncTip: '{site} · {jql}', never: 'chưa đồng bộ', lastSync: 'đồng bộ lần cuối {date}',
-  site: 'Site Jira', siteExtra: 'Địa chỉ Jira Cloud của bạn, ví dụ your-team.atlassian.net.',
-  email: 'E-mail tài khoản', emailExtra: 'E-mail của tài khoản Jira sở hữu API token.',
-  token: 'API token', tokenExtra: 'Tạo tại id.atlassian.com → Security → API tokens. Token được lưu đã mã hoá.',
+  site: 'Site Jira', email: 'E-mail tài khoản', emailInvalid: 'E-mail không hợp lệ.', token: 'API token', jql: 'JQL',
+  guide: 'Cách điền',
+  g1: 'Site', g1Body: 'dán địa chỉ một trang Jira bất kỳ.',
+  g2: 'E-mail', g2Body: 'e-mail bạn đăng nhập Atlassian.',
+  g3: 'API token', g3Body: 'Create API token → Copy (chỉ hiện một lần).', g3Link: 'Tạo token',
+  g4: 'JQL', g4Body: 'thường là cả project (KAN-12 → KAN):',
   tokenKeep: 'Token đã lưu ••••{last4}. Để trống để giữ nguyên.',
-  jql: 'JQL', jqlExtra: 'Issue nào được đọc, ví dụ project = SCRUM. Issue không còn khớp sẽ được đánh dấu đã xoá ở lần đồng bộ sau.',
   required: 'Bắt buộc.', saveSync: 'Lưu và đồng bộ', cancel: 'Huỷ', disconnect: 'Ngắt kết nối',
   disconnectTitle: 'Ngắt kết nối Jira?', disconnectBody: 'Token đã lưu sẽ bị xoá. Các task đã đồng bộ vẫn giữ nguyên.',
   disconnected: 'Đã ngắt kết nối Jira.', connected: 'Đã kết nối với tài khoản {account}.', synced: 'Jira: {issues} issue. {summary}',
   failed: 'Yêu cầu tới Jira thất bại.',
 });
+
+const TOKEN_PAGE = 'https://id.atlassian.com/manage-profile/security/api-tokens';
+
+/** Where each value of the form comes from, step by step. A JQL example fills the JQL field when clicked. */
+function JiraGuide({ form, projectKey, expanded }: { form: FormInstance<JiraConnectionInput>; projectKey: string; expanded: boolean }) {
+  const m = useMessages(MSG);
+  const examples = [`project = ${projectKey}`, `project = ${projectKey} AND issuetype != Epic`];
+  const step = (n: number, title: string, body: string, extra?: ReactNode) => <li className="break-words">
+    <span className="font-semibold">{n}. {title}:</span> <span className="text-[var(--at-muted)]">{body}</span> {extra}
+  </li>;
+  return <Collapse size="small" className="!mb-4" defaultActiveKey={expanded ? ['guide'] : []} items={[{
+    key: 'guide', label: m('guide'),
+    children: <ol className="space-y-1.5 text-sm">
+        {step(1, m('g1'), m('g1Body'))}
+        {step(2, m('g2'), m('g2Body'))}
+        {step(3, m('g3'), m('g3Body'), <a href={TOKEN_PAGE} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-[var(--at-link)] whitespace-nowrap">
+          {m('g3Link')} <ExternalLink size={12} />
+        </a>)}
+        {step(4, m('g4'), m('g4Body'), <span className="inline-flex flex-wrap gap-1.5 align-middle">
+          {examples.map(jql => <Button key={jql} size="small" type="dashed" onClick={() => form.setFieldValue('jql', jql)}><code>{jql}</code></Button>)}
+        </span>)}
+    </ol>,
+  }]} />;
+}
+
+/** The project key a JQL names first ("project = KAN …" → KAN), for the examples of the guide. */
+const keyOfJql = (jql: string) => /project\s*(?:=|in\s*\()\s*"?([A-Za-z][A-Za-z0-9_]*)/i.exec(jql)?.[1]?.toUpperCase() ?? null;
 
 /** Buttons of the Tasks & Sprints toolbar for maintainers: connect Jira Cloud, change the connection, sync now. */
 export default function JiraSync({ project, onSynced }: { project: string; onSynced: () => void }) {
@@ -44,6 +76,7 @@ export default function JiraSync({ project, onSynced }: { project: string; onSyn
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [projectKey, setProjectKey] = useState('KAN');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -94,7 +127,20 @@ export default function JiraSync({ project, onSynced }: { project: string; onSyn
     } catch (cause) { message.error(failure(cause)); }
   }
 
+  /** A pasted or typed Jira address keeps only the site; a project in it fills an empty JQL. True when it was one. */
+  function applyJiraAddress(text: string): boolean {
+    const { site, projectKey: key } = readJiraUrl(text);
+    if (!site) return false;
+    form.setFieldValue('site', site);
+    if (key) {
+      setProjectKey(key);
+      if (!String(form.getFieldValue('jql') ?? '').trim()) form.setFieldValue('jql', `project = ${key}`);
+    }
+    return true;
+  }
+
   function open() {
+    setProjectKey((connection && keyOfJql(connection.jql)) || 'KAN');
     form.resetFields();
     form.setFieldsValue(connection ? { site: siteLabel(connection.site), email: connection.email, jql: connection.jql, token: '' } : { site: '', email: '', jql: '', token: '' });
     setEditing(true);
@@ -124,17 +170,20 @@ export default function JiraSync({ project, onSynced }: { project: string; onSyn
           <Button type="primary" loading={saving || syncing} onClick={() => form.submit()}>{m('saveSync')}</Button>
         </span>
       </div>}>
+      <JiraGuide form={form} projectKey={projectKey} expanded={!connection} />
       <Form form={form} layout="vertical" onFinish={save} requiredMark={false}>
-        <Form.Item name="site" label={m('site')} extra={m('siteExtra')} rules={required}>
-          <Input placeholder="your-team.atlassian.net" maxLength={300} autoFocus />
+        <Form.Item name="site" label={m('site')} rules={required}>
+          <Input placeholder="your-team.atlassian.net" maxLength={300} autoFocus
+            onPaste={e => { if (applyJiraAddress(e.clipboardData.getData('text'))) e.preventDefault(); }}
+            onBlur={e => applyJiraAddress(e.target.value)} />
         </Form.Item>
-        <Form.Item name="email" label={m('email')} extra={m('emailExtra')} rules={[...required, { type: 'email', message: m('emailExtra') }]}>
+        <Form.Item name="email" label={m('email')} rules={[...required, { type: 'email', message: m('emailInvalid') }]}>
           <Input type="email" autoComplete="email" maxLength={254} />
         </Form.Item>
-        <Form.Item name="token" label={m('token')} extra={connection ? m('tokenKeep', { last4: connection.tokenLast4 }) : m('tokenExtra')} rules={connection ? [] : required}>
+        <Form.Item name="token" label={m('token')} extra={connection ? m('tokenKeep', { last4: connection.tokenLast4 }) : undefined} rules={connection ? [] : required}>
           <Input.Password autoComplete="new-password" maxLength={1000} placeholder={connection ? `••••${connection.tokenLast4}` : 'ATATT…'} />
         </Form.Item>
-        <Form.Item name="jql" label={m('jql')} extra={m('jqlExtra')} rules={required}>
+        <Form.Item name="jql" label={m('jql')} rules={required}>
           <Input.TextArea rows={2} maxLength={2000} placeholder="project = SCRUM ORDER BY key" />
         </Form.Item>
       </Form>

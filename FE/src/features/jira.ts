@@ -48,5 +48,18 @@ export async function syncJira(projectId: string): Promise<JiraSyncResult> {
   return body.data;
 }
 
+/**
+ * What a pasted Jira address tells: the Cloud site ("team.atlassian.net") and, when the page belongs to a project, its key
+ * (".../projects/KAN/boards/2", ".../browse/KAN-12", "...?selectedIssue=KAN-2"). Either is null when the text has none.
+ */
+export function readJiraUrl(text: string): { site: string | null; projectKey: string | null } {
+  const raw = text.trim();
+  const site = /^(?:https?:\/\/)?([a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.atlassian\.net)(?=[/:?#]|$)/i.exec(raw)?.[1]?.toLowerCase() ?? null;
+  const key = /\/projects\/([A-Za-z][A-Za-z0-9_]*)(?=[/?#]|$)/.exec(raw)?.[1]
+    ?? /\/browse\/([A-Za-z][A-Za-z0-9_]*)-\d+/.exec(raw)?.[1]
+    ?? /[?&]selectedIssue=([A-Za-z][A-Za-z0-9_]*)-\d+/.exec(raw)?.[1];
+  return { site, projectKey: site && key ? key.toUpperCase() : null };
+}
+
 /** "archtime.atlassian.net" for "https://archtime.atlassian.net". */
 export const siteLabel = (site: string) => site.replace(/^https:\/\//, '');
