@@ -68,7 +68,7 @@ function JiraGuide({ form, projectKey, expanded }: { form: FormInstance<JiraConn
 const keyOfJql = (jql: string) => /project\s*(?:=|in\s*\()\s*"?([A-Za-z][A-Za-z0-9_]*)/i.exec(jql)?.[1]?.toUpperCase() ?? null;
 
 /** Buttons of the Tasks & Sprints toolbar for maintainers: connect Jira Cloud, change the connection, sync now. */
-export default function JiraSync({ project, onSynced }: { project: string; onSynced: () => void }) {
+export default function JiraSync({ project, onSynced, beforeSync }: { project: string; onSynced: () => void; beforeSync?: ReactNode }) {
   const { message } = App.useApp();
   const m = useMessages(MSG);
   const [form] = Form.useForm<JiraConnectionInput>();
@@ -146,18 +146,21 @@ export default function JiraSync({ project, onSynced }: { project: string; onSyn
     setEditing(true);
   }
 
-  if (connection === undefined) return null;
+  // The order is the same in every state (the Jira button, then `beforeSync`, then Sync), so nothing moves between
+  // workspaces or while the connection loads.
+  if (connection === undefined) return <><Button icon={<PlugZap size={14} />} loading disabled>Jira</Button>{beforeSync}</>;
   const required = [{ required: true, whitespace: true, message: m('required') }];
 
   return <>
     {connection
       ? <>
         <Button icon={<PlugZap size={14} />} onClick={open}>{m('settings')}</Button>
+        {beforeSync}
         <Tooltip title={<>{m('syncTip', { site: siteLabel(connection.site), jql: connection.jql })}<br />{connection.lastSyncAt ? m('lastSync', { date: formatDateTime(connection.lastSyncAt) }) : m('never')}</>}>
           <Button type="primary" icon={<RefreshCw size={14} />} loading={syncing} onClick={sync}>{m('sync')}</Button>
         </Tooltip>
       </>
-      : <Button icon={<PlugZap size={14} />} onClick={open}>{m('connect')}</Button>}
+      : <><Button icon={<PlugZap size={14} />} onClick={open}>{m('connect')}</Button>{beforeSync}</>}
 
     <Modal title={m('title')} open={editing} onCancel={() => setEditing(false)} destroyOnHidden
       footer={<div className="flex flex-wrap justify-between gap-2">

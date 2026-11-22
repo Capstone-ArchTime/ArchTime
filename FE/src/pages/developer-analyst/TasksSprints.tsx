@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Alert, App, Button, Empty, Input, Popconfirm, Progress as Bar, Segmented, Select, Spin, Switch, Table, Tag, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { FileSearch, GitCommitHorizontal, Link2, Trash2, Upload } from 'lucide-react';
+import { ChevronRight, FileSearch, GitCommitHorizontal, Link2, Trash2, Upload } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Details } from '@/components/PageHeader';
 import { getManagedProjects, getReadableProjects, type ProjectSummary } from '@/features/project-data';
@@ -18,12 +18,12 @@ import type { Params } from '@/i18n';
 
 const MSG = defineMessages({
   sprintRemoved: 'The latest export no longer has this sprint.', removed: 'removed', progress: '{name} progress', points: ' · {done} / {total} points',
-  impactFailed: 'Could not load the impact.', unconfirmed: ' (components from an unconfirmed diagram)', trailer: ' · Task: trailer', notMined: 'no longer in the mined history',
-  deps: '+{added} / −{removed} dependencies', inside: 'inside {list}', openEvidence: 'Open the evidence of commit {hash}', viewEvidence: 'View evidence',
+  impactFailed: 'Could not load the impact.', notMined: 'no longer in the mined history',
+  depsChange: '{change} dependencies', openEvidence: 'Open the evidence of commit {hash}', viewEvidence: 'View evidence',
   tasksFailed: 'Could not load the tasks.', tooLarge: 'The file is larger than 20 MB. Export fewer issues at a time.', importFailed: 'The import failed.',
   linked: '{linked} new commit links from {count} mined commits.', linked_one: '{linked} new commit links from 1 mined commit.', linkFailed: 'Linking failed.', retry: 'Retry',
   key: 'Key', summary: 'Summary', noSummary: 'No summary', notInExport: 'Not in the export imported on {date}.', status: 'Status', noStatus: 'No status', assignee: 'Assignee', unassigned: 'Unassigned',
-  pointsCol: 'Points', sprint: 'Sprint', backlog: 'Backlog', commits: 'Commits', notImported: 'The export was not imported',
+  pointsCol: 'Points', pointsTip: 'Story points from Jira (Story point estimate).', showCommits: 'Show the commits of {key}', hideCommits: 'Hide the commits of {key}', sprint: 'Sprint', backlog: 'Backlog', commits: 'Commits', notImported: 'The export was not imported',
   tasks: '{count} tasks', tasks_one: '1 task', removedN: ', {n} removed', linkedCommits: ' · {count} linked commits', linkedCommits_one: ' · 1 linked commit', lastImport: ' · last import {date}', noTasks: 'No tasks imported yet.',
   exportFile: 'Jira export file', linkTip: 'Links mined commits to the tasks their messages name (KAN-12).', linkAgain: 'Link commits again', importJira: 'Import Jira export',
   emptyMaintainer: "Connect Jira, or import a Jira JSON export, to see this workspace's tasks and sprints.", emptyReader: 'No tasks yet. A maintainer of this workspace imports them from Jira.', sprints: 'Sprints',
@@ -36,12 +36,12 @@ const MSG = defineMessages({
   deleteConfirm: 'Delete', cancel: 'Cancel', deleted: 'Deleted {tasks} tasks and {sprints} sprints.', deleteFailed: 'Could not delete the tasks.',
 }, {
   sprintRemoved: 'Bản xuất mới nhất không còn sprint này.', removed: 'đã xoá', progress: 'Tiến độ {name}', points: ' · {done} / {total} điểm',
-  impactFailed: 'Không tải được ảnh hưởng.', unconfirmed: ' (thành phần lấy từ sơ đồ chưa xác nhận)', trailer: ' · Task: trailer', notMined: 'không còn trong lịch sử đã mining',
-  deps: '+{added} / −{removed} phụ thuộc', inside: 'trong {list}', openEvidence: 'Mở bằng chứng của commit {hash}', viewEvidence: 'Xem bằng chứng',
+  impactFailed: 'Không tải được ảnh hưởng.', notMined: 'không còn trong lịch sử đã mining',
+  depsChange: '{change} phụ thuộc', openEvidence: 'Mở bằng chứng của commit {hash}', viewEvidence: 'Xem bằng chứng',
   tasksFailed: 'Không tải được các task.', tooLarge: 'Tệp lớn hơn 20 MB. Hãy xuất ít issue hơn mỗi lần.', importFailed: 'Nhập thất bại.',
   linked: '{linked} liên kết commit mới từ {count} commit đã mining.', linkFailed: 'Liên kết thất bại.', retry: 'Thử lại',
   key: 'Mã', summary: 'Tóm tắt', noSummary: 'Không có tóm tắt', notInExport: 'Không có trong bản xuất được nhập ngày {date}.', status: 'Trạng thái', noStatus: 'Không có trạng thái', assignee: 'Người nhận', unassigned: 'Chưa giao',
-  pointsCol: 'Điểm', sprint: 'Sprint', backlog: 'Backlog', commits: 'Commit', notImported: 'Bản xuất chưa được nhập',
+  pointsCol: 'Điểm', pointsTip: 'Story point lấy từ Jira (trường Story point estimate).', showCommits: 'Hiện commit của {key}', hideCommits: 'Ẩn commit của {key}', sprint: 'Sprint', backlog: 'Backlog', commits: 'Commit', notImported: 'Bản xuất chưa được nhập',
   tasks: '{count} task', removedN: ', {n} đã xoá', linkedCommits: ' · {count} commit được liên kết', lastImport: ' · lần nhập gần nhất {date}', noTasks: 'Chưa nhập task nào.',
   exportFile: 'Tệp xuất Jira', linkTip: 'Liên kết commit đã mining với task được nhắc trong message (KAN-12).', linkAgain: 'Liên kết commit lại', importJira: 'Nhập bản xuất Jira',
   emptyMaintainer: 'Hãy kết nối Jira, hoặc nhập bản xuất JSON của Jira, để xem task và sprint của không gian làm việc này.', emptyReader: 'Chưa có task nào. Người bảo trì không gian làm việc này sẽ nhập chúng từ Jira.', sprints: 'Sprint',
@@ -91,30 +91,30 @@ function TaskCommits({ project, task }: { project: string; task: Task }) {
     return () => controller.abort();
   }, [project, task.key]);
   const byHash = new Map((impact?.commits ?? []).map(c => [c.hash, c]));
-  return <div className="space-y-2">
-    {impact && <p className="text-xs text-[var(--at-muted)]">{impactSummary(impact)}{impact.diagram && !impact.diagram.confirmed ? tx('unconfirmed') : ''}</p>}
+  // One line per commit: what matters is which commit, when, what it changed between components, and its evidence.
+  // The author and the full message are in the tooltip; the summary line only adds something for several commits.
+  const several = task.commits.length > 1;
+  return <div className="space-y-1.5">
+    {impact && several && <p className="text-xs text-[var(--at-muted)]">{impactSummary(impact)}</p>}
     {error && <p className="text-xs text-[var(--at-warn)]">{error}</p>}
-    <ul className="space-y-2 text-sm">
+    <ul className="space-y-1 text-sm">
       {task.commits.map(c => {
         const i = byHash.get(c.hash);
-        return <li key={c.hash} className="space-y-1">
-          <div className="flex gap-2 items-baseline flex-wrap">
-            <GitCommitHorizontal size={13} className="shrink-0 self-center" />
-            <code>{c.hash}</code><span className="break-words">{c.title}</span>
-            <span className="text-xs text-[var(--at-muted)] shrink-0">{c.author} · {day(c.date)}{c.source === 'trailer' ? tx('trailer') : ''}</span>
-          </div>
-          {i && <div className="pl-5 flex flex-wrap items-center gap-1 text-xs">
-            {!i.mined ? <Tag>{tx('notMined')}</Tag> : <>
-              <Tag color={i.depAdded || i.depRemoved ? 'gold' : undefined}>{tx('deps', { added: i.depAdded, removed: i.depRemoved })}</Tag>
-              {i.edges.map(e => <Tag key={`${e.source}>${e.target}`} color="purple">{edgeLabel(e)}</Tag>)}
-              {!i.edges.length && i.components.length > 0 && <span className="text-[var(--at-muted)]">{tx('inside', { list: i.components.join(', ') })}</span>}
-              {i.evidenceId && <Link to={`/evidence?projectId=${encodeURIComponent(project)}&commit=${encodeURIComponent(c.hash)}`}
-                aria-label={tx('openEvidence', { hash: c.hash })}
-                className="inline-flex items-center gap-1 rounded-md border border-[var(--at-link)] px-2 py-0.5 text-xs font-semibold text-[var(--at-link)] hover:bg-[var(--at-link)] hover:text-[var(--at-page)] transition-colors">
-                <FileSearch size={12} /> {tx('viewEvidence')}
-              </Link>}
-            </>}
-          </div>}
+        const change = i?.mined ? [i.depAdded ? `+${i.depAdded}` : '', i.depRemoved ? `−${i.depRemoved}` : ''].filter(Boolean).join(' ') : '';
+        return <li key={c.hash} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <GitCommitHorizontal size={13} className="shrink-0 text-[var(--at-muted)]" aria-hidden="true" />
+          <code className="text-xs text-[var(--at-muted)]">{c.hash}</code>
+          <span className="min-w-0 max-w-[36rem] truncate" title={`${c.title}\n${c.author} · ${day(c.date)}`}>{c.title}</span>
+          <span className="min-w-0 truncate text-xs text-[var(--at-muted)]">{c.author ? `${c.author} · ` : ''}{day(c.date)}</span>
+          {i && !i.mined && <Tag className="!m-0">{tx('notMined')}</Tag>}
+          {i?.edges.length
+            ? i.edges.map(e => <Tag key={`${e.source}>${e.target}`} color="purple" className="!m-0">{edgeLabel(e)}</Tag>)
+            : change && <Tag color="gold" className="!m-0">{tx('depsChange', { change })}</Tag>}
+          {i?.evidenceId && <Link to={`/evidence?projectId=${encodeURIComponent(project)}&commit=${encodeURIComponent(c.hash)}`}
+            aria-label={tx('openEvidence', { hash: c.hash })}
+            className="inline-flex items-center gap-1 rounded-md border border-[var(--at-link)] px-2 py-0.5 text-xs font-semibold text-[var(--at-link)] hover:bg-[var(--at-link)] hover:text-[var(--at-page)] transition-colors">
+            <FileSearch size={12} /> {tx('viewEvidence')}
+          </Link>}
         </li>;
       })}
     </ul>
@@ -193,7 +193,11 @@ function Board({ project, maintains }: { project: string; maintains: boolean }) 
     { title: m('summary'), dataIndex: 'summary', render: (s: string, t) => <span className={t.removed ? 'text-[var(--at-muted)]' : ''}>{s || <em>{m('noSummary')}</em>}{t.removed && <Tooltip title={m('notInExport', { date: day(t.removedAt) })}><Tag className="!ml-2">{m('removed')}</Tag></Tooltip>}</span> },
     { title: m('status'), dataIndex: 'status', width: 140, render: (s: string | null, t) => <Tag color={STATUS_COLORS[t.statusCategory]}>{s ?? m('noStatus')}</Tag> },
     { title: m('assignee'), dataIndex: 'assignee', width: 150, render: (a: string | null) => a ?? <span className="text-[var(--at-muted)]">{m('unassigned')}</span> },
-    { title: m('pointsCol'), dataIndex: 'storyPoints', width: 80, align: 'right', render: (p: number | null) => p ?? '—' },
+    // Story points come from Jira's "Story point estimate"; a board where no task has any does not show the column.
+    ...(board.tasks.some(t => t.storyPoints !== null) ? [{
+      title: <Tooltip title={m('pointsTip')}>{m('pointsCol')}</Tooltip>, dataIndex: 'storyPoints', width: 80, align: 'right' as const,
+      render: (p: number | null) => p ?? <span className="text-[var(--at-muted)]">—</span>,
+    }] : []),
     { title: m('sprint'), dataIndex: 'sprintName', width: 140, render: (s: string | null) => s ?? <span className="text-[var(--at-muted)]">{m('backlog')}</span> },
     { title: m('commits'), key: 'commits', width: 90, align: 'right', render: (_: unknown, t) => t.commits.length || <span className="text-[var(--at-muted)]">0</span> },
   ];
@@ -211,12 +215,12 @@ function Board({ project, maintains }: { project: string; maintains: boolean }) 
         <Tooltip title={m('linkTip')}>
           <Button icon={<Link2 size={14} />} loading={linking} disabled={!board.tasks.length} onClick={relink}>{m('linkAgain')}</Button>
         </Tooltip>
-        {board.tasks.length > 0 && <Popconfirm title={m('deleteTitle')} description={<p className="max-w-xs">{m('deleteBody', { count: board.tasks.length })}</p>}
-          okText={m('deleteConfirm')} cancelText={m('cancel')} okButtonProps={{ danger: true }} onConfirm={deleteImport}>
-          <Button danger icon={<Trash2 size={14} />} loading={deleting} disabled={importing}>{m('deleteImport')}</Button>
-        </Popconfirm>}
         <Button icon={<Upload size={14} />} loading={importing} onClick={() => fileInput.current?.click()}>{m('importJira')}</Button>
-        <JiraSync project={project} onSynced={() => setRevision(v => v + 1)} />
+        <JiraSync project={project} onSynced={() => setRevision(v => v + 1)} beforeSync={board.tasks.length > 0 &&
+          <Popconfirm title={m('deleteTitle')} description={<p className="max-w-xs">{m('deleteBody', { count: board.tasks.length })}</p>}
+            okText={m('deleteConfirm')} cancelText={m('cancel')} okButtonProps={{ danger: true }} onConfirm={deleteImport}>
+            <Button danger icon={<Trash2 size={14} />} loading={deleting} disabled={importing}>{m('deleteImport')}</Button>
+          </Popconfirm>} />
       </div>}
     </div>
 
@@ -242,7 +246,15 @@ function Board({ project, maintains }: { project: string; maintains: boolean }) 
         <Table<Task> rowKey="key" size="small" columns={columns} dataSource={rows} pagination={{ pageSize: 25, hideOnSinglePage: true }}
           expandable={{
             rowExpandable: t => t.commits.length > 0,
+            expandRowByClick: true,
             expandedRowRender: t => <TaskCommits project={project} task={t} />,
+            expandIcon: ({ expanded, onExpand, record, expandable }) => expandable
+              ? <button type="button" aria-expanded={expanded} aria-label={m(expanded ? 'hideCommits' : 'showCommits', { key: record.key })}
+                onClick={e => { e.stopPropagation(); onExpand(record, e); }}
+                className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[var(--at-muted)] transition-colors hover:bg-[var(--at-panel-2)] hover:text-[var(--at-text)]">
+                <ChevronRight size={15} aria-hidden="true" className={`transition-transform duration-200 ${expanded ? 'rotate-90 text-[var(--at-link)]' : ''}`} />
+              </button>
+              : null,
           }}
           locale={{ emptyText: m('noMatch') }} />
       </>}
