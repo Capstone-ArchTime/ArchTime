@@ -55,6 +55,15 @@ export class InMemoryTaskRepository {
   async listLinks(projectId) {
     return this.links.filter(l => l.projectId === projectId).sort((a, b) => b.date - a.date || a.hash.localeCompare(b.hash));
   }
+
+  async clearProject(projectId) {
+    const count = list => list.filter(x => x.projectId === projectId).length;
+    const counts = { tasks: count(this.tasks), sprints: count(this.sprints), links: count(this.links) };
+    this.tasks = this.tasks.filter(x => x.projectId !== projectId);
+    this.sprints = this.sprints.filter(x => x.projectId !== projectId);
+    this.links = this.links.filter(x => x.projectId !== projectId);
+    return counts;
+  }
 }
 
 export const minedCommits = (commits = []) => ({ commitsOf: async () => commits.map(c => ({ ...c })) });

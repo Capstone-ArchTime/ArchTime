@@ -524,16 +524,22 @@ export const projectMaintainerController = new ProjectMaintainerController({
 export { jwtTokenService };
 
 // ── Project tasks & sprints (F-13, RF-07, UC-36 – UC-39) ──
-import { ImportTasksUseCase, LinkCommitsToTasksUseCase, ListTasksUseCase, TaskImpactUseCase } from "./application/use-cases/tasks/TaskUseCases.js";
+import { ClearTasksUseCase, ImportTasksUseCase, LinkCommitsToTasksUseCase, ListTasksUseCase, TaskImpactUseCase } from "./application/use-cases/tasks/TaskUseCases.js";
 import { MongoTaskRepository, mongoCommitArchitecture, mongoMinedCommits } from "./infrastructure/repositories/MongoTaskRepository.js";
 import type { TaskUseCases } from "./presentation/routes/task.routes.js";
+import { JiraConnectionUseCases } from "./application/use-cases/tasks/JiraUseCases.js";
+import { MongoJiraConnectionRepository } from "./infrastructure/repositories/MongoJiraConnectionRepository.js";
+import { JiraCloudClient } from "./infrastructure/jira/JiraCloudClient.js";
 const taskRepository = new MongoTaskRepository();
 const linkCommitsToTasksUseCase = new LinkCommitsToTasksUseCase(taskRepository, mongoMinedCommits);
+const importTasksUseCase = new ImportTasksUseCase(taskRepository, linkCommitsToTasksUseCase);
 export const taskUseCases: TaskUseCases = {
   list: new ListTasksUseCase(taskRepository),
-  importTasks: new ImportTasksUseCase(taskRepository, linkCommitsToTasksUseCase),
+  importTasks: importTasksUseCase,
+  jira: new JiraConnectionUseCases(new MongoJiraConnectionRepository(), new JiraCloudClient(), importTasksUseCase),
   link: linkCommitsToTasksUseCase,
   impact: new TaskImpactUseCase(taskRepository, mongoCommitArchitecture, workspaceRepository),
+  clear: new ClearTasksUseCase(taskRepository),
 };
 // After every mined batch: link its commits to the tasks they name (ARCH-12, T22).
 MiningService.onBatchSaved = (projectId, commits) => linkCommitsToTasksUseCase.execute(projectId, commits);

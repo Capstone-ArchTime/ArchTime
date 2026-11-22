@@ -84,6 +84,15 @@ export async function importJiraExport(projectId: string, fileText: string): Pro
   return body.data;
 }
 
+export interface ClearResult { tasks: number; sprints: number; links: number }
+
+/** Deletes everything the Jira imports of the workspace wrote (tasks, sprints, commit links); mined commits stay. */
+export async function clearTasks(projectId: string): Promise<ClearResult> {
+  const body = await apiRequest<{ data?: ClearResult }>(`/projects/${encodeURIComponent(projectId)}/tasks`, { method: 'DELETE' });
+  if (!body?.data || typeof body.data.tasks !== 'number') throw new Error('The server did not confirm the deletion.');
+  return body.data;
+}
+
 export async function relinkCommits(projectId: string): Promise<ImportResult['links']> {
   const body = await apiRequest<{ data?: ImportResult['links'] }>(`/projects/${encodeURIComponent(projectId)}/tasks/link`, { method: 'POST' });
   if (!body?.data) throw new Error('The server did not confirm the linking.');

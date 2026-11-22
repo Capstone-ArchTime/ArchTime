@@ -10,7 +10,7 @@ import { UserRole, UserStatus } from "../src/domain/entities/User.ts";
 import { OrganizationRole } from "../src/domain/entities/Organization.ts";
 import { MemberStatus, ProjectMemberRole } from "../src/domain/entities/ProjectMember.ts";
 import { ProjectStatus, RepoVisibility } from "../src/domain/entities/Project.ts";
-import { ImportTasksUseCase, LinkCommitsToTasksUseCase, ListTasksUseCase, TaskImpactUseCase } from "../src/application/use-cases/tasks/TaskUseCases.ts";
+import { ClearTasksUseCase, ImportTasksUseCase, LinkCommitsToTasksUseCase, ListTasksUseCase, TaskImpactUseCase } from "../src/application/use-cases/tasks/TaskUseCases.ts";
 import { createTaskRouter } from "../src/presentation/routes/task.routes.ts";
 import { createProjectRoleMiddleware } from "../src/presentation/middlewares/projectRole.ts";
 import { errorHandler } from "../src/presentation/middlewares/errorHandler.ts";
@@ -58,7 +58,7 @@ async function start(t, mined = [], architecture = {}, components = []) {
   const link = new LinkCommitsToTasksUseCase(repo, minedCommits(mined));
   const app = express();
   app.use(express.json({ limit: "2mb" }));
-  app.use("/api/projects", createTaskRouter({ list: new ListTasksUseCase(repo), importTasks: new ImportTasksUseCase(repo, link), link, impact: new TaskImpactUseCase(repo, { ofCommit: async (_p, hash) => architecture[hash] ?? null }, { findByProjectId: async () => ({ diagram: { components, confirmedAt: new Date() } }) }) }, jwt, createProjectRoleMiddleware(projectRepo, memberRepo, organizations)));
+  app.use("/api/projects", createTaskRouter({ list: new ListTasksUseCase(repo), importTasks: new ImportTasksUseCase(repo, link), link, impact: new TaskImpactUseCase(repo, { ofCommit: async (_p, hash) => architecture[hash] ?? null }, { findByProjectId: async () => ({ diagram: { components, confirmedAt: new Date() } }) }), clear: new ClearTasksUseCase(repo) }, jwt, createProjectRoleMiddleware(projectRepo, memberRepo, organizations)));
   app.use(errorHandler);
   const server = app.listen(0, "127.0.0.1");
   await once(server, "listening");
@@ -209,4 +209,31 @@ test("WF07-E2E DS-07a: import, link mined commits, open T47: its commits, eviden
   assert.equal((await call("GET", "/shop/tasks/T99/impact", "dev")).status, 404);
   assert.equal((await call("GET", "/shop/tasks/T47/impact", "out")).status, 404);
   assert.equal((await call("GET", "/shop/tasks/T47/impact")).status, 401);
+});
+
+test("WF07-11 a maintainer deletes the imported tasks: tasks, sprints and links go, other workspaces keep theirs, and a new import starts clean", async t => {
+  const mined = [commit("aaaaaaa", "feat: ARCH-1 checkout")];
+  const { call, repo } = await start(t, mined);
+  const file = exportText(issue("ARCH-1"), issue("ARCH-2", { sprints: [sprint(2, "Sprint 2", "future")] }));
+  assert.equal((await call("POST", "/shop/tasks/import", "mia", { file })).json.data.links.linked, 1);
+  assert.equal((await call("POST", "/org-app/tasks/import", "olga", { file })).status, 200);
+
+  // Members read the board but cannot delete it; strangers do not see the workspace; no token, no access.
+  assert.equal((await call("DELETE", "/shop/tasks", "dev")).status, 403);
+  assert.equal((await call("DELETE", "/shop/tasks", "out")).status, 404);
+  assert.equal((await call("DELETE", "/shop/tasks")).status, 401);
+  assert.equal((await call("GET", "/shop/tasks", "mia")).json.data.tasks.length, 2, "a refused delete changes nothing");
+
+  const r = await call("DELETE", "/shop/tasks", "mia");
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.json.data, { tasks: 2, sprints: 2, links: 1 });
+  const board = (await call("GET", "/shop/tasks", "dev")).json.data;
+  assert.deepEqual([board.tasks.length, board.sprints.length, board.totals.linkedCommits, board.lastImportedAt], [0, 0, 0, null]);
+  assert.equal((await call("GET", "/org-app/tasks", "olga")).json.data.tasks.length, 2, "another workspace keeps its tasks");
+
+  // Deleting an empty board is not an error. A new import creates everything again and relinks the mined commit.
+  assert.deepEqual((await call("DELETE", "/shop/tasks", "owen")).json.data, { tasks: 0, sprints: 0, links: 0 });
+  const again = await call("POST", "/shop/tasks/import", "mia", { file: exportText(issue("ARCH-1")) });
+  assert.deepEqual([again.json.data.created, again.json.data.removed, again.json.data.links.linked], [1, 0, 1]);
+  assert.equal(repo.links.filter(l => l.projectId === "shop").length, 1);
 });

@@ -73,3 +73,18 @@ test('the impact is asked for the task by key, in its workspace', async (t) => {
   assert.equal((await fetchTaskImpact('p 1', 'T47')).totals.architecturalCommits, 1);
   assert.match(asked[0], /\/projects\/p%201\/tasks\/T47\/impact$/);
 });
+
+import { clearTasks } from "../src/features/tasks.ts";
+
+test("deleting the imported tasks sends DELETE to the workspace tasks and returns the counts; an unconfirmed reply is an error", async (t) => {
+  mockGlobal(t, "sessionStorage", { getItem: k => (k === "accessToken" ? "token" : null), setItem() {}, removeItem() {} });
+  mockGlobal(t, "localStorage", { getItem: () => null, setItem() {}, removeItem() {} });
+  const asked = [];
+  let reply = { success: true, data: { tasks: 287, sprints: 2, links: 4 } };
+  t.mock.method(globalThis, "fetch", async (url, init) => { asked.push([String(url), init?.method]); return Response.json(reply); });
+  assert.deepEqual(await clearTasks("p 1"), { tasks: 287, sprints: 2, links: 4 });
+  assert.match(asked[0][0], /\/projects\/p%201\/tasks$/);
+  assert.equal(asked[0][1], "DELETE");
+  reply = { success: true };
+  await assert.rejects(clearTasks("p 1"), /did not confirm the deletion/);
+});

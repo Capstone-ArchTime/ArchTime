@@ -15,6 +15,8 @@ export interface ITaskRepository {
   addLinks(links: ITaskCommitLink[]): Promise<number>;
   /** The links of a project, newest commit first. */
   listLinks(projectId: string): Promise<ITaskCommitLink[]>;
+  /** Deletes every task, sprint and commit link of the project (what its imports wrote). Returns how many of each. */
+  clearProject(projectId: string): Promise<{ tasks: number; sprints: number; links: number }>;
 }
 
 /** A mined commit as linking reads it. */

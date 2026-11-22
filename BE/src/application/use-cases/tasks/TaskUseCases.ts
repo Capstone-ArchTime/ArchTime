@@ -120,6 +120,24 @@ export class ImportTasksUseCase {
   }
 }
 
+export interface ClearSummary {
+  tasks: number;
+  sprints: number;
+  links: number;
+}
+
+/**
+ * ClearTasksUseCase: deletes what the Jira imports of a project wrote (tasks, sprints, commit links), so a wrong file can
+ * be taken back and the board started again. Mined commits are untouched: importing again relinks them.
+ */
+export class ClearTasksUseCase {
+  constructor(private readonly tasks: Pick<ITaskRepository, "clearProject">) {}
+
+  async execute(projectId: string): Promise<ClearSummary> {
+    return this.tasks.clearProject(projectId);
+  }
+}
+
 export interface TaskView extends Omit<ITask, "projectId"> {
   sprintName: string | null;
   commits: Pick<ITaskCommitLink, "hash" | "fullHash" | "title" | "author" | "date" | "source">[];
