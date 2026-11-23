@@ -15,6 +15,11 @@ export enum JobKind {
   ABSTRACT = "abstract",
   /** The conformance check of the commits after the baseline, run in the background (RF-08). */
   CONFORMANCE = "conformance",
+  /**
+   * The automatic check (RepositoryWatcher): fetch, mine the commits newer than the newest mined one, then the
+   * conformance check and its notifications. A run that finds no new commit deletes its own job record.
+   */
+  WATCH = "watch",
 }
 
 export interface IMiningJob {

@@ -8,7 +8,8 @@ import type { CheckConformanceUseCase } from "./ConformanceUseCases.js";
 // about what is new: one e-mail per project and run, to its maintainers and the owner of its organization (RF-29,
 // BR-34). A finding is e-mailed once: notifiedAt is set when it is taken for an e-mail and never cleared after a send.
 
-export interface Recipient { email: string; name: string; language?: UserLanguage }
+/** `userId` is the account, for the in-app notification (the bell) that goes with the e-mail. */
+export interface Recipient { email: string; name: string; language?: UserLanguage; userId?: string }
 
 export interface NotifierDirectory {
   projectName(projectId: string): Promise<string | null>;
@@ -171,17 +172,32 @@ export class FindingNotifier {
   }
 }
 
+/** How many findings a check stored (each checked commit counts its own). */
+export function newFindingsOf(summary: { checked?: { findings: number }[] } | void | null): number {
+  return (summary?.checked ?? []).reduce((n, c) => n + c.findings, 0);
+}
+
 /**
- * What runs after a fetch or mine (RF-29): the check, then the e-mail. A project without a confirmed diagram, or whose
- * baseline left the history, has nothing to check: that is not an error of the mining job.
+ * What runs after a fetch or mine (RF-29): the check, the in-app notification of what it found, then the e-mail. A
+ * project without a confirmed diagram, or whose baseline left the history, has nothing to check: that is not an error
+ * of the mining job. A failed in-app notification is logged and never stops the e-mail.
  */
-export function conformanceAfterMining(check: Pick<CheckConformanceUseCase, "execute">, notifier: Pick<FindingNotifier, "notify">) {
+export function conformanceAfterMining(
+  check: Pick<CheckConformanceUseCase, "execute">,
+  notifier: Pick<FindingNotifier, "notify">,
+  alert?: (projectId: string, newFindings: number) => Promise<unknown>,
+) {
   return async (projectId: string): Promise<void> => {
+    let summary: Awaited<ReturnType<CheckConformanceUseCase["execute"]>> | void;
     try {
-      await check.execute(projectId);
+      summary = await check.execute(projectId);
     } catch (error) {
       if (error instanceof ConflictError) return;
       throw error;
+    }
+    if (alert) {
+      try { await alert(projectId, newFindingsOf(summary)); }
+      catch (error) { console.error(`[notifications] could not notify about findings of project ${projectId}:`, error); }
     }
     await notifier.notify(projectId);
   };

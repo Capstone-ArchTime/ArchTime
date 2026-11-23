@@ -339,7 +339,13 @@ import { AdminLlmController, LlmController } from "./presentation/controllers/Ll
 export const llmController = new LlmController(new UserLlmUseCases(projectAccessPolicy));
 import { ProjectChatUseCase } from "./application/use-cases/llm/ProjectChatUseCase.js";
 import { CheckConformanceUseCase, DecideFindingUseCase, ExplainFindingUseCase, ListConformanceUseCase, UnreadFindingsUseCase } from "./application/use-cases/conformance/ConformanceUseCases.js";
-import { FindingNotifier, conformanceAfterMining } from "./application/use-cases/conformance/FindingNotifier.js";
+import { FindingNotifier, conformanceAfterMining, newFindingsOf } from "./application/use-cases/conformance/FindingNotifier.js";
+import { NotificationUseCases, findingAlerts } from "./application/use-cases/notifications/NotificationUseCases.js";
+import { MongoNotificationRepository } from "./infrastructure/repositories/MongoNotificationRepository.js";
+import { NotificationHub } from "./infrastructure/services/NotificationHub.js";
+import { NotificationController } from "./presentation/controllers/NotificationController.js";
+import { RepositoryWatcher, watchIntervalMinutes } from "./infrastructure/services/RepositoryWatcher.js";
+import { loadWatchCandidates } from "./infrastructure/services/watchCandidates.js";
 import { mongoConformanceDirectory } from "./infrastructure/services/ConformanceDirectory.js";
 import { MiningService } from "./infrastructure/services/MiningService.js";
 import { JobKind, MiningJobModel } from "./infrastructure/database/models/MiningJobModel.js";
@@ -394,12 +400,28 @@ export const conformanceController = new ConformanceController(
   findingNotifier,
   (projectId, userId, force) => MiningService.startConformanceJob(projectId, userId, force),
 );
-MiningService.onHistoryChanged = conformanceAfterMining(checkConformanceUseCase, findingNotifier);
+// ── In-app notifications: the bell in the header, pushed as they happen ──
+export const notificationHub = new NotificationHub();
+const notificationUseCases = new NotificationUseCases(new MongoNotificationRepository(), notificationHub);
+export const notificationController = new NotificationController(notificationUseCases, notificationHub);
+/** New findings ring the bell of everyone who answers for the workspace (the same people the e-mail goes to). */
+const alertFindings = findingAlerts(mongoConformanceDirectory, notificationUseCases);
+
+MiningService.onHistoryChanged = conformanceAfterMining(checkConformanceUseCase, findingNotifier, alertFindings);
 // "Run check" runs as a background job: the page answers at once, progress shows on the page and in the header.
 MiningService.conformanceRunner = async (projectId, options) => {
   const summary = await checkConformanceUseCase.execute(projectId, options);
-  return { checked: summary.checked.length, skipped: summary.skipped, findings: summary.checked.reduce((n, c) => n + c.findings, 0) };
+  const findings = newFindingsOf(summary);
+  await alertFindings(projectId, findings).catch(error => console.error(`[notifications] could not notify about findings of project ${projectId}:`, error));
+  return { checked: summary.checked.length, skipped: summary.skipped, findings };
 };
+
+// ── Automatic check: fetch, mine what is new and check it, every WATCH_INTERVAL_MINUTES (RepositoryWatcher) ──
+export const repositoryWatcher = new RepositoryWatcher(
+  watchIntervalMinutes() * 60 * 1000,
+  loadWatchCandidates,
+  (projectId, ownerId) => MiningService.startWatchJob(projectId, ownerId),
+);
 
 // ── Agent access (RF-09, UC-42 – UC-44) ──
 // ── Moving a personal workspace into an organization (RF-11, UC-29) ──

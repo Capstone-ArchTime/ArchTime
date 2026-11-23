@@ -5,6 +5,8 @@ import { MiningService } from "./infrastructure/services/MiningService.js";
 import { LlmModelRegistry } from "./infrastructure/llm/registry.js";
 import { MongoUserRepository } from "./infrastructure/repositories/MongoUserRepository.js";
 import { MongoProjectRepository } from "./infrastructure/repositories/MongoProjectRepository.js";
+import { repositoryWatcher } from "./container.js";
+import { watchIntervalMinutes } from "./infrastructure/services/RepositoryWatcher.js";
 
 async function start(): Promise<void> {
   await connectDb();
@@ -14,6 +16,9 @@ async function start(): Promise<void> {
   if (encrypted) console.log(`Encrypted the repository token of ${encrypted} workspace(s) saved in plain text`);
   await MiningService.recoverInterruptedJobs();
   await LlmModelRegistry.seedFromEnv();
+  const watchMinutes = watchIntervalMinutes();
+  if (repositoryWatcher.start()) console.log(`Automatic check of confirmed workspaces every ${watchMinutes} min (WATCH_INTERVAL_MINUTES)`);
+  else console.log("Automatic check of confirmed workspaces is off (WATCH_INTERVAL_MINUTES=0)");
   const url = `http://localhost:${env.port}`;
   app.listen(env.port, () => {
     console.log(`ArchTime BE listening on ${url}`);
