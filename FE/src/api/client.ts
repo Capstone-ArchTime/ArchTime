@@ -58,6 +58,16 @@ async function sendAuthorized(path: string, options: RequestInit, signal: AbortS
 }
 
 /**
+ * A long-lived response (server-sent events) with the session's token, renewed once when expired like any request. No
+ * timeout: the caller ends it with `signal`. Throws ApiError when the server refuses it.
+ */
+export async function apiStream(path: string, signal: AbortSignal): Promise<Response> {
+  const response = await sendAuthorized(path, { headers: { Accept: 'text/event-stream' } }, signal);
+  if (!response.ok || !response.body) throw new ApiError(translate('err.requestFailed', { status: response.status }), response.status);
+  return response;
+}
+
+/**
  * A file from the API (a PDF, say), with the name the server gave it. A link cannot be used for this: the browser would
  * not send the session's token.
  */

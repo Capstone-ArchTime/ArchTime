@@ -5,6 +5,7 @@ import { FolderGit2, ArrowRight, Loader2, Plus, ScanSearch, Pickaxe, Boxes, Eye 
 import { useAuth } from '@/auth/auth-context';
 import { byRecent, getRecentJobs, getWorkspaces, nextStep, STATUS_LABELS, workspaceStats, type Workspace, type WorkspaceStats } from '@/features/workspace-summary';
 import type { MiningJob } from '@/features/mining-jobs';
+import { kindLabel } from '@/features/background-jobs';
 import { getMyPaths } from '@/features/onboarding-api';
 import { pathToContinue } from '@/features/onboarding-context';
 import ContinueLearning from './learning/ContinueLearning';
@@ -174,7 +175,7 @@ const Dashboard: React.FC = () => {
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-[var(--at-text)]">{job.project}</p>
                           <p className="truncate text-xs text-[var(--at-muted)]" title={job.error}>
-                            <span className="sr-only">{job.status}: </span>{job.kind === 'scan' ? t('dash.job.scan') : t('dash.job.mining')} · {localizeStage(job.stage)}
+                            <span className="sr-only">{job.status}: </span>{job.kind === 'scan' ? t('dash.job.scan') : job.kind === 'watch' ? kindLabel('watch') : t('dash.job.mining')} · {localizeStage(job.stage)}
                           </p>
                         </div>
                         {job.createdAt && <time dateTime={job.createdAt} title={formatDateTime(job.createdAt)} className="shrink-0 text-xs text-[var(--at-muted)]">{ago(job.createdAt)}</time>}

@@ -28,6 +28,7 @@ export const KIND_LABEL: Record<string, string> = {
   mine: 'Mining',
   abstract: 'Building the architecture map',
   conformance: 'Conformance check',
+  watch: 'Automatic check',
 };
 /** The kind of job in the page language (KIND_LABEL keeps the English names). */
 export const kindLabel = (kind: string) => translateOr(`job.kind.${kind}`, KIND_LABEL[kind] ?? translate('job.kind.other'));

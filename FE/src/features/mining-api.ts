@@ -12,6 +12,8 @@ export type MiningOverview = {
   remaining: number | null;
   activeJob: MiningJobState | null;
   lastJob: MiningJobState | null;
+  /** How often the server checks confirmed workspaces for new commits by itself (minutes); 0 or absent when it does not. */
+  autoCheckMinutes?: number;
 };
 export type MiningEstimate = { inRange: number; alreadyMined: number; toMine: number; batchSize: number; batchCount: number };
 export type MineRequest =
@@ -44,6 +46,7 @@ export async function getMiningOverview(projectId: string, signal?: AbortSignal)
     mined: { count: num(d.mined.count), firstDate: d.mined.firstDate ?? null, lastDate: d.mined.lastDate ?? null, monthly: Array.isArray(d.mined.monthly) ? d.mined.monthly : [] },
     remaining: typeof d.remaining === 'number' ? d.remaining : null,
     activeJob: parseJobState(d.activeJob), lastJob: parseJobState(d.lastJob),
+    autoCheckMinutes: typeof d.autoCheckMinutes === 'number' && d.autoCheckMinutes > 0 ? d.autoCheckMinutes : 0,
   };
 }
 
