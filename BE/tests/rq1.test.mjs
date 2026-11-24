@@ -104,7 +104,8 @@ test('precision, recall and F1 per method come from the labelled pairs', () => {
   assert.deepEqual([score.labelledPairs, score.pendingPairs], [2, 0]);
   assert.deepEqual(score.methods.recovered, { detected: 3, correct: 2, truth: 2, precision: 0.6667, recall: 1, f1: 0.8 });
   assert.deepEqual(score.methods.baseline, { detected: 1, correct: 1, truth: 2, precision: 1, recall: 0.5, f1: 0.6667 });
-  assert.deepEqual(score.methods.clustering, { detected: 1, correct: 0, truth: 2, precision: 0, recall: 0, f1: null });
+  // Precision and recall are both measured and both 0: F1 is 0 (a measured failure), the extractor evaluation's convention.
+  assert.deepEqual(score.methods.clustering, { detected: 1, correct: 0, truth: 2, precision: 0, recall: 0, f1: 0 });
 });
 
 test('unfinished pairs are pending, and contradictory labels are reported, not counted beyond the truth', () => {
@@ -175,7 +176,7 @@ test('recovery and stability tables have one column set per method; the report t
   assert.match(md, /\| Demo \| 2 \| 70\.00 \| 65\.00 \| 70\.00 \| 1 of 2 \|/);
   assert.match(md, /Wilcoxon signed-rank/);
   assert.match(md, /\*\*Warning:\*\* Demo mix/);
-  assert.match(md, /\| Clustering only \| 1 \| 0 \| 2 \| 0\.0% \| 0\.0% \| n\/a \|/);
+  assert.match(md, /\| Clustering only \| 1 \| 0 \| 2 \| 0\.0% \| 0\.0% \| 0\.0% \|/);
   assert.match(md, /Cohen's kappa/);
 });
 

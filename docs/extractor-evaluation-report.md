@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Phiên bản | 2.0 (2026-11-16, T8). Bản 1.0 (2026-11-05, T33) dùng axios / nest / ArchTime |
+| Phiên bản | 2.1 (2026-11-24, audit: hồ sơ cú pháp `all-static`, lệnh `agree`, `validate`, `--syntax`, `results.json`, `summary.csv`; mục 5b, 7b). 2.0 (2026-11-16, T8). Bản 1.0 (2026-11-05, T33) dùng axios / nest / ArchTime |
 | Protocol | [evaluation-protocol.md](evaluation-protocol.md) §3.3, §4, §7; [rq1-protocol.md](rq1-protocol.md) §1 (tập kiểm tra 5 repo) |
 | Trạng thái | **Chưa có kết quả đánh giá.** Phiếu mẫu cho 5 repo của tập kiểm tra đã được tạo với seed cố định, nhưng **chưa có nhãn nào**. Tài liệu này **không** chứa precision/recall/F1 của repo thật nào. |
 
@@ -96,6 +96,28 @@ Test end-to-end (`BE/tests/extractor-eval.test.mjs`) trên một repo nhỏ do t
 
 Dự kiến: recall thấp ở repo có nhiều file barrel (`index.ts` dùng `export * from`).
 
+## 5b. Hồ sơ cú pháp (bổ sung 2026-11-24)
+
+`extractDependencies(dir, { moduleSyntax })` có hai hồ sơ (`BE/src/infrastructure/services/DependencyExtractor.ts`,
+hàm thuần `moduleSpecifiers` để test cú pháp không cần checkout):
+
+| Cú pháp | `es-import` (mặc định, mining dùng, phương pháp đóng băng) | `all-static` (chỉ dùng cho đánh giá) |
+|---|---|---|
+| `import x from`, `import { a } from`, `import * as ns from`, `import './x'`, `import type` (cấp cao nhất) | Có | Có |
+| `export * from`, `export { a } from`, `export type { T } from` | Không | Có |
+| `require('<literal>')`, `` require(`<literal>`) ``, `import x = require('<literal>')` (ở bất kỳ đâu trong file) | Không | Có |
+| `import('<literal>')` | Không | Có |
+| `require(name)`, `` import(`./${x}`) ``, `obj.require('./x')` | Không | Không (không đoán) |
+| Đuôi `.mjs .cjs .mts .cts` | Không đọc | Đọc |
+| Đuôi `.ts .tsx .js .jsx`, phân giải không đuôi, `.js`→`.ts`, `index`, bỏ package npm, bỏ import không phân giải được | Có | Có |
+
+Test: `BE/tests/extractor-syntax.test.mjs` (từng cú pháp, ca biên, import không phân giải, cả hai hồ sơ, CLI).
+
+**Vì sao mining vẫn dùng `es-import`:** đổi extractor của mining làm đổi mọi snapshot, mọi nhóm và mọi kết quả RQ1 đã tính
+ở commit đóng băng `0c5e1f8`; theo rq1-protocol §1 đó là thay đổi phương pháp, cần quyết định của nhóm và chạy lại toàn bộ
+tập kiểm tra. Hồ sơ `all-static` cho phép đo trước nó thêm được bao nhiêu cạnh đúng (và có thêm cạnh sai không) trên cùng
+nhãn.
+
 ## 6. Hạn chế và việc cần nhóm quyết định
 
 1. **File test không theo đuôi `.test.`/`.spec.` lọt vào mẫu.** `isAnalyzable` chỉ loại `*.test.*`, `*.spec.*` và các thư mục `test(s)/`, `__tests__/`. React-router đặt test là `*-test.ts` trong `integration/`, nên 5 / 40 file mẫu của react-router là file test (react-admin 1 / 40). Luật gán nhãn lại nói "không tính file test" ở **đích** của cạnh, không nói gì về file nguồn trong mẫu. Hai cách, cần nhóm chọn **trước khi** gán nhãn và ghi vào protocol:
@@ -110,3 +132,21 @@ Dự kiến: recall thấp ở repo có nhiều file barrel (`index.ts` dùng `e
 1. Clone repo, `git checkout <commit trong phiếu>` (docusaurus trên Windows: `git -c core.longpaths=true clone`).
 2. Chạy lại lệnh `sample` ở mục 2 với `--out` khác: danh sách file phải trùng phiếu.
 3. Chạy `score` như mục 3.4; đầu ra `BE/extractor-results/report.md` và `edges.csv` (không commit), đính kèm vào báo cáo cùng commit của ArchTime.
+
+## 7b. Quy trình đầy đủ với công cụ mới (2026-11-24)
+
+```
+npm run extractor-eval -- agree --a eval/extractor/<repo>.<A>.json --b eval/extractor/<repo>.<B>.json --out extractor-results/agreement/<repo>.json
+# thống nhất vào eval/extractor/<repo>.json, ghi labeledBy và agreement (số Jaccard ở trên)
+npm run extractor-eval -- validate --truth eval/extractor/<repo>.json --checkout <dir>     # exit 1 nếu còn null hay đường dẫn sai
+npm run extractor-eval -- score --syntax both --truth ... --checkout ... (5 cặp)
+```
+
+- `agree`: Jaccard |A ∩ B| / |A ∪ B| trên các file cả hai đã gán; `null` nếu cả hai không ghi cạnh nào; liệt kê từng file lệch.
+- `validate`: file còn `null`, đường dẫn không có trong checkout, đích bị luật loại (test, build, `.d.ts`, không phải JS/TS),
+  `labeledBy` hay `agreement` còn trống.
+- `score --syntax both`: hai thư mục con `es-import/` và `all-static/`, mỗi thư mục có `report.md`, `edges.csv`,
+  `results.json` (mọi số, kèm `final: false` khi còn file chưa gán và commit BE) và `summary.csv`. Số báo cáo trong paper
+  là của `es-import`.
+
+Bảng mục 4 vẫn để trống: **chưa có nhãn nào (0/200)**.

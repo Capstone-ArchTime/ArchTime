@@ -4,13 +4,20 @@
  * Protocol: docs/rq2-protocol.md. Questions: docs/rq2/questions.json.
  *
  *   npm run rq2 -- list                                         workspaces with mined snapshots (id, name, snapshots)
- *   npm run rq2 -- run --project <id> --repo <axios|nest|archtime> [--questions Q1,Q2] [--conditions C0,C1,C2]
- *                      [--model <registry id>] [--force]         asks the model; an answer already saved is not asked again
+ *   npm run rq2 -- run --project <id> --repo <react-router|docusaurus|actual> [--questions Q1,Q2] [--conditions C0,C1,C2]
+ *                      [--runs 3] [--model <registry id>] [--force]   asks the model each question --runs times per condition
+ *                                                                     (default 3); an answer already saved is not asked again
  *   npm run rq2 -- sheet [--seed <text>]                         blind sheets for the annotators + the keys
  *   npm run rq2 -- score --a <name> --b <name>                   agreement, adjudication list, report.md, metrics.csv
+ *                                                                (rates with 95% CI and C0-C1, C1-C2 differences, Holm)
  *   any command: --out <dir>                                     output folder (default rq2-results)
  *
- * Output in <out>: answers/<repo>.<question>.<condition>.json; sheets/claims.csv and sheets/answers.csv (templates:
+ * Output in <out>: answers/<repo>.<question>.<condition>.json (run 1) and <repo>.<question>.<condition>.r<n>.json (runs
+ * 2 and later), each with its answer id, model, prompt version, context fingerprint, questions version, raw and checked
+ * text, citations, token usage and time; contexts/<repo>.<sha>.txt (the project data C1 and C2 received, saved once);
+ * errors/<answer id>.<time>.json (failed requests: kept, never scored, asked again on the next run);
+ * answers/superseded/ (an answer replaced with --force is moved here, never deleted); run-log.jsonl (one line per
+ * request); sheets/claims.csv and sheets/answers.csv (templates:
  * each annotator copies them to claims.<name>.csv / answers.<name>.csv and fills verdict, refusal, coverage);
  * keys/*.json (which condition each row came from: never show to annotators); sheets/claims.adjudicate.csv (claims the
  * two annotators disagree on; fill the verdict together and save as claims.adjudicated.csv); report.md, metrics.csv.
@@ -25,17 +32,18 @@ import { LlmModelRegistry } from "../src/infrastructure/llm/registry.js";
 import { mentorProjectData, SYSTEM_PROMPT } from "../src/application/use-cases/llm/ProjectChatUseCase.js";
 import { citedHashes, minedCommitMatcher } from "../src/domain/mentor/claimLabels.js";
 import {
-  agreementOf, buildSheets, CONDITIONS, finalVerdicts, messagesFor, metricsOf, parseCsv, postProcess, renderReport, toCsv,
-  type AnswerKey, type ClaimKey, type Condition, type Question, type RecordedAnswer,
+  agreementOf, answerFileName, answerIdOf, buildSheets, comparisonsOf, CONDITIONS, finalVerdicts, fingerprint, messagesFor, metricsOf, mixedRuns, parseCsv,
+  postProcess, promptVersionOf, renderReport, toCsv,
+  type AnswerKey, type ClaimKey, type Condition, type FailedAnswer, type Question, type RecordedAnswer,
 } from "../src/domain/evaluation/rq2.js";
 
 const QUESTIONS_FILE = path.resolve(import.meta.dirname, "../../docs/rq2/questions.json");
 
-interface Args { command: string; out: string; project?: string; repo?: string; questions?: string[]; conditions: Condition[]; model?: string; force: boolean; seed: string; a?: string; b?: string }
+interface Args { command: string; out: string; project?: string; repo?: string; questions?: string[]; conditions: Condition[]; runs: number; model?: string; force: boolean; seed: string; a?: string; b?: string }
 
 function args(argv: string[]): Args {
   const [command = "", ...rest] = argv;
-  const a: Args = { command, out: "rq2-results", conditions: [...CONDITIONS], force: false, seed: "archtime-rq2" };
+  const a: Args = { command, out: "rq2-results", conditions: [...CONDITIONS], runs: 3, force: false, seed: "archtime-rq2" };
   for (let i = 0; i < rest.length; i++) {
     const next = () => { if (!rest[i + 1]) throw new Error(`${rest[i]} needs a value`); return rest[++i]; };
     switch (rest[i]) {
@@ -49,6 +57,7 @@ function args(argv: string[]): Args {
         a.conditions = list as Condition[];
         break;
       }
+      case "--runs": a.runs = Number(next()); if (!Number.isInteger(a.runs) || a.runs < 1 || a.runs > 10) throw new Error("--runs takes a whole number from 1 to 10"); break;
       case "--model": a.model = next(); break;
       case "--force": a.force = true; break;
       case "--seed": a.seed = next(); break;
@@ -65,6 +74,10 @@ const readJson = <T>(file: string): T => JSON.parse(fs.readFileSync(file, "utf8"
 const writeJson = (file: string, value: unknown) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, JSON.stringify(value, null, 2) + "\n"); };
 const writeText = (file: string, text: string) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, text); };
 const readCsv = (file: string) => (fs.existsSync(file) ? parseCsv(fs.readFileSync(file, "utf8")) : null);
+
+function questionsVersion(): string {
+  return readJson<{ version?: string }>(QUESTIONS_FILE).version ?? "unversioned";
+}
 
 function questionsFor(repo: string): Question[] {
   const file = readJson<{ repos: { repo: string; questions: string | Question[] }[]; standard: Question[] }>(QUESTIONS_FILE);
@@ -93,29 +106,71 @@ async function run(a: Args) {
   const mined = await SnapshotModel.find({ projectId: project.id }).select("hash fullHash").lean<{ hash: string; fullHash?: string }[]>();
   const isMined = minedCommitMatcher(mined);
   const model = await LlmModelRegistry.resolve(a.model ?? null);
-  console.log(`Model: ${model.client.info.provider} ${model.client.info.model} (${model.client.info.external ? "external" : "local"}). ${questions.length} questions x ${a.conditions.length} conditions.`);
+  console.log(`Model: ${model.client.info.provider} ${model.client.info.model} (${model.client.info.external ? "external" : "local"}). ${questions.length} questions x ${a.conditions.length} conditions x ${a.runs} runs.`);
+
+  // The project data C1 and C2 receive, saved once per distinct content: an answer names it by fingerprint, so what the
+  // model saw can be read back later even if the database has changed since.
+  const contextSha256 = fingerprint(context.text);
+  const contextFile = path.join(a.out, "contexts", `${a.repo}.${contextSha256}.txt`);
+  if (!fs.existsSync(contextFile)) writeText(contextFile, context.text);
+  const qVersion = questionsVersion();
+  const modelId = `${model.client.info.provider}/${model.client.info.model}`;
+  const settings = { maxTokens: 2000, plain: true };
+  const log = (entry: Record<string, unknown>) => { fs.mkdirSync(a.out, { recursive: true }); fs.appendFileSync(path.join(a.out, "run-log.jsonl"), JSON.stringify(entry) + "\n"); };
+  let failures = 0;
 
   for (const q of questions) {
-    for (const condition of a.conditions) {
-      const file = path.join(a.out, "answers", `${a.repo}.${q.id}.${condition}.json`);
-      if (fs.existsSync(file) && !a.force) { console.log(`  ${q.id} ${condition}: already answered, kept (use --force to ask again)`); continue; }
+    for (const condition of a.conditions) for (let run = 1; run <= a.runs; run++) {
+      const slot = { repo: a.repo, questionId: q.id, condition, run };
+      const answerId = answerIdOf(slot);
+      const file = path.join(a.out, "answers", answerFileName(slot));
+      if (fs.existsSync(file) && !a.force) { console.log(`  ${answerId}: already answered, kept (use --force to ask again)`); continue; }
+      const promptVersion = promptVersionOf(condition, SYSTEM_PROMPT);
+      const ctx = condition === "C0" ? null : contextSha256;
       const usage = { inputTokens: 0, outputTokens: 0 };
       let seen = false;
+      const askedAt = new Date().toISOString();
       const started = performance.now();
-      const raw = await model.client.complete(
-        messagesFor(condition, { project, context: context.text, question: q.text, mentorPrompt: SYSTEM_PROMPT }),
-        { maxTokens: 2000, plain: true, onUsage: u => { seen = true; usage.inputTokens += u.inputTokens; usage.outputTokens += u.outputTokens; } },
-      );
+      let raw: string;
+      try {
+        raw = await model.client.complete(
+          messagesFor(condition, { project, context: context.text, question: q.text, mentorPrompt: SYSTEM_PROMPT }),
+          { ...settings, onUsage: u => { seen = true; usage.inputTokens += u.inputTokens; usage.outputTokens += u.outputTokens; } },
+        );
+      } catch (error) {
+        // A failed request is recorded and skipped, never stored as an answer: the next run asks it again.
+        failures++;
+        const failed: FailedAnswer = {
+          answerId, repo: a.repo, questionId: q.id, condition, run, model: modelId, promptVersion, contextSha256: ctx, status: "error",
+          error: { name: error instanceof Error ? error.name : "Error", message: error instanceof Error ? error.message : String(error) },
+          askedAt, latencyMs: Math.round(performance.now() - started),
+        };
+        writeJson(path.join(a.out, "errors", `${answerId}.${askedAt.replace(/[:.]/g, "-")}.json`), failed);
+        log({ answerId, status: "error", askedAt, model: modelId, error: failed.error.message });
+        console.log(`  ${answerId}: FAILED (${failed.error.message}); recorded in errors/, will be asked again on the next run`);
+        continue;
+      }
       const { text, check } = postProcess(condition, raw, isMined);
       const answer: RecordedAnswer = {
-        repo: a.repo, questionId: q.id, question: q.text, answerable: q.answerable, expected: q.expected, condition,
-        model: `${model.client.info.provider}/${model.client.info.model}`, text, raw: raw.trim(), check,
-        validCitations: citedHashes(text).filter(isMined), usage: seen ? usage : null,
-        latencyMs: Math.round(performance.now() - started), askedAt: new Date().toISOString(),
+        answerId, repo: a.repo, questionId: q.id, question: q.text, answerable: q.answerable, expected: q.expected, condition, run,
+        model: modelId, modelInfo: { ...model.client.info }, promptVersion, contextSha256: ctx, questionsVersion: qVersion, settings,
+        text, raw: raw.trim(), check, validCitations: citedHashes(text).filter(isMined), usage: seen ? usage : null,
+        latencyMs: Math.round(performance.now() - started), askedAt, status: "ok",
       };
+      if (fs.existsSync(file)) {
+        // --force never destroys an earlier answer: it is moved aside with the time it was replaced.
+        const superseded = path.join(a.out, "answers", "superseded", `${path.basename(file, ".json")}.${askedAt.replace(/[:.]/g, "-")}.json`);
+        fs.mkdirSync(path.dirname(superseded), { recursive: true });
+        fs.renameSync(file, superseded);
+      }
       writeJson(file, answer);
-      console.log(`  ${q.id} ${condition}: ${text.length} chars, ${answer.validCitations.length} valid citations${check ? `, ${check.downgraded} FACT downgraded, ${check.removedCitations.length} citations removed` : ""}`);
+      log({ answerId, status: "ok", askedAt, model: modelId, promptVersion, contextSha256: ctx, usage: answer.usage, latencyMs: answer.latencyMs });
+      console.log(`  ${answerId}: ${text.length} chars, ${answer.validCitations.length} valid citations${check ? `, ${check.downgraded} FACT downgraded, ${check.removedCitations.length} citations removed` : ""}`);
     }
+  }
+  if (failures) {
+    console.log(`${failures} request(s) failed; see ${path.join(a.out, "errors")}. Run the same command again to ask only the missing answers.`);
+    process.exitCode = 1;
   }
 }
 
@@ -156,8 +211,11 @@ function score(a: Args) {
     })), ["claim_id", "claim", "citations", `verdict_${a.a}`, `verdict_${a.b}`, "verdict"]));
   }
   const metrics = metricsOf({ claimKey, verdicts, answerKey, answerSheets: [answersA, answersB] });
+  const comparisons = comparisonsOf({ claimKey, verdicts });
   const answers = loadAnswers(a.out);
-  const report = renderReport({ metrics, agreement, pending: pending.length, models: [...new Set(answers.map(x => x.model))], repos: [...new Set(answers.map(x => x.repo))] });
+  const report = renderReport({ metrics, agreement, pending: pending.length, models: [...new Set(answers.map(x => x.model))], repos: [...new Set(answers.map(x => x.repo))], comparisons, warnings: mixedRuns(answers) });
+  writeText(path.join(a.out, "comparisons.csv"), toCsv(comparisons.map(c => Object.fromEntries(Object.entries(c).map(([k, v]) => [k, v === null ? "" : String(v)]))) as Record<string, string>[],
+    Object.keys(comparisons[0]) as string[]));
   writeText(path.join(a.out, "report.md"), report);
   writeText(path.join(a.out, "metrics.csv"), toCsv(metrics.map(m => Object.fromEntries(Object.entries(m).map(([k, v]) => [k, v === null ? "" : String(v)]))) as Record<string, string>[],
     Object.keys(metrics[0]) as string[]));

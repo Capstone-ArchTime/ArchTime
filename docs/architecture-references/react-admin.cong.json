@@ -1,0 +1,124 @@
+{
+  "repo": "react-admin",
+  "commit": "f466cf73330d1458c9e371c5a7bce2659ede5817",
+  "author": "Nguyễn Duy Công",
+  "writtenAt": "2026-11-18",
+  "sources": [
+    "docs/Architecture.md (Single-Page Application, Providers, Smart Components, Composition, Hooks, Context: Pull, Don’t Push, Batteries Included But Removable)",
+    "README.md / package boundaries (packages/ra-core, packages/ra-ui-materialui, packages/ra-data-*, packages/ra-i18n-*, packages/ra-input-rich-text, packages/ra-no-code, packages/create-react-admin)"
+  ],
+  "components": [
+    {
+      "name": "Lõi quản trị và điều phối dữ liệu",
+      "responsibility": "Cung cấp các hook, controller, context và hợp đồng provider để điều phối dữ liệu, xác thực, trạng thái và hành vi nghiệp vụ của ứng dụng quản trị.",
+      "prefixes": [
+        "packages/ra-core/"
+      ],
+      "evidence": [
+        "docs/Architecture.md: Providers — react-admin sử dụng provider adapters thay vì gọi fetch/axios trực tiếp.",
+        "docs/Architecture.md: Hooks — ra-core là headless library chủ yếu gồm hooks; mô hình Controller/View/Model được mô tả rõ.",
+        "docs/Architecture.md: Context: Pull, Don’t Push — context cho phép component con lấy dữ liệu và callback."
+      ]
+    },
+    {
+      "name": "Giao diện quản trị Material UI",
+      "responsibility": "Cung cấp các component giao diện và layout quản trị xây dựng trên Material UI, tích hợp logic của framework quản trị.",
+      "prefixes": [
+        "packages/ra-ui-materialui/"
+      ],
+      "evidence": [
+        "docs/Architecture.md: Smart Components — thư viện component quản trị; tài liệu nêu react-admin được xây trên Material UI.",
+        "docs/Architecture.md: Composition — layout, menu và component có thể được thay thế hoặc kết hợp."
+      ]
+    },
+    {
+      "name": "Bộ chuyển đổi truy cập dữ liệu",
+      "responsibility": "Chuyển hợp đồng dataProvider của react-admin thành giao tiếp với các backend và định dạng API khác nhau.",
+      "prefixes": [
+        "packages/ra-data-fakerest/",
+        "packages/ra-data-graphql/",
+        "packages/ra-data-graphql-simple/",
+        "packages/ra-data-json-server/",
+        "packages/ra-data-local-forage/",
+        "packages/ra-data-local-storage/",
+        "packages/ra-data-simple-rest/"
+      ],
+      "evidence": [
+        "docs/Architecture.md: Providers — dataProvider chịu trách nhiệm chuyển getList thành HTTP request; tài liệu liệt kê REST, GraphQL, Firebase và các provider khác."
+      ]
+    },
+    {
+      "name": "Tích hợp định tuyến",
+      "responsibility": "Cung cấp các adapter router để react-admin sử dụng các giải pháp định tuyến khác nhau.",
+      "prefixes": [
+        "packages/ra-router-tanstack/"
+      ],
+      "evidence": [
+        "docs/Architecture.md: Single-Page Application — router mặc định dựa trên react-router và có thể thay bằng TanStack Router qua routerProvider."
+      ]
+    },
+    {
+      "name": "Quốc tế hóa",
+      "responsibility": "Tích hợp các thư viện dịch thuật để cung cấp khả năng đa ngôn ngữ cho ứng dụng quản trị.",
+      "prefixes": [
+        "packages/ra-i18n-i18next/",
+        "packages/ra-i18n-polyglot/"
+      ],
+      "evidence": [
+        "docs/Architecture.md: Providers — internationalization là một trong các miền được trừu tượng hóa qua provider.",
+        "docs/Architecture.md: Context: Pull, Don’t Push — Admin tạo I18NProviderContext và useTranslate đọc context này."
+      ]
+    },
+    {
+      "name": "Soạn thảo nội dung phong phú",
+      "responsibility": "Cung cấp đầu vào rich-text cho các biểu mẫu và màn hình quản trị.",
+      "prefixes": [
+        "packages/ra-input-rich-text/"
+      ],
+      "evidence": [
+        "docs/Architecture.md: Smart Components — react-admin cung cấp các building blocks chuyên biệt cho ứng dụng dữ liệu; package boundary ra-input-rich-text được xác định trong monorepo."
+      ]
+    },
+    {
+      "name": "Xây dựng ứng dụng quản trị không cần code",
+      "responsibility": "Cung cấp chức năng tạo hoặc cấu hình ứng dụng quản trị theo hướng no-code.",
+      "prefixes": [
+        "packages/ra-no-code/"
+      ],
+      "evidence": [
+        "Package boundary packages/ra-no-code trong monorepo; tên package thể hiện miền chức năng no-code."
+      ]
+    },
+    {
+      "name": "Khởi tạo dự án quản trị",
+      "responsibility": "Tạo bộ khung và cấu hình ban đầu cho dự án sử dụng react-admin.",
+      "prefixes": [
+        "packages/create-react-admin/"
+      ],
+      "evidence": [
+        "Package boundary packages/create-react-admin trong monorepo; package được đặt riêng cho luồng tạo dự án."
+      ]
+    },
+    {
+      "name": "API công khai của framework",
+      "responsibility": "Tập hợp và công bố API package chính để ứng dụng tiêu thụ react-admin.",
+      "prefixes": [
+        "packages/react-admin/"
+      ],
+      "evidence": [
+        "docs/Architecture.md: mô tả react-admin như một framework được lắp ghép từ core, UI, router và các thư viện hỗ trợ."
+      ]
+    },
+    {
+      "name": "Bản dịch ngôn ngữ",
+      "responsibility": "Cung cấp các gói dịch thuật mặc định cho những ngôn ngữ được react-admin hỗ trợ.",
+      "prefixes": [
+        "packages/ra-language-english/",
+        "packages/ra-language-french/"
+      ],
+      "evidence": [
+        "Git tree: ra-language-english và ra-language-french là các package ngôn ngữ riêng."
+      ]
+    }
+  ]
+}

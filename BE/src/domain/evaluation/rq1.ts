@@ -13,13 +13,13 @@
 import { createHash } from 'node:crypto';
 import type { NamedChange } from '../architecture/evaluation.js';
 import type { ChangeKind } from '../architecture/matching.js';
-import { cohenKappa, wilcoxonSignedRank } from './stats.js';
-import type { KappaResult, WilcoxonResult } from './stats.js';
+import { cohenKappa, gwetAC1, holm, wilcoxonSignedRank } from './stats.js';
+import type { Ac1Result, KappaResult, WilcoxonResult } from './stats.js';
 
 export type Method = 'recovered' | 'clustering' | 'anchored' | 'baseline';
 export const METHOD_ORDER: readonly Method[] = ['recovered', 'clustering', 'anchored', 'baseline'];
 export const METHOD_LABEL: Record<Method, string> = {
-  recovered: 'ArchTime (recovered)', clustering: 'Clustering only', anchored: 'Anchored (variant)', baseline: 'Directory baseline',
+  recovered: 'ArchTime (recovered)', clustering: 'Clustering only', anchored: 'ArchTime (anchored, frozen method)', baseline: 'Directory baseline',
 };
 export type Verdict = 'correct' | 'wrong';
 
@@ -116,6 +116,10 @@ const changeId = (c: NamedChange) => `${c.kind}:${c.before.join('+')}>${c.after.
 const pairKey = (from: string, to: string) => `${from}>${to}`;
 const blindKey = (from: string, to: string, method: Method, id: string) =>
   'c' + createHash('sha1').update(`${from}>${to}|${method}|${id}`).digest('hex').slice(0, 8);
+/** The blind key a change gets on the label sheets: the same pair, grouping, kind and components give the same key. */
+export const changeKeyOf = (from: string, to: string, method: Method, change: NamedChange) => blindKey(from, to, method, changeId(change));
+/** Structural changes of one grouping in one step (what the label sheets list). */
+export const structuralChanges = (step: EvaluationInput['steps'][number], method: Method): NamedChange[] => structural(sideOf(step, method)?.changes ?? []);
 const SAMPLE = 5;
 const refs = (names: string[], files?: string[][]): ComponentRef[] =>
   names.map((name, i) => (files?.[i] ? { name, files: files[i].length, sample: files[i].slice(0, SAMPLE) } : { name }));
@@ -182,6 +186,16 @@ export function buildLabelSheet(
   };
 }
 
+/**
+ * Groupings an earlier run listed in a workspace's key that the current run would drop. Re-running without them (for
+ * example forgetting --anchored on the test set) would rewrite the key and the sheets without their changes, losing the
+ * frozen method's events from the annotation; the script refuses unless told otherwise.
+ */
+export function droppedMethods(previous: LabelKey | null | undefined, current: Method[]): Method[] {
+  const before = previous?.methods ?? [...new Set((previous?.pairs ?? []).flatMap(p => p.changes.map(c => c.method)))];
+  return METHOD_ORDER.filter(m => before.includes(m) && !current.includes(m));
+}
+
 /** A pair can be scored once its true change count and every verdict are filled. */
 export const isLabelled = (p: LabelPair) => p.trueChanges !== null && p.changes.every(c => c.verdict !== null);
 
@@ -224,10 +238,73 @@ export function scoreLabels(entries: { sheet: LabelSheet; key: LabelKey }[]): De
     const t = tally.get(m);
     if (!t) continue;
     const precision = ratio(t.correct, t.detected), recall = ratio(t.correct, t.truth);
-    const f1 = precision !== null && recall !== null && precision + recall > 0 ? Math.round(((2 * precision * recall) / (precision + recall)) * 10_000) / 10_000 : null;
+    // Same convention as the extractor evaluation (extractor.ts prf): null only when precision or recall is undefined
+    // (a zero denominator); measured and both zero gives F1 = 0, a measured failure rather than "n/a".
+    const f1 = precision === null || recall === null ? null : precision + recall > 0 ? Math.round(((2 * precision * recall) / (precision + recall)) * 10_000) / 10_000 : 0;
     methods[m] = { ...t, precision, recall, f1 };
   }
   return { labelledPairs: labelled, pendingPairs: pending, methods, problems };
+}
+
+/** scoreLabels for each project on its own (the per-repository rows of the RQ1-B table). */
+export function scoreByProject(entries: { sheet: LabelSheet; key: LabelKey }[]): { project: string; score: DetectionScore }[] {
+  return entries.map(e => ({ project: e.sheet.projectName, score: scoreLabels([e]) }));
+}
+
+export interface SheetProblem { severity: 'error' | 'warning'; message: string }
+
+/**
+ * Completeness and consistency of one annotator's (or the reconciled) sheet against its key: every pair and change of
+ * the key present, no unknown change, trueChanges a whole number >= 0, verdicts "correct" / "wrong", and the counting rule
+ * of the protocol (more correct changes of one method than trueChanges) flagged. Needs no database.
+ */
+export function validateLabelSheet(sheet: LabelSheet, key?: LabelKey | null): SheetProblem[] {
+  const problems: SheetProblem[] = [];
+  const err = (message: string) => problems.push({ severity: 'error', message });
+  const warn = (message: string) => problems.push({ severity: 'warning', message });
+  if (sheet.version !== 2) err(`version is ${String(sheet.version)}, expected 2 (re-run npm run rq1 to convert it).`);
+  const keyed = new Map((key?.pairs ?? []).map(p => [pairKey(p.from, p.to), p]));
+  if (key && key.projectId !== sheet.projectId) err(`The key is for project ${key.projectId}, the sheet for ${sheet.projectId}.`);
+  let pending = 0;
+  for (const p of sheet.pairs) {
+    const where = `${p.from.hash || p.from.id}..${p.to.hash || p.to.id}`;
+    if (p.trueChanges !== null && (!Number.isInteger(p.trueChanges) || p.trueChanges < 0)) err(`${where}: trueChanges must be a whole number >= 0, got ${String(p.trueChanges)}.`);
+    for (const c of p.changes) if (c.verdict !== null && c.verdict !== 'correct' && c.verdict !== 'wrong') err(`${where} ${c.key}: verdict must be "correct" or "wrong", got ${JSON.stringify(c.verdict)}.`);
+    if (!isLabelled(p)) pending++;
+    if (key) {
+      const k = keyed.get(pairKey(p.from.id, p.to.id));
+      if (!k) { err(`${where}: the pair is not in the key (sheet from another run?).`); continue; }
+      const listed = new Set(p.changes.map(c => c.key)), known = new Set(k.changes.map(c => c.key));
+      for (const c of p.changes) if (!known.has(c.key)) err(`${where}: change ${c.key} is not in the key.`);
+      for (const c of k.changes) if (!listed.has(c.key)) err(`${where}: change ${c.key} of the key is missing from the sheet.`);
+      if (p.trueChanges !== null) {
+        const method = new Map(k.changes.map(c => [c.key, c.method]));
+        const correct = new Map<Method, number>();
+        for (const c of p.changes) if (c.verdict === 'correct') { const m = method.get(c.key); if (m) correct.set(m, (correct.get(m) ?? 0) + 1); }
+        for (const n of correct.values()) if (n > p.trueChanges) warn(`${where}: ${n} changes of one grouping are "correct" but trueChanges is ${p.trueChanges}; only ${p.trueChanges} will count (re-check the counting rule).`);
+      }
+    }
+  }
+  if (key) for (const k of key.pairs) if (!sheet.pairs.some(p => pairKey(p.from.id, p.to.id) === pairKey(k.from, k.to))) err(`Pair ${k.from}>${k.to} of the key is missing from the sheet.`);
+  if (pending) warn(`${pending} of ${sheet.pairs.length} pairs are not fully labelled yet.`);
+  return problems;
+}
+
+export interface LabelDisagreement { project: string; from: string; to: string; field: 'trueChanges' | 'verdict'; key: string; a: string; b: string }
+
+/** Every value two annotators both gave and gave differently, for the reconciliation sheet (labels-disagreements.csv). */
+export function labelDisagreements(a: LabelSheet, b: LabelSheet): LabelDisagreement[] {
+  const other = new Map(b.pairs.map(p => [pairKey(p.from.id, p.to.id), p]));
+  const out: LabelDisagreement[] = [];
+  for (const p of a.pairs) {
+    const q = other.get(pairKey(p.from.id, p.to.id));
+    if (!q) continue;
+    const base = { project: a.projectName, from: p.from.hash || p.from.id, to: p.to.hash || p.to.id };
+    if (p.trueChanges !== null && q.trueChanges !== null && p.trueChanges !== q.trueChanges) out.push({ ...base, field: 'trueChanges', key: '', a: String(p.trueChanges), b: String(q.trueChanges) });
+    const theirs = new Map(q.changes.map(c => [c.key, c.verdict]));
+    for (const c of p.changes) { const v = theirs.get(c.key); if (c.verdict && v && c.verdict !== v) out.push({ ...base, field: 'verdict', key: c.key, a: c.verdict, b: v }); }
+  }
+  return out;
 }
 
 export interface Agreement {
@@ -238,6 +315,10 @@ export interface Agreement {
   trueChangesMeanDiff: number | null;
   /** Cohen's kappa on the verdicts both annotators gave. */
   verdicts: KappaResult | null;
+  /** Gwet's AC1 on the same verdicts (scale: correct, wrong); reported with kappa because almost all verdicts may agree. */
+  verdictsAC1?: Ac1Result | null;
+  /** The verdict pairs themselves, so agreement can be pooled over projects (the paper reports one kappa and one AC1). */
+  pooledVerdicts?: [Verdict, Verdict][];
 }
 
 /** Agreement of two annotators on the same project, before reconciliation. */
@@ -257,6 +338,8 @@ export function agreement(a: LabelSheet, b: LabelSheet): Agreement {
     trueChangesExact: ratio(counts.filter(([x, y]) => x === y).length, counts.length),
     trueChangesMeanDiff: counts.length ? Math.round((counts.reduce((s, [x, y]) => s + Math.abs(x - y), 0) / counts.length) * 100) / 100 : null,
     verdicts: cohenKappa(verdicts),
+    verdictsAC1: gwetAC1(verdicts, ['correct', 'wrong'] as Verdict[]),
+    pooledVerdicts: verdicts,
   };
 }
 
@@ -352,17 +435,45 @@ const fmt = (x: number | null, digits = 2) => (x === null ? 'n/a' : x.toFixed(di
 const pct = (x: number | null) => (x === null ? 'n/a' : `${(x * 100).toFixed(1)}%`);
 const test = (w: WilcoxonResult | null) => (w ? `n=${w.n}, p=${w.p.toFixed(4)}${w.exact ? '' : ' (normal approx.)'}, r=${w.effect.toFixed(2)}` : 'n/a');
 
-/** Wilcoxon signed-rank tests of the recovered grouping against each other method, on the snapshots with a reference. */
-export function recoveryTests(rows: RecoveryRow[], methods: Method[]): { project: string; against: Method; result: WilcoxonResult | null }[] {
-  const out: { project: string; against: Method; result: WilcoxonResult | null }[] = [];
+export interface RecoveryTest {
+  project: string; primary: Method; against: Method; result: WilcoxonResult | null;
+  /** Holm-adjusted over the projects, for this comparison (primary against `against`). */
+  pHolm: number | null;
+}
+
+/**
+ * Wilcoxon signed-rank tests of the `primary` grouping (default: recovered) against each other method, per project, on
+ * the snapshots with a reference; for each comparison the p-values of the projects are Holm-adjusted together
+ * (docs/rq1-protocol.md §5: milestones of one project are not independent, so projects are tested separately and the
+ * family is the set of projects). The frozen test-set method is `anchored`: call with primary 'anchored' for the paper.
+ */
+export function recoveryTests(rows: RecoveryRow[], methods: Method[], primary: Method = 'recovered'): RecoveryTest[] {
+  const out: RecoveryTest[] = [];
   for (const project of [...new Set(rows.map(r => r.project))]) {
     const mine = rows.filter(r => r.project === project);
-    for (const m of methods.filter(x => x !== 'recovered')) {
-      out.push({ project, against: m, result: wilcoxonSignedRank(mine.map(r => r.recoveredVsReference as number | null), mine.map(r => r[`${m}VsReference`] as number | null)) });
+    for (const m of methods.filter(x => x !== primary)) {
+      out.push({ project, primary, against: m, pHolm: null, result: wilcoxonSignedRank(mine.map(r => r[`${primary}VsReference`] as number | null), mine.map(r => r[`${m}VsReference`] as number | null)) });
     }
+  }
+  for (const m of new Set(out.map(t => t.against))) {
+    const family = out.filter(t => t.against === m);
+    holm(family.map(t => t.result?.p ?? null)).forEach((p, i) => { family[i].pHolm = p; });
   }
   return out;
 }
+
+/**
+ * The two ways of averaging per-snapshot scores over projects. The report's "All" row has always been the mean over
+ * every snapshot (projects weighted by their number of milestones: 56.2 for the directory baseline in the paper's
+ * Table 3 is the mean over 59 milestones, 11 of them docusaurus); the mean of the per-project means weights every
+ * project equally.
+ */
+export function aggregateMeans(rows: RecoveryRow[], method: Method): { milestoneWeighted: number | null; projectWeighted: number | null; snapshots: number; projects: number } {
+  const values = rows.map(r => r[`${method}VsReference`]).filter((x): x is number => typeof x === 'number');
+  const perProject = [...new Set(rows.map(r => r.project))].map(p => mean(rows.filter(r => r.project === p).map(r => r[`${method}VsReference`]))).filter((x): x is number => x !== null);
+  return { milestoneWeighted: mean(values), projectWeighted: mean(perProject), snapshots: values.length, projects: perProject.length };
+}
+
 
 /** The RQ1 report: what was measured, on what, and the numbers, in Markdown. */
 export function renderReport(input: {
@@ -372,6 +483,7 @@ export function renderReport(input: {
   recovery: RecoveryRow[];
   stability: StabilityRow[];
   detection: DetectionScore;
+  detectionByProject?: { project: string; score: DetectionScore }[];
   agreement?: { project: string; annotators: [string, string]; result: Agreement }[];
 }): string {
   const { recovery, stability, detection, methods } = input;
@@ -399,10 +511,16 @@ export function renderReport(input: {
       const better = rows.filter(r => typeof r.recoveredVsReference === 'number' && typeof r.baselineVsReference === 'number' && r.recoveredVsReference > r.baselineVsReference).length;
       lines.push(`| ${p} | ${rows.length} | ${methods.map(m => fmt(mean(rows.map(r => r[`${m}VsReference`])))).join(' | ')} | ${better} of ${rows.length} |`);
     }
-    lines.push(`| **All** | ${withRef.length} | ${methods.map(m => `**${fmt(mean(withRef.map(r => r[`${m}VsReference`])))}**`).join(' | ')} | |`, '');
-    lines.push('Wilcoxon signed-rank test, recovered against each other grouping, per project (paired by snapshot; r is the matched-pairs rank-biserial correlation, positive when the recovered grouping scores higher):', '',
-      '| Project | Against | Result |', '|---|---|---|',
-      ...recoveryTests(withRef, methods).map(t => `| ${t.project} | ${METHOD_LABEL[t.against]} | ${test(t.result)} |`), '',
+    lines.push(`| **All (mean over ${withRef.length} snapshots)** | ${withRef.length} | ${methods.map(m => `**${fmt(aggregateMeans(withRef, m).milestoneWeighted)}**`).join(' | ')} | |`);
+    lines.push(`| All (mean of project means) | ${new Set(withRef.map(r => r.project)).size} projects | ${methods.map(m => fmt(aggregateMeans(withRef, m).projectWeighted)).join(' | ')} | |`, '');
+    lines.push('The first "All" row weights every snapshot equally (projects with more milestones weigh more); the second weights every project equally. State which one a paper table uses.', '');
+    const primaries: Method[] = methods.includes('anchored') ? ['anchored', 'recovered'] : ['recovered'];
+    for (const primary of primaries) {
+      lines.push(`Wilcoxon signed-rank test, ${METHOD_LABEL[primary]} against each other grouping, per project (paired by snapshot; r is the matched-pairs rank-biserial correlation, positive when ${METHOD_LABEL[primary]} scores higher; p (Holm) adjusts the projects' p-values of each comparison together):`, '',
+        '| Project | Against | Result | p (Holm) |', '|---|---|---|---|',
+        ...recoveryTests(withRef, methods, primary).map(t => `| ${t.project} | ${METHOD_LABEL[t.against]} | ${test(t.result)} | ${t.pHolm === null ? 'n/a' : t.pHolm.toFixed(4)} |`), '');
+    }
+    lines.push(
       'Snapshots of one project are not independent; read p-values per project, and do not pool them across projects.',
       'Threat to validity: a reference written as folder prefixes favours a grouping by folder, that is, the baseline.', '');
   }
@@ -418,8 +536,13 @@ export function renderReport(input: {
     `${detection.labelledPairs} pairs labelled, ${detection.pendingPairs} still to label (rq1-results/labels/<project>.json, reconciled).`, '');
   if (input.agreement?.length) {
     lines.push('Agreement of the two annotators before reconciliation:', '',
-      '| Project | Annotators | Pairs | trueChanges identical | Mean difference | Verdicts compared | Verdict agreement | Cohen\'s kappa |', '|---|---|---|---|---|---|---|---|',
-      ...input.agreement.map(a => `| ${a.project} | ${a.annotators.join(', ')} | ${a.result.pairs} | ${pct(a.result.trueChangesExact)} | ${fmt(a.result.trueChangesMeanDiff)} | ${a.result.verdicts?.n ?? 0} | ${pct(a.result.verdicts?.agreement ?? null)} | ${fmt(a.result.verdicts?.kappa ?? null)} |`), '');
+      '| Project | Annotators | Pairs | trueChanges identical | Mean difference | Verdicts compared | Verdict agreement | Cohen\'s kappa | Gwet\'s AC1 |', '|---|---|---|---|---|---|---|---|---|',
+      ...input.agreement.map(a => `| ${a.project} | ${a.annotators.join(', ')} | ${a.result.pairs} | ${pct(a.result.trueChangesExact)} | ${fmt(a.result.trueChangesMeanDiff)} | ${a.result.verdicts?.n ?? 0} | ${pct(a.result.verdicts?.agreement ?? null)} | ${fmt(a.result.verdicts?.kappa ?? null)} | ${fmt(a.result.verdictsAC1?.ac1 ?? null)} |`), '');
+    const pooled = input.agreement.flatMap(a => a.result.pooledVerdicts ?? []);
+    if (pooled.length) {
+      const k = cohenKappa(pooled), g = gwetAC1(pooled, ['correct', 'wrong'] as Verdict[]);
+      lines.push(`All projects pooled: ${pooled.length} verdicts, agreement ${pct(k?.agreement ?? null)}, Cohen's kappa ${fmt(k?.kappa ?? null)}, Gwet's AC1 ${fmt(g?.ac1 ?? null)}.`, '');
+    }
   }
   if (detection.labelledPairs) {
     lines.push('| Grouping | Reported | Correct | True changes | Precision | Recall | F1 |', '|---|---|---|---|---|---|---|');
@@ -428,6 +551,16 @@ export function renderReport(input: {
       if (s) lines.push(`| ${METHOD_LABEL[m]} | ${s.detected} | ${s.correct} | ${s.truth} | ${pct(s.precision)} | ${pct(s.recall)} | ${pct(s.f1)} |`);
     }
     lines.push('');
+    if (input.detectionByProject?.length) {
+      lines.push('Per project (reconciled sheets):', '', '| Project | Grouping | Labelled pairs | Reported | Correct | True changes | Precision | Recall | F1 |', '|---|---|---|---|---|---|---|---|---|');
+      for (const { project, score } of input.detectionByProject) {
+        for (const m of methods) {
+          const s = score.methods[m];
+          if (s) lines.push(`| ${project} | ${METHOD_LABEL[m]} | ${score.labelledPairs} | ${s.detected} | ${s.correct} | ${s.truth} | ${pct(s.precision)} | ${pct(s.recall)} | ${pct(s.f1)} |`);
+        }
+      }
+      lines.push('');
+    }
   }
   if (detection.problems.length) lines.push('### Label problems', '', ...detection.problems.map(p => `- ${p}`), '');
   return lines.join('\n');

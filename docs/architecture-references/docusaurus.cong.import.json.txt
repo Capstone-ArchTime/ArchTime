@@ -1,0 +1,8 @@
+Framework lõi Docusaurus: packages/docusaurus/
+Giao diện theme mặc định: packages/
+Hạ tầng theme dùng chung: packages/docusaurus-theme-common/
+Quản lý nội dung tài liệu: packages/docusaurus-plugin-content-docs/
+Hệ sinh thái plugin nội dung và tích hợp: packages/docusaurus-plugin-client-redirects/, packages/docusaurus-plugin-content-blog/, packages/docusaurus-plugin-content-pages/, packages/docusaurus-plugin-css-cascade-layers/, packages/docusaurus-plugin-debug/, packages/docusaurus-plugin-google-gtag/, packages/docusaurus-plugin-google-tag-manager/, packages/docusaurus-plugin-ideal-image/, packages/docusaurus-plugin-pwa/, packages/docusaurus-plugin-rsdoctor/, packages/docusaurus-plugin-sitemap/, packages/docusaurus-plugin-svgr/, packages/docusaurus-plugin-vercel-analytics/
+Compiler, bundler và tiện ích nền: packages/docusaurus-babel/, packages/docusaurus-bundler/, packages/docusaurus-fs/, packages/docusaurus-glob/, packages/docusaurus-logger/, packages/docusaurus-mdx-loader/, packages/docusaurus-remark-plugin-npm2yarn/, packages/docusaurus-utils-common/, packages/docusaurus-utils-validation/, packages/docusaurus-utils/, packages/eslint-plugin/, packages/lqip-loader/, packages/stylelint-copyright/
+Khởi tạo dự án Docusaurus: packages/create-docusaurus/
+Theme mở rộng và preset giao diện: packages/docusaurus-preset-classic/, packages/docusaurus-theme-live-codeblock/, packages/docusaurus-theme-mermaid/, packages/docusaurus-theme-search-algolia/, packages/docusaurus-theme-translations/

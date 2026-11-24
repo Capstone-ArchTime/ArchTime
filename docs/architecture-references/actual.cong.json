@@ -1,0 +1,102 @@
+{
+  "repo": "actual",
+  "commit": "33912a083822f19090fe45a562d58fe29499ca25",
+  "author": "Nguyễn Duy Công",
+  "writtenAt": "2026-11-18",
+  "sources": [
+    "packages/docs/docs/contributing/project-details/architecture.md (Overview, Runtime Architecture, Core Package Structure, Platform-Specific Exports, Build System, Data Storage)",
+    "packages/docs/docs/contributing/leadership/architecture-decision-records.md (Bank sync: credential storage)",
+    "Git tree at commit 33912a083822f19090fe45a562d58fe29499ca25 (package source boundaries)"
+  ],
+  "components": [
+    {
+      "name": "Ứng dụng ngân sách phía người dùng",
+      "responsibility": "Cung cấp giao diện React và các luồng tương tác chính để người dùng quản lý ngân sách trong ứng dụng web/desktop.",
+      "prefixes": [
+        "packages/desktop-client/"
+      ],
+      "evidence": [
+        "Architecture Notes: Overview — Actual chạy front-end React-based web app.",
+        "Git tree: packages/desktop-client/src/ là vùng mã nguồn lớn nhất của ứng dụng."
+      ]
+    },
+    {
+      "name": "Thư viện thành phần giao diện",
+      "responsibility": "Cung cấp các thành phần UI dùng chung cho giao diện ứng dụng.",
+      "prefixes": [
+        "packages/component-library/"
+      ],
+      "evidence": [
+        "Git tree: packages/component-library/src/ là package độc lập, có 450 file nguồn theo cây tại commit được chỉ định."
+      ]
+    },
+    {
+      "name": "Lõi nghiệp vụ và cơ sở dữ liệu ngân sách",
+      "responsibility": "Thực hiện logic nghiệp vụ và thao tác dữ liệu ngân sách, dùng chung giữa web worker và tiến trình nền desktop, đồng thời quản lý lưu trữ SQLite và migration.",
+      "prefixes": [
+        "packages/loot-core/"
+      ],
+      "evidence": [
+        "Architecture Notes: Core Package Structure — mã dùng bởi background server và dùng chung giữa web/desktop nằm trong loot-core.",
+        "Architecture Notes: Platform-Specific Exports — loot-core có browser exports, Node exports và shared code.",
+        "Architecture Notes: Data Storage — SQLite, template database và migrations."
+      ]
+    },
+    {
+      "name": "Dịch vụ đồng bộ từ xa",
+      "responsibility": "Cung cấp dịch vụ đồng bộ từ xa cùng lớp CRDT dùng chung giữa client và server để phối hợp, truyền và hợp nhất thay đổi dữ liệu ngân sách giữa các thiết bị.",
+      "prefixes": [
+        "packages/sync-server/",
+        "packages/crdt/"
+      ],
+      "evidence": [
+        "Architecture Notes: Overview — tài liệu phân biệt backend cục bộ trong ứng dụng với sync-server từ xa.",
+        "Architecture Notes: ADR Bank sync — credential ngân hàng được lưu phía sync server.",
+        "Git tree: packages/crdt/ là package CRDT dùng chung cùng các thành phần client/server trong luồng đồng bộ."
+      ]
+    },
+    {
+      "name": "API công khai cho script bên ngoài",
+      "responsibility": "Cung cấp API cho Node.js và trình duyệt để các script bên ngoài đọc, tạo và thao tác dữ liệu ngân sách của Actual.",
+      "prefixes": [
+        "packages/api/"
+      ],
+      "evidence": [
+        "packages/api/package.json: package được công bố với tên @actual-app/api và mô tả “An API for Actual”.",
+        "packages/api/README.md: hướng dẫn cài @actual-app/api và dẫn tới tài liệu docs/api cho người viết script sử dụng API."
+      ]
+    },
+    {
+      "name": "Tích hợp ứng dụng di động",
+      "responsibility": "Chứa phần client dành cho trải nghiệm Actual trên nền tảng di động.",
+      "prefixes": [
+        "packages/mobile-client/"
+      ],
+      "evidence": [
+        "Git tree tại commit chỉ định xác nhận package mobile-client là một package riêng trong monorepo; trách nhiệm được suy ra từ tên package."
+      ]
+    },
+    {
+      "name": "CLI và tiến trình desktop",
+      "responsibility": "Cung cấp giao diện dòng lệnh và lớp tích hợp Electron để khởi chạy, đóng gói và vận hành Actual trên desktop.",
+      "prefixes": [
+        "packages/cli/",
+        "packages/desktop-electron/"
+      ],
+      "evidence": [
+        "Git tree: packages/cli/ và packages/desktop-electron/ là các package độc lập cho CLI và desktop shell."
+      ]
+    },
+    {
+      "name": "Dịch vụ plugin và tích hợp mở rộng",
+      "responsibility": "Cung cấp dịch vụ hỗ trợ plugin và công cụ build liên quan đến hệ sinh thái mở rộng của Actual.",
+      "prefixes": [
+        "packages/plugins-service/",
+        "packages/vite-plugin-peggy/"
+      ],
+      "evidence": [
+        "Git tree: packages/plugins-service/ và packages/vite-plugin-peggy/ là các package riêng phục vụ plugin và tích hợp build."
+      ]
+    }
+  ]
+}

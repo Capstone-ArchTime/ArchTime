@@ -1,0 +1,15 @@
+Giao diện và hạ tầng frontend: app/
+Các màn hình và luồng nghiệp vụ: app/scenes/
+Trải nghiệm trình soạn thảo: app/editor/
+Lõi biên tập tài liệu dùng chung: shared/
+Hành động và điều hướng giao diện: app/actions/
+Quản lý trạng thái phía client: app/models/, app/stores/
+Hooks giao diện: app/hooks/
+Menu và menu ngữ cảnh: app/menus/
+Định nghĩa tuyến giao diện: app/routes/
+API, nghiệp vụ và dữ liệu máy chủ: server/
+Xử lý tác vụ bất đồng bộ: server/queues/
+Trình bày dữ liệu và giao tiếp backend-frontend: server/presenters/
+Hạ tầng dùng chung client-server: shared/collaboration/, shared/components/, shared/constants.ts, shared/env.ts, shared/helpers/, shared/hooks/, shared/i18n/, shared/random.ts, shared/schema.ts, shared/styles/, shared/types/, shared/utils/, shared/validations.ts
+Hạ tầng và dịch vụ backend: server/collaboration/, server/config/, server/context.ts, server/converters/, server/editor/, server/emails/, server/env.ts, server/errors.ts, server/index.ts, server/logging/, server/main.ts, server/mcp/, server/middlewares/, server/onerror.ts, server/onupgrade.ts, server/scripts/, server/services/, server/storage/, server/types.ts, server/utils/, server/validation.ts
+Tích hợp dịch vụ bên ngoài: plugins/
