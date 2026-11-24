@@ -158,6 +158,31 @@ export function holm(ps: (number | null)[]): (number | null)[] {
   return out;
 }
 
+export interface Ac1Result { n: number; agreement: number; ac1: number | null; categories: number }
+
+/**
+ * Gwet's AC1 for two raters over the same items (Gwet 2008). Chance agreement is
+ * pe = 1/(q-1) · Σ_k π_k (1 − π_k), with π_k the mean of the two raters' shares of category k and q the number of
+ * categories the scale has. Pass `categories` (e.g. ['correct', 'wrong']): q must be the size of the scale, not the
+ * number of values that happened to be used, otherwise AC1 is undefined whenever both raters used a single value.
+ * Unlike Cohen's kappa it stays interpretable when almost every item gets the same value (the kappa paradox the RQ1
+ * development set ran into: 14/16 verdicts agreed, kappa −0.07, AC1 0.86). Null without items or with q < 2.
+ */
+export function gwetAC1<T>(pairs: [T, T][], categories: readonly T[]): Ac1Result | null {
+  const n = pairs.length;
+  const scale = [...new Set([...categories, ...pairs.flat()])];
+  const q = scale.length;
+  if (n === 0 || q < 2) return null;
+  const agree = pairs.filter(([a, b]) => a === b).length / n;
+  let pe = 0;
+  for (const k of scale) {
+    const pi = (pairs.filter(([a]) => a === k).length + pairs.filter(([, b]) => b === k).length) / (2 * n);
+    pe += pi * (1 - pi);
+  }
+  pe /= q - 1;
+  return { n, agreement: round(agree), ac1: pe >= 1 ? null : round((agree - pe) / (1 - pe)), categories: q };
+}
+
 export interface KappaResult { n: number; agreement: number; kappa: number | null }
 
 /** Cohen's kappa of two annotators over the same items; null when chance agreement is already total. */

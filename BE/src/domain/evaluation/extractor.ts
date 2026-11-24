@@ -125,6 +125,77 @@ export function labelSheet(repo: string, commit: string, files: string[]): Groun
   return { repo, commit: commit.toLowerCase(), labeledBy: [], agreement: null, rules: LABEL_RULES, files: Object.fromEntries(files.map(f => [norm(f), null])) };
 }
 
+// ── Two labellers, before they reconcile ──────────────────────────────────────────────────────────────────────────
+
+export interface LabelAgreement {
+  /** Files both labellers labelled (non-null in both sheets); only these are compared. */
+  files: number;
+  /** Edges both listed, only the first listed, only the second listed. */
+  both: number; onlyA: number; onlyB: number;
+  /** |A ∩ B| / |A ∪ B| over the edges of the compared files; null when neither listed any edge. */
+  jaccard: number | null;
+  /** Files whose dependency lists differ, with the edges each side alone listed (to reconcile). */
+  disagreements: { file: string; onlyA: string[]; onlyB: string[] }[];
+}
+
+/** Agreement of two labellers' sheets of the same sample, before reconciliation (docs/extractor-evaluation-report.md §3.4). */
+export function labelAgreement(a: GroundTruth, b: GroundTruth): LabelAgreement {
+  if (a.repo !== b.repo) throw new Error(`The two sheets are for different repositories (${a.repo}, ${b.repo}).`);
+  if (!a.commit.startsWith(b.commit) && !b.commit.startsWith(a.commit)) throw new Error(`The two sheets were labelled at different commits (${a.commit.slice(0, 7)}, ${b.commit.slice(0, 7)}).`);
+  const files = Object.keys(a.files).filter(f => a.files[f] !== null && b.files[f] !== null && b.files[f] !== undefined).sort();
+  let both = 0, onlyA = 0, onlyB = 0;
+  const disagreements: LabelAgreement["disagreements"] = [];
+  for (const f of files) {
+    const x = new Set(a.files[f]!), y = new Set(b.files[f]!);
+    const ax = [...x].filter(d => !y.has(d)).sort(), by = [...y].filter(d => !x.has(d)).sort();
+    both += [...x].filter(d => y.has(d)).length;
+    onlyA += ax.length; onlyB += by.length;
+    if (ax.length || by.length) disagreements.push({ file: f, onlyA: ax, onlyB: by });
+  }
+  const union = both + onlyA + onlyB;
+  return { files: files.length, both, onlyA, onlyB, jaccard: union ? Math.round((both / union) * 10_000) / 10_000 : null, disagreements };
+}
+
+export interface SheetProblem { severity: "error" | "warning"; message: string }
+
+/**
+ * Completeness and consistency of a labelled sheet before it is scored: every file labelled, every path present in the
+ * checkout (`exists`), no labelled dependency that the rules exclude (tests, build output, node_modules, non-JS/TS files).
+ */
+export function validateSheet(truth: GroundTruth, exists: (path: string) => boolean): SheetProblem[] {
+  const problems: SheetProblem[] = [];
+  const pending = Object.keys(truth.files).filter(f => truth.files[f] === null);
+  if (pending.length) problems.push({ severity: "error", message: `${pending.length} of ${Object.keys(truth.files).length} files are not labelled yet (null).` });
+  if (!truth.labeledBy.length) problems.push({ severity: "warning", message: "labeledBy is empty: record who labelled (and reconciled) the sheet." });
+  if (truth.agreement === null) problems.push({ severity: "warning", message: "agreement is null: measure the two labellers' agreement before reconciling (extractor-eval agree)." });
+  const excluded = /(^|\/)(node_modules|dist|build)\/|\.(test|spec)\.[a-z]+$|\.d\.ts$/i;
+  const source = /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts)$/i;
+  for (const [file, deps] of Object.entries(truth.files)) {
+    if (!exists(file)) problems.push({ severity: "error", message: `Sampled file ${file} does not exist in the checkout.` });
+    for (const d of deps ?? []) {
+      if (!exists(d)) problems.push({ severity: "error", message: `${file} → ${d}: the target does not exist in the checkout.` });
+      else if (!source.test(d) || excluded.test(d)) problems.push({ severity: "warning", message: `${file} → ${d}: the labelling rules exclude this target (not JS/TS source, a test, build output or a declaration file).` });
+    }
+  }
+  return problems;
+}
+
+/** Machine-readable results (results.json): every number in report.md, plus the counts behind it. */
+export function resultsJson(input: { generatedAt: Date; extractor: string; moduleSyntax: string; backendCommit: string | null; rows: RepoScore[] }) {
+  const { micro, macro } = summarize(input.rows);
+  return {
+    generatedAt: input.generatedAt.toISOString(),
+    extractor: input.extractor,
+    moduleSyntax: input.moduleSyntax,
+    backendCommit: input.backendCommit,
+    conventions: "precision/recall/F1 are null when their denominator is 0; unlabelled (null) files are not scored; macro averages only repositories with a value",
+    final: input.rows.every(r => r.pending === 0),
+    repositories: input.rows,
+    micro,
+    macro,
+  };
+}
+
 const pct = (x: number | null) => (x === null ? "n/a" : `${(x * 100).toFixed(1)}%`);
 
 export function renderReport(input: { generatedAt: Date; extractor: string; rows: RepoScore[]; details: { repo: string; comparison: Comparison }[] }): string {

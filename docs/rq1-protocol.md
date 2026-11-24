@@ -201,7 +201,18 @@ Một cặp được tính khi đã có `trueChanges` và đủ mọi `verdict`.
   - precision = số thay đổi `correct` / số thay đổi đã báo
   - recall = số thay đổi `correct` / tổng `trueChanges`
   - F1 là trung bình điều hoà của precision và recall
-- **Đồng thuận:** Cohen's kappa của hai người trên `verdict`, tỉ lệ `trueChanges` trùng nhau và chênh lệch trung bình.
+- **Đồng thuận:** Cohen's kappa và Gwet's AC1 (từ 24/11/2026 do `stats.ts` tính) của hai người trên `verdict`, tỉ lệ
+  `trueChanges` trùng nhau và chênh lệch trung bình; theo từng repo và gộp (`npm run rq1:labels -- agree --a cong --b truong`).
+- **Kiểm định trong paper (bổ sung 24/11/2026):** báo cáo in Wilcoxon với `anchored` (phương pháp đóng băng) là nhóm chính,
+  kèm p hiệu chỉnh Holm qua 5 repo cho từng phép so sánh (`recovery-tests.csv`). Ở commit `0c5e1f8` báo cáo chỉ so `recovered`
+  với các method khác và không có Holm; số trong Bảng 3 của paper được tính ngoài script và nay tái lập đúng từ `recovery.csv`
+  (docs/research-audit-report.md, D3).
+- **Trung bình "All":** trung bình trên mọi mốc (repo nhiều mốc nặng hơn; đây là "Mean (59)" của paper); báo cáo in thêm
+  trung bình của các trung bình repo.
+- **Độ nhạy theo ngưỡng ghép δ (khám phá, không dùng để chọn tham số):** `--sensitivity 0.3,0.5,0.7` ghi `sensitivity.csv`.
+  Chỉ chạy **sau khi** hai người đã nộp phiếu RQ1-B, vì file này cho thấy số thay đổi theo từng method.
+- **Luôn chạy với cùng các method:** trên tập kiểm tra mọi lệnh `rq1` (kể cả `--annotator`, `--reconcile`) phải có
+  `--anchored --tolerance 0.02`; script dừng nếu khoá cũ có method mà lần chạy mới thiếu.
 
 ## 6. Biến thể anchored (phương pháp đóng băng)
 

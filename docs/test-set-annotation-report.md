@@ -4,7 +4,7 @@
 |---|---|
 | Ngày | 2026-11-16 |
 | Nguồn | BM04 N-06; [rq1-labelling-guide.md](rq1-labelling-guide.md); [rq1-protocol.md](rq1-protocol.md) §4 |
-| Trạng thái | **BLOCKED.** Điều kiện trước: Công chạy xong C11 (tập kiểm tra), mà C11 lại cần T6 (tham chiếu của 5 repo). Chưa có phiếu nào của tập kiểm tra. |
+| Trạng thái | **Chờ người gán nhãn** (cập nhật 24/11/2026). C11 đã chạy ngày 21/11/2026 (54 cặp mốc: react-router 11, docusaurus 10, react-admin 11, actual 11, outline 11; phiếu ở `BE/rq1-results/labels/` của máy chạy C11, chưa lưu vào repo). **0/54 cặp đã gán nhãn** bởi cả hai người. Tham chiếu B (T6) vẫn chưa có; RQ1-B không cần tham chiếu. |
 | Người gán nhãn thứ nhất | **Nguyễn Duy Công** (thành viên nhóm, `--annotator cong`). Quyết định 18/11/2026; xem lưu ý ở §1 |
 | Người gán nhãn thứ hai | Đặng Nhật Trường (thành viên nhóm, người thật, `--annotator truong`). **Trợ lý AI không gán nhãn trên tập kiểm tra** |
 | Phạm vi | **Cả hai người chấm toàn bộ các cặp** của 5 repo (không chấm theo mẫu như tập phát triển) |
@@ -21,9 +21,15 @@
    1. đọc `commits` của cặp, hoặc `git log --oneline <from>..<to>` và diff trên checkout của repo;
    2. **ghi `trueChanges` trước**: số thay đổi kiến trúc thật (khối chức năng được thêm, bỏ, tách, gộp, tổ chức lại). `0` là hợp lệ. Áp dụng luật "chỉ sửa file" (rq1-protocol §4): cặp không có file nguồn nào thêm, xoá hay chuyển chỗ thì `trueChanges = 0`;
    3. sau đó mới đọc `changes` và đặt `verdict` (`correct` / `wrong`) cho **từng thay đổi độc lập**, có thể ghi `note`.
-4. Khi cả hai xong: `npm run rq1 -- --milestones --reconcile`. Ghi độ đồng thuận **trước** khi thống nhất (mục 3).
-5. Thống nhất chỗ lệch theo luật viết sẵn trong hướng dẫn (mục 4 của rq1-labelling-guide và rq1-protocol §4), không theo người nào; ghi chú "Settled by the labelling guide".
-6. Chạy lại `npm run rq1 -- --milestones` để tính điểm trên phiếu đã hợp nhất.
+4. Mỗi người kiểm tra phiếu của mình: `npm run rq1:labels -- check --annotator <cong|truong>` (đủ cặp, đủ verdict, khớp khoá; script không in tên method).
+5. Khi cả hai xong, **trước khi thống nhất**: `npm run rq1:labels -- agree --a cong --b truong` → `rq1-results/agreement/agreement.json` (κ và Gwet's AC1 theo từng repo và gộp, tỉ lệ `trueChanges` trùng, chênh lệch trung bình) và `disagreements.csv`. Ghi số này vào mục 3.
+6. `npm run rq1 -- --milestones --anchored --tolerance 0.02 --reconcile`.
+7. Thống nhất chỗ lệch theo luật viết sẵn trong hướng dẫn (mục 4 của rq1-labelling-guide và rq1-protocol §4), không theo người nào; ghi chú "Settled by the labelling guide".
+8. Chạy lại `npm run rq1 -- --milestones --anchored --tolerance 0.02` để tính điểm trên phiếu đã hợp nhất (bảng gộp và theo từng repo; `detection.csv`).
+
+> **Sửa 24/11/2026:** bước 6 và 8 trước đây thiếu `--anchored --tolerance 0.02`. Mỗi lần chạy, script dựng lại khoá và
+> phiếu đã hợp nhất từ các method của lần chạy đó, nên thiếu cờ sẽ xoá các thay đổi của phương pháp đóng băng khỏi khoá.
+> Script nay dừng lại nếu khoá cũ có một method mà lần chạy mới không tính (`--allow-dropping-methods` để bỏ qua).
 
 ## 2. Số cặp và số thay đổi
 
@@ -42,6 +48,8 @@
 | (5 repo) | — | — | — | — | — |
 
 Ghi chú: ở tập phát triển, κ = −0,07 dù 14/16 verdict trùng, vì gần như mọi thay đổi bị chấm `wrong` (nghịch lý kappa). Nên báo cáo kèm AC1 như đã làm ở rq1-protocol §4.
+Từ 24/11/2026 AC1 do script tính (`gwetAC1` trong `BE/src/domain/evaluation/stats.ts`), không còn tính tay; test tái lập đúng
+số của tập phát triển (κ −0,0667, AC1 0,8584). Tập kiểm tra hiện **chưa có nhãn nào**.
 
 ## 4. Thống nhất
 

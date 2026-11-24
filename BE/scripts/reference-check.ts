@@ -3,12 +3,15 @@
  * file, and how many analysed source files each component and the whole reference cover.
  *
  *   npm run reference-check -- --checkout <dir> --ref <repo>.<author>.json
+ *
+ * Also lists completeness problems (referenceProblems): placeholders, components without responsibility or evidence,
+ * shared or shadowed prefixes, folder prefixes without a trailing "/". Exit 1 on any error.
  */
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import { isAnalyzable } from "../src/domain/architecture/buildView.js";
 import { referenceGrouping } from "../src/domain/architecture/quality.js";
-import { parseReferenceFile } from "../src/domain/evaluation/referenceAgreement.js";
+import { parseReferenceFile, referenceProblems } from "../src/domain/evaluation/referenceAgreement.js";
 
 const SOURCE = /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts)$/i;
 const arg = (name: string) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : undefined; };
@@ -25,5 +28,7 @@ try {
   console.log(`Components: ${ref.components.length}; files assigned: ${grouping.size} / ${files.length} (${((100 * grouping.size) / files.length).toFixed(1)} %)`);
   for (const c of ref.components) console.log(`  ${String([...grouping.values()].filter(v => v === c.name).length).padStart(5)}  ${c.name}`);
   console.log(dead.length ? `Prefixes matching no file: ${dead.join(", ")}` : "Every prefix matches at least one file.");
-  if (dead.length) process.exitCode = 1;
+  const problems = referenceProblems(ref, files);
+  for (const p of problems) console.log(`${p.severity.toUpperCase()}: ${p.message}`);
+  if (dead.length || problems.some(p => p.severity === "error")) process.exitCode = 1;
 } catch (error) { console.error(error instanceof Error ? error.message : error); process.exitCode = 1; }

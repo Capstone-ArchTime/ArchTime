@@ -21,7 +21,8 @@ nào được thu theo bản 1.0, nên đổi lúc này không vi phạm quy t�
 | facebook/docusaurus | Nổi tiếng, có trang kiến trúc chính thức |
 | actualbudget/actual | Ít nổi tiếng hơn hẳn: cân lại hai repo trên |
 
-Không dùng outline và react-admin để giữ khối lượng chấm vừa sức: 3 repo × 10 câu × 3 điều kiện = 90 câu trả lời.
+Không dùng outline và react-admin để giữ khối lượng chấm vừa sức: 3 repo × 10 câu × 3 điều kiện = 90 câu trả lời mỗi lần
+chạy; từ bản 1.2 mỗi câu chạy 3 lần nên tổng là **270** câu trả lời (§3).
 
 **Q9 (lý do thiết kế) với react-router:** lý do có thể nằm trong ADR của repo dù không có trong dữ liệu đã mine. Một lý do
 được nêu vẫn được chấm như mọi khẳng định: `S` chỉ khi repo ở commit đóng băng ghi đúng điều đó. Câu này vẫn tính là câu
@@ -115,6 +116,25 @@ câu hỏi (một câu của một repo).
 
 **Kỳ vọng:** C2 có tỷ lệ không có căn cứ thấp hơn C1, độ hợp lệ trích dẫn 100 % (bước kiểm tra bảo đảm), và từ chối câu
 không trả lời được nhiều hơn C0. Báo cáo cả khi kết quả ngược kỳ vọng.
+
+## 5b. Bản ghi mỗi câu trả lời (bổ sung 24/11/2026; không đổi điều kiện, câu hỏi hay chỉ số chính)
+
+Mỗi file trong `answers/` ghi thêm: `answerId` (`<repo>.<câu>.<điều kiện>.r<lần>`), `promptVersion` (dấu vân tay của prompt
+cố định của điều kiện), `contextSha256` (dữ liệu project C1/C2 nhận; nội dung lưu một lần ở `contexts/`), `questionsVersion`,
+`modelInfo`, `settings`, `status`. Yêu cầu bị lỗi được ghi vào `errors/` và hỏi lại ở lần chạy sau, không bao giờ được tính
+là câu trả lời; `--force` chuyển bản cũ vào `answers/superseded/` thay vì ghi đè. `run-log.jsonl` ghi một dòng cho mỗi yêu
+cầu. Báo cáo cảnh báo khi một điều kiện trộn nhiều phiên bản prompt hoặc model.
+
+Chỉ số bổ sung (chỉ để đọc kèm, không thay chỉ số chính): Gwet's AC1 cạnh κ; "số khẳng định Supported mỗi câu trả lời
+được" và "tỉ lệ câu trả lời được có ít nhất một khẳng định Supported", để tỷ lệ không có căn cứ thấp không thể đến từ việc
+nói ít hay từ chối nhiều. Độ hợp lệ trích dẫn chỉ kiểm hash có phải commit đã mine; việc commit đó có thật sự ủng hộ khẳng
+định nằm trong phán quyết `S` của người chấm (§4), nên độ chính xác trích dẫn mới là thước đo ngữ nghĩa.
+
+**Phải quyết trước khi chạy (audit D6, docs/research-audit-report.md):** dữ liệu project của mentor hiện chỉ có snapshot,
+evidence và tối đa 60 **tên file** (không có đường dẫn) của snapshot mới nhất; không có component, phụ thuộc giữa component
+hay sự kiện tiến hoá. Paper (§3.6) lại viết mentor nhận "the current components with their dependencies". Câu Q1 (thư mục,
+module chính) có thể không trả lời được từ dữ liệu này. Hoặc sửa paper cho đúng mã nguồn, hoặc đổi mentor rồi tăng protocol
+lên 1.3 **trước** khi thu câu trả lời nào.
 
 ## 6. Hạn chế
 

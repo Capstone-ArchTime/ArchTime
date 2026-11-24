@@ -38,37 +38,90 @@ export function getAllFiles(dirPath: string, exts: string[], arrayOfFiles: strin
 }
 
 /**
- * Files and import edges of the checkout at `dirPath`. TypeScript/JavaScript is read with the TypeScript parser
- * (top-level `import` declarations); C#, Java, Python, Go, Ruby and C/C++ with regular expressions. Edge targets are
- * import specifiers joined with the importer's folder, or package names; fileDependencies (domain/architecture/buildView.ts)
- * resolves them to files.
+ * Which JavaScript/TypeScript module syntax becomes an edge.
+ *  - 'es-import' (default): top-level `import ... from '<literal>'` declarations only (including `import type` and
+ *    side-effect `import '<literal>'`). This is the extractor the frozen test-set method was mined with (BE commit
+ *    0c5e1f8, docs/rq1-protocol.md §1). Mining uses it; changing the default changes every RQ1 result and requires a
+ *    full re-run of the test set.
+ *  - 'all-static': additionally `export ... from '<literal>'`, `import x = require('<literal>')`, `require('<literal>')`
+ *    and `import('<literal>')` anywhere in the file (a template literal without substitutions counts as a literal), and
+ *    the `.mjs`, `.cjs`, `.mts`, `.cts` extensions. Computed specifiers (`require(name)`, `import(\`./${x}\`)`) are never
+ *    guessed. Used by the extractor evaluation to measure what the extended syntax would add; not used by mining.
  */
-export function extractDependencies(dirPath: string): Graph {
+export type ModuleSyntax = 'es-import' | 'all-static';
+export interface ExtractOptions { moduleSyntax?: ModuleSyntax }
+
+const JS_EXTENSIONS: Record<ModuleSyntax, string[]> = {
+  'es-import': ['.ts', '.tsx', '.js', '.jsx'],
+  'all-static': ['.ts', '.tsx', '.js', '.jsx', '.mts', '.cts', '.mjs', '.cjs'],
+};
+
+/** A string literal or a template literal without substitutions; null for anything computed. */
+function literalText(node: ts.Node | undefined): string | null {
+  if (!node) return null;
+  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
+  return null;
+}
+
+/**
+ * The module specifiers a JS/TS source file names, in source order, for the given syntax profile. Pure (AST only), so the
+ * syntax coverage is unit-testable without a checkout.
+ */
+export function moduleSpecifiers(sourceFile: ts.SourceFile, moduleSyntax: ModuleSyntax = 'es-import'): string[] {
+  const out: string[] = [];
+  if (moduleSyntax === 'es-import') {
+    ts.forEachChild(sourceFile, node => {
+      if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) out.push(node.moduleSpecifier.text);
+    });
+    return out;
+  }
+  const visit = (node: ts.Node): void => {
+    if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) out.push(node.moduleSpecifier.text);
+    else if (ts.isExportDeclaration(node) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) out.push(node.moduleSpecifier.text);
+    else if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference)) {
+      const text = literalText(node.moduleReference.expression);
+      if (text !== null) out.push(text);
+    } else if (ts.isCallExpression(node) && node.arguments.length >= 1) {
+      const isDynamicImport = node.expression.kind === ts.SyntaxKind.ImportKeyword;
+      const isRequire = ts.isIdentifier(node.expression) && node.expression.text === 'require' && node.arguments.length === 1;
+      if (isDynamicImport || isRequire) {
+        const text = literalText(node.arguments[0]);
+        if (text !== null) out.push(text);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return out;
+}
+
+/**
+ * Files and import edges of the checkout at `dirPath`. TypeScript/JavaScript is read with the TypeScript parser
+ * (see ModuleSyntax for which declarations count); C#, Java, Python, Go, Ruby and C/C++ with regular expressions. Edge
+ * targets are import specifiers joined with the importer's folder, or package names; fileDependencies
+ * (domain/architecture/buildView.ts) resolves them to files.
+ */
+export function extractDependencies(dirPath: string, options: ExtractOptions = {}): Graph {
+  const moduleSyntax = options.moduleSyntax ?? 'es-import';
   const nodes: GraphNode[] = [];
   const edges: GraphEdge[] = [];
 
   // --- TypeScript / JavaScript (AST-based) ---
-  const tsFiles = getAllFiles(dirPath, ['.ts', '.tsx', '.js', '.jsx']);
+  const tsFiles = getAllFiles(dirPath, JS_EXTENSIONS[moduleSyntax]);
   if (tsFiles.length > 0) {
     const program = ts.createProgram(tsFiles, { allowJs: true });
     for (const sourceFile of program.getSourceFiles()) {
       if (!sourceFile.isDeclarationFile && !sourceFile.fileName.includes('node_modules')) {
         const fileId = path.relative(dirPath, sourceFile.fileName).replace(/\\/g, '/');
         nodes.push({ id: fileId, name: path.basename(fileId), type: 'module' });
-        ts.forEachChild(sourceFile, node => {
-          if (ts.isImportDeclaration(node)) {
-            const moduleSpecifier = node.moduleSpecifier;
-            if (ts.isStringLiteral(moduleSpecifier)) {
-              let target = moduleSpecifier.text;
-              if (target.startsWith('.')) {
-                const resolved = path.join(path.dirname(fileId), target).replace(/\\/g, '/');
-                edges.push({ source: fileId, target: resolved, type: 'imports' });
-              } else {
-                edges.push({ source: fileId, target, type: 'imports' });
-              }
-            }
+        for (const target of moduleSpecifiers(sourceFile, moduleSyntax)) {
+          if (target.startsWith('.')) {
+            const resolved = path.join(path.dirname(fileId), target).replace(/\\/g, '/');
+            edges.push({ source: fileId, target: resolved, type: 'imports' });
+          } else {
+            edges.push({ source: fileId, target, type: 'imports' });
           }
-        });
+        }
       }
     }
   }

@@ -114,6 +114,8 @@ export interface EvaluationOptions {
   withFiles?: boolean;
   /** Report every regrouping as a structural change (the rule before 14/11/2026), instead of only changes backed by files. */
   noEvidence?: boolean;
+  /** Dominance threshold of component matching (matching.ts); default 0.5, the frozen value. Only for sensitivity analysis. */
+  dominance?: number;
 }
 
 /** Who asked for a refinement and with which model; recorded with the run. */
@@ -367,7 +369,7 @@ export class ArchitectureService {
     const result = evaluateEvolution(
       inputs.map(({ snapshotId, components, variants }) => ({ snapshotId, components, variants })),
       { reference: reference?.components ?? null, baseline: options.depth ? { depth: options.depth } : {}, withFiles: options.withFiles ?? false,
-        ...(options.noEvidence ? { evidence: null } : {}) },
+        ...(options.noEvidence ? { evidence: null } : {}), ...(options.dominance === undefined ? {} : { dominance: options.dominance }) },
     );
     return {
       ...result,

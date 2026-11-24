@@ -10,36 +10,59 @@ Software architecture drifts significantly over a project's lifetime — monolit
 
 ArchTime combines deterministic source-history analysis with AI-assisted reasoning to automatically reconstruct a system's architectural evolution. The AI never invents an architecture or a reason — it only narrates evidence the pipeline has already established, and labels every claim as:
 
-- **FACT** — directly confirmed by source code or Git history
+- **FACT** — stated directly in the mined data and cited with at least one mined commit (an uncited FACT is downgraded)
 - **INFERENCE** — reasoned from available evidence
 - **UNKNOWN** — not determinable from what the repository provides
 
-### Pipeline
+### Pipeline (as implemented)
 
-1. **Repository Mining** — parses source code via AST (Abstract Syntax Tree) to extract modules, packages, classes and their dependencies, and collects Git metadata (commits, authors, timestamps, file changes, diffs) to build a historical **Knowledge Graph**.
-2. **Evolution Analysis** — compares architecture snapshots across versions using graph comparison (approximate Graph Edit Distance) to produce an **Architectural Diff**: module boundary changes, splits/merges, dependency shifts, package restructuring.
-3. **Evidence-Based Reasoning** — a locally-deployed LLM synthesizes the Architectural Diff, commit messages and code changes into a readable narrative, always traceable back to specific evidence.
+1. **Mining** (`BE/src/infrastructure/services/MiningService.ts`, `DependencyExtractor.ts`) — scans the history, then mines
+   commits in resumable batches of 50 into file-level dependency **snapshots** and commit-linked **evidence** records.
+   JavaScript/TypeScript files (`.ts .tsx .js .jsx`) are parsed with the TypeScript Compiler API; an edge is a top-level
+   ES `import ... from '<literal>'` that resolves to a repository file (extension, `.js`→`.ts` and `index` resolution;
+   `@/` and `~/` aliases to the nearest `src/`). `export ... from`, `require()`, dynamic `import()` and other path
+   aliases are **not** read by the mining extractor (an opt-in `all-static` profile exists for the extractor evaluation
+   only). Other languages (C#, Java, Python, Go, Ruby, C/C++) are read with regular expressions and are not evaluated.
+2. **Deterministic clustering** (`BE/src/domain/architecture/cluster.ts`) — Louvain on a hub-damped dependency graph with
+   a weak folder signal, post-processed towards 8–15 components; the same graph always gives the same grouping.
+3. **LLM refinement under verification** (`BE/src/domain/architecture/llm/`) — a pluggable LLM (Anthropic, Google, any
+   OpenAI-compatible or self-hosted endpoint) names the clusters and, up to 400 files, may move files. Every answer is
+   checked by the **structural** rules M001–M008 (`verify.ts`); after three failed attempts the clustering is kept.
+   Above 400 files only names, roles and descriptions are requested. The rules check the form of an answer, not whether
+   a file is in the architecturally right component (see `docs/research-audit-report.md`).
+4. **Component matching and evolution events** (`matching.ts`, `anchored.ts`) — components of consecutive snapshots are
+   linked through shared (or moved) files and classified as kept, renamed, split, merged, restructured, added or removed,
+   with an evidence rule that suppresses regroupings of unchanged files. The anchored variant carries each grouping
+   forward unless a fresh clustering is more modular by more than 0.02.
+5. **Evidence-grounded mentor** (`BE/src/application/use-cases/llm/ProjectChatUseCase.ts`) — answers from mined data
+   only, labels every claim FACT / INFERENCE / UNKNOWN, removes citations of commits that were not mined and downgrades
+   an uncited FACT to INFERENCE.
 
 ```text
-Git History + Source Code → AST/Git Analysis → Knowledge Graph → Architectural Diff → Evidence → AI Reasoning → Architecture Narrative
+Git history → dependency snapshots + evidence → Louvain clustering → verified LLM naming/refinement
+            → component matching (evidence rule, anchoring) → evolution events → grounded mentor
 ```
 
-## Scope (Capstone)
+## Scope
 
-- Java / Spring Boot repositories
-- Git history + AST + dependency analysis
-- Module/service-level evolution
-- Knowledge Graph, Architectural Diff, Evidence-Based Reasoning (local LLM)
-- Benchmark & accuracy evaluation
+- JavaScript / TypeScript repositories (the evaluated scope); other languages are parsed heuristically and not evaluated
+- File-level dependency snapshots, component-level evolution between milestones
+- Research evaluation on five open-source JS/TS repositories (RQ1-A recovery accuracy, RQ1-B change detection, RQ2
+  grounding of the mentor)
 
-Real-time analysis, multi-language support beyond Java/Spring Boot, and a production-scale dashboard are out of scope for this capstone and considered future work.
+## Research evaluation
 
-## Evaluation
+The evaluation pipeline, its protocols and its status are documented in:
 
-- **Module Detection Precision / Recall**
-- **Architectural Change Detection Accuracy**
-- **Evidence Coverage Score** — proportion of AI claims backed by evidence
-- **LLM Hallucination Rate** — proportion of claims without supporting evidence
+- [docs/research-replication-guide.md](docs/research-replication-guide.md) — how to set up, run and reproduce every experiment
+- [docs/research-audit-report.md](docs/research-audit-report.md) — every paper claim mapped to code and evidence
+- [docs/research-completion-report.md](docs/research-completion-report.md) — what is completed, what is pending, and why
+- Protocols: [rq1-protocol.md](docs/rq1-protocol.md), [rq2-protocol.md](docs/rq2-protocol.md),
+  [extractor-evaluation-report.md](docs/extractor-evaluation-report.md)
+
+Metrics: MoJoFM against reference architectures (RQ1-A), precision/recall/F1 of reported changes against annotated real
+changes (RQ1-B), and claim-level unsupported / contradicted rates, citation accuracy and validity, FACT precision,
+refusal and coverage (RQ2). Extractor precision/recall/F1 is measured against human-labelled samples.
 
 ## Project structure
 

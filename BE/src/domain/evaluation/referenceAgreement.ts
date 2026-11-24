@@ -144,3 +144,82 @@ export function renderAgreement(r: AgreementReport): string {
   ];
   return lines.join("\n");
 }
+
+// ── Completeness of one reference, and file-level disagreements of two ────────────────────────────────────────────
+
+export interface ReferenceProblem { severity: "error" | "warning"; message: string }
+
+const PLACEHOLDER = /<[^>]*>/;
+
+/**
+ * What makes a reference unusable or hard to defend, checked before it is compared or imported: template placeholders
+ * left in, components without a responsibility or evidence (the protocol asks for both), a component count outside the
+ * 5-15 range of the protocol, a prefix shared by two components, prefixes that match no file, a component that ends up
+ * with no file (every prefix of it is shadowed by a more specific one), and folder prefixes written without a trailing
+ * "/" that also match a sibling folder (referenceGrouping matches strings, so "app/component" takes "app/components/x").
+ */
+export function referenceProblems(ref: ReferenceFile, files: readonly string[]): ReferenceProblem[] {
+  const problems: ReferenceProblem[] = [];
+  const err = (message: string) => problems.push({ severity: "error", message });
+  const warn = (message: string) => problems.push({ severity: "warning", message });
+  if (PLACEHOLDER.test(ref.author)) err(`author is still a placeholder (${ref.author}).`);
+  if (!ref.writtenAt || PLACEHOLDER.test(ref.writtenAt)) warn("writtenAt is missing: record the date the reference was written (it must precede any look at ArchTime output).");
+  if (!ref.sources?.length || ref.sources.some(s => PLACEHOLDER.test(s))) warn("sources lists no document read, or still holds template text.");
+  if (ref.components.length < 5 || ref.components.length > 15) warn(`${ref.components.length} components: the protocol asks for 5-15 functional components.`);
+  const owner = new Map<string, string>();
+  for (const c of ref.components) {
+    if (PLACEHOLDER.test(c.name)) err(`Component name "${c.name}" is a template placeholder.`);
+    if (!c.responsibility || PLACEHOLDER.test(c.responsibility)) err(`Component "${c.name}" has no responsibility sentence.`);
+    if (!c.evidence?.length || c.evidence.some(e => PLACEHOLDER.test(e))) err(`Component "${c.name}" lists no evidence (document and section, or code location).`);
+    for (const p of c.prefixes) {
+      if (PLACEHOLDER.test(p)) err(`Component "${c.name}": prefix "${p}" is a template placeholder.`);
+      const first = owner.get(p);
+      if (first && first !== c.name) err(`Prefix "${p}" belongs to both "${first}" and "${c.name}".`);
+      owner.set(p, c.name);
+      const matched = files.filter(f => f.startsWith(p));
+      if (!matched.length) warn(`Component "${c.name}": prefix "${p}" matches no file at this commit.`);
+      else if (!p.endsWith("/") && !files.includes(p)) {
+        const folders = new Set(matched.map(f => f.slice(0, f.indexOf("/", p.length) + 1 || undefined)).filter(x => x.endsWith("/")));
+        if (folders.size > 1 || [...folders].some(x => x !== `${p}/`)) warn(`Component "${c.name}": prefix "${p}" has no trailing "/" and matches ${[...folders].slice(0, 3).join(", ")}; end folder prefixes with "/".`);
+      }
+    }
+  }
+  const grouping = referenceGrouping([...files], ref.components);
+  const used = new Set(grouping.values());
+  for (const c of ref.components) if (!used.has(c.name)) warn(`Component "${c.name}" receives no file (no prefix matches, or every match goes to a more specific prefix).`);
+  return problems;
+}
+
+export interface FileDisagreement {
+  file: string;
+  /** Component in reference A / B; "" when that reference leaves the file out. */
+  a: string;
+  b: string;
+  kind: "only-in-A" | "only-in-B" | "different-component";
+}
+
+/**
+ * Files the two references treat differently, for reconciliation: files only one of them covers (unmatched files), and
+ * files both cover whose components are not each other's best match (the component of B that holds most of the A
+ * component's common files, and vice versa). A file is listed as "different-component" only when the two components
+ * are not mutual best matches, so a renamed but identical component produces no rows.
+ */
+export function fileDisagreements(a: ReferenceFile, b: ReferenceFile, files: readonly string[]): FileDisagreement[] {
+  const list = [...new Set(files)].sort();
+  const ga = referenceGrouping(list, a.components), gb = referenceGrouping(list, b.components);
+  const best = (x: Map<string, string>, y: Map<string, string>) => {
+    const tally = new Map<string, Map<string, number>>();
+    for (const [f, cx] of x) { const cy = y.get(f); if (!cy) continue; const row = tally.get(cx) ?? new Map<string, number>(); row.set(cy, (row.get(cy) ?? 0) + 1); tally.set(cx, row); }
+    return new Map([...tally].map(([cx, row]) => [cx, [...row].sort((p, q) => q[1] - p[1] || p[0].localeCompare(q[0]))[0][0]]));
+  };
+  const aToB = best(ga, gb), bToA = best(gb, ga);
+  const out: FileDisagreement[] = [];
+  for (const f of list) {
+    const ca = ga.get(f) ?? "", cb = gb.get(f) ?? "";
+    if (!ca && !cb) continue;
+    if (!cb) out.push({ file: f, a: ca, b: "", kind: "only-in-A" });
+    else if (!ca) out.push({ file: f, a: "", b: cb, kind: "only-in-B" });
+    else if (aToB.get(ca) !== cb || bToA.get(cb) !== ca) out.push({ file: f, a: ca, b: cb, kind: "different-component" });
+  }
+  return out;
+}
