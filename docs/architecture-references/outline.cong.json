@@ -1,0 +1,169 @@
+{
+  "repo": "outline",
+  "commit": "c0288df8eb4f4b33171e2a26b1f1f51a95f76ae5",
+  "author": "Nguyễn Duy Công",
+  "writtenAt": "2026-11-18",
+  "sources": [
+    "docs/ARCHITECTURE.md (Frontend, Backend, Shared)",
+    "Git tree at commit c0288df8eb4f4b33171e2a26b1f1f51a95f76ae5 (source path boundaries)"
+  ],
+  "components": [
+    {
+      "name": "Giao diện và hạ tầng frontend",
+      "responsibility": "Cung cấp các React component tái sử dụng cùng những tiện ích frontend dùng chung, bao gồm các helper và module trong app/utils phục vụ các màn hình và luồng giao diện.",
+      "prefixes": [
+        "app/"
+      ],
+      "evidence": [
+        "docs/ARCHITECTURE.md: Frontend — app/components được mô tả là React components reusable across scenes."
+      ]
+    },
+    {
+      "name": "Các màn hình và luồng nghiệp vụ",
+      "responsibility": "Tổ chức các màn hình cấp trang, mỗi scene kết hợp nhiều component để tạo thành một view hoàn chỉnh.",
+      "prefixes": [
+        "app/scenes/"
+      ],
+      "evidence": [
+        "docs/ARCHITECTURE.md: Frontend — một scene đại diện cho full-page view chứa nhiều components."
+      ]
+    },
+    {
+      "name": "Trải nghiệm trình soạn thảo",
+      "responsibility": "Chứa các React component, extension và menu dành riêng cho trải nghiệm editor của ứng dụng.",
+      "prefixes": [
+        "app/editor/"
+      ],
+      "evidence": [
+        "docs/ARCHITECTURE.md: Frontend — app/editor chứa React components specific to the editor."
+      ]
+    },
+    {
+      "name": "Lõi biên tập tài liệu dùng chung",
+      "responsibility": "Cung cấp engine biên tập văn bản dựa trên ProseMirror cùng các node, mark, command, plugin, rule và extension dùng chung.",
+      "prefixes": [
+        "shared/editor/"
+      ],
+      "evidence": [
+        "docs/ARCHITECTURE.md: Shared — shared/editor là text editor based on ProseMirror."
+      ]
+    },
+    {
+      "name": "Hành động và điều hướng giao diện",
+      "responsibility": "Định nghĩa các hành động tái sử dụng như điều hướng, mở và tạo entity trong giao diện.",
+      "prefixes": [
+        "app/actions/"
+      ],
+      "evidence": [
+        "docs/ARCHITECTURE.md: Frontend — app/actions được mô tả là reusable actions such as navigating, opening, creating entities."
+      ]
+    },
+    {
+      "name": "Quản lý trạng thái phía client",
+      "responsibility": "Quản lý state models và các collection/store liên quan ở frontend, bao gồm logic fetch gắn với store.",
+      "prefixes": [
+        "app/models/",
+        "app/stores/"
+      ],
+      "evidence": [
+        "docs/ARCHITECTURE.md: Frontend — models là MobX observable state models; stores là collections of models and associated fetch logic."
+      ]
+    },
+    {
+      "name": "Hooks giao diện",
+      "responsibility": "Cung cấp các React hooks có thể tái sử dụng trong frontend.",
+      "prefixes": [
+        "app/hooks/"
+      ],
+      "evidence": [
+        "docs/ARCHITECTURE.md: Frontend — app/hooks được mô tả là reusable React hooks."
+      ]
+    },
+    {
+      "name": "Menu và menu ngữ cảnh",
+      "responsibility": "Cung cấp các context menu xuất hiện ở nhiều vị trí trong giao diện.",
+      "prefixes": [
+        "app/menus/"
+      ],
+      "evidence": [
+        "docs/ARCHITECTURE.md: Frontend — app/menus chứa context menus thường xuất hiện ở nhiều nơi."
+      ]
+    },
+    {
+      "name": "Định nghĩa tuyến giao diện",
+      "responsibility": "Khai báo route của ứng dụng và hỗ trợ tải bất đồng bộ các route chunk bằng Suspense.",
+      "prefixes": [
+        "app/routes/"
+      ],
+      "evidence": [
+        "docs/ARCHITECTURE.md: Frontend — app/routes chứa route definitions; chunks được async loaded with suspense."
+      ]
+    },
+    {
+      "name": "API, nghiệp vụ và dữ liệu máy chủ",
+      "responsibility": "Tiếp nhận API và auth requests, thực thi command nghiệp vụ, áp dụng authorization policies và quản lý các model dữ liệu của backend Koa.",
+      "prefixes": [
+        "server/routes/",
+        "server/models/",
+        "server/commands/",
+        "server/policies/",
+        "server/migrations/"
+      ],
+      "evidence": [
+        "docs/ARCHITECTURE.md: Backend — server/routes chứa API và auth routes; models là Sequelize models; commands thực hiện actions across multiple models; policies chứa authorization logic.",
+        "Git tree: server/migrations/ là vùng migration dữ liệu phía server."
+      ]
+    },
+    {
+      "name": "Xử lý tác vụ bất đồng bộ",
+      "responsibility": "Định nghĩa queue, processor và task để xử lý sự kiện và công việc nền bất đồng bộ.",
+      "prefixes": [
+        "server/queues/"
+      ],
+      "evidence": [
+        "docs/ARCHITECTURE.md: Backend — Redis và Bull được dùng cho queues và async event management; queues có processors và tasks."
+      ]
+    },
+    {
+      "name": "Trình bày dữ liệu và giao tiếp backend-frontend",
+      "responsibility": "Chuyển đổi database models thành JSON response để làm giao diện giữa backend và frontend.",
+      "prefixes": [
+        "server/presenters/"
+      ],
+      "evidence": [
+        "docs/ARCHITECTURE.md: Backend — presenters là JSON presenters for database models, interface between backend and frontend."
+      ]
+    },
+    {
+      "name": "Hạ tầng dùng chung client-server",
+      "responsibility": "Cung cấp các thành phần, kiểu dữ liệu, cấu hình i18n, style và tiện ích dùng chung giữa frontend và backend; shared/editor được phân loại riêng thành lõi biên tập.",
+      "prefixes": [
+        "shared/"
+      ],
+      "evidence": [
+        "docs/ARCHITECTURE.md: Shared — mô tả các thành phần, i18n, styles và utils dùng chung giữa client và server."
+      ]
+    },
+    {
+      "name": "Hạ tầng và dịch vụ backend",
+      "responsibility": "Cung cấp các tiện ích runtime, middleware, email, storage, collaboration, logging, converters, MCP và các dịch vụ hỗ trợ phía server.",
+      "prefixes": [
+        "server/"
+      ],
+      "evidence": [
+        "docs/ARCHITECTURE.md: Backend — backend Koa tổ chức API routes, models, commands và các tác vụ nền.",
+        "Git tree: server/utils/, middlewares/, emails/, storage/, collaboration/, services/, logging/ và các thư mục hỗ trợ là các module hạ tầng backend; prefix server/ chỉ làm fallback, các component cụ thể hơn được ưu tiên."
+      ]
+    },
+    {
+      "name": "Tích hợp dịch vụ bên ngoài",
+      "responsibility": "Tập hợp các plugin kết nối dịch vụ bên thứ ba như Slack, GitHub, GitLab, Notion, Linear, Google, Discord, Azure và các hệ thống khác.",
+      "prefixes": [
+        "plugins/"
+      ],
+      "evidence": [
+        "Git tree tại commit được chỉ định: plugins/ chứa các tích hợp dịch vụ bên thứ ba như Slack, GitHub, GitLab, Notion, Linear, Google, Discord và Azure."
+      ]
+    }
+  ]
+}

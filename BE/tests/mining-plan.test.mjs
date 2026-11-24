@@ -5,9 +5,19 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
-  GIT_LOG_FORMAT, analysisProgress, chunk, monthlyHistogram, orderForMining, parseCommitLog, parseMineRequest, parseTagRefs, redactSecret, selectPending,
-  snapshotLabel,
+  GIT_LOG_FORMAT, MAX_EVIDENCE_PATCH_CHARS, analysisProgress, capPatch, chunk, monthlyHistogram, orderForMining, parseCommitLog, parseMineRequest, parseTagRefs,
+  redactSecret, selectPending, snapshotLabel,
 } from '../src/domain/mining/miningPlan.ts';
+
+test('capPatch keeps a normal patch whole and cuts a huge one far below the 16 MB document limit', () => {
+  assert.equal(capPatch('diff --git a/x b/x\n+one line'), 'diff --git a/x b/x\n+one line');
+  const huge = 'x'.repeat(20 * 1024 * 1024);
+  const cut = capPatch(huge);
+  assert.ok(cut.length < MAX_EVIDENCE_PATCH_CHARS + 200);
+  assert.ok(cut.startsWith('x'.repeat(1000)));
+  assert.match(cut, /patch truncated: 20971520 characters, first 1000000 kept/);
+  assert.equal(capPatch('abcdef', 3), 'abc\n[ArchTime: patch truncated: 6 characters, first 3 kept]');
+});
 
 const commit = (hash, iso) => ({ hash, date: new Date(iso), author: 'a@x', ref: 'main', message: hash });
 const none = { full: new Set(), short: new Set() };

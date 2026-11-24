@@ -1,7 +1,8 @@
 /**
  * RQ1: evaluates the recovered architecture against the clustering-only grouping and the directory baseline (and,
- * optionally, the anchored variant) on the workspaces mined in the database, and keeps the change-detection label
- * sheets up to date. Reads the database; writes only files. Protocol: docs/rq1-protocol.md.
+ * with --anchored, the anchored variant: the method frozen for the test set) on the workspaces mined in the database,
+ * and keeps the change-detection label sheets up to date. Reads the database; writes only files.
+ * Protocol: docs/rq1-protocol.md. Test set: npm run rq1 -- --milestones --anchored --tolerance 0.02
  *
  *   npm run rq1                                every workspace that has stored components
  *   npm run rq1 -- --project <id>              one workspace (repeatable)
@@ -9,7 +10,7 @@
  *   npm run rq1 -- --annotator <name>          also write / update that annotator's own label sheets
  *   npm run rq1 -- --reconcile                 merge the annotators' sheets into the reconciled sheets
  *   npm run rq1 -- --no-evidence               report every regrouping as a change (the rule before 14/11/2026)
- *   npm run rq1 -- --anchored [--tolerance x]  add the anchored variant (development set only, see the protocol)
+ *   npm run rq1 -- --anchored [--tolerance x]  add the anchored variant (the frozen method; use 0.02 on the test set)
  *   npm run rq1 -- --no-clustering             leave out the clustering-only grouping
  *   npm run rq1 -- --out <dir>                 output folder (default rq1-results)
  *

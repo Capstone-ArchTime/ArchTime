@@ -12,7 +12,7 @@ Các cách nhóm được so sánh (gọi là *method*):
 | `recovered` | Component đã lưu của ArchTime: phân cụm, có AI tinh chỉnh nếu đã dùng |
 | `clustering` | Chỉ phân cụm tất định, không AI (baseline thứ nhất). Tính lại khi chạy, cùng khoảng số component với `recovered` |
 | `baseline` | Mỗi thư mục ở một độ sâu là một component (baseline thứ hai) |
-| `anchored` | Biến thể thử nghiệm: `recovered` được neo theo mốc trước (xem mục 6). Chỉ bật khi được yêu cầu |
+| `anchored` | `recovered` được neo theo mốc trước, kèm luật evidence (mục 6). **Đây là phương pháp đóng băng cho tập kiểm tra** (quyết định 18/11/2026); `recovered` được báo cáo như bản bỏ bớt (ablation, không neo). Bật bằng `--anchored --tolerance 0.02` |
 
 Phần tính toán nằm ở `BE/src/domain/evaluation/rq1.ts` (phiếu nhãn, điểm, báo cáo), `BE/src/domain/evaluation/stats.ts` (Wilcoxon, Cohen's kappa) và `BE/src/domain/architecture/anchored.ts`. Test: `BE/tests/rq1.test.mjs`, `rq1-stats.test.mjs`, `architecture-anchored.test.mjs`.
 
@@ -22,6 +22,29 @@ Phần tính toán nằm ở `BE/src/domain/evaluation/rq1.ts` (phiếu nhãn, �
 
 - **Tập phát triển:** các workspace hiện có (repo ArchTime, Hackathon). Được dùng để thử và chỉnh thuật toán, tham số, biến thể `anchored`.
 - **Tập kiểm tra:** 5 repo mã nguồn mở theo phiếu đăng ký. **Chốt thuật toán và tham số trước** (ghi commit hash của BE vào báo cáo), rồi chạy một lần. Không chỉnh gì theo kết quả trên tập này. Nếu buộc phải sửa lỗi, ghi rõ trong báo cáo và chạy lại toàn bộ.
+
+### Phương pháp đóng băng (quyết định 18/11/2026)
+
+| Thành phần | Giá trị | Chọn trên |
+|---|---|---|
+| Phương pháp được gọi là "ArchTime" | `anchored` (mục 6) | Tập phát triển: F1 phát hiện thay đổi 0,36 so với 0,23 của `recovered` |
+| Luật evidence | bật (mặc định), `minPartFiles` = 3 | Tập phát triển |
+| Ngưỡng ghép component | dominance 0,5 | Tập phát triển |
+| Tolerance của anchored | 0,02 | Tập phát triển |
+| Cách dựng mốc | phân cụm + AI tinh chỉnh (`--mode refine`) | Mục 2 |
+| Commit BE được đánh giá | `0c5e1f8` (chạy rq1 ngày 21/11/2026) | — |
+
+**Ghi chép khi chạy C11 (18/11/2026):**
+
+- Workspace: 5 workspace tên `<repo> (C11 test set)`, chủ là tài khoản Nguyễn Duy Công. Mine bằng `mode: range` từ 2024-11-18 tới thời điểm commit cố định của từng repo (bảng mục "Tập kiểm tra"), để mốc mới nhất không mới hơn phiên bản đã viết tham chiếu.
+- Môi trường (Windows): bật `core.longpaths` cho thư mục `BE/mining-cache/<workspace>`. Trước đó docusaurus bỏ qua 1.288 commit vì `Filename too long`; các commit đó được mine lại.
+- Sửa lỗi: một commit của docusaurus làm bản ghi evidence vượt giới hạn 16 MB của MongoDB (bản ghi lưu nguyên patch), khiến cả job thất bại. Patch trong evidence nay giới hạn 1.000.000 ký tự (`capPatch`, `domain/mining/miningPlan.ts`). Patch chỉ để hiển thị; RQ1, phân cụm và mentor không đọc nó (`select("-diffBefore")`), nên phương pháp đóng băng không đổi.
+- Mốc (21/11/2026): chọn theo loại release, chưa xem kết quả nào; 12 mốc rải đều, dựng bằng `--mode refine`. Quy tắc chung là release minor (`x.y.0`) của nhánh chính:
+  - react-router: `--tags '^react-router@[78]\.\d+\.0$'`. Mặc định có lẫn tag bảo trì v6 (6.29/6.30) chen giữa dòng thời gian v7/v8.
+  - react-admin, actual, outline: `--tags '^v\d+\.\d+\.0$'`. Outline có nhiều tag tiền phát hành `v0.82.1-N`.
+  - docusaurus: chỉ có 4 bản minor trong cửa sổ nên lấy cả 11 bản ổn định, `--tags '^v\d+\.\d+\.\d+$'`. Lọc này bỏ 5 tag `alpha` cùng ngày.
+
+Lệnh chạy tập kiểm tra: `npm run rq1 -- --milestones --anchored --tolerance 0.02` (Windows PowerShell 5.1: `npx tsx scripts/rq1.ts --milestones --anchored --tolerance 0.02`). Không dùng `--no-evidence` trên tập kiểm tra.
 
 ### Tiêu chí chọn 5 repo (ghi lại trước khi chạy)
 
@@ -79,7 +102,7 @@ npm run rq1 -- --milestones                       # mọi workspace có file m�
 npm run rq1 -- --milestones --project <id>        # một workspace (lặp --project để chọn nhiều)
 npm run rq1 -- --milestones --annotator an        # tạo / làm mới phiếu riêng của người gán nhãn "an"
 npm run rq1 -- --milestones --reconcile           # hợp nhất phiếu của các người gán nhãn
-npm run rq1 -- --anchored --tolerance 0.02        # thêm biến thể anchored (chỉ trên tập phát triển)
+npm run rq1 -- --milestones --anchored --tolerance 0.02   # thêm anchored: phương pháp đóng băng, bắt buộc trên tập kiểm tra
 ```
 
 Không có `--milestones` thì script dùng mọi snapshot đã có component (tối đa 60 snapshot gần nhất), giống phiên bản trước. `--no-clustering` bỏ method `clustering`.
@@ -153,6 +176,14 @@ Một cặp được tính khi đã có `trueChanges` và đủ mọi `verdict`.
   - Trong 2 thay đổi lệch nhau, có một thay đổi theo người thứ hai (`added Frontend API Client` → `wrong`).
   - Mỗi giá trị đã thống nhất có ghi chú "Settled by the labelling guide" trong `labels/<workspace>.json`.
 
+**Tập kiểm tra (quyết định 18/11/2026):** khác với tập phát triển, **cả hai người gán nhãn đều là thành viên nhóm và cả hai chấm toàn bộ các cặp**, không chấm theo mẫu. Không có trợ lý AI nào gán nhãn.
+- Người thứ nhất: **Nguyễn Duy Công** (`--annotator cong`). Công cũng là người chạy C11, nên:
+  - không mở `labels/keys/` cho tới khi đã thống nhất xong;
+  - không đọc `report.md` và `stability.csv` (có số thay đổi theo từng method) trước khi nộp phiếu của mình;
+  - viết bản tham chiếu A của cả 5 repo **trước** khi chạy C11 (đã nộp ngày 18/11/2026); sau C11 không sửa bản A nữa, mọi thay đổi đi qua bước thống nhất với bản B.
+- Người thứ hai: **Đặng Nhật Trường** (`--annotator truong`), xem [test-set-annotation-report.md](test-set-annotation-report.md).
+- κ và AC1 tính trên toàn bộ các cặp của 5 repo.
+
 **Công cụ chấm:** `python "D:/FPT/Fall 2026/Capstone/_scratch/make_label_page.py" <tên>` tạo trang `BE/rq1-results/label-tool.html`.
 - Trang gom file mới, file bị xoá và file chuyển chỗ theo thư mục. Với mỗi nhóm, người chấm chọn: chức năng mới, cùng chức năng với nhóm đã chọn, hoặc không phải. `trueChanges` là số nhóm được chọn là "chức năng mới".
 - Trang chỉ hiện các thay đổi cần chấm sau khi đã trả lời xong phần này.
@@ -172,14 +203,14 @@ Một cặp được tính khi đã có `trueChanges` và đủ mọi `verdict`.
   - F1 là trung bình điều hoà của precision và recall
 - **Đồng thuận:** Cohen's kappa của hai người trên `verdict`, tỉ lệ `trueChanges` trùng nhau và chênh lệch trung bình.
 
-## 6. Biến thể anchored (chỉ trên tập phát triển)
+## 6. Biến thể anchored (phương pháp đóng băng)
 
 Mỗi mốc được phân cụm lại từ đầu, nên có thể đổi nhóm của những file không hề thay đổi, sinh ra "thay đổi" giả. `--anchored` thêm method `anchored`:
 - Mốc đầu giữ nguyên nhóm của `recovered`.
 - Từ mốc sau: file đã có giữ component cũ. File mới vào component chứa nhiều hàng xóm phụ thuộc nhất; file không có hàng xóm nào đã được xếp thì giữ component của lần phân cụm mới.
 - Nhóm mới chỉ thay nhóm neo khi modularity cao hơn quá `--tolerance` (mặc định 0.02). Khi đó coi như kiến trúc thật sự đã đổi.
 
-Chỉ chọn tolerance trên tập phát triển. Nếu đưa `anchored` vào pipeline chính, phải chốt trước khi chạy tập kiểm tra.
+Tolerance đã chọn trên tập phát triển (0,02) và đã chốt cùng `anchored` làm phương pháp của tập kiểm tra ngày 18/11/2026 (mục 1). Không đổi tolerance sau khi xem kết quả tập kiểm tra.
 
 ## 7. Các mối đe doạ tính hợp lệ
 

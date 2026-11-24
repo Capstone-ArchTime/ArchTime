@@ -1,0 +1,127 @@
+{
+  "components": [
+    {
+      "name": "Giao diện và hạ tầng frontend",
+      "prefixes": [
+        "app/"
+      ]
+    },
+    {
+      "name": "Các màn hình và luồng nghiệp vụ",
+      "prefixes": [
+        "app/scenes/"
+      ]
+    },
+    {
+      "name": "Trải nghiệm trình soạn thảo",
+      "prefixes": [
+        "app/editor/"
+      ]
+    },
+    {
+      "name": "Lõi biên tập tài liệu dùng chung",
+      "prefixes": [
+        "shared/"
+      ]
+    },
+    {
+      "name": "Hành động và điều hướng giao diện",
+      "prefixes": [
+        "app/actions/"
+      ]
+    },
+    {
+      "name": "Quản lý trạng thái phía client",
+      "prefixes": [
+        "app/models/",
+        "app/stores/"
+      ]
+    },
+    {
+      "name": "Hooks giao diện",
+      "prefixes": [
+        "app/hooks/"
+      ]
+    },
+    {
+      "name": "Menu và menu ngữ cảnh",
+      "prefixes": [
+        "app/menus/"
+      ]
+    },
+    {
+      "name": "Định nghĩa tuyến giao diện",
+      "prefixes": [
+        "app/routes/"
+      ]
+    },
+    {
+      "name": "API, nghiệp vụ và dữ liệu máy chủ",
+      "prefixes": [
+        "server/"
+      ]
+    },
+    {
+      "name": "Xử lý tác vụ bất đồng bộ",
+      "prefixes": [
+        "server/queues/"
+      ]
+    },
+    {
+      "name": "Trình bày dữ liệu và giao tiếp backend-frontend",
+      "prefixes": [
+        "server/presenters/"
+      ]
+    },
+    {
+      "name": "Hạ tầng dùng chung client-server",
+      "prefixes": [
+        "shared/collaboration/",
+        "shared/components/",
+        "shared/constants.ts",
+        "shared/env.ts",
+        "shared/helpers/",
+        "shared/hooks/",
+        "shared/i18n/",
+        "shared/random.ts",
+        "shared/schema.ts",
+        "shared/styles/",
+        "shared/types/",
+        "shared/utils/",
+        "shared/validations.ts"
+      ]
+    },
+    {
+      "name": "Hạ tầng và dịch vụ backend",
+      "prefixes": [
+        "server/collaboration/",
+        "server/config/",
+        "server/context.ts",
+        "server/converters/",
+        "server/editor/",
+        "server/emails/",
+        "server/env.ts",
+        "server/errors.ts",
+        "server/index.ts",
+        "server/logging/",
+        "server/main.ts",
+        "server/mcp/",
+        "server/middlewares/",
+        "server/onerror.ts",
+        "server/onupgrade.ts",
+        "server/scripts/",
+        "server/services/",
+        "server/storage/",
+        "server/types.ts",
+        "server/utils/",
+        "server/validation.ts"
+      ]
+    },
+    {
+      "name": "Tích hợp dịch vụ bên ngoài",
+      "prefixes": [
+        "plugins/"
+      ]
+    }
+  ]
+}

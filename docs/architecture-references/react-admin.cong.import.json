@@ -1,0 +1,72 @@
+{
+  "components": [
+    {
+      "name": "Lõi quản trị và điều phối dữ liệu",
+      "prefixes": [
+        "packages/"
+      ]
+    },
+    {
+      "name": "Giao diện quản trị Material UI",
+      "prefixes": [
+        "packages/ra-ui-materialui/"
+      ]
+    },
+    {
+      "name": "Bộ chuyển đổi truy cập dữ liệu",
+      "prefixes": [
+        "packages/ra-data-fakerest/",
+        "packages/ra-data-graphql-simple/",
+        "packages/ra-data-graphql/",
+        "packages/ra-data-json-server/",
+        "packages/ra-data-local-forage/",
+        "packages/ra-data-local-storage/",
+        "packages/ra-data-simple-rest/"
+      ]
+    },
+    {
+      "name": "Tích hợp định tuyến",
+      "prefixes": [
+        "packages/ra-router-tanstack/"
+      ]
+    },
+    {
+      "name": "Quốc tế hóa",
+      "prefixes": [
+        "packages/ra-i18n-i18next/",
+        "packages/ra-i18n-polyglot/"
+      ]
+    },
+    {
+      "name": "Soạn thảo nội dung phong phú",
+      "prefixes": [
+        "packages/ra-input-rich-text/"
+      ]
+    },
+    {
+      "name": "Xây dựng ứng dụng quản trị không cần code",
+      "prefixes": [
+        "packages/ra-no-code/"
+      ]
+    },
+    {
+      "name": "Khởi tạo dự án quản trị",
+      "prefixes": [
+        "packages/create-react-admin/"
+      ]
+    },
+    {
+      "name": "API công khai của framework",
+      "prefixes": [
+        "packages/react-admin/"
+      ]
+    },
+    {
+      "name": "Bản dịch ngôn ngữ",
+      "prefixes": [
+        "packages/ra-language-english/",
+        "packages/ra-language-french/"
+      ]
+    }
+  ]
+}

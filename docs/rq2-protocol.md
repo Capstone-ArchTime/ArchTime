@@ -2,12 +2,30 @@
 
 | | |
 |---|---|
-| Phiên bản | 1.0 |
+| Phiên bản | 1.2 (2026-11-19: mỗi câu chạy 3 lần, khoảng tin cậy bootstrap theo câu hỏi, so sánh C0–C1 và C1–C2 có hiệu chỉnh Holm, xem §3 và §5). 1.1 (2026-11-18): đổi repo sang ba repo của tập kiểm tra RQ1, xem §0 |
 | Ngày | 2026-11-15 |
 | Câu hỏi nghiên cứu | Thiết kế của AI Mentor (nhãn FACT / INFERENCE / UNKNOWN và bước kiểm tra trích dẫn) có làm câu trả lời có căn cứ hơn không? |
 | Công cụ | `BE/scripts/rq2.ts` (`npm run rq2`), `BE/src/domain/evaluation/rq2.ts` (test: `BE/tests/rq2.test.mjs`) |
 | Bộ câu hỏi | [rq2/questions.json](rq2/questions.json) |
-| Repo | axios, nest, ArchTime (như RQ1, [evaluation-protocol.md](evaluation-protocol.md) §2) |
+| Repo | react-router, docusaurus, actual: ba trong năm repo của tập kiểm tra RQ1, cùng commit đóng băng ([rq1-protocol.md](rq1-protocol.md) §1, [architecture-references/README.md](architecture-references/README.md) §4) |
+
+## 0. Chọn repo (quyết định 18/11/2026)
+
+Bản 1.0 dùng axios, nest và ArchTime, là tập cũ trước khi RQ1 chuyển sang năm repo theo phiếu đăng ký. Bản 1.1 dùng ba
+repo của tập kiểm tra RQ1 để paper và báo cáo dùng một tập dữ liệu, và dùng lại dữ liệu đã mine cho C11. Chưa câu trả lời
+nào được thu theo bản 1.0, nên đổi lúc này không vi phạm quy tắc "không sửa sau khi đã chạy" (§2).
+
+| Repo | Vì sao |
+|---|---|
+| remix-run/react-router | Rất nổi tiếng: model có thể đã học về nó, nên C0 mạnh hơn. Đây là phép thử khó cho C1/C2. Có ADR trong `decisions/` |
+| facebook/docusaurus | Nổi tiếng, có trang kiến trúc chính thức |
+| actualbudget/actual | Ít nổi tiếng hơn hẳn: cân lại hai repo trên |
+
+Không dùng outline và react-admin để giữ khối lượng chấm vừa sức: 3 repo × 10 câu × 3 điều kiện = 90 câu trả lời.
+
+**Q9 (lý do thiết kế) với react-router:** lý do có thể nằm trong ADR của repo dù không có trong dữ liệu đã mine. Một lý do
+được nêu vẫn được chấm như mọi khẳng định: `S` chỉ khi repo ở commit đóng băng ghi đúng điều đó. Câu này vẫn tính là câu
+"không trả lời được từ dữ liệu" khi đo tỷ lệ từ chối.
 
 ## 1. Ba điều kiện
 
@@ -35,9 +53,13 @@ Không sửa bộ câu hỏi sau khi đã chạy model; nếu phải sửa, tăn
 
 1. **Chuẩn bị.** Mine mỗi repo đến commit đóng băng (như RQ1). Ghi model dùng (nhà cung cấp, tên, ngày) vào báo cáo.
 2. **Chạy model.** `npm run rq2 -- list` để lấy id workspace, rồi với mỗi repo:
-   `npm run rq2 -- run --project <id> --repo <axios|nest|archtime>`. Mỗi câu trả lời lưu ở
-   `rq2-results/answers/<repo>.<câu>.<điều kiện>.json` (cả bản gốc và bản sau kiểm tra, token, thời gian). Câu đã có
-   kết quả không bị hỏi lại (`--force` để hỏi lại), nên chạy tiếp sau khi gián đoạn không tốn thêm tiền.
+   `npm run rq2 -- run --project <id> --repo <react-router|docusaurus|actual>` (Windows PowerShell 5.1: `npx tsx scripts/rq2.ts run ...`).
+   Mỗi câu được hỏi **3 lần** ở mỗi điều kiện, cùng model và cùng thiết lập (`--runs 3`, mặc định), tổng
+   3 repo × 10 câu × 3 điều kiện × 3 lần = **270 câu trả lời**. Ba lần chạy cho thấy độ dao động của model; mọi tỷ lệ gộp
+   cả ba lần, và báo cáo ghi thêm tỷ lệ thấp nhất, cao nhất giữa các lần. Lần 1 lưu ở
+   `rq2-results/answers/<repo>.<câu>.<điều kiện>.json`, lần 2 và 3 thêm `.r2`, `.r3` (cả bản gốc và bản sau kiểm tra,
+   token, thời gian). Câu đã có kết quả không bị hỏi lại (`--force` để hỏi lại), nên chạy tiếp sau khi gián đoạn không
+   tốn thêm tiền.
 3. **Phiếu chấm.** `npm run rq2 -- sheet`. Ra hai phiếu mẫu và hai file khoá:
    - `sheets/claims.csv`: mỗi dòng một khẳng định. Câu trả lời được tách thành khẳng định: mỗi đoạn có nhãn là một khẳng
      định; đoạn không nhãn tách theo câu; tiêu đề và mẩu dưới ba từ bị bỏ (`splitClaims`).
@@ -48,7 +70,7 @@ Không sửa bộ câu hỏi sau khi đã chạy model; nếu phải sửa, tăn
    kiểm chứng. Người chấm kiểm chứng bằng chính repo ở commit đóng băng (`git show`, `git log`), không bằng ArchTime.
 5. **Đối chiếu.** `npm run rq2 -- score --a <tên1> --b <tên2>`. Nếu có khẳng định hai người chấm khác nhau, công cụ ghi
    `sheets/claims.adjudicate.csv`; hai người thống nhất cột `verdict`, lưu thành `claims.adjudicated.csv`, rồi chạy lại
-   `score`. Kết quả: `report.md`, `metrics.csv`.
+   `score`. Kết quả: `report.md`, `metrics.csv`, `comparisons.csv`.
 
 ## 4. Hướng dẫn chấm
 
@@ -75,13 +97,33 @@ Không sửa bộ câu hỏi sau khi đã chạy model; nếu phải sửa, tăn
 | Tỷ lệ từ chối | Riêng câu không trả lời được (cao là tốt) và câu trả lời được (thấp là tốt); tính trên mọi phán quyết của cả hai người chấm |
 | Độ bao phủ | Câu trả lời được: trung bình `coverage` (yes 1, partial 0,5, no 0) của cả hai người chấm |
 | Độ đồng thuận | Cohen's kappa giữa hai người chấm, trên phán quyết khẳng định và trên `refusal` |
+| Số khẳng định mỗi câu trả lời | Số khẳng định / số câu trả lời. Điều kiện nói ít có thể trông chính xác hơn, nên luôn báo cáo kèm |
+| Câu trả lời rỗng | Không có khẳng định nào (từ ba từ trở lên) và không người chấm nào đánh dấu từ chối |
+
+**Mẫu số.** Câu trả lời từ chối tính vào tỷ lệ từ chối. Câu trả lời rỗng tính riêng. Cả hai loại không vào mẫu số của các
+tỷ lệ theo khẳng định.
+
+**Khoảng tin cậy và kiểm định.** Khẳng định và các lần chạy của cùng một câu hỏi không độc lập, nên đơn vị lấy mẫu lại là
+câu hỏi (một câu của một repo).
+- Tỷ lệ không có căn cứ của mỗi điều kiện có khoảng tin cậy 95 % bằng cluster bootstrap: lấy mẫu lại có hoàn lại 30 câu
+  hỏi, tính lại tỷ lệ gộp, 10.000 lần, lấy phân vị 2,5 % và 97,5 % (`bootstrapRatio`, `stats.ts`).
+- So sánh C0 với C1 (tác dụng của dữ liệu) và C1 với C2 (tác dụng của nhãn và bước kiểm tra): cùng bootstrap nhưng ghép
+  cặp theo câu hỏi (mỗi lần lấy mẫu dùng cùng các câu cho hai điều kiện), ra khoảng tin cậy của hiệu và p hai phía
+  (`bootstrapRatioDifference`). p được hiệu chỉnh Holm cho hai phép so sánh (`holm`). Một hiệu được gọi là có ý nghĩa khi
+  khoảng tin cậy không chứa 0 và p sau Holm dưới 0,05.
+- Seed của bootstrap cố định, nên tính lại luôn ra cùng số.
 
 **Kỳ vọng:** C2 có tỷ lệ không có căn cứ thấp hơn C1, độ hợp lệ trích dẫn 100 % (bước kiểm tra bảo đảm), và từ chối câu
 không trả lời được nhiều hơn C0. Báo cáo cả khi kết quả ngược kỳ vọng.
 
 ## 6. Hạn chế
 
-- Một model, một lần chạy cho mỗi câu (nhiệt độ của nhà cung cấp): kết quả có độ dao động. Ghi rõ model và ngày chạy.
+- Một model, ba lần chạy cho mỗi câu (nhiệt độ của nhà cung cấp): ba lần cho thấy độ dao động nhưng chưa đủ để ước lượng
+  nó chính xác. Ghi rõ model và ngày chạy.
+- 30 câu hỏi là mẫu nhỏ: khoảng tin cậy sẽ rộng, và hiệu nhỏ có thể không đạt ý nghĩa thống kê.
+- Hai người chấm mọi khẳng định của 270 câu trả lời: khối lượng chấm gấp ba so với bản 1.1.
 - Trích dẫn vẫn hiện trên phiếu nên người chấm có thể đoán C0 (thường không trích commit); nhãn đã được bỏ để giảm điều này.
 - Tách khẳng định bằng luật (theo nhãn, theo câu) có thể gộp hai ý vào một khẳng định hoặc tách một ý làm hai.
-- ArchTime do nhóm tự viết: người chấm biết repo, có thể thiên lệch; báo cáo riêng kết quả từng repo.
+- Model có thể đã học về react-router và docusaurus khi huấn luyện, nên C0 có thể trả lời đúng mà không cần dữ liệu. Đây là
+  chủ đích (phép thử khó hơn), nhưng phải báo cáo riêng kết quả từng repo.
+- Người chấm là thành viên nhóm, biết ArchTime; phiếu đã bỏ nhãn và điều kiện để giảm thiên lệch.

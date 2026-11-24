@@ -1,0 +1,55 @@
+{
+  "components": [
+    {
+      "name": "Ứng dụng ngân sách phía người dùng",
+      "prefixes": [
+        "packages/desktop-client/"
+      ]
+    },
+    {
+      "name": "Thư viện thành phần giao diện",
+      "prefixes": [
+        "packages/component-library/"
+      ]
+    },
+    {
+      "name": "Lõi nghiệp vụ và cơ sở dữ liệu ngân sách",
+      "prefixes": [
+        "packages/loot-core/"
+      ]
+    },
+    {
+      "name": "Dịch vụ đồng bộ từ xa",
+      "prefixes": [
+        "packages/crdt/",
+        "packages/sync-server/"
+      ]
+    },
+    {
+      "name": "API công khai cho script bên ngoài",
+      "prefixes": [
+        "packages/api/"
+      ]
+    },
+    {
+      "name": "Tích hợp ứng dụng di động",
+      "prefixes": [
+        "packages/mobile-client/"
+      ]
+    },
+    {
+      "name": "CLI và tiến trình desktop",
+      "prefixes": [
+        "packages/cli/",
+        "packages/desktop-electron/"
+      ]
+    },
+    {
+      "name": "Dịch vụ plugin và tích hợp mở rộng",
+      "prefixes": [
+        "packages/plugins-service/",
+        "packages/vite-plugin-peggy/"
+      ]
+    }
+  ]
+}
