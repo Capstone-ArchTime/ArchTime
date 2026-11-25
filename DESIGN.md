@@ -289,6 +289,28 @@ Architecture and Compare drawings use rounded nodes (12px) on Surface Elevated w
 
 The background carries three four-point stars and two thin hanging light lines at fixed positions, part of the page floor, never interactive and never animated.
 
+## Default Look: Ember
+
+**Ember** (`FE/src/theme/themes/ember.ts`) is the look people get until they pick another in the account menu (Theme); Frost and Halftone Ink stay selectable. It is a dark study desk with one warm accent.
+
+- **Floor:** near-black `#0b0c0e` with a faint 32px square grid that fades out under the content.
+- **Surfaces:** flat charcoal cards `#141518` (nested `#1a1b1f`) with a 1px `#26282d` line, 14px corners and a soft drop; no glow, no translucency.
+- **Text:** warm off-white `#f2f0eb`, secondary `#c8c5bf` (both at least 7:1 on the cards). Links in light coral `#f6ab98`.
+- **Accent:** coral `#e8694e` for icons, focus, the current page and selected things; the main action is a deeper coral button `#c94d33` with white text (4.5:1), 8px corners and a coral under-glow.
+- **Type:** Inter for everything, heavy tight headings, 15px body; JetBrains Mono only for hashes, paths and code.
+- **Status:** soft shades on charcoal: `#86d9a6` added/healthy, `#f58b7a` removed/failed, `#e6c477` changed. Accent chips are coral-tinted, 7px corners.
+
+### Ember light
+
+**Ember light** (`FE/src/theme/themes/ember-light.ts`) is Ember by day, picked in the same menu.
+
+- **Floor:** warm cream paper `#f7f4ee` with a faint beige grid.
+- **Surfaces:** off-white cards `#fbf9f5` (nested `#f3efe8`), a thin `#dfdbd2` line, a soft brown-tinted drop and a white top highlight.
+- **Text:** charcoal `#2a2b2f`, secondary `#434247`. Links in deep coral `#9c3420`, so they keep 7:1 on the paper.
+- **Accent:** the same coral (`#e2705a` marks, `#c94d33` main action with white text); accent chips are pale coral `#fae0d6` with `#7c2717` text, and the current page is a pale coral bar.
+- **Status:** deep shades: `#15803d`, `#b91c1c`, `#7a4f00`.
+- **Pictures:** the landing film fades into the paper; the sign-in illustration is inverted into a light print.
+
 ## Second Look: Halftone Ink
 
 People can switch from Frost to **Halftone Ink** in the account menu (Theme). The choice is kept per browser and applies to the public pages and every signed-in role (`FE/src/theme/themes/ink.ts`). It is a light print look: black ink on paper, like a halftone poster.
