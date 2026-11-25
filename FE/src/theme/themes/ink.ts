@@ -1,6 +1,7 @@
 import type { DiagramTheme } from '../../features/architecture/theme.ts';
 import { DIAGRAM_MONO } from '../../features/architecture/theme.ts';
 import type { ThemeDefinition } from '../types.ts';
+import { MONO_HERO, heroDarkCss } from '../heroDark.ts';
 
 /** Paper with ink: white cards, black ink, deep muted role colours. */
 export const INK_DIAGRAM: DiagramTheme = {
@@ -44,7 +45,7 @@ export const inkTheme: ThemeDefinition = {
     'nested-border-style': 'solid', 'shadow-action': 'none',
     'shadow-overlay': '0 12px 32px -16px rgb(0 0 0 / 0.25)', 'chrome-blur': 'blur(10px)',
     'illustration-filter': 'grayscale(1) invert(0.92) contrast(1.05)',
-    'film-blend': 'multiply', 'film-filter': 'grayscale(1) contrast(1.2) brightness(1.1)', 'film-opacity': '0.32',
+    'film-blend': 'normal', 'film-filter': 'none', 'film-opacity': '1',
     'color-scheme': 'light',
     'floor-color': '#f2f2ef',
     'floor-image': [
@@ -71,4 +72,6 @@ export const inkTheme: ThemeDefinition = {
     },
   },
   diagram: { dark: INK_DIAGRAM, light: INK_DIAGRAM },
+  // The landing hero stays dark, so the film shows whole and in its own colours.
+  css: heroDarkCss(MONO_HERO),
 };
