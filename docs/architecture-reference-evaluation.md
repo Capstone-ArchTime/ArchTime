@@ -5,11 +5,26 @@
 | Ngày | 2026-11-16 |
 | Nguồn | BM04 RF-24; [rq1-protocol.md](rq1-protocol.md) §2.3; danh sách việc T1, T6 |
 | Hướng dẫn cho người viết | [architecture-references/README.md](architecture-references/README.md) |
-| Trạng thái | **IN_PROGRESS.** Cả 5 repo có Reference A do trợ lý AI viết (ghi rõ), chờ Reference B của thành viên nhóm. Công cụ (`reference-check`, `reference-agreement`), mẫu, hướng dẫn và commit đã sẵn sàng. |
+| Trạng thái | **IN_PROGRESS (cập nhật 24/11/2026).** Reference A của cả 5 repo do **Nguyễn Duy Công** viết ngày 18/11/2026 (`<repo>.cong.json`: react-router 6, docusaurus 8, react-admin 10, actual 8, outline 15 component; mọi component có `responsibility` và `evidence`). Các bản do AI viết (`*.claude.json`, bảng §2 bên dưới) **không dùng** (quyết định 18/11/2026, ROLLOUT.md). **Reference B: 0/5.** C11 (21/11/2026) đã chấm bằng Reference A. |
 | Phụ thuộc | T6 phải xong trước khi Công chạy C11 (tập kiểm tra). Hạn trong danh sách việc: 18/11/2026 |
 
 > Tài liệu này **không** chứa số MoJoFM nào. Mỗi ô "—" được điền từ đầu ra của `npm run reference-agreement` sau khi
 > hai người đã viết xong. Không điền bằng ước lượng.
+
+### Bổ sung 24/11/2026 (audit)
+
+- **Kiểm tra độ đầy đủ trước khi so sánh:** `reference-check` nay báo thêm (lỗi → exit 1): còn chữ mẫu `<...>`, component
+  thiếu `responsibility` hoặc `evidence`, một tiền tố thuộc hai component; (cảnh báo): số component ngoài 5–15, tiền tố
+  không khớp file nào, component không nhận file nào (bị tiền tố cụ thể hơn che), tiền tố thư mục thiếu `/` ở cuối mà khớp
+  cả thư mục anh em (`referenceProblems`, `BE/src/domain/evaluation/referenceAgreement.ts`).
+- **Danh sách file lệch để thống nhất:** `reference-agreement ... --csv <file.csv>` ghi mọi file chỉ một bản phủ
+  (`only-in-A`, `only-in-B`) và mọi file nằm ở hai component không phải cặp khớp nhất của nhau (`different-component`);
+  đổi tên component mà giữ nguyên file thì không sinh dòng nào (`fileDisagreements`).
+- **Độc lập của người viết B:** thư mục `docs/architecture-references/` chứa cả bản A (`*.cong.json`) lẫn bản AI. Người viết B
+  nên làm trên một bản checkout riêng chỉ từ `b-templates/<repo>.B.json`, không mở thư mục này, và ghi lại điều đó.
+- **Paper §4.3** viết hai bản được viết "before the repository is mined". Bằng chứng sớm nhất trong git của bản A là commit
+  `0c5e1f8` (19/11/2026), còn ghi chép mine C11 đề ngày 18/11/2026. Cần nêu đúng điều có bằng chứng (viết trước khi xem bất
+  kỳ đầu ra nào của ArchTime) hoặc bổ sung bằng chứng thời điểm.
 
 ## 1. Phương pháp so sánh
 

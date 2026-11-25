@@ -1,0 +1,44 @@
+{
+  "components": [
+    {
+      "name": "Định tuyến lõi và điều phối điều hướng",
+      "prefixes": [
+        "packages/"
+      ]
+    },
+    {
+      "name": "Công cụ phát triển Framework",
+      "prefixes": [
+        "packages/react-router-dev/"
+      ]
+    },
+    {
+      "name": "Khởi tạo ứng dụng",
+      "prefixes": [
+        "packages/create-react-router/"
+      ]
+    },
+    {
+      "name": "Tích hợp runtime và triển khai máy chủ",
+      "prefixes": [
+        "packages/react-router-architect/",
+        "packages/react-router-cloudflare/",
+        "packages/react-router-express/",
+        "packages/react-router-node/",
+        "packages/react-router-serve/"
+      ]
+    },
+    {
+      "name": "Định nghĩa route từ hệ thống file",
+      "prefixes": [
+        "packages/react-router-fs-routes/"
+      ]
+    },
+    {
+      "name": "Tương thích cấu hình route kiểu Remix",
+      "prefixes": [
+        "packages/react-router-remix-routes-option-adapter/"
+      ]
+    }
+  ]
+}

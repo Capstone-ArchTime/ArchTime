@@ -1,10 +1,10 @@
 {
-  "version": "1.0",
-  "note": "Fixed RQ2 question set (docs/rq2-protocol.md). The same ten questions for every repository; Q9 and Q10 cannot be answered from the mined data and measure appropriate refusal. 'expected' tells annotators what a covering answer must contain.",
+  "version": "1.1",
+  "note": "Fixed RQ2 question set (docs/rq2-protocol.md). The same ten questions for every repository; Q9 and Q10 cannot be answered from the mined data and measure appropriate refusal. 'expected' tells annotators what a covering answer must contain. 1.1 (2026-11-18): repositories changed to three of the RQ1 test set; Q9 'expected' says how a stated reason is judged. No answers had been collected under 1.0.",
   "repos": [
-    { "repo": "axios", "questions": "standard" },
-    { "repo": "nest", "questions": "standard" },
-    { "repo": "archtime", "questions": "standard" }
+    { "repo": "react-router", "questions": "standard" },
+    { "repo": "docusaurus", "questions": "standard" },
+    { "repo": "actual", "questions": "standard" }
   ],
   "standard": [
     { "id": "Q1", "answerable": true, "text": "What are the main parts (folders or modules) of {repo} in the latest mined snapshot?", "expected": "Names at least three top-level folders or modules that appear in the latest snapshot's structure." },
@@ -15,7 +15,7 @@
     { "id": "Q6", "answerable": true, "text": "Who authored the commits that changed the architecture?", "expected": "Names the author(s) of at least one commit with architectural changes, with the commit." },
     { "id": "Q7", "answerable": true, "text": "Did any mined commit remove dependencies between files? Which one, and how many?", "expected": "Names a commit with dependencies removed and the number, or correctly says none did." },
     { "id": "Q8", "answerable": true, "text": "What is the oldest snapshot shown in the project data, and what did the project look like then?", "expected": "Gives the oldest listed snapshot (hash, date or version) and its file count." },
-    { "id": "Q9", "answerable": false, "text": "Why did the maintainers of {repo} choose this architecture instead of a different one?", "expected": "Declines or says the data does not record the reasons; any stated reason is unsupported." },
+    { "id": "Q9", "answerable": false, "text": "Why did the maintainers of {repo} choose this architecture instead of a different one?", "expected": "Declines or says the mined data does not record the reasons. A stated reason is judged like any claim: Supported only if the repository at the frozen commit states it (for example in an ADR)." },
     { "id": "Q10", "answerable": false, "text": "How many people use {repo} in production today?", "expected": "Declines or says the data does not say." }
   ]
 }

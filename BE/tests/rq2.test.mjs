@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  agreementOf, blindText, buildSheets, finalVerdicts, messagesFor, metricsOf, parseCsv, parseVerdict, postProcess, renderReport, seededShuffle, splitClaims, toCsv,
+  agreementOf, blindText, buildSheets, comparisonsOf, finalVerdicts, messagesFor, metricsOf, parseCsv, parseVerdict, postProcess, renderReport, seededShuffle, splitClaims,
+  toCsv,
 } from '../src/domain/evaluation/rq2.ts';
 import { SYSTEM_PROMPT } from '../src/application/use-cases/llm/ProjectChatUseCase.ts';
 
@@ -105,4 +106,65 @@ test('agreement, final verdicts with adjudication, and the metrics per condition
   const report = renderReport({ metrics: Object.values(m), agreement: ag, pending: 0, models: ['m'], repos: ['axios'] });
   assert.match(report, /\| Unsupported rate \(C \+ N\) \| 100\.0 % \| 50\.0 % \| 33\.3 % \|/);
   assert.match(report, /FACT label precision \| n\/a \(no labels\) \| n\/a \(no labels\) \| 100\.0 % of 1 \|/);
+});
+
+// Paper Sect. 4 / rq2-protocol §5 (decision 19/11/2026): three runs per question and condition, rates with intervals
+// from a cluster bootstrap over questions, claims per answer, empty answers, and C0-C1 / C1-C2 differences with Holm.
+
+const runAnswer = (questionId, condition, run, text) => ({
+  repo: 'r', questionId, question: questionId, answerable: questionId !== 'Q9', expected: '', condition, run, model: 'm', text, raw: '', check: null,
+  validCitations: [], usage: null, latencyMs: 1, askedAt: '',
+});
+
+test('runs of the same question and condition get their own ids; run 1 keeps the ids it had before runs existed', () => {
+  const one = buildSheets([answers[0]], 'seed-1');
+  const withRun1 = buildSheets([{ ...answers[0], run: 1 }], 'seed-1');
+  assert.deepEqual(withRun1.claimSheet.map(r => r.claim_id), one.claimSheet.map(r => r.claim_id));
+  const three = buildSheets([1, 2, 3].map(run => ({ ...answers[0], run })), 'seed-1');
+  assert.equal(new Set(three.answerKey.map(k => k.answer_id)).size, 3);
+  assert.equal(new Set(three.claimKey.map(k => k.claim_id)).size, three.claimKey.length);
+  assert.deepEqual([...new Set(three.claimKey.map(k => k.run))].sort(), [1, 2, 3]);
+});
+
+test('claims per answer, empty answers and the spread across runs are reported per condition', () => {
+  const list = [
+    runAnswer('Q1', 'C1', 1, 'The core grew to forty files. A router module was added.'),
+    runAnswer('Q1', 'C1', 2, 'Fine.'), // no claim of three or more words, not a refusal: empty
+    runAnswer('Q9', 'C1', 1, 'No.'), // no claim, marked as refusal: not empty
+  ];
+  const s = buildSheets(list, 'seed-r');
+  const verdicts = new Map(s.claimKey.map((k, i) => [k.claim_id, i === 0 ? 'S' : 'N']));
+  const sheet = s.answerKey.map(k => ({ answer_id: k.answer_id, refusal: k.questionId === 'Q9' ? 'yes' : 'no', coverage: 'yes' }));
+  const c1 = metricsOf({ claimKey: s.claimKey, verdicts, answerKey: s.answerKey, answerSheets: [sheet, sheet] }).find(m => m.condition === 'C1');
+  assert.equal(c1.answers, 3);
+  assert.equal(c1.claimsPerAnswer, 0.6667);
+  assert.equal(c1.emptyAnswers, 1);
+  assert.equal(c1.unsupportedRate, 0.5);
+  assert.deepEqual(c1.unsupportedRunRange, [0.5, 0.5]);
+  assert.ok(c1.unsupportedCI[0] <= 0.5 && 0.5 <= c1.unsupportedCI[1]);
+});
+
+test('comparisons: C0 vs C1 and C1 vs C2, paired by question, with Holm-adjusted p and an interval for the difference', () => {
+  const list = [];
+  for (let q = 1; q <= 8; q++) for (const run of [1, 2, 3]) {
+    list.push(runAnswer(`Q${q}`, 'C0', run, 'Alpha claim number one here. Beta claim number two here.'));
+    list.push(runAnswer(`Q${q}`, 'C1', run, 'Alpha claim number one here. Beta claim number two here.'));
+    list.push(runAnswer(`Q${q}`, 'C2', run, 'Alpha claim number one here. Beta claim number two here.'));
+  }
+  const s = buildSheets(list, 'seed-c');
+  // C0: every claim unsupported; C1: half; C2: half. So C0 - C1 = 0.5 everywhere and C1 - C2 = 0.
+  const verdicts = new Map(s.claimKey.map(k => [k.claim_id, k.condition === 'C0' ? 'N' : s.claimKey.indexOf(k) % 2 ? 'S' : 'C']));
+  const firstOfAnswer = new Map();
+  for (const k of s.claimKey) { const id = `${k.questionId}|${k.condition}|${k.run}`; if (!firstOfAnswer.has(id)) firstOfAnswer.set(id, k.claim_id); }
+  for (const k of s.claimKey) if (k.condition !== 'C0') verdicts.set(k.claim_id, firstOfAnswer.get(`${k.questionId}|${k.condition}|${k.run}`) === k.claim_id ? 'S' : 'C');
+  const [a, b] = comparisonsOf({ claimKey: s.claimKey, verdicts }, { resamples: 2000 });
+  assert.deepEqual([a.a, a.b, b.a, b.b], ['C0', 'C1', 'C1', 'C2']);
+  assert.equal(a.difference, 0.5);
+  assert.ok(a.low > 0 && a.significant);
+  assert.equal(b.difference, 0);
+  assert.equal(b.significant, false);
+  assert.ok(a.pHolm >= a.p);
+  const report = renderReport({ metrics: metricsOf({ claimKey: s.claimKey, verdicts, answerKey: s.answerKey, answerSheets: [] }), agreement: { claims: null, refusal: null, disagreements: [] }, pending: 0, models: ['m'], repos: ['r'], comparisons: [a, b] });
+  assert.match(report, /C0 − C1 \| \+50\.0 points/);
+  assert.match(report, /Claims per answer/);
 });

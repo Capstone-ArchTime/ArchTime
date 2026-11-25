@@ -1,0 +1,6 @@
+Định tuyến lõi và điều phối điều hướng: packages/
+Công cụ phát triển Framework: packages/react-router-dev/
+Khởi tạo ứng dụng: packages/create-react-router/
+Tích hợp runtime và triển khai máy chủ: packages/react-router-architect/, packages/react-router-cloudflare/, packages/react-router-express/, packages/react-router-node/, packages/react-router-serve/
+Định nghĩa route từ hệ thống file: packages/react-router-fs-routes/
+Tương thích cấu hình route kiểu Remix: packages/react-router-remix-routes-option-adapter/

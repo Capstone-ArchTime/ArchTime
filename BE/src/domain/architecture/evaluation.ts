@@ -47,6 +47,8 @@ export interface StepSide {
   structural: number;
   /** Every change, with component names, for a person to judge (RQ1 change detection). */
   changes: NamedChange[];
+  /** Files paired as moved by the unique-file-name rule (matching.ts detectMoves); independent of the dominance threshold. */
+  filesMoved?: number;
 }
 
 export interface NamedChange {
@@ -81,8 +83,8 @@ const STRUCTURAL: ChangeKind[] = ['split', 'merged', 'restructured', 'removed', 
 const followable = (components: MatchComponent[]) => components.filter(c => c.name !== UNASSIGNED_COMPONENT);
 
 function side(before: MatchComponent[], after: MatchComponent[], followBefore: MatchComponent[], followAfter: MatchComponent[], withFiles = false,
-  evidence: MatchOptions['evidence'] = EVIDENCE_RULE): StepSide {
-  const matching = matchComponents(followBefore, followAfter, { evidence });
+  evidence: MatchOptions['evidence'] = EVIDENCE_RULE, dominance?: number): StepSide {
+  const matching = matchComponents(followBefore, followAfter, dominance === undefined ? { evidence } : { evidence, dominance });
   const nameBefore = new Map(followBefore.map(c => [c.id, c.name]));
   const nameAfter = new Map(followAfter.map(c => [c.id, c.name]));
   const membersBefore = new Map(followBefore.map(c => [c.id, [...c.memberIds].sort()]));
@@ -91,6 +93,7 @@ function side(before: MatchComponent[], after: MatchComponent[], followBefore: M
     stability: mojoFM(groupingOf(before), groupingOf(after)),
     summary: matching.summary,
     structural: STRUCTURAL.reduce((n, k) => n + matching.summary[k], 0),
+    filesMoved: matching.files.moved,
     changes: matching.changes.map(c => ({
       kind: c.kind,
       before: c.before.map(id => nameBefore.get(id) ?? id),
@@ -111,6 +114,8 @@ export function evaluateEvolution(
     reference?: ReferenceComponent[] | null; baseline?: Partial<BaselineOptions>; withFiles?: boolean;
     /** Evidence rule for structural changes (matching.ts); null reports every regrouping, as before 14/11/2026. */
     evidence?: MatchOptions['evidence'];
+    /** Dominance threshold of component matching; default DEFAULT_MATCH_OPTIONS.dominance (0.5, frozen). For sensitivity analysis. */
+    dominance?: number;
   } = {},
 ): EvolutionEvaluation {
   const withFiles = options.withFiles ?? false;
@@ -150,14 +155,14 @@ export function evaluateEvolution(
     const step: StepEvaluation = {
       from: prev.snapshotId,
       to: s.snapshotId,
-      recovered: side(prev.components, s.components, followable(prev.components), followable(s.components), withFiles, evidence),
-      baseline: side(baselines[k], baselines[k + 1], baselines[k], baselines[k + 1], withFiles, evidence),
+      recovered: side(prev.components, s.components, followable(prev.components), followable(s.components), withFiles, evidence, options.dominance),
+      baseline: side(baselines[k], baselines[k + 1], baselines[k], baselines[k + 1], withFiles, evidence, options.dominance),
     };
     const shared = Object.keys(s.variants ?? {}).filter(m => prev.variants?.[m]);
     if (shared.length) {
       step.variants = Object.fromEntries(shared.map(m => {
         const a = prev.variants![m], b = s.variants![m];
-        return [m, side(a, b, followable(a), followable(b), withFiles, evidence)];
+        return [m, side(a, b, followable(a), followable(b), withFiles, evidence, options.dominance)];
       }));
     }
     return step;

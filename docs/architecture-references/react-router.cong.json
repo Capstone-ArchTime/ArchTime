@@ -1,0 +1,78 @@
+{
+  "repo": "react-router",
+  "commit": "5d7962ea44fefef43718a6f9e6cce17f4e7e04ab",
+  "author": "Nguyễn Duy Công",
+  "writtenAt": "2026-11-18",
+  "sources": [
+    "README.md (Packages)",
+    "decisions/0002-lazy-route-modules.md (Decision, Immutable Route Properties, Interruptions, Error Handling, Consequences)",
+    "packages/*/package.json (package boundaries listed in README.md)"
+  ],
+  "components": [
+    {
+      "name": "Định tuyến lõi và điều phối điều hướng",
+      "responsibility": "Thực hiện khớp route, quản lý trạng thái điều hướng và phối hợp các hành vi routing cốt lõi trong các chế độ Declarative, Data và Framework.",
+      "prefixes": [
+        "packages/react-router/"
+      ],
+      "evidence": [
+        "README.md: Packages — react-router được xác định là Core cho Framework, Data, Declarative modes.",
+        "decisions/0002-lazy-route-modules.md: Decision — router xử lý lazy route trong luồng điều hướng trước render; cập nhật định nghĩa route nội bộ."
+      ]
+    },
+    {
+      "name": "Công cụ phát triển Framework",
+      "responsibility": "Cung cấp các công cụ phát triển cho Framework mode, bao gồm cấu hình, Vite integration, CLI và sinh kiểu/route metadata.",
+      "prefixes": [
+        "packages/react-router-dev/"
+      ],
+      "evidence": [
+        "README.md: Packages — @react-router/dev được mô tả là Development tooling cho Framework mode."
+      ]
+    },
+    {
+      "name": "Khởi tạo ứng dụng",
+      "responsibility": "Tạo cấu trúc và cấu hình ban đầu cho ứng dụng React Router Framework.",
+      "prefixes": [
+        "packages/create-react-router/"
+      ],
+      "evidence": [
+        "README.md: Packages — create-react-router được mô tả là Project creation."
+      ]
+    },
+    {
+      "name": "Tích hợp runtime và triển khai máy chủ",
+      "responsibility": "Kết nối React Router với các môi trường chạy và nền tảng triển khai như Node.js, Express, Architect, Cloudflare và server tích hợp.",
+      "prefixes": [
+        "packages/react-router-node/",
+        "packages/react-router-serve/",
+        "packages/react-router-express/",
+        "packages/react-router-architect/",
+        "packages/react-router-cloudflare/"
+      ],
+      "evidence": [
+        "README.md: Packages — liệt kê các adapter Node.js, Web Server, Express, Architect và Cloudflare."
+      ]
+    },
+    {
+      "name": "Định nghĩa route từ hệ thống file",
+      "responsibility": "Chuyển cấu trúc file thành định nghĩa route cho ứng dụng Framework.",
+      "prefixes": [
+        "packages/react-router-fs-routes/"
+      ],
+      "evidence": [
+        "README.md: Packages — @react-router/fs-routes được mô tả là File-system routes."
+      ]
+    },
+    {
+      "name": "Tương thích cấu hình route kiểu Remix",
+      "responsibility": "Cung cấp adapter cho tùy chọn định nghĩa route theo quy ước Remix trong hệ sinh thái React Router.",
+      "prefixes": [
+        "packages/react-router-remix-routes-option-adapter/"
+      ],
+      "evidence": [
+        "README.md: Packages — package react-router-remix-routes-option-adapter được liệt kê riêng."
+      ]
+    }
+  ]
+}

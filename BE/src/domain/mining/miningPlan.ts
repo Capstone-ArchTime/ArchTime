@@ -172,6 +172,17 @@ export function analysisProgress(processed: number, total: number): number {
   return Math.min(100, 10 + Math.round((Math.min(processed, total) / total) * 90));
 }
 
+/**
+ * The patch kept in an evidence record is for display only (nothing scores or prompts with it), and a MongoDB document
+ * may not exceed 16 MB: a commit that adds large fixtures or lockfiles must not fail the whole mining job.
+ */
+export const MAX_EVIDENCE_PATCH_CHARS = 1_000_000;
+
+export function capPatch(patch: string, max = MAX_EVIDENCE_PATCH_CHARS): string {
+  if (patch.length <= max) return patch;
+  return `${patch.slice(0, max)}\n[ArchTime: patch truncated: ${patch.length} characters, first ${max} kept]`;
+}
+
 export function redactSecret(text: string, secret?: string): string {
   let out = text.replace(/(https?:\/\/)[^/\s@]+@/gi, "$1***@");
   if (secret) out = out.split(secret).join("***");

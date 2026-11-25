@@ -8,7 +8,7 @@
 
 import { createHash } from "node:crypto";
 import { citedHashes, enforceClaimLabels, type ClaimLabel, type LabelCheck } from "../mentor/claimLabels.js";
-import { cohenKappa, type KappaResult } from "./stats.js";
+import { bootstrapRatio, bootstrapRatioDifference, cohenKappa, gwetAC1, holm, type Ac1Result, type BootstrapOptions, type KappaResult, type RatioCluster } from "./stats.js";
 
 export type Condition = "C0" | "C1" | "C2";
 export const CONDITIONS: readonly Condition[] = ["C0", "C1", "C2"];
@@ -39,6 +39,48 @@ export function messagesFor(condition: Condition, input: { project: { name: stri
     ? `${C0_PROMPT}\n\nProject: ${input.project.name} (${input.project.repoUrl})`
     : condition === "C1" ? `${C1_PROMPT}${data}` : `${input.mentorPrompt}${data}`;
   return [{ role: "system" as const, content: system }, { role: "user" as const, content: input.question }];
+}
+
+// ── Reproducible runs ──────────────────────────────────────────────────────────────────────────────────────────────
+
+/** Short SHA-256 of a text: identifies the exact prompt or project context an answer was produced from. */
+export const fingerprint = (text: string) => createHash("sha256").update(text).digest("hex").slice(0, 16);
+
+/**
+ * Deterministic id of one answer: repository, question, condition and run. The same id always names the same slot, so
+ * a resumed run fills only missing slots.
+ */
+export const answerIdOf = (x: { repo: string; questionId: string; condition: Condition; run?: number }) => `${x.repo}.${x.questionId}.${x.condition}.r${x.run ?? 1}`;
+
+/** File name of an answer: run 1 keeps the name it had before repeated runs existed; later runs add .r<n>. */
+export const answerFileName = (x: { repo: string; questionId: string; condition: Condition; run?: number }) =>
+  `${x.repo}.${x.questionId}.${x.condition}${(x.run ?? 1) === 1 ? "" : `.r${x.run}`}.json`;
+
+/**
+ * The prompt version of a condition: a fingerprint of everything fixed that the model receives besides the question
+ * and the project data (the condition's system prompt; the mentor's SYSTEM_PROMPT for C2). A change of the mentor prompt
+ * between runs shows up as a different version, so pooled rates never silently mix two prompts.
+ */
+export function promptVersionOf(condition: Condition, mentorPrompt: string): string {
+  return `${condition}-${fingerprint(condition === "C0" ? C0_PROMPT : condition === "C1" ? C1_PROMPT : mentorPrompt)}`;
+}
+
+/** Answers that must not be pooled silently: one condition with several prompt versions or models, or one repository's
+ * C1/C2 answers built from different project contexts. */
+export function mixedRuns(answers: Pick<RecordedAnswer, "condition" | "model" | "promptVersion" | "contextSha256" | "repo">[]): string[] {
+  const out: string[] = [];
+  for (const c of CONDITIONS) {
+    const mine = answers.filter(a => a.condition === c);
+    const versions = new Set(mine.map(a => a.promptVersion ?? "unrecorded"));
+    const models = new Set(mine.map(a => a.model));
+    if (versions.size > 1) out.push(`${c}: ${versions.size} prompt versions (${[...versions].join(", ")})`);
+    if (models.size > 1) out.push(`${c}: ${models.size} models (${[...models].join(", ")})`);
+  }
+  for (const repo of new Set(answers.map(a => a.repo))) {
+    const contexts = new Set(answers.filter(a => a.repo === repo && a.condition !== "C0").map(a => a.contextSha256 ?? "unrecorded"));
+    if (contexts.size > 1) out.push(`${repo}: C1/C2 answers built from ${contexts.size} different project contexts (${[...contexts].join(", ")})`);
+  }
+  return out;
 }
 
 /** C2 goes through the mentor's citation check, exactly as in the app; C0 and C1 are kept as the model wrote them. */
@@ -99,6 +141,8 @@ export interface RecordedAnswer {
   answerable: boolean;
   expected: string;
   condition: Condition;
+  /** Which of the repeated runs of this question and condition (1-based); missing means 1. */
+  run?: number;
   model: string;
   /** What the person (or annotator) reads: after the citation check for C2. */
   text: string;
@@ -109,12 +153,38 @@ export interface RecordedAnswer {
   usage: { inputTokens: number; outputTokens: number } | null;
   latencyMs: number;
   askedAt: string;
+  // Added by the research audit (2026-11-24); missing in answers recorded before it.
+  /** answerIdOf: repository.question.condition.r<run>. */
+  answerId?: string;
+  /** promptVersionOf: condition and fingerprint of the fixed prompt. */
+  promptVersion?: string;
+  /** Fingerprint of the project data (C1, C2; null for C0); the text is saved once as contexts/<repo>.<sha>.txt. */
+  contextSha256?: string | null;
+  /** Version of docs/rq2/questions.json the question came from. */
+  questionsVersion?: string;
+  /** Provider and model details as the client reports them. */
+  modelInfo?: Record<string, unknown>;
+  /** Request settings fixed by the script. */
+  settings?: { maxTokens: number; plain: boolean };
+  /** Always "ok" for a stored answer: failed requests go to errors/ instead and never count as answered. */
+  status?: "ok";
+}
+
+/** A request that failed: kept for the record (errors/<answerId>.<time>.json), never scored, retried on the next run. */
+export interface FailedAnswer {
+  answerId: string; repo: string; questionId: string; condition: Condition; run: number; model: string; promptVersion: string;
+  contextSha256: string | null; status: "error"; error: { name: string; message: string }; askedAt: string; latencyMs: number;
 }
 
 export interface ClaimSheetRow { claim_id: string; repo: string; question: string; claim: string; citations: string; verdict: string; note: string }
 export interface AnswerSheetRow { answer_id: string; repo: string; question: string; answerable: string; expected: string; answer: string; refusal: string; coverage: string; note: string }
-export interface ClaimKey { claim_id: string; repo: string; questionId: string; condition: Condition; label: ClaimLabel | null; citations: string[]; validCitations: string[] }
-export interface AnswerKey { answer_id: string; repo: string; questionId: string; condition: Condition; answerable: boolean }
+export interface ClaimKey { claim_id: string; repo: string; questionId: string; condition: Condition; run?: number; label: ClaimLabel | null; citations: string[]; validCitations: string[] }
+export interface AnswerKey { answer_id: string; repo: string; questionId: string; condition: Condition; run?: number; answerable: boolean }
+
+const runOf = (x: { run?: number }) => x.run ?? 1;
+/** One question of one repository: the cluster that the bootstrap resamples. */
+const questionOf = (x: { repo: string; questionId: string }) => `${x.repo}\u0000${x.questionId}`;
+const answerOf = (x: { repo: string; questionId: string; condition: Condition; run?: number }) => `${questionOf(x)}\u0000${x.condition}\u0000${runOf(x)}`;
 
 /** A seeded shuffle (mulberry32 over a hash of the seed): the same seed always gives the same order. */
 export function seededShuffle<T>(items: T[], seed: string): T[] {
@@ -144,19 +214,21 @@ export function buildSheets(answers: RecordedAnswer[], seed: string) {
   const claims: { row: ClaimSheetRow; key: ClaimKey }[] = [];
   const answerRows: { row: AnswerSheetRow; key: AnswerKey }[] = [];
   for (const a of answers) {
-    const base = [a.repo, a.questionId, a.condition];
+    const run = runOf(a);
+    // Run 1 keeps the ids it had before repeated runs existed; later runs add their number.
+    const base = run === 1 ? [a.repo, a.questionId, a.condition] : [a.repo, a.questionId, a.condition, `run${run}`];
     const valid = new Set(a.validCitations.map(h => h.toLowerCase()));
     splitClaims(a.text).forEach((c, i) => {
       const claim_id = opaqueId("c", seed, [...base, String(i)]);
       claims.push({
         row: { claim_id, repo: a.repo, question: a.question, claim: blindText(c.text), citations: c.citations.join(" "), verdict: "", note: "" },
-        key: { claim_id, repo: a.repo, questionId: a.questionId, condition: a.condition, label: c.label, citations: c.citations, validCitations: c.citations.filter(h => valid.has(h)) },
+        key: { claim_id, repo: a.repo, questionId: a.questionId, condition: a.condition, run, label: c.label, citations: c.citations, validCitations: c.citations.filter(h => valid.has(h)) },
       });
     });
     const answer_id = opaqueId("a", seed, base);
     answerRows.push({
       row: { answer_id, repo: a.repo, question: a.question, answerable: a.answerable ? "yes" : "no", expected: a.expected, answer: blindText(a.text), refusal: "", coverage: "", note: "" },
-      key: { answer_id, repo: a.repo, questionId: a.questionId, condition: a.condition, answerable: a.answerable },
+      key: { answer_id, repo: a.repo, questionId: a.questionId, condition: a.condition, run, answerable: a.answerable },
     });
   }
   const c = seededShuffle(claims, `${seed}:claims`), r = seededShuffle(answerRows, `${seed}:answers`);
@@ -209,7 +281,11 @@ const yesNo = (v: string) => { const s = v.trim().toLowerCase(); return s === "y
 /** Coverage of an answerable question: full 1, partial 0.5, none 0. */
 const coverageOf = (v: string): number | null => { const s = v.trim().toLowerCase(); return s === "yes" || s === "full" ? 1 : s === "partial" ? 0.5 : s === "no" || s === "none" ? 0 : null; };
 
-export interface Agreement { claims: KappaResult | null; refusal: KappaResult | null; disagreements: string[] }
+export interface Agreement {
+  claims: KappaResult | null; refusal: KappaResult | null; disagreements: string[];
+  /** Gwet's AC1 on the same pairs (claims: scale S, C, N; refusal: yes, no), robust when one verdict dominates. */
+  claimsAC1?: Ac1Result | null; refusalAC1?: Ac1Result | null;
+}
 
 /** How far two annotators agree, and which claims they disagree on (to be adjudicated). */
 export function agreementOf(a: Record<string, string>[], b: Record<string, string>[], answersA: Record<string, string>[] = [], answersB: Record<string, string>[] = []): Agreement {
@@ -224,7 +300,10 @@ export function agreementOf(a: Record<string, string>[], b: Record<string, strin
   }
   const refB = new Map(answersB.map(r => [r.answer_id, yesNo(r.refusal ?? "")]));
   const refusalPairs = answersA.flatMap(r => { const x = yesNo(r.refusal ?? ""), y = refB.get(r.answer_id); return x === null || y === null || y === undefined ? [] : [[x, y] as [boolean, boolean]]; });
-  return { claims: cohenKappa(pairs), refusal: cohenKappa(refusalPairs), disagreements: disagreements.sort() };
+  return {
+    claims: cohenKappa(pairs), refusal: cohenKappa(refusalPairs), disagreements: disagreements.sort(),
+    claimsAC1: gwetAC1(pairs, ["S", "C", "N"] as Verdict[]), refusalAC1: gwetAC1(refusalPairs, [true, false]),
+  };
 }
 
 /** The final verdict of each claim: the two annotators' when they agree, otherwise the adjudicated one (if given). */
@@ -246,8 +325,16 @@ export interface ConditionMetrics {
   claims: number;
   /** Claims with a final verdict. */
   judged: number;
+  /** Claims per answer: a condition that says less could otherwise look more accurate. */
+  claimsPerAnswer: number | null;
+  /** Answers with no claim that no annotator marked as a refusal (neither in the claim rates nor in the refusal rates). */
+  emptyAnswers: number;
   /** (Contradicted + Not verifiable) / judged. */
   unsupportedRate: number | null;
+  /** 95% interval of the unsupported rate, cluster bootstrap over questions. */
+  unsupportedCI: [number, number] | null;
+  /** Lowest and highest unsupported rate over the runs (the run-to-run spread). */
+  unsupportedRunRange: [number, number] | null;
   contradictedRate: number | null;
   /** Claims citing at least one commit: Supported / judged among them. */
   citationAccuracy: number | null;
@@ -263,14 +350,37 @@ export interface ConditionMetrics {
   refusalRateAnswerable: number | null;
   /** Answerable questions: mean coverage (full 1, partial 0.5, none 0), by both annotators. */
   coverage: number | null;
+  /**
+   * Supported claims per answer to an answerable question. A condition can lower its unsupported rate by saying less or
+   * refusing more; this absolute count does not reward that, so read it next to the unsupported rate.
+   */
+  supportedPerAnswerableAnswer: number | null;
+  /** Answers to answerable questions with at least one Supported claim / answers to answerable questions. */
+  answeredWithSupport: number | null;
 }
 
 const ratio = (n: number, d: number) => (d ? Math.round((n / d) * 10_000) / 10_000 : null);
 const mean = (xs: number[]) => (xs.length ? Math.round((xs.reduce((s, x) => s + x, 0) / xs.length) * 10_000) / 10_000 : null);
 
+/** Unsupported claims and judged claims per question of one condition: the clusters of the bootstrap. */
+function unsupportedByQuestion(claimKey: ClaimKey[], verdicts: Map<string, Verdict>, condition: Condition): Map<string, RatioCluster> {
+  const out = new Map<string, RatioCluster>();
+  for (const k of claimKey) {
+    const v = verdicts.get(k.claim_id);
+    if (k.condition !== condition || !v) continue;
+    const c = out.get(questionOf(k)) ?? { num: 0, den: 0 };
+    c.den++;
+    if (v !== "S") c.num++;
+    out.set(questionOf(k), c);
+  }
+  return out;
+}
+
 export function metricsOf(input: {
-  claimKey: ClaimKey[]; verdicts: Map<string, Verdict>; answerKey: AnswerKey[]; answerSheets: Record<string, string>[][];
+  claimKey: ClaimKey[]; verdicts: Map<string, Verdict>; answerKey: AnswerKey[]; answerSheets: Record<string, string>[][]; bootstrap?: BootstrapOptions;
 }): ConditionMetrics[] {
+  const claimsPer = new Map<string, number>();
+  for (const k of input.claimKey) claimsPer.set(answerOf(k), (claimsPer.get(answerOf(k)) ?? 0) + 1);
   return CONDITIONS.map(condition => {
     const keys = input.claimKey.filter(k => k.condition === condition);
     const judged = keys.filter(k => input.verdicts.has(k.claim_id));
@@ -283,12 +393,23 @@ export function metricsOf(input: {
     const refusals = (ks: AnswerKey[]) => ks.flatMap(k => marks(k.answer_id).map(r => yesNo(r.refusal ?? "")).filter((x): x is boolean => x !== null));
     const unanswerable = refusals(answers.filter(k => !k.answerable)), answerable = refusals(answers.filter(k => k.answerable));
     const coverage = answers.filter(k => k.answerable).flatMap(k => marks(k.answer_id).map(r => coverageOf(r.coverage ?? "")).filter((x): x is number => x !== null));
+    const empty = answers.filter(k => !claimsPer.get(answerOf(k)) && !marks(k.answer_id).some(r => yesNo(r.refusal ?? "") === true));
+    const ci = bootstrapRatio([...unsupportedByQuestion(input.claimKey, input.verdicts, condition).values()], input.bootstrap);
+    const runRates = [...new Set(judged.map(runOf))].map(run => { const js = judged.filter(k => runOf(k) === run); return js.filter(k => v(k) !== "S").length / js.length; });
+    const answerableAnswers = answers.filter(k => k.answerable);
+    const supportedBy = new Map<string, number>();
+    for (const k of judged) if (v(k) === "S") supportedBy.set(answerOf(k), (supportedBy.get(answerOf(k)) ?? 0) + 1);
+    const supportedCounts = answerableAnswers.map(k => supportedBy.get(answerOf(k)) ?? 0);
     return {
       condition,
       answers: answers.length,
       claims: keys.length,
       judged: judged.length,
+      claimsPerAnswer: ratio(keys.length, answers.length),
+      emptyAnswers: empty.length,
       unsupportedRate: ratio(judged.filter(k => v(k) !== "S").length, judged.length),
+      unsupportedCI: ci.low === null || ci.high === null ? null : [ci.low, ci.high],
+      unsupportedRunRange: runRates.length ? [Math.round(Math.min(...runRates) * 10_000) / 10_000, Math.round(Math.max(...runRates) * 10_000) / 10_000] : null,
       contradictedRate: ratio(judged.filter(k => v(k) === "C").length, judged.length),
       citationAccuracy: ratio(cited.filter(k => v(k) === "S").length, cited.length),
       citedClaims: cited.length,
@@ -298,26 +419,64 @@ export function metricsOf(input: {
       refusalRateUnanswerable: ratio(unanswerable.filter(Boolean).length, unanswerable.length),
       refusalRateAnswerable: ratio(answerable.filter(Boolean).length, answerable.length),
       coverage: mean(coverage),
+      supportedPerAnswerableAnswer: answerableAnswers.length ? mean(supportedCounts) : null,
+      answeredWithSupport: ratio(supportedCounts.filter(n => n > 0).length, answerableAnswers.length),
     };
   });
 }
 
+export interface Comparison {
+  a: Condition; b: Condition;
+  /** Unsupported rate of a minus that of b. */
+  difference: number | null; low: number | null; high: number | null;
+  p: number | null; pHolm: number | null;
+  /** The interval excludes zero and the Holm-adjusted p is below 0.05. */
+  significant: boolean;
+}
+
+/**
+ * C0 vs C1 (the effect of the evidence) and C1 vs C2 (the effect of labels and the citation check): the difference in
+ * unsupported rate with a paired cluster bootstrap over questions, Holm-adjusted over the two comparisons. A question
+ * enters a comparison only if both conditions have judged claims for it.
+ */
+export function comparisonsOf(input: { claimKey: ClaimKey[]; verdicts: Map<string, Verdict> }, bootstrap: BootstrapOptions = {}): Comparison[] {
+  const per = Object.fromEntries(CONDITIONS.map(c => [c, unsupportedByQuestion(input.claimKey, input.verdicts, c)])) as Record<Condition, Map<string, RatioCluster>>;
+  const raw = ([["C0", "C1"], ["C1", "C2"]] as [Condition, Condition][]).map(([a, b]) => {
+    const pairs = [...per[a].keys()].filter(q => per[b].has(q)).map(q => ({ a: per[a].get(q)!, b: per[b].get(q)! }));
+    return { a, b, ...bootstrapRatioDifference(pairs, bootstrap) };
+  });
+  const adjusted = holm(raw.map(r => r.p));
+  return raw.map((r, i) => ({
+    a: r.a, b: r.b, difference: r.estimate, low: r.low, high: r.high, p: r.p, pHolm: adjusted[i],
+    significant: r.low !== null && r.high !== null && (r.low > 0 || r.high < 0) && (adjusted[i] ?? 1) < 0.05,
+  }));
+}
+
 const pct = (x: number | null) => (x === null ? "n/a" : `${(x * 100).toFixed(1)} %`);
 const num = (x: number | null) => (x === null ? "n/a" : x.toFixed(2));
+const points = (x: number | null) => (x === null ? "n/a" : `${x >= 0 ? "+" : "−"}${Math.abs(x * 100).toFixed(1)}`);
 
-export function renderReport(input: { metrics: ConditionMetrics[]; agreement: Agreement; pending: number; models: string[]; repos: string[] }): string {
+export function renderReport(input: { metrics: ConditionMetrics[]; agreement: Agreement; pending: number; models: string[]; repos: string[]; comparisons?: Comparison[]; warnings?: string[] }): string {
   const m = input.metrics;
   const row = (name: string, f: (x: ConditionMetrics) => string) => `| ${name} | ${m.map(f).join(" | ")} |`;
+  const comparisons = input.comparisons ?? [];
   return [
     "# RQ2 results",
     "",
     `Repositories: ${input.repos.join(", ") || "none"}. Model: ${input.models.join(", ") || "n/a"}. Protocol: docs/rq2-protocol.md.`,
     "",
+    ...(input.warnings?.length ? ["**Warning: these answers mix runs that should not be pooled:**", "", ...input.warnings.map(w => `- ${w}`), ""] : []),
+    "Citation validity only checks that a cited hash is a mined commit. Whether the commit supports the claim is part of the annotators' verdict (S requires a cited commit to be where the claim happened), so citation accuracy, not validity, is the semantic measure.",
+    "",
     `| Metric | ${m.map(x => x.condition).join(" | ")} |`,
     `|---|${m.map(() => "---").join("|")}|`,
     row("Answers", x => String(x.answers)),
     row("Claims (judged)", x => `${x.claims} (${x.judged})`),
+    row("Claims per answer", x => num(x.claimsPerAnswer)),
+    row("Empty answers (no claim, not a refusal)", x => String(x.emptyAnswers)),
     row("Unsupported rate (C + N)", x => pct(x.unsupportedRate)),
+    row("Unsupported rate, 95% CI (bootstrap over questions)", x => (x.unsupportedCI ? `${pct(x.unsupportedCI[0])} – ${pct(x.unsupportedCI[1])}` : "n/a")),
+    row("Unsupported rate, lowest – highest run", x => (x.unsupportedRunRange ? `${pct(x.unsupportedRunRange[0])} – ${pct(x.unsupportedRunRange[1])}` : "n/a")),
     row("Contradicted rate", x => pct(x.contradictedRate)),
     row("Citation accuracy (cited claims Supported)", x => `${pct(x.citationAccuracy)} of ${x.citedClaims}`),
     row("Citation validity (cited hashes that are mined commits)", x => pct(x.citationValidity)),
@@ -325,11 +484,23 @@ export function renderReport(input: { metrics: ConditionMetrics[]; agreement: Ag
     row("Refusal, unanswerable questions (higher is better)", x => pct(x.refusalRateUnanswerable)),
     row("Refusal, answerable questions (lower is better)", x => pct(x.refusalRateAnswerable)),
     row("Coverage, answerable questions", x => num(x.coverage)),
+    row("Supported claims per answer, answerable questions", x => num(x.supportedPerAnswerableAnswer)),
+    row("Answerable questions answered with at least one Supported claim", x => pct(x.answeredWithSupport)),
     "",
+    ...(comparisons.length ? [
+      "## Differences in unsupported rate",
+      "",
+      "Paired cluster bootstrap over questions; p two-sided, Holm-adjusted over the two comparisons. Points = percentage points.",
+      "",
+      "| Comparison | Difference | 95% CI | p | p (Holm) | Significant |",
+      "|---|---|---|---|---|---|",
+      ...comparisons.map(c => `| ${c.a} − ${c.b} | ${points(c.difference)} points | ${points(c.low)} to ${points(c.high)} | ${c.p ?? "n/a"} | ${c.pHolm ?? "n/a"} | ${c.significant ? "yes" : "no"} |`),
+      "",
+    ] : []),
     "## Agreement between annotators",
     "",
-    `- Claim verdicts (S / C / N): ${input.agreement.claims ? `${input.agreement.claims.n} pairs, agreement ${pct(input.agreement.claims.agreement)}, Cohen's kappa ${num(input.agreement.claims.kappa)}` : "not available"}.`,
-    `- Refusal: ${input.agreement.refusal ? `${input.agreement.refusal.n} pairs, agreement ${pct(input.agreement.refusal.agreement)}, Cohen's kappa ${num(input.agreement.refusal.kappa)}` : "not available"}.`,
+    `- Claim verdicts (S / C / N): ${input.agreement.claims ? `${input.agreement.claims.n} pairs, agreement ${pct(input.agreement.claims.agreement)}, Cohen's kappa ${num(input.agreement.claims.kappa)}, Gwet's AC1 ${num(input.agreement.claimsAC1?.ac1 ?? null)}` : "not available"}.`,
+    `- Refusal: ${input.agreement.refusal ? `${input.agreement.refusal.n} pairs, agreement ${pct(input.agreement.refusal.agreement)}, Cohen's kappa ${num(input.agreement.refusal.kappa)}, Gwet's AC1 ${num(input.agreement.refusalAC1?.ac1 ?? null)}` : "not available"}.`,
     `- Claims the annotators disagree on: ${input.agreement.disagreements.length}; still without a final verdict: ${input.pending}.`,
     "",
   ].join("\n");

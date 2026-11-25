@@ -82,6 +82,107 @@ export function wilcoxonSignedRank(x: (number | null)[], y: (number | null)[]): 
   return { n, wPlus, wMinus, p: round(Math.min(1, 2 * (1 - normalCdf(Math.max(0, z))))), exact: false, effect };
 }
 
+// ── Cluster bootstrap (RQ2) ─────────────────────────────────────────────────────────────────────────────────────────
+// Claims and runs of one question are not independent, so intervals resample whole questions (clusters) with
+// replacement and recompute the pooled rate sum(num) / sum(den) each time; percentile intervals.
+
+/** mulberry32: a small seeded generator, so a report is the same every time it is computed. */
+export function seededRandom(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+export interface RatioCluster { num: number; den: number }
+export interface Interval { estimate: number | null; low: number | null; high: number | null }
+export interface BootstrapOptions { resamples?: number; seed?: number; level?: number }
+
+const DEFAULTS = { resamples: 10_000, seed: 20261119, level: 0.95 };
+const pooled = (xs: RatioCluster[]) => { const den = xs.reduce((s, x) => s + x.den, 0); return den ? xs.reduce((s, x) => s + x.num, 0) / den : null; };
+
+function percentiles(values: number[], level: number): [number, number] {
+  const sorted = [...values].sort((a, b) => a - b);
+  const at = (q: number) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor(q * sorted.length)))];
+  return [at((1 - level) / 2), at(1 - (1 - level) / 2)];
+}
+
+/** The pooled rate of the clusters with a percentile interval from resampling clusters; null without data. */
+export function bootstrapRatio(clusters: RatioCluster[], options: BootstrapOptions = {}): Interval {
+  const { resamples, seed, level } = { ...DEFAULTS, ...options };
+  const estimate = pooled(clusters);
+  if (estimate === null) return { estimate: null, low: null, high: null };
+  const random = seededRandom(seed);
+  const draws: number[] = [];
+  for (let r = 0; r < resamples; r++) {
+    let num = 0, den = 0;
+    for (let i = 0; i < clusters.length; i++) { const c = clusters[Math.floor(random() * clusters.length)]; num += c.num; den += c.den; }
+    if (den) draws.push(num / den);
+  }
+  const [low, high] = percentiles(draws, level);
+  return { estimate: round(estimate), low: round(low), high: round(high) };
+}
+
+/**
+ * The difference of two pooled rates (a - b) when both are measured on the same clusters (the same questions under two
+ * conditions): each resample draws clusters once and uses them for both, so the pairing is kept. `p` is two-sided:
+ * twice the smaller share of resampled differences on either side of zero, with the usual +1 correction.
+ */
+export function bootstrapRatioDifference(pairs: { a: RatioCluster; b: RatioCluster }[], options: BootstrapOptions = {}): Interval & { p: number | null } {
+  const { resamples, seed, level } = { ...DEFAULTS, ...options };
+  const pa = pooled(pairs.map(x => x.a)), pb = pooled(pairs.map(x => x.b));
+  if (pa === null || pb === null) return { estimate: null, low: null, high: null, p: null };
+  const random = seededRandom(seed);
+  const draws: number[] = [];
+  for (let r = 0; r < resamples; r++) {
+    let na = 0, da = 0, nb = 0, db = 0;
+    for (let i = 0; i < pairs.length; i++) { const c = pairs[Math.floor(random() * pairs.length)]; na += c.a.num; da += c.a.den; nb += c.b.num; db += c.b.den; }
+    if (da && db) draws.push(na / da - nb / db);
+  }
+  const [low, high] = percentiles(draws, level);
+  const below = draws.filter(d => d <= 0).length, above = draws.filter(d => d >= 0).length;
+  const p = Math.min(1, (2 * (Math.min(below, above) + 1)) / (draws.length + 1));
+  return { estimate: round(pa - pb), low: round(low), high: round(high), p: round(p) };
+}
+
+/** Holm's step-down adjustment of a family of p-values (null entries are skipped and stay null). */
+export function holm(ps: (number | null)[]): (number | null)[] {
+  const present = ps.map((p, i) => ({ p, i })).filter((x): x is { p: number; i: number } => x.p !== null).sort((a, b) => a.p - b.p);
+  const out: (number | null)[] = ps.map(() => null);
+  let running = 0;
+  present.forEach(({ p, i }, k) => { running = Math.max(running, Math.min(1, p * (present.length - k))); out[i] = round(running); });
+  return out;
+}
+
+export interface Ac1Result { n: number; agreement: number; ac1: number | null; categories: number }
+
+/**
+ * Gwet's AC1 for two raters over the same items (Gwet 2008). Chance agreement is
+ * pe = 1/(q-1) · Σ_k π_k (1 − π_k), with π_k the mean of the two raters' shares of category k and q the number of
+ * categories the scale has. Pass `categories` (e.g. ['correct', 'wrong']): q must be the size of the scale, not the
+ * number of values that happened to be used, otherwise AC1 is undefined whenever both raters used a single value.
+ * Unlike Cohen's kappa it stays interpretable when almost every item gets the same value (the kappa paradox the RQ1
+ * development set ran into: 14/16 verdicts agreed, kappa −0.07, AC1 0.86). Null without items or with q < 2.
+ */
+export function gwetAC1<T>(pairs: [T, T][], categories: readonly T[]): Ac1Result | null {
+  const n = pairs.length;
+  const scale = [...new Set([...categories, ...pairs.flat()])];
+  const q = scale.length;
+  if (n === 0 || q < 2) return null;
+  const agree = pairs.filter(([a, b]) => a === b).length / n;
+  let pe = 0;
+  for (const k of scale) {
+    const pi = (pairs.filter(([a]) => a === k).length + pairs.filter(([, b]) => b === k).length) / (2 * n);
+    pe += pi * (1 - pi);
+  }
+  pe /= q - 1;
+  return { n, agreement: round(agree), ac1: pe >= 1 ? null : round((agree - pe) / (1 - pe)), categories: q };
+}
+
 export interface KappaResult { n: number; agreement: number; kappa: number | null }
 
 /** Cohen's kappa of two annotators over the same items; null when chance agreement is already total. */

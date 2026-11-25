@@ -152,3 +152,68 @@ export function expandDelta(raw: unknown, ctx: { fileCount: number; clusters: { 
   if (unnamed.length) return { ok: false, issues: [{ code: 'M005', message: `These clusters keep files but have no entry in "clusters" or "newClusters": ${unnamed.slice(0, 8).join(', ')}.` }] };
   return { ok: true, issues, value: { components: [...groups].map(([c, files]) => ({ ...names.get(c)!, files })) } };
 }
+
+// ── Advisory audit of an accepted refinement (research audit, 2026-11-24) ─────────────────────────────────────────
+// M001-M008 check the SHAPE of an answer: well-formed, every file once, sizes, share of moved files, name/role/description
+// form. They cannot tell whether a file now sits in the right component, or whether a name describes its files: a model
+// may swap two names, or move a file to an unrelated component, and still pass every rule. The audit below adds the one
+// semantic signal that can be computed deterministically from the mined data: whether each moved file has any import
+// relation with the component it was moved to. It is ADVISORY: refine() does not call it, so the frozen method and every
+// stored result are unchanged; it is meant for the evaluation report and for human review of uncertain cases.
+
+export interface MoveAudit {
+  file: number;
+  from: number;
+  to: number;
+  /** Import edges (either direction) between the file and members of its initial cluster / of its new component. */
+  edgesToOrigin: number;
+  edgesToTarget: number;
+}
+
+export interface RefinementAudit {
+  moved: number;
+  /** Moved files with no import relation to their new component (the move rests on the model's word alone). */
+  unsupportedMoves: MoveAudit[];
+  /** Moved files with more import relations to their initial cluster than to their new component. */
+  weakerMoves: MoveAudit[];
+}
+
+/**
+ * Audits the file moves of an accepted refinement against the dependency graph. `initialCluster[f]` is the cluster file
+ * f started in; `components[i].files` are the refined components; `edges` are file-number pairs. A component's "home"
+ * cluster is the initial cluster that holds most of its files (as M004 counts moves).
+ */
+export function auditRefinement(input: { initialCluster: number[]; components: { files: number[] }[]; edges: [number, number][] }): RefinementAudit {
+  const owner = new Map<number, number>();
+  input.components.forEach((c, i) => c.files.forEach(f => owner.set(f, i)));
+  const neighbours = new Map<number, number[]>();
+  for (const [a, b] of input.edges) {
+    if (a === b) continue;
+    neighbours.set(a, [...(neighbours.get(a) ?? []), b]);
+    neighbours.set(b, [...(neighbours.get(b) ?? []), a]);
+  }
+  const home = input.components.map(c => {
+    const tally = new Map<number, number>();
+    for (const f of c.files) tally.set(input.initialCluster[f], (tally.get(input.initialCluster[f]) ?? 0) + 1);
+    return [...tally.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0];
+  });
+  const moves: MoveAudit[] = [];
+  input.components.forEach((c, ci) => {
+    for (const f of c.files) {
+      const from = input.initialCluster[f];
+      if (from === home[ci]) continue;
+      const ns = neighbours.get(f) ?? [];
+      moves.push({
+        file: f, from, to: ci,
+        edgesToOrigin: ns.filter(n => input.initialCluster[n] === from && n !== f).length,
+        edgesToTarget: ns.filter(n => owner.get(n) === ci).length,
+      });
+    }
+  });
+  moves.sort((a, b) => a.file - b.file);
+  return {
+    moved: moves.length,
+    unsupportedMoves: moves.filter(m => m.edgesToTarget === 0),
+    weakerMoves: moves.filter(m => m.edgesToTarget > 0 && m.edgesToOrigin > m.edgesToTarget),
+  };
+}

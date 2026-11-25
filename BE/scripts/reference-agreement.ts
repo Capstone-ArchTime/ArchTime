@@ -1,7 +1,10 @@
 /**
  * T1 / T6 (RF-24): agreement between two independently written reference architectures of one repository.
  *
- *   npm run reference-agreement -- --checkout <dir> --a <refA.json> --b <refB.json> [--out <report.md>]
+ *   npm run reference-agreement -- --checkout <dir> --a <refA.json> --b <refB.json> [--out <report.md>] [--csv <files.csv>]
+ *
+ * --csv writes every file the two references treat differently (covered by one only, or put in components that are not
+ * each other's best match), for the reconciliation meeting.
  *
  * The checkout must be at the commit both references name. The files compared are the repository's source files that
  * ArchTime analyses (git ls-files, JS/TS, without tests, build output and declarations), assigned to components as the
@@ -12,7 +15,8 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { isAnalyzable } from "../src/domain/architecture/buildView.js";
-import { compareReferences, parseReferenceFile, renderAgreement } from "../src/domain/evaluation/referenceAgreement.js";
+import { compareReferences, fileDisagreements, parseReferenceFile, renderAgreement } from "../src/domain/evaluation/referenceAgreement.js";
+import { toCsv } from "../src/domain/evaluation/rq1.js";
 
 const SOURCE = /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts)$/i;
 
@@ -37,6 +41,12 @@ function main() {
   const files = execFileSync("git", ["-C", o.checkout, "ls-files"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 })
     .split("\n").map(f => f.trim()).filter(f => SOURCE.test(f) && isAnalyzable(f));
   const report = renderAgreement(compareReferences(a, b, files));
+  if (o.csv) {
+    const rows = fileDisagreements(a, b, files);
+    fs.mkdirSync(path.dirname(o.csv), { recursive: true });
+    fs.writeFileSync(o.csv, toCsv(rows.length ? rows : [{ file: "", a: "", b: "", kind: "" }]));
+    console.log(`Wrote ${o.csv} (${rows.length} files)`);
+  }
   if (o.out) {
     fs.mkdirSync(path.dirname(o.out), { recursive: true });
     fs.writeFileSync(o.out, report);
