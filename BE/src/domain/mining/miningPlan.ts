@@ -141,6 +141,15 @@ export function selectPending(commits: CommitRef[], mined: MinedIndex, request: 
   });
 }
 
+/**
+ * What the automatic check mines (a `watch` job): the commits not mined yet that are newer than the newest mined one.
+ * Older gaps a maintainer left unmined on purpose stay unmined. Nothing when nothing was ever mined.
+ */
+export function selectNewCommits(commits: CommitRef[], mined: MinedIndex, newestMined: Date | null): CommitRef[] {
+  if (!newestMined) return [];
+  return selectPending(commits, mined, { mode: "remaining", force: false }).filter((c) => c.date > newestMined);
+}
+
 export function chunk<T>(items: T[], size: number): T[][] {
   const n = Math.max(1, Math.floor(size));
   const out: T[][] = [];

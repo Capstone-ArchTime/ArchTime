@@ -148,6 +148,7 @@ export const vi: Record<Exclude<MessageKey, `${string}_one`>, string> = {
   'job.kind.mine': 'Mining',
   'job.kind.abstract': 'Dựng bản đồ kiến trúc',
   'job.kind.conformance': 'Kiểm tra tuân thủ',
+  'job.kind.watch': 'Tự kiểm tra',
   'job.kind.other': 'Tác vụ nền',
   'job.done': '{what}: xong',
   'job.stopped': '{what}: đã dừng',

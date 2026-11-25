@@ -149,6 +149,7 @@ export const en = {
   'job.kind.mine': 'Mining',
   'job.kind.abstract': 'Building the architecture map',
   'job.kind.conformance': 'Conformance check',
+  'job.kind.watch': 'Automatic check',
   'job.kind.other': 'Background job',
   'job.done': '{what}: done',
   'job.stopped': '{what}: stopped',

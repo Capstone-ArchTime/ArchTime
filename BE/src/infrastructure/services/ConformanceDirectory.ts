@@ -23,9 +23,9 @@ export const mongoConformanceDirectory: NotifierDirectory = {
         : Promise.resolve([]),
     ]);
     const ids = [...new Set([project.userId, ...maintainers.map(m => m.userId), ...orgOwners.map(o => o.userId)].filter((id): id is string => !!id).map(String))];
-    const users = await UserModel.find({ _id: { $in: ids }, status: UserStatus.ACTIVE, isVerified: true }).select("email name language").lean<{ email: string; name: string; language?: string }[]>();
+    const users = await UserModel.find({ _id: { $in: ids }, status: UserStatus.ACTIVE, isVerified: true }).select("email name language").lean<{ _id: unknown; email: string; name: string; language?: string }[]>();
     const seen = new Set<string>();
     return users.filter(u => u.email && !seen.has(u.email.toLowerCase()) && seen.add(u.email.toLowerCase()))
-      .map((u): Recipient => ({ email: u.email, name: u.name, language: normalizeLanguage(u.language) }));
+      .map((u): Recipient => ({ email: u.email, name: u.name, language: normalizeLanguage(u.language), userId: String(u._id) }));
   },
 };

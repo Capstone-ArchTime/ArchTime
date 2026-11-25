@@ -31,6 +31,7 @@ const MSG = defineMessages({
   releasesStarted: 'Mining releases first.', releases: 'Releases first, then the rest', fetching: 'Fetching new commits.', checkNew: 'Check for new commits',
   batchesHint: 'Commits are analyzed in batches and saved after each one, so you can stop at any time and continue later. Each snapshot is compared with the previous mined snapshot, so mining non-adjacent ranges shows larger changes at the gaps.',
   findings: 'Conformance findings', findingsSub: 'Where mined commits break the confirmed component diagram.',
+  autoCheck: 'Once the diagram is confirmed, new commits are fetched, mined and checked automatically every {n} minutes.',
   findingsHint: 'Once the component diagram is confirmed, every mined commit is checked against it, and new findings are e-mailed to the owner and maintainers. Send them now, or open them to decide.',
   mailNew: 'E-mail new findings', openFindings: 'Open findings',
 }, {
@@ -49,6 +50,7 @@ const MSG = defineMessages({
   releasesStarted: 'Đang mining các bản phát hành trước.', releases: 'Bản phát hành trước, phần còn lại sau', fetching: 'Đang lấy commit mới.', checkNew: 'Kiểm tra commit mới',
   batchesHint: 'Commit được phân tích theo lô và lưu sau mỗi lô, nên bạn có thể dừng bất cứ lúc nào và tiếp tục sau. Mỗi ảnh chụp được so với ảnh chụp đã mining trước đó, nên mining các khoảng không liền nhau sẽ thấy thay đổi lớn hơn ở chỗ đứt quãng.',
   findings: 'Kết quả kiểm tra tuân thủ', findingsSub: 'Những chỗ commit đã mining vi phạm sơ đồ thành phần đã xác nhận.',
+  autoCheck: 'Khi sơ đồ đã được xác nhận, commit mới được tự lấy về, mining và kiểm tra mỗi {n} phút.',
   findingsHint: 'Khi sơ đồ thành phần đã được xác nhận, mọi commit đã mining đều được kiểm tra theo nó, và kết quả mới được gửi email cho chủ sở hữu và người bảo trì. Gửi ngay, hoặc mở ra để quyết định.',
   mailNew: 'Gửi email kết quả mới', openFindings: 'Mở kết quả kiểm tra',
 });
@@ -276,6 +278,7 @@ export default function MiningPanel({ project, open, onClose, onChanged }: { pro
           <div>
             <h3 className="text-sm font-semibold">{m('findings')}</h3>
             <p className="text-xs text-[var(--at-muted)] mt-1">{m('findingsSub')}</p>
+            {(overview.autoCheckMinutes ?? 0) > 0 && <p className="text-xs text-[var(--at-muted)] mt-1">{m('autoCheck', { n: overview.autoCheckMinutes! })}</p>}
             <Details className="mt-1" bodyClassName="text-xs"><p>{m('findingsHint')}</p></Details>
           </div>
           <div className="flex flex-wrap gap-2">

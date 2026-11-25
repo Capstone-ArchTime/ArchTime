@@ -264,6 +264,16 @@ a.at-404-glass:hover { background: rgb(214 225 240 / 0.12); border-color: #d3def
   to { -webkit-mask-position: 0% 0; mask-position: 0% 0; }
 }
 
+/* The notification bell (NotificationBell) swings when a notification arrives. */
+@keyframes at-bell-ring {
+  0%, 100% { transform: rotate(0); }
+  15% { transform: rotate(14deg); }
+  30% { transform: rotate(-12deg); }
+  45% { transform: rotate(8deg); }
+  60% { transform: rotate(-6deg); }
+  75% { transform: rotate(3deg); }
+}
+
 /* Folder boxes of the Compare drawing: a lighter box on hover, an outline on keyboard focus. */
 .compare-node { outline: none; }
 .compare-node:hover > rect { filter: brightness(1.25); }

@@ -17,6 +17,7 @@ import {
   parseCommitLog,
   parseTagRefs,
   redactSecret,
+  selectNewCommits,
   selectPending,
   snapshotLabel,
   TAG_REF_FORMAT,
@@ -26,6 +27,7 @@ import {
   type TagIndex,
 } from '../../domain/mining/miningPlan.js';
 import { runArchitectureJob } from './ArchitectureJob.js';
+import { watchIntervalMinutes } from './RepositoryWatcher.js';
 import { firstParentBase, type ParentIndex } from '../../domain/mining/baseline.js';
 import { MongoOrganizationCredentialRepository } from '../repositories/MongoOrganizationCredentialRepository.js';
 import { MongoProjectRepository } from '../repositories/MongoProjectRepository.js';
@@ -109,6 +111,14 @@ export class MiningService {
 
   public static async startScanJob(projectId: string, userId: string): Promise<string> {
     return this.enqueue(projectId, userId, { kind: JobKind.SCAN, stage: 'Queued for scan' });
+  }
+
+  /**
+   * The automatic check (RepositoryWatcher): fetches, mines the commits newer than the newest mined one, and then the
+   * conformance check runs with its e-mail and in-app notifications. Throws a ConflictError when the workspace is busy.
+   */
+  public static async startWatchJob(projectId: string, userId: string): Promise<string> {
+    return this.enqueue(projectId, userId, { kind: JobKind.WATCH, stage: 'Queued for the automatic check' });
   }
 
   /** Groups a snapshot into components and refines the result with the chosen (else the default) AI model. */
@@ -206,6 +216,8 @@ export class MiningService {
       remaining: history ? Math.max(0, history.totalCommits - count) : null,
       activeJob,
       lastJob,
+      // How often a confirmed workspace is checked for new commits by itself (RepositoryWatcher); 0 when off.
+      autoCheckMinutes: watchIntervalMinutes(),
     };
   }
 
@@ -364,10 +376,21 @@ export class MiningService {
         return;
       }
 
-      const request: MineRequest = { mode: job.mode ?? 'remaining', since: job.rangeSince ?? undefined, until: job.rangeUntil ?? undefined, force: !!job.force, milestonesOnly: !!job.milestonesOnly };
+      const watching = job.kind === JobKind.WATCH;
+      const request: MineRequest = watching
+        ? { mode: 'remaining', force: false }
+        : { mode: job.mode ?? 'remaining', since: job.rangeSince ?? undefined, until: job.rangeUntil ?? undefined, force: !!job.force, milestonesOnly: !!job.milestonesOnly };
       const index = await this.minedIndex(String(project._id));
       // Milestones mode mines the tagged commits first; already mined commits are never mined twice (selectPending).
-      const pending = orderForMining(selectPending(commits, index, request), tags, request);
+      // The automatic check mines only what is newer than the newest mined commit.
+      const pending = watching
+        ? selectNewCommits(commits, index, await this.newestMinedDate(String(project._id)))
+        : orderForMining(selectPending(commits, index, request), tags, request);
+      if (watching) {
+        // Nothing new: leave no trace, so a check every half hour does not fill the job lists.
+        if (!pending.length) { await MiningJobModel.deleteOne({ _id: jobId }); return; }
+        await ProjectModel.updateOne({ _id: project._id }, { $set: { status: ProjectStatus.ANALYZING } });
+      }
       const batches = chunk(pending, job.batchSize || batchSize());
       await set({ total: pending.length, batchCount: batches.length, stage: pending.length ? 'Starting analysis' : 'Nothing to mine', progress: 10 });
 
@@ -443,14 +466,16 @@ export class MiningService {
 
       // Snapshots mined before (in a gap this run filled, or under the old rule) may now have a nearer base.
       if (processedHashes.size) await this.rebaseline(project, git, commits);
-      await set({ status: JobStatus.COMPLETED, stage: failed ? `Completed with ${failed} unreadable commits` : 'Completed', progress: 100, processed, failedCommits: failed, finishedAt: new Date() });
+      // The job's kind already says "Automatic check" wherever jobs are listed.
+      const done = watching ? `${processed - failed} new commit${processed - failed === 1 ? '' : 's'} mined` : 'Completed';
+      await set({ status: JobStatus.COMPLETED, stage: failed ? `${done}, ${failed} unreadable` : done, progress: 100, processed, failedCommits: failed, finishedAt: new Date() });
       await this.settleProjectStatus(String(project._id), false);
       this.afterHistoryChange(String(project._id));
     } catch (error: any) {
       if (error instanceof CancelledError) {
         await set({ status: JobStatus.CANCELLED, stage: 'Cancelled - mined commits were kept', finishedAt: new Date() });
         await this.settleProjectStatus(String(job.projectId), false);
-        if (job.kind === JobKind.MINE) this.afterHistoryChange(String(job.projectId));
+        if (job.kind === JobKind.MINE || job.kind === JobKind.WATCH) this.afterHistoryChange(String(job.projectId));
         return;
       }
       console.error(error);
@@ -573,6 +598,12 @@ export class MiningService {
   }
 
   /** The graph of a mined commit, by full hash; legacy snapshots stored only the 7-character hash. */
+  /** The date of the newest mined commit; null when nothing was mined. */
+  private static async newestMinedDate(projectId: string): Promise<Date | null> {
+    const newest = await SnapshotModel.findOne({ projectId }).sort({ date: -1 }).select('date').lean<{ date?: Date }>();
+    return newest?.date ? new Date(newest.date) : null;
+  }
+
   private static async loadGraph(projectId: string, hash: string): Promise<Graph | null> {
     const s = (await SnapshotModel.findOne({ projectId, fullHash: hash }).select('nodes edges').lean())
       ?? (await SnapshotModel.findOne({ projectId, hash: hash.substring(0, 7) }).select('nodes edges').lean());

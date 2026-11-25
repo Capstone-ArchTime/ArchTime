@@ -9,6 +9,7 @@ import { accountMenuItems, navGroupsFor, navHeadingByRole } from './navigation';
 import { useMaintainsWorkspaces } from '@/hooks/useMaintainsWorkspaces';
 import { matchNavItem } from './nav-match';
 import BackgroundJobs from './BackgroundJobs';
+import NotificationBell from './NotificationBell';
 import { unreadMessage, useUnreadFindings } from '@/features/unread-findings';
 import { readSidebarCollapsed, SIDEBAR_EVENT, writeSidebarCollapsed } from '@/features/display-prefs';
 import { useLanguage, useT } from '@/i18n';
@@ -211,6 +212,7 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
         </div>
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <BackgroundJobs userId={user.id} />
+          <NotificationBell userId={user.id} />
           <button type="button" onClick={() => setSearchOpen(true)} aria-label={t('layout.searchPages')} aria-keyshortcuts="Control+k Meta+k" className="flex items-center gap-3 rounded-full border border-[var(--at-line)] bg-[var(--at-panel)] h-11 pl-4 pr-2.5 text-[var(--at-muted)] hover:border-[var(--at-accent)]/50 hover:text-[var(--at-text)] transition-colors">
             <Search size={18} aria-hidden="true" /><span className="hidden sm:inline text-sm sm:min-w-32 text-left">{t('layout.findPage')}</span>
             <kbd className="hidden md:inline-flex items-center rounded-md border border-[var(--at-line)] bg-[var(--at-panel-2)] px-1.5 py-0.5 font-sans text-[11px] text-[var(--at-muted)]">Ctrl K</kbd>
