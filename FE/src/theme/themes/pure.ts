@@ -1,6 +1,7 @@
 import type { DiagramTheme } from '../../features/architecture/theme.ts';
 import { DIAGRAM_MONO } from '../../features/architecture/theme.ts';
 import type { ThemeDefinition } from '../types.ts';
+import { MONO_HERO, heroDarkCss } from '../heroDark.ts';
 
 const SANS = '"Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
 const MONO = '"JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace';
@@ -49,7 +50,7 @@ export const pureTheme: ThemeDefinition = {
     'chrome-blur': 'blur(12px)',
     // Pictures drawn for a dark page become soft grey prints on white.
     'illustration-filter': 'grayscale(1) invert(0.94) contrast(1.02)',
-    'film-blend': 'multiply', 'film-filter': 'grayscale(1) brightness(1.2) contrast(1.05)', 'film-opacity': '0.2',
+    'film-blend': 'normal', 'film-filter': 'none', 'film-opacity': '1',
     'color-scheme': 'light',
     'floor-color': '#ffffff',
     // Only a breath of light at the top, so the white has depth without a texture.
@@ -86,6 +87,8 @@ export const pureTheme: ThemeDefinition = {
     return [
       `${link} { text-decoration-line: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-color: rgb(24 24 27 / 0.3); }`,
       `${link}:hover { text-decoration-color: currentColor; }`,
+      // The landing hero stays dark, so the film shows whole and in its own colours.
+      heroDarkCss(MONO_HERO),
     ].join('\n');
   })(),
 };

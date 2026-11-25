@@ -14,6 +14,7 @@ import { checkNewPassword } from '@/features/profile-validation';
 import { deadlineFrom, rememberOtpDeadline } from '@/features/otp-countdown';
 import { translate, useLanguage, useT } from '@/i18n';
 import LanguageSwitch from '@/components/LanguageSwitch';
+import ThemeSwitch from '@/components/ThemeSwitch';
 import { fontFamily } from '@/theme/fonts';
 
 
@@ -156,7 +157,7 @@ const AuthPage: React.FC = () => {
         <div className="flex-1 flex flex-col p-6 lg:p-10 xl:px-12 xl:py-8 max-w-xl w-full mx-auto justify-between">
 
           {/* Header & Logo */}
-          <div className="mb-8 flex shrink-0 items-start justify-between gap-4"><Logo tagline={t('auth.tagline')} /><LanguageSwitch /></div>
+          <div className="mb-8 flex shrink-0 items-start justify-between gap-4"><Logo tagline={t('auth.tagline')} /><div className="flex items-center gap-2"><ThemeSwitch /><LanguageSwitch /></div></div>
 
           {/* Mobile-only compact value prop (Right Panel's content is md:flex only) */}
           <div className="md:hidden mb-8 shrink-0 border border-[var(--at-line)] bg-[var(--at-panel)]/60 p-4">

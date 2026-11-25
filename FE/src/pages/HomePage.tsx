@@ -9,6 +9,7 @@ import { Logo } from "@/components/Logo";
 import { roleHome } from "@/auth/permissions";
 import { useT } from "@/i18n";
 import LanguageSwitch from "@/components/LanguageSwitch";
+import ThemeSwitch from "@/components/ThemeSwitch";
 import { fontFamily } from "@/theme/fonts";
 
 const AccountMenu = lazy(() => import('@/components/AccountMenu'));
@@ -202,7 +203,7 @@ export default function HomePage() {
       </div>
 
       <motion.nav
-        className="fixed left-0 top-0 z-50 flex w-full items-center border-b transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300"
+        className={`${navScrolled ? '' : 'at-hero '}fixed left-0 top-0 z-50 flex w-full items-center border-b transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300`}
         animate={{
           height: navScrolled ? 64 : 80,
           backgroundColor: navScrolled ? "var(--at-chrome)" : "rgba(0, 0, 0, 0)",
@@ -233,6 +234,7 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center gap-4">
+            <ThemeSwitch />
             <LanguageSwitch />
             {authLoading ? (
               <span role="status" aria-label={t("home.loadingAccount")} className="h-10 w-10 animate-pulse rounded-full border border-[var(--at-line)] bg-[var(--at-panel)] motion-reduce:animate-none" />
@@ -337,7 +339,8 @@ export default function HomePage() {
         </AnimatePresence>
       </motion.nav>
 
-      <header className="relative flex min-h-screen items-center justify-center overflow-hidden pt-20">
+      {/* .at-hero: a light theme keeps this stage dark (src/theme/heroDark.ts), so the film shows whole and in colour. */}
+      <header className="at-hero at-hero-stage relative flex min-h-screen items-center justify-center overflow-hidden pt-20 text-[var(--at-text)]">
         <div className="absolute inset-0 z-0">
           <video
             ref={heroVideoRef}
@@ -350,7 +353,8 @@ export default function HomePage() {
           >
             <source src="/video.mp4" type="video/mp4" />
           </video>
-          <div className="absolute inset-0 bg-gradient-to-t from-[var(--at-page)] via-[var(--at-page)]/5 to-transparent" />
+          {/* The film keeps its own colours in every theme; this veil of the theme's floor keeps the words readable. */}
+          <div aria-hidden="true" className="at-film-veil absolute inset-0" />
         </div>
 
         <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-12 px-6 py-12 lg:grid-cols-12">

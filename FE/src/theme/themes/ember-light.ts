@@ -1,5 +1,6 @@
 import type { ThemeDefinition } from '../types.ts';
 import { EMBER_LIGHT_DIAGRAM, emberTheme } from './ember.ts';
+import { heroDarkCss } from '../heroDark.ts';
 
 /**
  * Ember light: the same study desk by day. Warm cream paper with a faint grid, off-white cards with a thin beige line
@@ -30,7 +31,7 @@ export const emberLightTheme: ThemeDefinition = {
     'shadow-overlay': 'inset 0 1px 0 rgb(255 255 255 / 0.75), 0 2px 4px rgb(74 58 40 / 0.06), 0 30px 60px -22px rgb(74 58 40 / 0.45)',
     // Pictures drawn for a dark page turn into warm light prints.
     'illustration-filter': 'invert(0.9) hue-rotate(180deg) sepia(0.15)',
-    'film-blend': 'multiply', 'film-filter': 'saturate(0.55) contrast(1.1) brightness(1.15)', 'film-opacity': '0.3',
+    'film-blend': 'normal', 'film-filter': 'none', 'film-opacity': '1',
     'color-scheme': 'light',
     'floor-color': '#f7f4ee',
     'floor-image': [
@@ -58,4 +59,10 @@ export const emberLightTheme: ThemeDefinition = {
     },
   },
   diagram: { dark: EMBER_LIGHT_DIAGRAM, light: EMBER_LIGHT_DIAGRAM },
+  // The landing hero is Ember's dark desk, so the film shows whole and in its own colours; the coral action stays.
+  css: heroDarkCss({
+    floor: '#0b0c0e', text: '#f2f0eb', strong: '#ffffff', muted: '#c8c5bf', link: '#f6ab98', linkHover: '#fcd2c6',
+    fill: '#c94d33', fillHover: '#b8432b', onFill: '#ffffff', accent: '#e8694e',
+    headline: 'linear-gradient(to right, #f2f0eb, #f6ab98, #e8694e)', highlight: '#e8694e',
+  }),
 };
