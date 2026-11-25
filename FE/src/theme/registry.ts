@@ -7,13 +7,14 @@ import { frostTheme } from './themes/frost.ts';
 import { inkTheme } from './themes/ink.ts';
 import { emberTheme } from './themes/ember.ts';
 import { emberLightTheme } from './themes/ember-light.ts';
+import { pureTheme } from './themes/pure.ts';
 
 /** The look of every :root variable; worn by a guarded page before the session is known. */
 export const BASE_THEME = consoleTheme;
 /** The look people get until they pick another. */
 export const DEFAULT_CHOICE = emberTheme.id;
 
-export const THEMES: readonly ThemeDefinition[] = [consoleTheme, emberTheme, emberLightTheme, frostTheme, inkTheme];
+export const THEMES: readonly ThemeDefinition[] = [consoleTheme, emberTheme, emberLightTheme, pureTheme, frostTheme, inkTheme];
 
 /** The themes offered in the picker, in order. */
 export const SELECTABLE_THEMES = THEMES.filter(theme => theme.selectable);

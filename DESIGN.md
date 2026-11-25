@@ -311,6 +311,17 @@ The background carries three four-point stars and two thin hanging light lines a
 - **Status:** deep shades: `#15803d`, `#b91c1c`, `#7a4f00`.
 - **Pictures:** the landing film fades into the paper; the sign-in illustration is inverted into a light print.
 
+### Pure white
+
+**Pure white** (`FE/src/theme/themes/pure.ts`, "Trắng tinh khôi") is a monochrome light look, picked in the same menu: nothing but white, near-black ink and cool greys.
+
+- **Floor:** pure white `#ffffff`, no texture; only a breath of light grey at the top.
+- **Surfaces:** the sidebar, the page and every card are `#ffffff` (nested `#fafafa`), told apart by hairline edges `#ececef` / `#e8e8ec` and the softest of shadows. Overlays are white with a 1px veil edge.
+- **Text:** zinc ink `#18181b`, strongest `#09090b`, secondary `#52525b` (7:1 on white). Inter, tight headings, 15px body.
+- **Accent:** none. The main action is a black pill (`#18181b`, white text); selected chips and the segmented control are black. Links are ink too, so a plain text link carries a fine underline (not navigation, button-shaped links or names).
+- **Status:** the deep shades only: `#15803d`, `#b91c1c`, `#854d0e`.
+- **Pictures:** grey prints (the film and illustrations in greyscale); the brand glint sweeps as a silver halo (`glow` `#a1a1aa`).
+
 ## Second Look: Halftone Ink
 
 People can switch from Frost to **Halftone Ink** in the account menu (Theme). The choice is kept per browser and applies to the public pages and every signed-in role (`FE/src/theme/themes/ink.ts`). It is a light print look: black ink on paper, like a halftone poster.
