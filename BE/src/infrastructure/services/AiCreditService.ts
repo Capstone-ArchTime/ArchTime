@@ -15,7 +15,15 @@ const enforcementOff = () => process.env.AI_CREDIT_ENFORCE === "false";
 let cached: { at: number; value: BillingSettings } | null = null;
 /** How long an organization invitation holds a seat and can be accepted; the same 7 days as project invitations by default. */
 export const invitationTtlMs = () => Math.max(1, Number(process.env.ORG_INVITATION_TTL_DAYS ?? "7") || 7) * 86_400_000;
-const personalFilter = { $or: [{ organizationId: null }, { organizationId: { $exists: false } }] };
+/** Deep equality of two settings objects, ignoring the order of keys. */
+const sameValues = (a: unknown, b: unknown): boolean => {
+  if (a === b) return true;
+  if (!a || !b || typeof a !== "object" || typeof b !== "object") return false;
+  const ka = Object.keys(a as object).filter(k => (a as any)[k] !== undefined).sort();
+  const kb = Object.keys(b as object).filter(k => (b as any)[k] !== undefined).sort();
+  return ka.length === kb.length && ka.every((k, i) => k === kb[i] && sameValues((a as any)[k], (b as any)[k]));
+};
+const personalFilter ={ $or: [{ organizationId: null }, { organizationId: { $exists: false } }] };
 
 /**
  * Plans and AI credit of spaces (FE-17): the catalog, how much a space has spent this month, refusing an AI run when
@@ -42,7 +50,12 @@ export class AiCreditService {
 
   static async saveSettings(settings: BillingSettings, by: string): Promise<BillingSettings> {
     // Each change gets a new version number; orders keep the version they were priced with. Paid orders keep their amounts.
-    const { version: _ignored, updatedAt: _u, ...values } = settings as BillingSettings & { updatedAt?: Date };
+    const { version: _ignored, updatedAt: _u, updatedBy: _b, ...values } = settings as BillingSettings & { updatedAt?: Date; updatedBy?: string };
+    // Saving the same values again is not a new catalog: the version only moves when something changed.
+    const { version: _cv, updatedAt: _cu, updatedBy: _cb, ...current } = (await this.settings()) as BillingSettings & { updatedAt?: Date; updatedBy?: string };
+    if (sameValues(values, current)) return this.settings();
+    // A catalog saved before versioning has no version field (read as 1): give it 1 first, so this change becomes 2.
+    await BillingSettingsModel.updateOne({ version: { $exists: false } }, { $set: { version: 1 } });
     await BillingSettingsModel.findOneAndUpdate({}, { $set: { ...values, updatedBy: by }, $inc: { version: 1 } }, { upsert: true });
     cached = null;
     return this.settings();

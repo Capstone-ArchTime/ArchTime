@@ -78,6 +78,12 @@ export const BILL = defineMessages({
   creditSub: '{used} / {included} monthly used', addSeatsHint: '{price} per seat per {period}, charged only for the days left',
   topupHintShort: '{price} per {count} credits · never expires · used after the monthly credit', buyCredits: 'Buy {count} credits',
   showPlans: 'Compare plans', hidePlans: 'Hide plans',
+  catalogVersion: 'Version {version}', catalogUpdated: 'updated {date}', catalogVersionHint: 'Each saved change creates a new version. Orders keep the version and amount they were priced with; paid orders never change.',
+  prorationTitle: 'Price of seats added mid-period', prorationPending: 'Waiting for the Product Owner',
+  prorationLatest: 'Latest period (current behaviour)', prorationSegment: 'Each paid period at its own price',
+  prorationLatestHint: 'Seat price of the period bought last × days left ÷ days of that period. When a yearly plan was renewed early with a month, all days left are priced at the monthly rate.',
+  prorationSegmentHint: 'Each paid period still to run is priced at the seat price paid for it (the rest of the year at the yearly rate, then the month at the monthly rate). Spaces with no recorded periods keep using the latest period.',
+  prorationWarn: 'This changes the price of new add-seat orders only. Turn it on after the Product Owner has approved the policy.',
 }, {
   title: 'Gói & thanh toán', intro: 'Gói của bạn, AI credit còn lại trong tháng và các lần thanh toán.',
   details: 'Các chức năng AI (tinh chỉnh kiến trúc, câu trả lời của mentor, giải thích finding) trừ AI credit của không gian chứa workspace: trước hết là credit của tháng, sau đó tới credit nạp thêm. Một credit xấp xỉ một câu trả lời của mentor. Các gói trả trước, không tự động trừ tiền. Hết hạn gói thì không gian về gói Free và vẫn giữ nguyên dữ liệu.',
@@ -147,4 +153,10 @@ export const BILL = defineMessages({
   creditSub: 'Tháng này: {used} / {included}', addSeatsHint: '{price} mỗi seat mỗi {period}, chỉ tính cho số ngày còn lại',
   topupHintShort: '{price} mỗi {count} credit · không hết hạn · dùng sau credit tháng', buyCredits: 'Mua {count} credit',
   showPlans: 'Xem các gói', hidePlans: 'Ẩn các gói',
+  catalogVersion: 'Phiên bản {version}', catalogUpdated: 'cập nhật {date}', catalogVersionHint: 'Mỗi lần lưu thay đổi tạo một phiên bản mới. Đơn hàng giữ phiên bản và số tiền lúc tạo; đơn đã thanh toán không bao giờ đổi.',
+  prorationTitle: 'Giá seat thêm giữa kỳ', prorationPending: 'Chờ Product Owner quyết định',
+  prorationLatest: 'Theo kỳ mua gần nhất (hiện tại)', prorationSegment: 'Mỗi kỳ đã trả tính theo giá của kỳ đó',
+  prorationLatestHint: 'Giá seat của kỳ mua gần nhất × số ngày còn lại ÷ số ngày của kỳ đó. Nếu gói năm được gia hạn sớm thêm một tháng, toàn bộ số ngày còn lại tính theo giá tháng.',
+  prorationSegmentHint: 'Mỗi kỳ đã trả còn lại tính theo giá seat đã trả cho kỳ đó (phần còn lại của năm theo giá năm, rồi tháng theo giá tháng). Không gian chưa có dữ liệu kỳ vẫn tính theo kỳ gần nhất.',
+  prorationWarn: 'Chỉ đổi giá của các đơn thêm seat mới. Chỉ bật sau khi Product Owner đã duyệt chính sách.',
 });

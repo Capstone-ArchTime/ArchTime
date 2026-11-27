@@ -91,7 +91,13 @@ export async function forwardGatewayReturn(gateway: 'momo' | 'vnpay', fields: Re
 
 // ── administrators ──
 
-export type BillingSettings = Catalog & { creditUnitUsd: number; enforce: boolean; updatedAt?: string; updatedBy?: string };
+/** How a seat added mid-period is priced: the latest period's rate, or each paid period at its own rate (PO decision pending). */
+export type SeatProration = 'latest-period' | 'per-segment';
+export type BillingSettings = Catalog & {
+  creditUnitUsd: number; enforce: boolean; seatProration?: SeatProration;
+  /** Catalog version, raised by the server on every change; orders keep the version they were priced with. */
+  version?: number; updatedAt?: string; updatedBy?: string;
+};
 
 export async function getBillingSettings(signal?: AbortSignal): Promise<BillingSettings> {
   return (await apiRequest<Envelope<BillingSettings>>('/admin/billing/settings', { signal })).data;

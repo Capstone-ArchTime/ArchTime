@@ -3,7 +3,7 @@ import { Alert, App, Button, InputNumber, Select, Skeleton, Switch, Table, Tag }
 import FeaturePage, { featurePanel } from '@/components/FeaturePage';
 import {
   formatVnd, getBillingSettings, listOrders, reconcilePayments, saveBillingSettings,
-  type BillingSettings, type Gateway, type Order, type OrderPage,
+  type BillingSettings, type Gateway, type Order, type OrderPage, type SeatProration,
 } from '@/features/billing-api';
 import { formatDateTime } from '@/i18n/format';
 import { useMessages } from '@/i18n/define';
@@ -64,7 +64,12 @@ function SettingsForm() {
   );
   return (
     <section className={`${featurePanel} space-y-3`} aria-label={m('settings')}>
-      <h3 className="font-medium">{m('settings')}</h3>
+      <div className="flex flex-wrap items-center gap-2">
+        <h3 className="font-medium">{m('settings')}</h3>
+        <Tag color="blue">{m('catalogVersion', { version: s.version ?? 1 })}</Tag>
+        {s.updatedAt && <span className="text-xs text-[var(--at-muted)]">{m('catalogUpdated', { date: formatDateTime(s.updatedAt) })}</span>}
+      </div>
+      <p className="text-xs text-[var(--at-muted)]">{m('catalogVersionHint')}</p>
       <div className="grid gap-3 lg:grid-cols-2">
         {box(m('sPersonalFree'), [field('personalFree', 'workspaces', m('workspacesLimit')), field('personalFree', 'credits', m('creditsMonth'), 50)])}
         {box(m('sPro'), [field('pro', 'monthVnd', m('priceMonth'), 1000), field('pro', 'yearVnd', m('priceYear'), 1000), field('pro', 'credits', m('creditsMonth'), 100)])}
@@ -76,6 +81,17 @@ function SettingsForm() {
             <InputNumber min={0.000001} step={0.0005} style={{ width: '100%' }} value={s.creditUnitUsd} onChange={v => setS({ ...s, creditUnitUsd: Number(v) || 0 })} />
           </label>
           <label className="flex items-center gap-2 text-sm"><Switch checked={s.enforce} onChange={enforce => setS({ ...s, enforce })} />{m('enforce')}</label>
+        </div>
+        <div className="space-y-2 rounded border border-[var(--at-line)] p-3 lg:col-span-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h4 className="text-sm font-medium">{m('prorationTitle')}</h4>
+            <Tag color="gold">{m('prorationPending')}</Tag>
+          </div>
+          <Select<SeatProration> value={s.seatProration ?? 'latest-period'} style={{ width: '100%', maxWidth: 420 }} aria-label={m('prorationTitle')}
+            onChange={seatProration => setS({ ...s, seatProration })}
+            options={[{ value: 'latest-period', label: m('prorationLatest') }, { value: 'per-segment', label: m('prorationSegment') }]} />
+          <p className="text-xs text-[var(--at-muted)]">{(s.seatProration ?? 'latest-period') === 'per-segment' ? m('prorationSegmentHint') : m('prorationLatestHint')}</p>
+          {(s.seatProration ?? 'latest-period') === 'per-segment' && <Alert type="warning" showIcon title={m('prorationWarn')} />}
         </div>
       </div>
       <Button type="primary" loading={saving} onClick={save}>{m('save')}</Button>
