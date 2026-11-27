@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useMemo } from 'react';
+﻿import { lazy, Suspense, useEffect, useLayoutEffect, useMemo } from 'react';
 import { App as AntApp, ConfigProvider } from 'antd';
 import { useLanguage } from '@/i18n';
 import { antdLocaleFor } from '@/i18n/antd-locale';
@@ -44,6 +44,10 @@ const MiningJobsMonitor = lazy(() => import("@/pages/system-administrator/Mining
 const AiModels = lazy(() => import("@/pages/system-administrator/AiModels"));
 const AiMetrics = lazy(() => import("@/pages/system-administrator/AiMetrics"));
 const AiUsage = lazy(() => import("@/pages/developer-analyst/AiUsage"));
+const Billing = lazy(() => import("@/pages/billing/Billing"));
+const BillingResult = lazy(() => import("@/pages/billing/Billing").then(mod => ({ default: mod.BillingResult })));
+const BillingSimulator = lazy(() => import("@/pages/billing/Billing").then(mod => ({ default: mod.BillingSimulator })));
+const BillingAdmin = lazy(() => import("@/pages/system-administrator/BillingAdmin"));
 const Learning = lazy(() => import("@/pages/developer-analyst/Learning"));
 const LearningPath = lazy(() => import("@/pages/developer-analyst/LearningPath"));
 const PathEditor = lazy(() => import("@/pages/developer-analyst/PathEditor"));
@@ -106,6 +110,9 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path="/propose-change" element={<ProposeChange />} />
       <Route path="/reports" element={<ProjectMaintainerReports />} />
       <Route path="/ai-usage" element={<AiUsage />} />
+            <Route path="/billing" element={<Billing />} />
+            <Route path="/billing/result" element={<BillingResult />} />
+            <Route path="/billing/simulator" element={<BillingSimulator />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/my-work" element={<MyWork />} />
       <Route path="/settings" element={<Settings />} />
@@ -128,6 +135,7 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path="/system-administrator" element={<SystemAdministratorDashboard />} />
       <Route path="/system-administrator/users" element={<UserManagement />} />
       <Route path="/system-administrator/organizations" element={<AdminOrganizations />} />
+            <Route path="/system-administrator/billing" element={<BillingAdmin />} />
       <Route path="/system-administrator/audit-log" element={<AuditLog />} />
       <Route path="/system-administrator/settings" element={<SystemSettings />} />
       <Route path="/system-administrator/mining-jobs" element={<MiningJobsMonitor />} />

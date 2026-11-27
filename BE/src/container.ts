@@ -1,4 +1,10 @@
-import { ViewerAccessUseCase } from "./application/use-cases/projects/ViewerAccessUseCase.js";
+import { ProjectModel } from "./infrastructure/database/models/ProjectModel.js";
+import { BillingUseCases, type PaymentGateway } from "./application/use-cases/billing/BillingUseCases.js";
+import type { Gateway } from "./domain/billing/billing.js";
+import { MomoGateway, SimulatorGateway, VnpayGateway } from "./infrastructure/billing/gateways.js";
+import { MongoOrderStore, mongoAccountStore, mongoSettingsStore } from "./infrastructure/repositories/MongoBillingStores.js";
+import { AiCreditService, invitationTtlMs } from "./infrastructure/services/AiCreditService.js";
+import { BillingController } from "./presentation/controllers/BillingController.js";import { ViewerAccessUseCase } from "./application/use-cases/projects/ViewerAccessUseCase.js";
 import { env } from "./config/env.js";
 
 // ── Infrastructure ──
@@ -83,16 +89,21 @@ export const projectAccessPolicy = new ProjectAccessPolicy(projectRepository, me
 const bcryptHasher = new BcryptHasher();
 
 // ── Organizations ──
-const organizationUseCases = new OrganizationUseCases(organizationRepository, userRepository, projectRepository, memberRepository, new MongoPendingInvitationStore());
+const organizationUseCases = new OrganizationUseCases(organizationRepository, userRepository, projectRepository, memberRepository, new MongoPendingInvitationStore(),
+  (organizationId, insert) => AiCreditService.reserveSeat(organizationId, insert), invitationTtlMs());
 const organizationCredentialUseCases = new OrganizationCredentialUseCases(organizationUseCases, organizationCredentialRepository, projectRepository);
-export const organizationController = new OrganizationController(organizationUseCases, organizationCredentialUseCases);
+export const organizationController = new OrganizationController(organizationUseCases, organizationCredentialUseCases, async organizationId => {
+  const projects = await ProjectModel.find({ organizationId }).select("name").sort({ name: 1 }).lean<{ _id: unknown; name: string }[]>();
+  return onboardingPathUseCases.organizationProgress(projects.map(p => ({ id: String(p._id), name: p.name })));
+});
 
 // ── Onboarding paths ──
 const onboardingPaths = new MongoPathStore();
 const onboardingAssignments = new MongoAssignmentStore();
 const onboardingDeps = createOnboardingDeps(memberRepository, organizationRepository);
+const onboardingPathUseCases = new OnboardingPathUseCases(onboardingPaths, onboardingAssignments, onboardingDeps);
 export const onboardingController = new OnboardingController(
-  new OnboardingPathUseCases(onboardingPaths, onboardingAssignments, onboardingDeps),
+  onboardingPathUseCases,
   new OnboardingLearningUseCases(onboardingPaths, onboardingAssignments, onboardingDeps),
 );
 const jwtTokenService = new JwtTokenService(
@@ -107,6 +118,53 @@ const emailService = new NodemailerEmailService(
   env.smtpUser,
   env.smtpPass,
 );
+
+// ── Plans, AI credit & payments (FE-17) ──
+const billingGateways: Partial<Record<Gateway, PaymentGateway>> = {};
+const momoKeys = env.momo.partnerCode && env.momo.accessKey && env.momo.secretKey ? { partnerCode: env.momo.partnerCode, accessKey: env.momo.accessKey, secretKey: env.momo.secretKey } : undefined;
+const vnpayKeys = env.vnpay.tmnCode && env.vnpay.hashSecret ? { tmnCode: env.vnpay.tmnCode, hashSecret: env.vnpay.hashSecret } : undefined;
+// The gateways need absolute addresses: MoMo posts its IPN to the API, and both send the buyer back to the web client.
+const webUrl = env.corsOrigin.split(",")[0].trim().replace(/\/+$/, "");
+if (momoKeys) billingGateways.momo = new MomoGateway(momoKeys, env.momo.endpoint, `${env.publicApiUrl.replace(/\/+$/, "")}/billing/momo/ipn`);
+if (vnpayKeys) billingGateways.vnpay = new VnpayGateway(vnpayKeys, env.vnpay.payUrl, env.vnpay.apiUrl);
+if (env.billingSimulator) billingGateways.simulator = new SimulatorGateway(webUrl);
+export const billingUseCases = new BillingUseCases({
+  orders: new MongoOrderStore(), accounts: mongoAccountStore, settings: mongoSettingsStore, gateways: billingGateways,
+  usedThisMonth: (space, now) => AiCreditService.usedThisMonth(space, now),
+  usage: space => AiCreditService.usage(space),
+  billingContacts: async space => {
+    const ids = space.kind === "personal" ? [space.userId]
+      : (await organizationRepository.listMembers(space.organizationId)).filter(m => m.role === "owner" && m.status !== "invited").map(m => m.userId);
+    const users = await Promise.all(ids.map(id => userRepository.findById(id)));
+    return users.filter((u): u is NonNullable<typeof u> => !!u).map(u => ({ email: u.email, name: u.name }));
+  },
+  requireOrganizationOwner: async (organizationId, userId) => { await organizationUseCases.requireOwner(organizationId, userId); },
+  isOrganizationMember: async (organizationId, userId) => !!(await organizationRepository.findMember(organizationId, userId)),
+  organizationName: async organizationId => (await organizationRepository.findById(organizationId))?.name ?? null,
+  userContact: async userId => { const u = await userRepository.findById(userId); return u ? { email: u.email, name: u.name } : null; },
+  sendMail: (to, mail) => emailService.sendNotification(to, mail),
+  returnUrl: `${webUrl}/billing/result`,
+  billingUrl: `${webUrl}/billing`,
+  now: () => new Date(),
+});
+/** Which payment methods are on, sandbox or live, and settings that would stop real payments from completing. */
+export function billingGatewayReport(): string[] {
+  const local = (url: string) => /\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(url);
+  const lines: string[] = [];
+  if (momoKeys) lines.push(`[billing] MoMo on, ${/test-payment\.momo\.vn/.test(env.momo.endpoint) ? "SANDBOX" : "LIVE"} (${env.momo.endpoint}); IPN ${env.publicApiUrl}/billing/momo/ipn`);
+  if (vnpayKeys) lines.push(`[billing] VNPay on, ${/sandbox\.vnpay(ment|test)\.vn/.test(env.vnpay.payUrl) ? "SANDBOX" : "LIVE"} (${env.vnpay.payUrl}); set the IPN URL ${env.publicApiUrl}/billing/vnpay/ipn in the VNPay merchant portal`);
+  if (env.billingSimulator) lines.push("[billing] Test gateway on (BILLING_SIMULATOR=true): nothing is charged");
+  if (!lines.length) lines.push("[billing] No payment method configured: set MOMO_* or VNPAY_* in .env");
+  if ((momoKeys || vnpayKeys) && local(env.publicApiUrl)) {
+    lines.push("[billing] PUBLIC_API_URL is a local address: gateways cannot send IPNs here; payments are settled from the return page and by reconciliation instead");
+  }
+  if ((momoKeys || vnpayKeys) && local(webUrl) && process.env.NODE_ENV === "production") {
+    lines.push("[billing] WARNING: CORS_ORIGIN (the return address) is local in production");
+  }
+  return lines;
+}
+
+export const billingController = new BillingController(billingUseCases, { momo: momoKeys, vnpay: vnpayKeys, simulator: env.billingSimulator });
 
 // ─────────────────────────────────────────
 // Use Cases
@@ -150,6 +208,7 @@ const registerProjectUseCase = new RegisterProjectUseCase(
     requireOwner: (organizationId, userId) => organizationUseCases.requireOwner(organizationId, userId),
     requireCredential: (organizationId, credentialId) => organizationCredentialUseCases.requireCredential(organizationId, credentialId),
   },
+  userId => AiCreditService.assertCanAddWorkspace(userId),
 );
 const getAllProjectsUseCase = new GetAllProjectsUseCase(
   projectRepository,
@@ -368,6 +427,7 @@ export const projectChatController = new ProjectChatController(new ProjectChatUs
 const conformanceRepository = new MongoConformanceRepository();
 /** The configured model; each explanation is logged as an AI run of the project, as a mentor answer is. */
 const explainModel = async (projectId: string, userId: string) => {
+  await AiCreditService.assertAvailable(projectId);
   const resolved = await LlmModelRegistry.resolve();
   return {
     client: resolved.client,

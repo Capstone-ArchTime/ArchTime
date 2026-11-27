@@ -1,3 +1,4 @@
+﻿import { AiCreditService } from "../../../infrastructure/services/AiCreditService.js";
 import { LlmRunModel } from "../../../infrastructure/database/models/LlmRunModel.js";
 import { viewerAccessOf } from "../../../domain/entities/Project.js";
 import { ForbiddenError } from "../../../shared/errors/AppError.js";
@@ -192,6 +193,7 @@ export class ProjectChatUseCase {
       ...turns,
     ];
 
+    await AiCreditService.assertAvailable(projectId); // FE-17: no AI credit left, no answer
     const resolved = await LlmModelRegistry.resolve();
     // One answer can take more than one provider request (a retry, a dropped option) and each one that got through is billed.
     const usages: LlmUsage[] = [];

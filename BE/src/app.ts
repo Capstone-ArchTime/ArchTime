@@ -1,4 +1,4 @@
-import express from "express";
+﻿import express from "express";
 import cors from "cors";
 import { env } from "./config/env.js";
 import { notFoundHandler } from "./presentation/middlewares/notFoundHandler.js";
@@ -27,7 +27,9 @@ import {
   onboardingController,
   rateLimiter,
   taskUseCases,
+  billingController,
 } from "./container.js";
+import { createAdminBillingRouter, createBillingRouter } from "./presentation/routes/billing.routes.js";
 import { createTaskRouter } from "./presentation/routes/task.routes.js";
 import { createOrganizationRouter } from "./presentation/routes/organization.routes.js";
 import { createRevisionRouter } from "./presentation/routes/revision.routes.js";
@@ -98,6 +100,8 @@ app.get(
 );
 app.use("/api/llm", createLlmRouter(llmController, jwtTokenService));
 app.use("/api/organizations", createOrganizationRouter(organizationController, jwtTokenService));
+app.use("/api/billing", createBillingRouter(billingController, jwtTokenService));
+app.use("/api/admin/billing", createAdminBillingRouter(billingController, jwtTokenService));
 app.use("/api/admin", createAdminRouter(adminControllersConfig, jwtTokenService));
 
 // ── Error Handling ──

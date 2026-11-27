@@ -1,4 +1,4 @@
-// English, the source language: every key exists here, and vi.ts must translate each one (TypeScript checks it).
+﻿// English, the source language: every key exists here, and vi.ts must translate each one (TypeScript checks it).
 // Keys are grouped by area. `_one` / `_other` pairs are English plural forms (see translate() in ../index.ts).
 // Kept in English in every language on purpose: Git, commit, AST, FACT / INFERENCE / UNKNOWN, and code-like text.
 
@@ -211,6 +211,8 @@ export const en = {
   'nav:/profile': 'My profile',
   'nav:/settings': 'Settings',
   'nav:/ai-usage': 'AI Usage',
+  'nav:/billing': 'Plans & billing',
+  'nav:/system-administrator/billing': 'Plans & Payments',
   'navTab:/project-maintainer': 'Overview',
   'navTab:/project-maintainer/conformance': 'Conformance',
   'navGroup:Analyze': 'Analyze',

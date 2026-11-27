@@ -1,4 +1,4 @@
-import type { IProjectRepository } from "../../../domain/interfaces/IProjectRepository.js";
+﻿import type { IProjectRepository } from "../../../domain/interfaces/IProjectRepository.js";
 import type { IProjectMemberRepository } from "../../../domain/interfaces/IProjectMemberRepository.js";
 import type { IUserRepository } from "../../../domain/interfaces/IUserRepository.js";
 import {
@@ -38,6 +38,8 @@ export class RegisterProjectUseCase {
     private readonly memberRepository?: IProjectMemberRepository,
     private readonly userRepository?: IUserRepository,
     private readonly organizationAccess?: ProjectOrganizationAccess,
+    /** FE-17: refuses a personal workspace beyond what the owner's plan allows. */
+    private readonly canAddPersonalWorkspace?: (userId: string) => Promise<void>,
   ) {}
 
   async execute(req: RegisterProjectRequest): Promise<IProject> {
@@ -57,6 +59,7 @@ export class RegisterProjectUseCase {
 
     const organizationId = typeof req.organizationId === "string" && req.organizationId ? req.organizationId : undefined;
     const credentialId = typeof req.credentialId === "string" && req.credentialId ? req.credentialId : undefined;
+    if (!organizationId && this.canAddPersonalWorkspace) await this.canAddPersonalWorkspace(req.userId);
     if (credentialId && !organizationId) {
       throw new BadRequestError("credentialId needs organizationId: credentials belong to an organization.", "VALIDATION_ERROR");
     }

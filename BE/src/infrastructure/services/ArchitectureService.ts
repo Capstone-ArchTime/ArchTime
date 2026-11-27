@@ -1,3 +1,4 @@
+﻿import { AiCreditService } from "./AiCreditService.js";
 import mongoose from "mongoose";
 import { SnapshotModel } from "../database/models/SnapshotModel.js";
 import { EvidenceModel } from "../database/models/EvidenceModel.js";
@@ -234,6 +235,8 @@ export class ArchitectureService {
     options: ArchitectureOptions = {},
     context: RefineRunContext = {},
   ): Promise<ArchitecturePayload> {
+    // FE-17: a space with no AI credit left gets no refinement (benchmarks of administrators are not charged).
+    if ((context.purpose ?? "user") === "user") await AiCreditService.assertAvailable(projectId);
     const resolved = await LlmModelRegistry.resolve(context.modelId);
     const started = Date.now();
     await hooks.onProgress?.("Grouping files by their dependencies", 5);
