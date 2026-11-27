@@ -2,7 +2,7 @@
 import type { ElementType, KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { App, Button, Drawer, Dropdown, Input, Modal, Tooltip } from 'antd';
-import { ArrowLeft, ArrowUpRight, Check, LogOut, Menu, Search } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, LogOut, Menu, Search } from 'lucide-react';
 import { readBack } from './back-link';
 import { useAuth } from '@/auth/auth-context';
 import { accountMenuItems, navGroupsFor, navHeadingByRole } from './navigation';
@@ -12,10 +12,9 @@ import BackgroundJobs from './BackgroundJobs';
 import NotificationBell from './NotificationBell';
 import { unreadMessage, useUnreadFindings } from '@/features/unread-findings';
 import { readSidebarCollapsed, SIDEBAR_EVENT, writeSidebarCollapsed } from '@/features/display-prefs';
-import { useLanguage, useT } from '@/i18n';
+import { useT } from '@/i18n';
 import type { NavItem } from './navigation';
-import { setThemeChoice, useThemeChoice } from '@/features/ui-theme';
-import { SELECTABLE_THEMES } from '@/theme/registry';
+import ThemeSwitch from '@/components/ThemeSwitch';
 
 const CONFORMANCE_PATH = '/project-maintainer/conformance';
 
@@ -47,7 +46,6 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
   const { user, signOut } = useAuth();
   const { modal } = App.useApp();
   const t = useT();
-  const language = useLanguage();
   // Page names follow the language; navigation.ts keeps the English ones (keys are built from the path).
   const navLabel = (item: NavItem) => t.or(`nav:${item.path}`, item.label);
   const tabLabel = (item: NavItem) => t.or(`navTab:${item.path}`, item.tab ?? navLabel(item));
@@ -91,7 +89,6 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
   const [activeResult, setActiveResult] = useState(0);
   const mainRef = useRef<HTMLElement>(null);
   const tabsRef = useRef<HTMLElement>(null);
-  const themeChoice = useThemeChoice();
   const maintains = useMaintainsWorkspaces(user?.id, user?.role === 'developer-analyst');
   const unread = useUnreadFindings(!!maintains);
   const groups = user ? navGroupsFor(user.role, { maintains, pathname }) : [];
@@ -217,15 +214,12 @@ export default function DashboardLayout({ children, title }: { children: ReactNo
             <Search size={18} aria-hidden="true" /><span className="hidden sm:inline text-sm sm:min-w-32 text-left">{t('layout.findPage')}</span>
             <kbd className="hidden md:inline-flex items-center rounded-md border border-[var(--at-line)] bg-[var(--at-panel-2)] px-1.5 py-0.5 font-sans text-[11px] text-[var(--at-muted)]">Ctrl K</kbd>
           </button>
+          {/* The look has its own button, as on the landing page, not a group inside the account menu. */}
+          <ThemeSwitch size="lg" />
           <Dropdown trigger={['click']} placement="bottomRight" menu={{ items: [
             { key: 'who', disabled: true, label: <span className="block max-w-56 py-0.5"><span className="block truncate text-sm font-medium text-[var(--at-text)]">{user.name}</span><span className="block truncate text-xs text-[var(--at-muted)]">{user.email}</span></span> },
             { type: 'divider' as const },
             ...accountMenuItems[user.role].map(item => ({ key: item.path, label: <Link to={item.path}>{navLabel(item)}</Link> })),
-            { type: 'divider' as const },
-            { type: 'group' as const, key: 'theme', label: t('layout.theme'), children: SELECTABLE_THEMES.map(option => ({
-              key: `theme:${option.id}`, onClick: () => setThemeChoice(option.id), role: 'menuitemradio', 'aria-checked': themeChoice === option.id,
-              label: <span className="flex items-center gap-3"><span className="w-4 shrink-0">{themeChoice === option.id && <Check size={15} aria-hidden="true" />}</span><span><span className="block">{option.label[language]}</span><span className="block text-xs text-[var(--at-muted)]">{option.hint[language]}</span></span></span>,
-            })) },
             { type: 'divider' as const },
             { key: 'sign-out', icon: <LogOut size={15} aria-hidden="true" />, label: t('common.signOut'), onClick: logout },
           ] }}>

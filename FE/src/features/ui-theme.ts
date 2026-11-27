@@ -3,7 +3,7 @@ import { BASE_THEME, DEFAULT_CHOICE, SELECTABLE_THEMES, getTheme } from '../them
 import { ensureThemeFonts } from '../theme/css.ts';
 import type { ThemeDefinition } from '../theme/types.ts';
 
-// Which look the app wears. People pick one per browser from the account menu (the selectable themes of
+// Which look the app wears. People pick one per browser with the theme button (components/ThemeSwitch.tsx, the selectable themes of
 // src/theme/registry.ts); it applies to the public pages (landing page, sign-in, sign-up and their follow-ups) and to
 // every signed-in role. The base theme is left for a guarded page before the session is known. Wearing a theme sets
 // data-theme on <html> (the CSS variables, src/theme/css.ts) and the matching antd theme (App.tsx).
