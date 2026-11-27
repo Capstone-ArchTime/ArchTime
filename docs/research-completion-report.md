@@ -2,12 +2,43 @@
 
 | | |
 |---|---|
-| Date | 2026-11-24 |
+| Date | 2026-11-24 (RQ1-B results added 2026-11-27, section 0c) |
 | Branch | `claude/archtime-pipeline-audit-cba0ea` = `origin/Develop` (`06dd028`) + merge of local `docs/evaluation-decisions` (`4cd8c17`, holds the frozen method `0c5e1f8`) + the audit changes (uncommitted at the time of writing) |
 | Evidence | [research-audit-report.md](research-audit-report.md) (claim map, discrepancies D1–D12), [research-replication-guide.md](research-replication-guide.md) |
 
 No research number in this report was estimated. Every figure is either produced by a command listed here or marked
 pending.
+
+## 0c. RQ1-B labelling and scores (2026-11-27) — current status
+
+Code: `a7a22df` on `docs/research-audit` ("feat(eval): RQ1-B label import, reconciliation and scoring on the C11 test
+set"). Details: [test-set-annotation-report.md](test-set-annotation-report.md), [thesis-evaluation-content.md](thesis-evaluation-content.md) §6.
+
+- **Test set:** 5 repositories, 54 milestone pairs, 792 verdicts, 133 true changes.
+- **Labellers:** Nguyễn Duy Công (`cong`) and Đặng Nhật Trường (`truong`), independently, all pairs. Trường's sheets
+  imported 27/11/2026, `check` 0 errors.
+- **Agreement before reconciliation** (`rq1-labels.ts agree --a cong --b truong`): 792 verdicts, 70.6 % agreement,
+  κ 0.2146, AC1 0.5345; per repository in the annotation report §3. Neither sheet changed after measurement.
+- **Reconciliation** (`rq1.ts --milestones --anchored --tolerance 0.02 --reconcile`): 17 pairs identical, 37 with
+  disagreements; 262 disagreements settled by the guide, 0 `To settle`; `check` 0 errors on the 15 test-set sheets.
+  **TEAM:** Công and Trường confirm the rule-based reconciliation and its date.
+- **Scoring** (`rq1.ts --milestones --anchored --tolerance 0.02`): "54 pairs labelled, 0 still to label";
+  `summary.json` `backendCommit a7a22df`.
+
+| Grouping | TP | FP | FN | Precision | Recall | F1 | Macro P / R / F1 |
+|---|---:|---:|---:|---:|---:|---:|---|
+| ArchTime anchored (frozen method) | 105 | 205 | 28 | 33.9 % | 78.9 % | 47.4 % | 36.3 % / 83.6 % / 50.2 % |
+| Clustering only | 78 | 152 | 55 | 33.9 % | 58.6 % | 43.0 % | 43.2 % / 56.3 % / 46.7 % |
+| ArchTime recovered | 74 | 157 | 59 | 32.0 % | 55.6 % | 40.7 % | 39.6 % / 56.7 % / 45.1 % |
+| Directory baseline | 13 | 8 | 120 | 61.9 % | 9.8 % | 16.9 % | 72.2 % (3 repositories) / 11.3 % / 16.9 % |
+
+Micro values are computed from the exact fractions and may differ by 0.1 point from `report.md` (e.g. 105/133 = 78.9 %,
+printed 79.0 %). Anchored has the highest recall and F1, clearly above the directory baseline and slightly above the two
+other groupings; its precision (about one in three) is no better than theirs, and results are uneven (react-router:
+anchored F1 20.6 % vs clustering 35.6 %). The Wilcoxon tests in `report.md` belong to RQ1-A, not RQ1-B.
+
+Open: sheets and results are only in `BE/rq1-results/` (gitignored). **TEAM:** decide whether to publish the reconciled
+sheets (e.g. `docs/annotations/rq1b/labels/`). Matching sensitivity can now be run; not run yet.
 
 ## A. Engineering changes
 
@@ -44,10 +75,10 @@ m = 3, τ = 0.02, the mentor's context and prompt, the question set, the label-s
 | RQ1-A recovery accuracy (vs Reference A) | COMPLETED (before this audit; verified now) | `recovery.csv` (59 milestones) recomputed: all Table 3 means and all ten Holm-adjusted p / r values match | Re-score after Reference B (sensitivity) |
 | RQ1-A statistics in the committed pipeline | COMPLETED | anchored-primary Wilcoxon + Holm and both averages now in `report.md` / `recovery-tests.csv` / `summary.json` | — |
 | RQ1-B annotation workflow (sheets, validation, AC1, disagreements, per-repo scores) | COMPLETED | `rq1-labels.ts`, `research-audit-rq1.test.mjs` | — |
-| RQ1-B labelling and scores | BLOCKED | 54 pairs sheeted on 21/11/2026; no annotator sheet exists | Công and Trường label all 54 pairs (≈ 5–10 min per pair each) |
-| Agreement statistics (κ, AC1) | PARTIALLY COMPLETED | implemented and tested for RQ1-B, RQ2, extractor (Jaccard), references (MoJoFM) | No labels yet |
-| Matching threshold sensitivity (δ 0.3/0.5/0.7) | PARTIALLY COMPLETED | `--sensitivity` implemented and tested; behaviour per δ shown on synthetic cases | Running it on the test set before RQ1-B labels are submitted would show annotators per-grouping change counts; run after labelling |
-| Anchoring evaluation | PARTIALLY COMPLETED | 10 behaviour tests incl. a reproducible inertia case (gain 0.0105 < τ keeps a wrong boundary) | Empirical effect on the test set needs RQ1-B labels |
+| RQ1-B labelling and scores | COMPLETED (27/11/2026) | 54/54 pairs labelled by Công and Trường, reconciled, scored with `rq1.ts --milestones --anchored --tolerance 0.02` ("54 pairs labelled, 0 still to label"; `backendCommit a7a22df`); section 0c | **TEAM:** confirm the reconciliation; decide whether to publish the sheets (now only in gitignored `BE/rq1-results/`) |
+| Agreement statistics (κ, AC1) | PARTIALLY COMPLETED | implemented and tested for RQ1-B, RQ2, extractor (Jaccard), references (MoJoFM); **measured for RQ1-B** on the test set (792 verdicts: 70.6 %, κ 0.2146, AC1 0.5345) | RQ2, extractor and Reference B labels do not exist yet |
+| Matching threshold sensitivity (δ 0.3/0.5/0.7) | PARTIALLY COMPLETED | `--sensitivity` implemented and tested; behaviour per δ shown on synthetic cases | RQ1-B labels now exist (27/11/2026), so it can be run; **not run yet**, no result |
+| Anchoring evaluation | PARTIALLY COMPLETED | 10 behaviour tests incl. a reproducible inertia case (gain 0.0105 < τ keeps a wrong boundary); RQ1-B labels now exist and the effect on change detection is measured (section 0c: anchored F1 47.4 % vs recovered 40.7 %, micro) | Uneven per repository (react-router: anchored F1 20.6 % vs clustering 35.6 %); no significance test for RQ1-B |
 | M001–M008 semantics | COMPLETED | `verification-semantics.test.mjs`; name-only mode applies M001/M002/M005–M007 only | Paper wording (see E) |
 | Advisory move audit | COMPLETED | `auditRefinement` + tests | Not applied to stored runs (needs the DB) |
 | RQ2 reproducibility (runs, records, errors, no overwrite) | COMPLETED | `research-audit-rq2.test.mjs`; run loop itself needs DB + model and is not unit-tested | — |
@@ -63,10 +94,10 @@ m = 3, τ = 0.02, the mentor's context and prompt, the question set, the label-s
 | Extractor accuracy | Implemented and run end to end | **None.** 0 of 200 sampled files labelled |
 | RQ1-A (MoJoFM vs Reference A) | Implemented | **Measured** on 59 milestones (C11, 21/11/2026); reproduced from raw `recovery.csv` in this audit |
 | RQ1-A sensitivity to the reference | Implemented (run per reference) | **None.** Reference B missing |
-| RQ1-B (change detection) | Implemented | **None.** 0 of 54 pairs labelled |
-| Agreement (RQ1-B, RQ2, extractor, references) | Implemented | **None** on the test set (development-set κ/AC1 only, partly with an AI annotator) |
-| Matching sensitivity | Implemented | **None** on the test set (deliberately deferred until labels are in) |
-| Anchoring | Implemented, behaviour-tested | Ablation measured in RQ1-A (anchored vs recovered); effect on change detection **pending** |
+| RQ1-B (change detection) | Implemented | **Measured** on 54 pairs, 133 true changes (27/11/2026); section 0c |
+| Agreement (RQ1-B, RQ2, extractor, references) | Implemented | **RQ1-B measured** on the test set (κ 0.21, AC1 0.53, before reconciliation); RQ2, extractor and references: none on the test set |
+| Matching sensitivity | Implemented | **None** on the test set (labels are in since 27/11/2026; not run yet) |
+| Anchoring | Implemented, behaviour-tested | Ablation measured in RQ1-A (anchored vs recovered) and in RQ1-B (section 0c) |
 | Statistical analysis | Implemented and tested | Applied to RQ1-A only |
 | RQ2 | Implemented | **None.** No answer collected |
 
@@ -110,7 +141,8 @@ Known failures: lint (configuration missing). No test failures.
 | §4.6 RQ2 design | Citation validity could be read as semantic | `rq2.ts` | One sentence: validity = hash exists; support is judged by annotators (citation precision) | Yes |
 | §4.6 "Record model, provider, date and temperature" TODO | — | answers now store model info, prompt version, context fingerprint | Fill from the run records after RQ2 | Needs data |
 | §4.6 abstention | Lower unsupported rates could come from saying less | new metrics `supportedPerAnswerableAnswer`, `answeredWithSupport` | Report them next to the unsupported rate | Yes (design); numbers need data |
-| Table 4 (RQ1-B), Table 5 (RQ2), abstract TODOs, §5 interpretations, conclusion TODO | Empty | — | Leave TBD until scored; never estimate | Needs data |
+| Table 4 (RQ1-B) | Empty | RQ1-B scored 27/11/2026 (section 0c; `rq1-results/report.md` section B, `summary.json`) | Fill from section 0c: TP/FP/FN, micro and macro P/R/F1, per-repository table; present detected changes as evidence-backed suggestions for review; state the agreement before reconciliation | Yes |
+| Table 5 (RQ2), abstract TODOs, §5 interpretations, conclusion TODO | Empty (RQ1-B parts can now be written from Table 4) | — | Leave TBD until scored; never estimate | Needs data |
 | §4.8 "MoJoFM, the Wilcoxon test, Cohen's κ, the seeded cluster bootstrap and the Holm adjustment are covered by unit tests"; AC1 TODO | AC1 is now implemented and tested | `stats.ts` `gwetAC1` | Remove the AC1 TODO; add AC1 to that sentence | Yes |
 | §5.4 cost of refinement | Preliminary dev measurement | — | Replace with test-set AI-run records | Needs data |
 | Contributions (replication package), Data Availability, ORCID, author order | Placeholders | — | Fill only with real identifiers | Needs real values |
@@ -120,15 +152,15 @@ Known failures: lint (configuration missing). No test failures.
 
 1. **Push** `docs/evaluation-decisions` (or this audit branch) and tag the frozen commit `0c5e1f8`; archive
    `rq1-results/` from the machine that ran C11 (keep `keys/`, `report.md`, `stability.csv` closed to annotators).
-2. **RQ1-B labelling:** Công and Trường each run
-   `npm run rq1 -- --milestones --anchored --tolerance 0.02 --annotator <name>`, label all 54 pairs alone, run
-   `npm run rq1:labels -- check`, then `npm run rq1:labels -- agree --a cong --b truong` **before** reconciling.
+2. ~~**RQ1-B labelling.**~~ **Done 27/11/2026** (labelled, agreement measured, reconciled, scored; section 0c).
+   Remaining: **TEAM** confirms the reconciliation and decides whether to publish the reconciled sheets (for example in
+   `docs/annotations/rq1b/labels/`); archive `BE/rq1-results/` either way.
 3. **Reference B:** one author per repository (not Công), from `b-templates/` in a separate checkout;
    `reference-check`, `reference-agreement --csv`, reconcile by the documentation, re-run RQ1-A per reference.
 4. **Extractor labels:** two labellers × 200 files; `agree`, reconcile, `validate`, `score --syntax both`.
 5. **RQ2:** decide the mentor-context question (D6) and record it in `rq2-protocol.md`; confirm model, provider and
    budget; run 270 answers; two annotators judge claims and answers; `score`.
-6. After labels exist: run `--sensitivity 0.3,0.5,0.7` (exploratory) and report it in the threats section only.
+6. RQ1-B labels now exist: run `--sensitivity 0.3,0.5,0.7` (exploratory) and report it in the threats section only. Not run yet.
 7. Decide whether the LLM-only baseline is in scope; if yes, write its protocol before running anything.
 8. Apply the "Safe now" paper corrections of section E.
 9. Add an `eslint.config.js` to `BE` so `npm run lint` works.

@@ -2,8 +2,9 @@
 
 *Thesis content draft (task T11). Author: Đặng Nhật Trường. To be merged into the thesis by Nguyễn Duy Công. Requirement
 identifiers refer to BM04; file paths refer to the ArchTime repository. Every figure in this draft was measured in the
-repository on 16 November 2026. Sections whose results depend on human labels that do not exist yet are marked
-**[PENDING]** and contain no numbers; they must not be filled in with estimates.*
+repository on 16 November 2026, except the RQ1-B results of Section 6, which were measured on 27 November 2026. Sections
+whose results depend on human labels that do not exist yet are marked **[PENDING]** and contain no numbers; they must not
+be filled in with estimates.*
 
 ## 1. Overview
 
@@ -149,8 +150,86 @@ On the development set, the first labeller was an AI assistant and the second a 
 of 10 of the 24 pairs with file changes (seed 2026). Before reconciliation 14 of 16 verdicts agreed (κ = −0.07, AC1 = 0.86)
 and `trueChanges` agreed exactly on 2 of 10 pairs. This is reported as a limitation (Section 10).
 
-**[PENDING]** The test set will be labelled after it is mined and its milestones are built (task C11). The second labeller
-on the test set is a team member (`docs/test-set-annotation-report.md`).
+### 6.1 Labelling of the test set
+
+The test set was mined and its milestones were built in task C11 (21 November 2026): 54 pairs of consecutive milestones
+over the five repositories (react-router 11, docusaurus 10, react-admin 11, actual 11, outline 11), with 792 reported
+changes to judge (381, 29, 35, 194 and 153). Two team members, Nguyễn Duy Công and Đặng Nhật Trường, labelled **all**
+pairs independently; no AI assistant labelled the test set. Every pair carries `trueChanges` and a note, and every
+`correct` verdict carries a note as evidence. The validation command reported no error on any sheet.
+
+Agreement before reconciliation (`rq1-labels.ts agree`, 27 November 2026) is shown in Table 6. Over all 792 verdicts the
+labellers agreed on 70.6 %, with Cohen's κ = 0.21 and Gwet's AC1 = 0.53. Neither sheet changed after agreement was
+measured. The 262 disagreements, in 37 of the 54 pairs, were all settled by the rules of the labelling guide
+(`docs/test-set-annotation-report.md` §4). Scores were then computed on the reconciled sheets with the frozen method
+(backend commit `a7a22df` recorded in `summary.json`), using
+`npx tsx scripts/rq1.ts --milestones --anchored --tolerance 0.02`.
+
+*Table 6. Agreement of the two labellers on the test set before reconciliation.*
+
+| Repository | Pairs | `trueChanges` identical | Mean difference | Verdicts | Verdict agreement | κ | AC1 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| react-router | 11 | 27.3 % | 4.09 | 381 | 78.0 % | 0.23 | 0.69 |
+| docusaurus | 10 | 70.0 % | 0.30 | 29 | 69.0 % | 0.20 | 0.50 |
+| react-admin | 11 | 81.8 % | 0.18 | 35 | 57.1 % | 0.18 | 0.19 |
+| actual | 11 | 27.3 % | 2.09 | 194 | 67.5 % | 0.19 | 0.46 |
+| outline | 11 | 27.3 % | 1.55 | 153 | 59.5 % | 0.14 | 0.25 |
+| **Pooled** | **54** | | | **792** | **70.6 %** | **0.21** | **0.53** |
+
+### 6.2 Results
+
+Table 7 gives TP, FP and FN summed over the five repositories, the micro averages computed from them, and the macro
+averages of the per-repository values. The reconciled sheets contain 133 true changes. Percentages are computed from the
+exact fractions and may differ by 0.1 point from the rounded values in `report.md` (for example, anchored recall is
+105/133 = 78.9 %).
+
+*Table 7. Change detection on the test set (54 pairs, 133 true changes).*
+
+| Grouping | TP | FP | FN | Precision | Recall | F1 | Macro precision | Macro recall | Macro F1 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| ArchTime, anchored (frozen method) | 105 | 205 | 28 | 33.9 % | **78.9 %** | **47.4 %** | 36.3 % | **83.6 %** | **50.2 %** |
+| Clustering only | 78 | 152 | 55 | 33.9 % | 58.6 % | 43.0 % | 43.2 % | 56.3 % | 46.7 % |
+| ArchTime, recovered | 74 | 157 | 59 | 32.0 % | 55.6 % | 40.7 % | 39.6 % | 56.7 % | 45.1 % |
+| Directory baseline | 13 | 8 | 120 | 61.9 % | 9.8 % | 16.9 % | 72.2 %¹ | 11.3 % | 16.9 % |
+
+¹ Over three repositories only: the baseline reported no change on docusaurus and outline, so its precision is undefined
+there.
+
+*Table 8. Change detection per repository (reconciled sheets; from `BE/rq1-results/report.md`, section B).*
+
+| Repository | True changes | Grouping | TP | FP | FN | Precision | Recall | F1 |
+|---|---:|---|---:|---:|---:|---:|---:|---:|
+| react-router | 40 | Anchored | 16 | 99 | 24 | 13.9 % | 40.0 % | 20.6 % |
+| | | Clustering only | 31 | 103 | 9 | 23.1 % | 77.5 % | 35.6 % |
+| | | Recovered | 26 | 102 | 14 | 20.3 % | 65.0 % | 30.9 % |
+| | | Directory baseline | 4 | 0 | 36 | 100.0 % | 10.0 % | 18.2 % |
+| docusaurus | 5 | Anchored | 5 | 10 | 0 | 33.3 % | 100.0 % | 50.0 % |
+| | | Clustering only | 3 | 3 | 2 | 50.0 % | 60.0 % | 54.5 % |
+| | | Recovered | 3 | 5 | 2 | 37.5 % | 60.0 % | 46.2 % |
+| | | Directory baseline | 0 | 0 | 5 | n/a | 0.0 % | n/a |
+| react-admin | 7 | Anchored | 6 | 10 | 1 | 37.5 % | 85.7 % | 52.2 % |
+| | | Clustering only | 3 | 4 | 4 | 42.9 % | 42.9 % | 42.9 % |
+| | | Recovered | 4 | 5 | 3 | 44.4 % | 57.1 % | 50.0 % |
+| | | Directory baseline | 2 | 1 | 5 | 66.7 % | 28.6 % | 40.0 % |
+| actual | 39 | Anchored | 37 | 53 | 2 | 41.1 % | 94.9 % | 57.4 % |
+| | | Clustering only | 19 | 26 | 20 | 42.2 % | 48.7 % | 45.2 % |
+| | | Recovered | 20 | 25 | 19 | 44.4 % | 51.3 % | 47.6 % |
+| | | Directory baseline | 7 | 7 | 32 | 50.0 % | 17.9 % | 26.4 % |
+| outline | 42 | Anchored | 41 | 33 | 1 | 55.4 % | 97.6 % | 70.7 % |
+| | | Clustering only | 22 | 16 | 20 | 57.9 % | 52.4 % | 55.0 % |
+| | | Recovered | 21 | 20 | 21 | 51.2 % | 50.0 % | 50.6 % |
+| | | Directory baseline | 0 | 0 | 42 | n/a | 0.0 % | n/a |
+
+**Interpretation.** The anchored method has the highest recall and F1, both micro and macro. It is clearly better than
+the directory baseline, which is precise when it reports something but finds fewer than one true change in ten, and
+slightly better than the two other groupings. Its precision is low, about one reported change in three is correct, and
+no better than that of the other groupings. The results are also uneven across repositories: on react-router the
+anchored method reaches only 20.6 % F1, below clustering only (35.6 %), while it finds every true change on docusaurus and
+reaches 70.7 % F1 on outline. No significance test was applied to RQ1-B; the Wilcoxon tests in `report.md` belong to RQ1-A.
+
+With precision at this level, detected changes should be presented as **suggestions backed by evidence for a person to
+review**, not as facts. This matches the design of the tool: the mentor separates FACT from INFERENCE and cites evidence,
+and a maintainer reviews changes before they are accepted.
 
 ## 7. Extractor evaluation (EX)
 
@@ -250,22 +329,34 @@ measurement has not yet been repeated on the staging environment.
 
 ## 9. Limitations
 
-1. **Pending human data.** Reference architectures, change labels and dependency labels for the test set did not exist
-   at the time of writing; RQ1-A, RQ1-B and EX results on the test set are therefore not reported here.
-2. **Small samples.** Five test repositories, about a dozen milestones each, and 40 files per repository for EX; confidence
-   intervals are wide and conclusions apply to similar JavaScript/TypeScript repositories only.
-3. **Scope of the extractor sample.** The sample follows what mining analyses, which includes example applications,
+1. **Pending human data.** RQ1-B now has results (Section 6, 27 November 2026). Reference B for RQ1-A and the dependency
+   labels for EX did not exist at the time of writing; RQ1-A writer agreement and EX results on the test set are therefore
+   not reported here.
+2. **Small samples.** Five test repositories, about a dozen milestones each (54 pairs and 133 true changes for RQ1-B), and
+   40 files per repository for EX; confidence intervals are wide and conclusions apply to similar JavaScript/TypeScript
+   repositories only.
+3. **Labeller agreement on RQ1-B.** Before reconciliation, agreement was only "fair" by κ (0.21) and "moderate" by AC1
+   (0.53). The largest differences were in counting `trueChanges`, identical on only 27 % of the pairs in three of the
+   five repositories. Reconciliation by written rules removes the disagreements from the scores but not the ambiguity of
+   what counts as one architectural change.
+4. **RQ1-B data not yet archived.** The labelling sheets and results are in `BE/rq1-results/` on the machine that ran C11,
+   which is excluded from version control. **[TEAM]** Decide whether to publish the reconciled sheets, for example in
+   `docs/annotations/rq1b/labels/`.
+5. **Scope of the extractor sample.** The sample follows what mining analyses, which includes example applications,
    playgrounds and integration tests in some repositories, and test files named `*-test.ts` that the current filter does
    not exclude (5 of 40 files in react-router).
-4. **AI labeller on the development set.** One of the two labellers of the development set was an AI assistant, and the
+6. **AI labeller on the development set.** One of the two labellers of the development set was an AI assistant, and the
    second labelled a sample of 10 pairs.
-5. **Performance environment.** N-02 was measured on a development machine with a local database.
+7. **Performance environment.** N-02 was measured on a development machine with a local database.
 
 ## 10. Threats to validity
 
 - **Construct validity.** MoJoFM depends on the reference; a reference shaped by directories favours the directory
   baseline. Mitigation: references are written by function with file-level assignment, by two people, with their
-  agreement reported. Component names in labelling sheets may still hint at the method that produced a change.
+  agreement reported. Component names in labelling sheets may still hint at the method that produced a change. For RQ1-B,
+  what counts as one architectural change is open to interpretation: before reconciliation the two labellers' agreement
+  was only fair by κ (0.21) and moderate by AC1 (0.53), and lowest on `trueChanges` (Section 9, item 3), so recall depends on the counting
+  rule of the guide.
 - **Internal validity.** Labellers could be biased toward the tool. Mitigation: hidden-method sheets, independent labelling,
   `trueChanges` recorded before verdicts, agreement reported before reconciliation, and rule-based reconciliation.
   Tuning on test data is prevented by the development/test separation and by freezing the algorithm before the run.
@@ -273,4 +364,4 @@ measurement has not yet been repeated on the staging environment.
   results may not transfer to other languages, to CommonJS code, or to projects without documentation.
 - **Reliability.** Clustering is deterministic, and samples use fixed seeds and fixed commits; every command needed to
   reproduce a figure is recorded with it. Names produced by the AI may vary between runs, which is why component matching
-  does not depend on names.
+  does not depend on names. The RQ1-B sheets and results are not yet archived in the repository (Section 9, item 4).
