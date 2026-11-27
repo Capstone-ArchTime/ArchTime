@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import type { OrganizationController } from "../controllers/OrganizationController.js";
 import type { JwtTokenService } from "../../infrastructure/services/JwtTokenService.js";
 import { createAuthenticateMiddleware } from "../middlewares/authenticate.js";
@@ -174,6 +174,7 @@ export function createOrganizationRouter(controller: OrganizationController, jwt
    *         $ref: '#/components/responses/Forbidden'
    */
   router.get("/:orgId/ai-cost", controller.aiCost);
+  router.get("/:orgId/onboarding-progress", controller.onboarding);
   router.get("/:orgId/members", controller.listMembers);
   router.post("/:orgId/members", controller.addMember);
 

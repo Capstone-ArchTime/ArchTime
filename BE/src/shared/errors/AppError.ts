@@ -1,4 +1,4 @@
-// ── Mã lỗi chuẩn hóa ──────────────────────────────────────────────────────────
+﻿// ── Mã lỗi chuẩn hóa ──────────────────────────────────────────────────────────
 // FE dùng code này để phân biệt loại lỗi thay vì parse message text
 export type ErrorCode =
   // Auth
@@ -28,6 +28,11 @@ export type ErrorCode =
   | "PAYLOAD_TOO_LARGE"
   // Server
   | "RATE_LIMITED"
+  // Plans, AI credit & payments (FE-17)
+  | "AI_CREDIT_EXHAUSTED"
+  | "PLAN_LIMIT_REACHED"
+  | "GATEWAY_UNAVAILABLE"
+  | "GATEWAY_ERROR"
   | "INTERNAL_ERROR"
   | "SERVICE_UNAVAILABLE";
 

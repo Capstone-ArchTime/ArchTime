@@ -1,4 +1,4 @@
-import type { Request, Response, NextFunction } from "express";
+﻿import type { Request, Response, NextFunction } from "express";
 import type { OrganizationUseCases } from "../../application/use-cases/organizations/OrganizationUseCases.js";
 import type { OrganizationCredentialUseCases } from "../../application/use-cases/organizations/OrganizationCredentialUseCases.js";
 import { AuditAction } from "../../domain/entities/AuditLog.js";
@@ -11,7 +11,20 @@ export class OrganizationController {
   constructor(
     private readonly organizations: OrganizationUseCases,
     private readonly credentials: OrganizationCredentialUseCases,
+    /** UC-34: onboarding progress of every workspace of an organization. */
+    private readonly onboardingProgress?: (organizationId: string) => Promise<unknown>,
   ) {}
+
+  /** UC-34: how far every learner has got on every path in the organization's workspaces (owners only). */
+  onboarding = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await this.organizations.requireOwner(req.params.orgId, req.user!.userId);
+      if (!this.onboardingProgress) throw new BadRequestError("Onboarding progress is not available.");
+      sendSuccess(res, await this.onboardingProgress(req.params.orgId));
+    } catch (error) {
+      next(error);
+    }
+  };
 
   private audit(req: Request, action: AuditAction, targetType: string, targetId: string, details?: Record<string, unknown>) {
     return AuditService.log({

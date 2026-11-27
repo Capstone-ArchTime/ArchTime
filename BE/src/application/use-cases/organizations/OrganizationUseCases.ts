@@ -77,6 +77,13 @@ export class OrganizationUseCases {
     private readonly projects: IProjectRepository,
     private readonly projectMembers: IProjectMemberRepository,
     private readonly invitations?: PendingInvitationStore,
+    /**
+     * FE-17 seat reservation: runs insert only if a seat is free, while holding the organization's seat lock, so two
+     * invitations at the same moment take one free seat each and never more seats than were bought.
+     */
+    private readonly reserveSeat?: <T>(organizationId: string, insert: () => Promise<T>) => Promise<T>,
+    /** How long an invitation holds its seat and can be accepted (ms); expired invitations count for nothing. */
+    private readonly invitationTtlMs: number = 7 * 86_400_000,
   ) {}
 
   /** The caller's membership; 404 rather than 403 for non-members so organization ids cannot be probed. */
@@ -162,15 +169,21 @@ export class OrganizationUseCases {
     const role = parseRole(input.role);
     const user = await this.users.findByEmail(input.email.trim().toLowerCase());
     if (!user) throw new NotFoundError("No account uses this email. Ask the person to register first.");
-    const existing = await this.organizations.findMemberOrInvitation(input.organizationId, user.id);
+    let existing = await this.organizations.findMemberOrInvitation(input.organizationId, user.id);
+    if (existing && this.isExpired(existing)) {
+      await this.organizations.removeMember(existing.id); // an expired invitation no longer holds a seat: invite again
+      existing = null;
+    }
     if (existing) {
       throw new ConflictError(existing.status === OrganizationMemberStatus.INVITED
         ? "This person has already been invited and has not answered yet."
         : "This person is already a member of the organization.");
     }
-    const member = await this.organizations.addMember({
+    // The invitation reserves a seat: it counts as taken until it is accepted (then occupied), declined, withdrawn or expired.
+    const insert = () => this.organizations.addMember({
       organizationId: input.organizationId, userId: user.id, role, addedBy: input.userId, status: OrganizationMemberStatus.INVITED,
     });
+    const member = this.reserveSeat ? await this.reserveSeat(input.organizationId, insert) : await insert();
     return { ...member, name: user.name, email: user.email };
   }
 
@@ -222,9 +235,14 @@ export class OrganizationUseCases {
     return { removedProjectMemberships, cancelledInvitations };
   }
 
+  /** An invitation not answered within the invitation lifetime (same 7 days as project invitations by default). */
+  private isExpired(member: IOrganizationMember): boolean {
+    return member.status === OrganizationMemberStatus.INVITED && !!member.createdAt && Date.now() - new Date(member.createdAt).getTime() > this.invitationTtlMs;
+  }
+
   /** Invitations waiting for the caller's answer. */
   async myInvitations(userId: string): Promise<OrganizationInvitationView[]> {
-    const invitations = await this.organizations.listInvitationsOfUser(userId);
+    const invitations = (await this.organizations.listInvitationsOfUser(userId)).filter(i => !this.isExpired(i));
     const organizations = new Map((await this.organizations.findByIds(invitations.map(i => i.organizationId))).map(o => [o.id, o]));
     const views: OrganizationInvitationView[] = [];
     for (const i of invitations) {
@@ -240,6 +258,10 @@ export class OrganizationUseCases {
   async respondToInvitation(input: { organizationId: string; userId: string; accept: boolean }): Promise<OrganizationSummary | null> {
     const invitation = await this.organizations.findMemberOrInvitation(input.organizationId, input.userId);
     if (!invitation || invitation.status !== OrganizationMemberStatus.INVITED) throw new NotFoundError("Invitation not found.");
+    if (this.isExpired(invitation)) {
+      await this.organizations.removeMember(invitation.id); // releases the seat it held
+      throw new NotFoundError("This invitation has expired. Ask an owner to invite you again.");
+    }
     if (!input.accept) {
       await this.organizations.removeMember(invitation.id);
       return null;

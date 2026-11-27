@@ -1,4 +1,4 @@
-import { ProjectModel } from "../database/models/ProjectModel.js";
+﻿import { ProjectModel } from "../database/models/ProjectModel.js";
 import mongoose from "mongoose";
 import type { MappingComponent } from "../../domain/architecture/buildView.js";
 import type { ValidationResult } from "../../domain/architecture/types.js";
@@ -12,6 +12,7 @@ import { LlmModelModel } from "../database/models/LlmModelModel.js";
 import { SystemSettingsModel } from "../database/models/SystemSettingsModel.js";
 import type { ResolvedModel } from "../llm/registry.js";
 import { NotFoundError } from "../../shared/errors/AppError.js";
+import { AiCreditService } from "./AiCreditService.js";
 
 export interface RecordRunInput {
   projectId: string;
@@ -169,6 +170,7 @@ export class LlmRunService {
     try {
       const run = buildRun(input);
       const doc = await LlmRunModel.create({ ...run, organizationId: await owningOrganization(input.projectId) });
+      if (run.purpose === "user") await AiCreditService.charge(input.projectId, run.cost.amount);
       return { id: String(doc._id ?? (doc as any).id), cost: { amount: run.cost.amount, currency: run.cost.currency } };
     } catch (error) {
       console.warn(`[llm] could not record a run for project ${input.projectId}:`, error instanceof Error ? error.message : error);
@@ -181,6 +183,7 @@ export class LlmRunService {
     try {
       const run = buildChatRun(input);
       const doc = await LlmRunModel.create({ ...run, organizationId: await owningOrganization(input.projectId) });
+      await AiCreditService.charge(input.projectId, run.cost.amount);
       return { id: String(doc._id ?? (doc as any).id), cost: { amount: run.cost.amount, currency: run.cost.currency } };
     } catch (error) {
       console.warn(`[llm] could not record a chat run for project ${input.projectId}:`, error instanceof Error ? error.message : error);

@@ -1,4 +1,4 @@
-import type { MessageKey } from './en.ts';
+﻿import type { MessageKey } from './en.ts';
 
 // Tiếng Việt. TypeScript báo lỗi nếu thiếu khoá nào của en.ts.
 // Thuật ngữ thống nhất: Workspace → "Không gian làm việc", Evidence → "Bằng chứng", Mining → "mining" (giữ nguyên),
@@ -209,6 +209,8 @@ export const vi: Record<Exclude<MessageKey, `${string}_one`>, string> = {
   'nav:/profile': 'Hồ sơ của tôi',
   'nav:/settings': 'Cài đặt',
   'nav:/ai-usage': 'Mức dùng AI',
+  'nav:/billing': 'Gói & thanh toán',
+  'nav:/system-administrator/billing': 'Gói & thanh toán',
   'navTab:/project-maintainer': 'Tổng quan',
   'navTab:/project-maintainer/conformance': 'Tuân thủ',
   'navGroup:Analyze': 'Phân tích',

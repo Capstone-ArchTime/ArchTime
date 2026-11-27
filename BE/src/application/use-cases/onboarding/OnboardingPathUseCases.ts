@@ -217,4 +217,43 @@ export class OnboardingPathUseCases {
       })),
     };
   }
+
+  /**
+   * UC-34: onboarding progress across all workspaces of an organization, for its owners. Per path: how many people have it,
+   * how many finished it and their average progress; and one row per person and path.
+   */
+  async organizationProgress(projects: { id: string; name: string }[]) {
+    type Row = { userId: string; projectId: string; projectName: string; pathId: string; pathTitle: string; assignedAt: Date; lastActivityAt: Date; done: number; total: number; percent: number };
+    const workspaces: { projectId: string; projectName: string; paths: { pathId: string; title: string; status: string; steps: number; learners: number; completed: number; averagePercent: number }[] }[] = [];
+    const rows: Row[] = [];
+    for (const project of projects) {
+      const paths = await this.paths.list(project.id, MAX_PATHS_PER_PROJECT);
+      if (!paths.length) continue;
+      const assignments = await this.assignments.listByPaths(project.id, paths.map(p => p.id));
+      const summary = paths.map(path => {
+        const mine = assignments.filter(a => a.pathId === path.id).map(a => ({ a, s: summarizeProgress(path, a.progress) }));
+        for (const { a, s } of mine) {
+          rows.push({ userId: a.userId, projectId: project.id, projectName: project.name, pathId: path.id, pathTitle: path.title, assignedAt: a.assignedAt, lastActivityAt: a.updatedAt, ...s });
+        }
+        return {
+          pathId: path.id, title: path.title, status: path.status, steps: path.steps.length, learners: mine.length,
+          completed: mine.filter(({ s }) => s.total > 0 && s.done === s.total).length,
+          averagePercent: mine.length ? Math.round(mine.reduce((sum, { s }) => sum + s.percent, 0) / mine.length) : 0,
+        };
+      });
+      workspaces.push({ projectId: project.id, projectName: project.name, paths: summary });
+    }
+    const people = await this.deps.people([...new Set(rows.map(r => r.userId))]);
+    const learners = rows
+      .map(r => ({ ...r, name: people.get(r.userId)?.name ?? null, email: people.get(r.userId)?.email ?? null }))
+      .sort((a, b) => a.percent - b.percent || String(a.name ?? "").localeCompare(String(b.name ?? "")));
+    return {
+      workspaces, learners,
+      totals: {
+        workspaces: workspaces.length, paths: workspaces.reduce((n, w) => n + w.paths.length, 0), people: people.size || new Set(rows.map(r => r.userId)).size,
+        assignments: rows.length, completed: rows.filter(r => r.total > 0 && r.done === r.total).length,
+        averagePercent: rows.length ? Math.round(rows.reduce((s, r) => s + r.percent, 0) / rows.length) : 0,
+      },
+    };
+  }
 }

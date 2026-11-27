@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Alert, App, Button, Empty, Form, Input, Modal, Skeleton, Tabs, Tag } from 'antd';
 import { ArrowLeft, Building2, Pencil } from 'lucide-react';
@@ -10,6 +10,9 @@ import type { Organization } from '@/features/organizations-api';
 import MembersTab from './MembersTab';
 import CredentialsTab from './CredentialsTab';
 import AiCostTab from './AiCostTab';
+import OnboardingProgressTab from './OnboardingProgressTab';
+import BillingPanel from '../billing/BillingPanel';
+import { BILL } from '../billing/messages';
 import { formatDateTime } from '@/i18n/format';
 import { message as translate, useMessages } from '@/i18n/define';
 import { ORG } from './messages';
@@ -66,6 +69,7 @@ export default function OrganizationDetail() {
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm<{ name: string; description: string }>();
   const m = useMessages(ORG);
+  const b = useMessages(BILL);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -138,6 +142,8 @@ export default function OrganizationDetail() {
           { key: 'workspaces', label: m('workspaces'), children: <WorkspacesTab organization={organization} /> },
           ...(owner ? [{ key: 'credentials', label: m('credentials'), children: <CredentialsTab organization={organization} /> }] : []),
           ...(owner ? [{ key: 'ai-cost', label: m('aiCost'), children: <AiCostTab organization={organization} /> }] : []),
+          ...(owner ? [{ key: 'onboarding', label: b('progressTab'), children: <OnboardingProgressTab organization={organization} /> }] : []),
+          { key: 'plan', label: b('planTab'), children: <BillingPanel space={{ kind: 'organization', organizationId: organization.id }} /> },
         ]}
       />
 

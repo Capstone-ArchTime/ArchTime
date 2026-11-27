@@ -1,5 +1,5 @@
-import type { ElementType } from 'react';
-import { LayoutDashboard, FolderKanban, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, Users2, SlidersHorizontal, ScrollText, Activity, Boxes, Cpu, Gauge, Coins, GraduationCap, UserRound, ChartNetwork, Briefcase, Building2, ScanSearch, Bot, ListChecks, Settings } from 'lucide-react';
+﻿import type { ElementType } from 'react';
+import { LayoutDashboard, FolderKanban, GitCompare, FileSearch, Sparkles, FileBarChart, ShieldCheck, GitPullRequest, Users, Network, BookOpen, Users2, SlidersHorizontal, ScrollText, Activity, Boxes, Cpu, Gauge, Coins, GraduationCap, UserRound, ChartNetwork, Briefcase, Building2, ScanSearch, Bot, ListChecks, Settings, CreditCard } from 'lucide-react';
 import type { Role } from '@/auth/permissions';
 
 /** `tab` is a shorter label for the tab bar of a group, where the group already says what the page belongs to. */
@@ -38,6 +38,7 @@ const adminNavItems: readonly NavItem[] = [
   { path: '/system-administrator/mining-jobs', label: 'Mining Jobs Monitor', icon: Activity },
   { path: '/system-administrator/ai-models', label: 'AI Models', icon: Cpu },
   { path: '/system-administrator/ai-metrics', label: 'AI Usage & Metrics', icon: Gauge },
+  { path: '/system-administrator/billing', label: 'Plans & Payments', icon: CreditCard },
 ];
 
 /** Personal pages, reached from the account menu in the header instead of the sidebar. */
@@ -46,6 +47,7 @@ export const accountMenuItems: Record<Role, readonly NavItem[]> = {
     { path: '/my-work', label: 'My work', icon: Briefcase },
     { path: '/profile', label: 'My profile', icon: UserRound },
     { path: '/ai-usage', label: 'AI Usage', icon: Coins },
+    { path: '/billing', label: 'Plans & billing', icon: CreditCard },
     { path: '/settings', label: 'Settings', icon: Settings },
   ],
   'system-administrator': [

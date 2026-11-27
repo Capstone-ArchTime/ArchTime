@@ -1,4 +1,4 @@
-/**
+﻿/**
  * System roles the server hands out. Maintaining a project is not one of them: it is a role on one project (owner,
  * maintainer, or owner of its organization), which the server checks on every request to that project.
  */
@@ -22,8 +22,8 @@ export const roleHome: Record<Role, string> = {
 export const maintainerRoutes: readonly string[] = ['/project-maintainer', '/project-maintainer/approvals', '/project-maintainer/team', '/project-maintainer/reports', '/project-maintainer/component-diagram', '/project-maintainer/architecture-rules', '/project-maintainer/conformance', '/project-maintainer/agent-access', '/project-maintainer/design-decisions'];
 
 const routes: Record<Role, readonly string[]> = {
-  'developer-analyst': ['/dashboard', '/projects', '/organizations', '/project', '/history', '/architecture', '/compare', '/evidence', '/tasks', '/insights', '/propose-change', '/reports', '/ai-usage', '/learning', ...maintainerRoutes],
-  'system-administrator': ['/system-administrator', '/system-administrator/users', '/system-administrator/organizations', '/system-administrator/audit-log', '/system-administrator/settings', '/system-administrator/mining-jobs', '/system-administrator/ai-models', '/system-administrator/ai-metrics'],
+  'developer-analyst': ['/dashboard', '/projects', '/organizations', '/project', '/history', '/architecture', '/compare', '/evidence', '/tasks', '/insights', '/propose-change', '/reports', '/ai-usage', '/billing', '/billing/result', '/billing/simulator', '/learning', ...maintainerRoutes],
+  'system-administrator': ['/system-administrator', '/system-administrator/users', '/system-administrator/organizations', '/system-administrator/audit-log', '/system-administrator/settings', '/system-administrator/mining-jobs', '/system-administrator/ai-models', '/system-administrator/ai-metrics', '/system-administrator/billing'],
 };
 
 /** Paths with an id after them (the workspace of one project or sample). */

@@ -45,4 +45,22 @@ export const env = {
   smtpUser: required("SMTP_USER"),
   smtpPass: required("SMTP_PASS"),
   smtpFrom: required("SMTP_FROM"),
+
+  // Payments (FE-17). A gateway is offered only when its keys are set. Sandbox addresses by default.
+  momo: {
+    partnerCode: process.env.MOMO_PARTNER_CODE ?? "",
+    accessKey: process.env.MOMO_ACCESS_KEY ?? "",
+    secretKey: process.env.MOMO_SECRET_KEY ?? "",
+    endpoint: process.env.MOMO_ENDPOINT || "https://test-payment.momo.vn",
+  },
+  vnpay: {
+    tmnCode: process.env.VNPAY_TMN_CODE ?? "",
+    hashSecret: process.env.VNPAY_HASH_SECRET ?? "",
+    payUrl: process.env.VNPAY_PAY_URL || "https://sandbox.vnpaytest.vn/paymentv2/vpcpay.html",
+    apiUrl: process.env.VNPAY_API_URL || "https://sandbox.vnpaytest.vn/merchant_webapi/api/transaction",
+  },
+  /** A test gateway for demos without merchant accounts; never on in production. */
+  billingSimulator: process.env.BILLING_SIMULATOR === "true" && process.env.NODE_ENV !== "production",
+  /** Minutes between reconciliations of pending payments with the gateways (0 turns it off). */
+  billingReconcileMinutes: Number(process.env.BILLING_RECONCILE_MINUTES ?? "5"),
 };
