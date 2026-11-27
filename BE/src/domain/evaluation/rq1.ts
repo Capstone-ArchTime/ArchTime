@@ -95,7 +95,16 @@ export interface LabelPair {
 }
 export interface LabelSheet { version: 2; projectId: string; projectName: string; annotator?: string; instructions: string; pairs: LabelPair[] }
 /** Which method reported each change of a sheet. Kept apart from the sheet so that annotators do not see it. */
-export interface LabelKey { projectId: string; methods?: Method[]; pairs: { from: string; to: string; changes: { key: string; method: Method; id: string }[] }[] }
+export interface LabelKey {
+  projectId: string; methods?: Method[]; pairs: { from: string; to: string; changes: { key: string; method: Method; id: string }[] }[];
+  /** The configuration the changes were computed with (written by scripts/rq1.ts from 2026-11-24; older keys lack it). */
+  config?: EvaluationConfig;
+}
+
+/** What decides which changes a run reports: anchoring and its tolerance, the evidence rule, the matching threshold. */
+export interface EvaluationConfig { anchored: boolean; tolerance: number | null; evidence: boolean; dominance: number }
+/** The frozen test-set configuration (docs/rq1-protocol.md §1). */
+export const FROZEN_CONFIG: EvaluationConfig = { anchored: true, tolerance: 0.02, evidence: true, dominance: 0.5 };
 
 /** Sheets written before version 2 listed the changes per method; their labels are carried over. */
 interface LegacyPair { from: PairEnd; to: PairEnd; trueChanges: number | null; note?: string; recovered?: { id: string; verdict: Verdict | null; note?: string }[]; baseline?: { id: string; verdict: Verdict | null; note?: string }[] }
@@ -258,7 +267,10 @@ export interface SheetProblem { severity: 'error' | 'warning'; message: string }
  * the key present, no unknown change, trueChanges a whole number >= 0, verdicts "correct" / "wrong", and the counting rule
  * of the protocol (more correct changes of one method than trueChanges) flagged. Needs no database.
  */
-export function validateLabelSheet(sheet: LabelSheet, key?: LabelKey | null): SheetProblem[] {
+export function validateLabelSheet(sheet: LabelSheet, key?: LabelKey | null, options: { methodChecks?: boolean } = {}): SheetProblem[] {
+  // The counting-rule check groups changes by method: it would tell an annotator which changes share a grouping, so it is
+  // off for an annotator's own sheet before reconciliation (methodChecks: false) and on for the reconciled sheet.
+  const methodChecks = options.methodChecks ?? true;
   const problems: SheetProblem[] = [];
   const err = (message: string) => problems.push({ severity: 'error', message });
   const warn = (message: string) => problems.push({ severity: 'warning', message });
@@ -270,6 +282,11 @@ export function validateLabelSheet(sheet: LabelSheet, key?: LabelKey | null): Sh
     const where = `${p.from.hash || p.from.id}..${p.to.hash || p.to.id}`;
     if (p.trueChanges !== null && (!Number.isInteger(p.trueChanges) || p.trueChanges < 0)) err(`${where}: trueChanges must be a whole number >= 0, got ${String(p.trueChanges)}.`);
     for (const c of p.changes) if (c.verdict !== null && c.verdict !== 'correct' && c.verdict !== 'wrong') err(`${where} ${c.key}: verdict must be "correct" or "wrong", got ${JSON.stringify(c.verdict)}.`);
+    const seen = new Set<string>();
+    for (const c of p.changes) { if (seen.has(c.key)) err(`${where}: change ${c.key} is listed twice.`); seen.add(c.key); }
+    // The protocol asks for the reason in note; it does not block scoring, so it is a warning.
+    for (const c of p.changes) if (c.verdict === 'correct' && !c.note?.trim()) warn(`${where} ${c.key}: "correct" without a note; record which real change it is (evidence).`);
+    if (p.trueChanges !== null && p.trueChanges > 0 && !p.note?.trim()) warn(`${where}: trueChanges ${p.trueChanges} without a note; record the commits or files that show the changes (evidence).`);
     if (!isLabelled(p)) pending++;
     if (key) {
       const k = keyed.get(pairKey(p.from.id, p.to.id));
@@ -277,7 +294,7 @@ export function validateLabelSheet(sheet: LabelSheet, key?: LabelKey | null): Sh
       const listed = new Set(p.changes.map(c => c.key)), known = new Set(k.changes.map(c => c.key));
       for (const c of p.changes) if (!known.has(c.key)) err(`${where}: change ${c.key} is not in the key.`);
       for (const c of k.changes) if (!listed.has(c.key)) err(`${where}: change ${c.key} of the key is missing from the sheet.`);
-      if (p.trueChanges !== null) {
+      if (methodChecks && p.trueChanges !== null) {
         const method = new Map(k.changes.map(c => [c.key, c.method]));
         const correct = new Map<Method, number>();
         for (const c of p.changes) if (c.verdict === 'correct') { const m = method.get(c.key); if (m) correct.set(m, (correct.get(m) ?? 0) + 1); }
@@ -288,6 +305,78 @@ export function validateLabelSheet(sheet: LabelSheet, key?: LabelKey | null): Sh
   if (key) for (const k of key.pairs) if (!sheet.pairs.some(p => pairKey(p.from.id, p.to.id) === pairKey(k.from, k.to))) err(`Pair ${k.from}>${k.to} of the key is missing from the sheet.`);
   if (pending) warn(`${pending} of ${sheet.pairs.length} pairs are not fully labelled yet.`);
   return problems;
+}
+
+/** Differences between two configurations, as "field: before -> now"; [] when they match or the earlier one is unknown. */
+export function configMismatch(previous: EvaluationConfig | undefined, current: EvaluationConfig): string[] {
+  if (!previous) return [];
+  return (Object.keys(current) as (keyof EvaluationConfig)[]).filter(k => previous[k] !== current[k]).map(k => `${k}: ${String(previous[k])} -> ${String(current[k])}`);
+}
+
+/**
+ * Structural problems of an annotator's sheet against the reconciled sheet of the same run: pairs that are missing,
+ * extra, or name other snapshots (hashes), duplicated pairs, and changes whose kind or components differ from the change
+ * with the same key (a sheet edited by hand or copied from another run).
+ */
+export function sheetStructureProblems(sheet: LabelSheet, reference: LabelSheet): SheetProblem[] {
+  const out: SheetProblem[] = [];
+  const ref = new Map(reference.pairs.map(p => [pairKey(p.from.id, p.to.id), p]));
+  const seen = new Set<string>();
+  for (const p of sheet.pairs) {
+    const k = pairKey(p.from.id, p.to.id);
+    const where = `${p.from.hash || p.from.id}..${p.to.hash || p.to.id}`;
+    if (seen.has(k)) out.push({ severity: 'error', message: `${where}: the pair is listed twice.` });
+    seen.add(k);
+    const r = ref.get(k);
+    if (!r) { out.push({ severity: 'error', message: `${where}: not a pair of this run.` }); continue; }
+    if (r.from.hash !== p.from.hash || r.to.hash !== p.to.hash) out.push({ severity: 'error', message: `${where}: the snapshots are ${r.from.hash}..${r.to.hash} in this run.` });
+    const changes = new Map(r.changes.map(c => [c.key, c]));
+    const names = (refs: ComponentRef[]) => refs.map(x => x.name).join('+');
+    for (const c of p.changes) {
+      const rc = changes.get(c.key);
+      if (rc && (rc.kind !== c.kind || names(rc.before) !== names(c.before) || names(rc.after) !== names(c.after))) {
+        out.push({ severity: 'error', message: `${where} ${c.key}: kind or components differ from this run (${rc.kind} ${names(rc.before)} > ${names(rc.after)}).` });
+      }
+    }
+  }
+  for (const k of ref.keys()) if (!seen.has(k)) out.push({ severity: 'error', message: `Pair ${k} of this run is missing.` });
+  return out;
+}
+
+/**
+ * Whether the annotators' sheets may be reconciled: at least two annotators, and (unless a sample design was approved,
+ * as on the development set) every sheet fully labelled. Returns the reasons it may not.
+ */
+export function reconcileBlockers(sheets: Map<string, LabelSheet>, options: { allowPartial?: boolean } = {}): string[] {
+  const out: string[] = [];
+  if (sheets.size < 2) out.push(`${sheets.size} annotator sheet(s); reconciliation needs two independent annotators.`);
+  if (!options.allowPartial) {
+    for (const [who, s] of sheets) {
+      const pending = s.pairs.filter(p => !isLabelled(p)).length;
+      if (pending) out.push(`${who} has ${pending} of ${s.pairs.length} pairs not fully labelled.`);
+    }
+  }
+  return out;
+}
+
+/** Labels present in `current` that `incoming` would erase (an import must never lose work). */
+export function labelLoss(current: LabelSheet, incoming: LabelSheet): string[] {
+  const next = new Map(incoming.pairs.map(p => [pairKey(p.from.id, p.to.id), p]));
+  const out: string[] = [];
+  for (const p of current.pairs) {
+    const q = next.get(pairKey(p.from.id, p.to.id));
+    const where = `${p.from.hash || p.from.id}..${p.to.hash || p.to.id}`;
+    if (p.trueChanges !== null && (!q || q.trueChanges === null)) out.push(`${where}: trueChanges`);
+    const theirs = new Map((q?.changes ?? []).map(c => [c.key, c.verdict]));
+    for (const c of p.changes) if (c.verdict !== null && !theirs.get(c.key)) out.push(`${where} ${c.key}: verdict`);
+  }
+  return out;
+}
+
+/** Two annotators' sheets with exactly the same non-empty labels everywhere: a sign of copying, to be explained. */
+export function identicalLabels(a: LabelSheet, b: LabelSheet): boolean {
+  const flat = (s: LabelSheet) => JSON.stringify(s.pairs.map(p => [p.from.id, p.to.id, p.trueChanges, p.changes.map(c => [c.key, c.verdict])]));
+  return a.pairs.some(p => p.trueChanges !== null || p.changes.some(c => c.verdict !== null)) && flat(a) === flat(b);
 }
 
 export interface LabelDisagreement { project: string; from: string; to: string; field: 'trueChanges' | 'verdict'; key: string; a: string; b: string }

@@ -13,6 +13,9 @@
  *   npm run rq1 -- --anchored [--tolerance x]  add the anchored variant (the frozen method; use 0.02 on the test set)
  *   npm run rq1 -- --no-clustering             leave out the clustering-only grouping
  *   npm run rq1 -- --out <dir>                 output folder (default rq1-results)
+ *   npm run rq1 -- --allow-config-change       score labels although the key was made with other options (refused by default)
+ *   npm run rq1 -- --allow-partial             reconcile although a sheet is incomplete or only one exists (refused by
+ *                                              default; only for an approved sample design such as the development set)
  *   npm run rq1 -- --allow-dropping-methods    rewrite keys and sheets even when this run lacks a grouping an earlier
  *                                              run had (by default the script stops: forgetting --anchored on the test
  *                                              set would remove the frozen method's changes from the annotation)
@@ -36,16 +39,16 @@ import { ArchitectureMappingModel } from "../src/infrastructure/database/models/
 import { ProjectModel } from "../src/infrastructure/database/models/ProjectModel.js";
 import { SnapshotModel } from "../src/infrastructure/database/models/SnapshotModel.js";
 import {
-  aggregateMeans, agreement, annotatorSlug, buildLabelSheet, droppedMethods, labelDisagreements, methodsOf, reconcile, recoveryRows, recoveryTests, renderReport, scoreByProject,
+  aggregateMeans, agreement, annotatorSlug, buildLabelSheet, configMismatch, droppedMethods, FROZEN_CONFIG, labelDisagreements, reconcileBlockers, methodsOf, reconcile, recoveryRows, recoveryTests, renderReport, scoreByProject,
   scoreLabels, stabilityRows, toCsv, workspaceSlug,
 } from "../src/domain/evaluation/rq1.js";
-import type { Agreement, CommitContext, EvaluationInput, LabelDisagreement, LabelKey, LabelSheet, Method, RecoveryRow, StabilityRow } from "../src/domain/evaluation/rq1.js";
+import type { Agreement, CommitContext, EvaluationConfig, EvaluationInput, LabelDisagreement, LabelKey, LabelSheet, Method, RecoveryRow, StabilityRow } from "../src/domain/evaluation/rq1.js";
 import { sensitivityRows, type SensitivityRow } from "../src/domain/evaluation/sensitivity.js";
 
-interface Args { projects: string[]; out: string; annotator: string | null; reconcile: boolean; clustering: boolean; anchored: boolean; tolerance?: number; milestones: boolean; noEvidence: boolean; sensitivity: number[]; allowDrop: boolean }
+interface Args { projects: string[]; out: string; annotator: string | null; reconcile: boolean; clustering: boolean; anchored: boolean; tolerance?: number; milestones: boolean; noEvidence: boolean; sensitivity: number[]; allowDrop: boolean; allowConfigChange: boolean; allowPartial: boolean }
 
 function args(argv: string[]): Args {
-  const a: Args = { projects: [], out: "rq1-results", annotator: null, reconcile: false, clustering: true, anchored: false, milestones: false, noEvidence: false, sensitivity: [], allowDrop: false };
+  const a: Args = { projects: [], out: "rq1-results", annotator: null, reconcile: false, clustering: true, anchored: false, milestones: false, noEvidence: false, sensitivity: [], allowDrop: false, allowConfigChange: false, allowPartial: false };
   for (let i = 0; i < argv.length; i++) {
     const next = () => { if (!argv[i + 1]) throw new Error(`${argv[i]} needs a value`); return argv[++i]; };
     switch (argv[i]) {
@@ -59,6 +62,8 @@ function args(argv: string[]): Args {
       case "--milestones": a.milestones = true; break;
       case "--no-evidence": a.noEvidence = true; break;
       case "--allow-dropping-methods": a.allowDrop = true; break;
+      case "--allow-config-change": a.allowConfigChange = true; break;
+      case "--allow-partial": a.allowPartial = true; break;
       case "--sensitivity": {
         a.sensitivity = next().split(",").map(Number);
         if (!a.sensitivity.length || a.sensitivity.some(x => !(x > 0 && x < 1))) throw new Error("--sensitivity takes dominance thresholds between 0 and 1, e.g. 0.3,0.5,0.7");
@@ -94,6 +99,7 @@ async function commitContext(projectId: string, evaluation: EvaluationInput): Pr
 
 async function main() {
   const opt = args(process.argv.slice(2));
+  const config: EvaluationConfig = { anchored: opt.anchored, tolerance: opt.anchored ? (opt.tolerance ?? FROZEN_CONFIG.tolerance) : null, evidence: !opt.noEvidence, dominance: FROZEN_CONFIG.dominance };
   await connectDb();
   const mapped = (await ArchitectureMappingModel.distinct("projectId")).map(String);
   const ids = opt.projects.length ? opt.projects : mapped;
@@ -141,9 +147,24 @@ async function main() {
       console.log(`${name}: ${evaluation.snapshots.length} snapshot(s), nothing to label`);
       continue;
     }
-    const dropped = droppedMethods(readJson<LabelKey>(path.join(keysDir, `${slug}.json`)), methodsOf(evaluation));
+    const previousKey = readJson<LabelKey>(path.join(keysDir, `${slug}.json`));
+    const dropped = droppedMethods(previousKey, methodsOf(evaluation));
     if (dropped.length && !opt.allowDrop) {
       throw new Error(`${name}: the label key of an earlier run includes ${dropped.join(", ")}, which this run does not compute. Re-run with the same groupings (test set: --anchored --tolerance 0.02), or pass --allow-dropping-methods to rewrite the sheets without them. Nothing was written for this workspace.`);
+    }
+    // Labels are only meaningful for the changes of the configuration they were made under.
+    const changedConfig = configMismatch(previousKey?.config, config);
+    if (changedConfig.length && !opt.allowConfigChange) {
+      throw new Error(`${name}: the label key was made with another configuration (${changedConfig.join("; ")}). Labels made under one configuration must not be scored under another. Use the same options, or pass --allow-config-change deliberately. Nothing was written for this workspace.`);
+    }
+    if (!previousKey?.config && previousKey) console.warn(`${name}: the existing key records no configuration (made before 2026-11-24); it is recorded now as ${JSON.stringify(config)}.`);
+    if (opt.milestones && opt.anchored && configMismatch(FROZEN_CONFIG, config).length) console.warn(`${name}: this is not the frozen test-set configuration (${configMismatch(FROZEN_CONFIG, config).join("; ")}).`);
+    if (opt.reconcile) {
+      // Reconciliation needs two independent, complete sheets; a partial second sheet was only approved for the development set.
+      const existingSheets = new Map(fs.readdirSync(labelsDir).filter(f => f.startsWith(`${slug}.`) && f.endsWith(".json") && f !== `${slug}.json`)
+        .map(f => [f.slice(slug.length + 1, -".json".length), readJson<LabelSheet>(path.join(labelsDir, f))!] as [string, LabelSheet]));
+      const blockers = reconcileBlockers(existingSheets, { allowPartial: opt.allowPartial });
+      if (blockers.length) throw new Error(`${name}: not ready to reconcile: ${blockers.join(" ")} (--allow-partial only for an approved sample design). Nothing was written for this workspace.`);
     }
     const commits = await commitContext(id, evaluation);
     const build = (previous: LabelSheet | null, annotator?: string) => buildLabelSheet({ id, name }, evaluation, previous, { commits, ...(annotator ? { annotator } : {}) });
@@ -174,7 +195,7 @@ async function main() {
       console.log(`${name}: reconciled ${sheets.size} annotator sheet(s), ${merged.conflicts} disagreement(s) to settle in ${reconciledFile}`);
     }
     writeJson(reconciledFile, reconciled);
-    writeJson(path.join(keysDir, `${slug}.json`), key);
+    writeJson(path.join(keysDir, `${slug}.json`), { ...key, config });
     scored.push({ sheet: reconciled, key });
     const names = [...sheets.keys()];
     if (names.length >= 2) {
