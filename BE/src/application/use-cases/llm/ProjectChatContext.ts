@@ -98,9 +98,24 @@ function publicRepoUrl(repoUrl: string): string {
   }
 }
 
+/**
+ * Versions of the mentor's PROJECT DATA (docs/rq2-protocol.md). 1.2: snapshots, evidence and the first file names of the
+ * latest snapshot, cut at 24,000 characters. 1.3: snapshots and evidence (cut at 15,000 characters, the flag named
+ * "dependency changes", no file-name list) followed by the ARCHITECTURE block (domain/mentor/architectureContext.ts).
+ */
+export type MentorContextVersion = "1.2" | "1.3";
+export const MENTOR_CONTEXT_VERSION: MentorContextVersion = "1.3";
+/** Character budget of the snapshot/evidence part in 1.3; the ARCHITECTURE block has its own (9,000). */
+export const BASE_CONTEXT_CHARS_13 = 15_000;
+
 /** Plain-text project data for the prompt. Never includes the project's access token. */
-export function buildProjectContext(input: ChatContextInput): { text: string; knownCommits: string[] } {
-  const { project, snapshots, evidences, structure } = input;
+export function buildProjectContext(input: ChatContextInput, options: { version?: MentorContextVersion } = {}): { text: string; knownCommits: string[] } {
+  const version = options.version ?? "1.2";
+  const { project, snapshots, evidences } = input;
+  // 1.3 replaces the list of file names by the folder summary of the ARCHITECTURE block.
+  const structure = version === "1.3" ? null : input.structure;
+  const changesLabel = version === "1.3" ? "dependency changes" : "architectural changes";
+  const maxChars = version === "1.3" ? BASE_CONTEXT_CHARS_13 : CHAT_LIMITS.maxContextChars;
   const known = new Set<string>();
   const lines: string[] = [];
 
@@ -113,7 +128,7 @@ export function buildProjectContext(input: ChatContextInput): { text: string; kn
   for (const s of snapshots) {
     if (shortHash(s.hash)) known.add(shortHash(s.hash));
     const version = s.version ? ` ${clip(s.version, 30)}` : "";
-    lines.push(`- \`${shortHash(s.hash)}\`${version} ${day(s.date)} "${clip(s.title, 120)}" by ${clip(s.author, 60)}: ${s.files} files, ${s.archChanges} architectural changes, +${s.depAdded}/-${s.depRemoved} dependencies`);
+    lines.push(`- \`${shortHash(s.hash)}\`${version} ${day(s.date)} "${clip(s.title, 120)}" by ${clip(s.author, 60)}: ${s.files} files, ${s.archChanges} ${changesLabel}, +${s.depAdded}/-${s.depRemoved} dependencies`);
   }
 
   lines.push("", `CHANGE EVIDENCE (newest first; showing ${evidences.length} of ${input.evidenceTotal}):`);
@@ -137,7 +152,7 @@ export function buildProjectContext(input: ChatContextInput): { text: string; kn
   }
 
   let text = lines.join("\n");
-  if (text.length > CHAT_LIMITS.maxContextChars) text = `${text.slice(0, CHAT_LIMITS.maxContextChars)}\n(project data truncated)`;
+  if (text.length > maxChars) text = `${text.slice(0, maxChars)}\n(project data truncated)`;
   return { text, knownCommits: [...known] };
 }
 

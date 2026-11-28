@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { ChatConversationModel } from "../src/infrastructure/database/models/ChatConversationModel.ts";
 import { SnapshotModel } from "../src/infrastructure/database/models/SnapshotModel.ts";
 import { EvidenceModel } from "../src/infrastructure/database/models/EvidenceModel.ts";
+import { ArchitectureMappingModel } from "../src/infrastructure/database/models/ArchitectureMappingModel.ts";
 import { setLlmRuntime } from "../src/infrastructure/llm/runtime.ts";
 import {
   ChatHistoryUseCases, MAX_STORED_MESSAGES, conversationTitle, parseConversationId,
@@ -129,6 +130,8 @@ function chatSetup(t, { historyOverrides = {}, reply = "[FACT] `a1b2c3d` split b
   t.mock.method(SnapshotModel, "findOne", () => query(null));
   t.mock.method(EvidenceModel, "find", () => query(evidences));
   t.mock.method(EvidenceModel, "countDocuments", async () => 1);
+  // Mentor context 1.3 also reads the stored groupings; this workspace has none (the PROJECT DATA says so).
+  t.mock.method(ArchitectureMappingModel, "find", () => query([]));
   const asked = [];
   const client = { info: { provider: "fake", model: "fake-1", host: "llm.example", external: true }, complete: async messages => { asked.push(messages); return reply; } };
   setLlmRuntime({ client, options: {}, capability: { enabled: true, provider: "fake", model: "fake-1", host: "llm.example", external: true } });

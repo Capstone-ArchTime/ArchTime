@@ -7,6 +7,7 @@ import { SystemSettingsModel } from "../src/infrastructure/database/models/Syste
 import { SnapshotModel } from "../src/infrastructure/database/models/SnapshotModel.ts";
 import { ProjectModel } from "../src/infrastructure/database/models/ProjectModel.ts";
 import { EvidenceModel } from "../src/infrastructure/database/models/EvidenceModel.ts";
+import { ArchitectureMappingModel } from "../src/infrastructure/database/models/ArchitectureMappingModel.ts";
 import { setLlmRuntime } from "../src/infrastructure/llm/runtime.ts";
 import { buildChatRun, LlmRunService } from "../src/infrastructure/services/LlmRunService.ts";
 import { ProjectChatUseCase, RUN_LOG_WAIT_MS } from "../src/application/use-cases/llm/ProjectChatUseCase.ts";
@@ -214,6 +215,10 @@ function chatSetup(t, { complete, historyAppend } = {}) {
   t.mock.method(SnapshotModel, "findOne", () => query(null));
   t.mock.method(EvidenceModel, "find", () => query(evidences));
   t.mock.method(EvidenceModel, "countDocuments", async () => 1);
+
+  // Mentor context 1.3 also reads the stored groupings; none here.
+
+  t.mock.method(ArchitectureMappingModel, "find", () => query([]));
   const fake = {
     info: client.info,
     complete: complete ?? (async (_messages, options) => { options.onUsage?.({ inputTokens: 100, outputTokens: 20, estimated: false }, 42); return "[FACT] `a1b2c3d` split billing."; }),
@@ -310,6 +315,10 @@ test("no run is logged when no model could be asked", async t => {
   t.mock.method(SnapshotModel, "findOne", () => query(null));
   t.mock.method(EvidenceModel, "find", () => query(evidences));
   t.mock.method(EvidenceModel, "countDocuments", async () => 1);
+
+  // Mentor context 1.3 also reads the stored groupings; none here.
+
+  t.mock.method(ArchitectureMappingModel, "find", () => query([]));
   setLlmRuntime({ client: null, options: {}, capability: { enabled: false, provider: null, model: null, host: null, external: false, reason: "AI is not configured" } });
   t.after(() => setLlmRuntime(null));
   const logged = [];

@@ -160,6 +160,11 @@ export interface RecordedAnswer {
   promptVersion?: string;
   /** Fingerprint of the project data (C1, C2; null for C0); the text is saved once as contexts/<repo>.<sha>.txt. */
   contextSha256?: string | null;
+  /** Mentor context version of the project data (1.2 before protocol 1.3), and whether the test-set lock withheld its ARCHITECTURE block. */
+  contextVersion?: string;
+  contextWithheld?: boolean;
+  /** Size of the project data and what it held (C1, C2): characters, truncation, snapshots and evidence records shown. */
+  contextStats?: { chars: number; truncated: boolean; snapshotsShown: number; evidencesShown: number; hasStructure: boolean };
   /** Version of docs/rq2/questions.json the question came from. */
   questionsVersion?: string;
   /** Provider and model details as the client reports them. */

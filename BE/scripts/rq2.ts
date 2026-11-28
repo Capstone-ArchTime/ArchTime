@@ -7,6 +7,12 @@
  *   npm run rq2 -- run --project <id> --repo <react-router|docusaurus|actual> [--questions Q1,Q2] [--conditions C0,C1,C2]
  *                      [--runs 3] [--model <registry id>] [--force]   asks the model each question --runs times per condition
  *                                                                     (default 3); an answer already saved is not asked again
+ *   npm run rq2 -- preflight --project <id> --repo <name> [--runs 3] [--model <id>] [--approve-protocol <version>]
+ *                                                                checks everything a run needs without asking a model:
+ *                                                                approved protocol, model configured, questions, project
+ *                                                                data, consistency of the answers already saved. `run`
+ *                                                                does the same first and stops on any error, so a run
+ *                                                                needs --approve-protocol <RQ2_PROTOCOL_VERSION>
  *   npm run rq2 -- sheet [--seed <text>]                         blind sheets for the annotators + the keys
  *   npm run rq2 -- score --a <name> --b <name>                   agreement, adjudication list, report.md, metrics.csv
  *                                                                (rates with 95% CI and C0-C1, C1-C2 differences, Holm)
@@ -28,6 +34,8 @@ import mongoose from "mongoose";
 import { connectDb } from "../src/config/db.js";
 import { ProjectModel } from "../src/infrastructure/database/models/ProjectModel.js";
 import { SnapshotModel } from "../src/infrastructure/database/models/SnapshotModel.js";
+import { EvidenceModel } from "../src/infrastructure/database/models/EvidenceModel.js";
+import { answerSlots, contextStatsOf, minedCommitFilter, preflightProblems, questionsOf } from "../src/domain/evaluation/rq2Preflight.js";
 import { LlmModelRegistry } from "../src/infrastructure/llm/registry.js";
 import { mentorProjectData, SYSTEM_PROMPT } from "../src/application/use-cases/llm/ProjectChatUseCase.js";
 import { citedHashes, minedCommitMatcher } from "../src/domain/mentor/claimLabels.js";
@@ -39,7 +47,7 @@ import {
 
 const QUESTIONS_FILE = path.resolve(import.meta.dirname, "../../docs/rq2/questions.json");
 
-interface Args { command: string; out: string; project?: string; repo?: string; questions?: string[]; conditions: Condition[]; runs: number; model?: string; force: boolean; seed: string; a?: string; b?: string }
+interface Args { command: string; out: string; project?: string; repo?: string; questions?: string[]; conditions: Condition[]; runs: number; model?: string; force: boolean; seed: string; a?: string; b?: string; approveProtocol?: string }
 
 function args(argv: string[]): Args {
   const [command = "", ...rest] = argv;
@@ -60,6 +68,7 @@ function args(argv: string[]): Args {
       case "--runs": a.runs = Number(next()); if (!Number.isInteger(a.runs) || a.runs < 1 || a.runs > 10) throw new Error("--runs takes a whole number from 1 to 10"); break;
       case "--model": a.model = next(); break;
       case "--force": a.force = true; break;
+      case "--approve-protocol": a.approveProtocol = next(); break;
       case "--seed": a.seed = next(); break;
       case "--a": a.a = slug(next()); break;
       case "--b": a.b = slug(next()); break;
@@ -95,17 +104,57 @@ async function list() {
   }
 }
 
-async function run(a: Args) {
-  if (!a.project || !a.repo) throw new Error("run needs --project <id> and --repo <name>");
+/** Answers already saved in the output folder, with their file names (none when the folder does not exist yet). */
+function existingAnswers(out: string): { file: string; answer: RecordedAnswer }[] {
+  const dir = path.join(out, "answers");
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir).filter(f => f.endsWith(".json")).sort().map(f => ({ file: f, answer: readJson<RecordedAnswer>(path.join(dir, f)) }));
+}
+
+/**
+ * Checks everything a run needs without asking any model (rq2Preflight.ts) and prints the result. Used by the preflight
+ * command and at the start of every run, which stops on any error.
+ */
+async function preflight(a: Args) {
+  if (!a.project || !a.repo) throw new Error("preflight and run need --project <id> and --repo <name>");
   const doc = await ProjectModel.findById(a.project).lean<{ _id: unknown; name: string; description?: string; repoUrl: string }>();
-  if (!doc) throw new Error(`No workspace ${a.project}`);
-  const project = { id: String(doc._id), name: doc.name, description: doc.description, repoUrl: doc.repoUrl };
+  const project = doc ? { id: String(doc._id), name: doc.name, description: doc.description, repoUrl: doc.repoUrl } : null;
+  const data = project ? await mentorProjectData(project) : null;
+  let model: { id: string } | { error: string };
+  let resolved: Awaited<ReturnType<typeof LlmModelRegistry.resolve>> | null = null;
+  try {
+    resolved = await LlmModelRegistry.resolve(a.model ?? null);
+    model = { id: `${resolved.client.info.provider}/${resolved.client.info.model}` };
+  } catch (error) {
+    model = { error: error instanceof Error ? error.message : String(error) };
+  }
+  const existing = existingAnswers(a.out);
+  const questionsFile = fs.existsSync(QUESTIONS_FILE) ? readJson<unknown>(QUESTIONS_FILE) : null;
+  const problems = preflightProblems({
+    repo: a.repo, questionsFile, runs: a.runs, model, mentorPrompt: SYSTEM_PROMPT, approvedProtocol: a.approveProtocol ?? null, existing,
+    project: project ? { found: true, snapshots: await SnapshotModel.countDocuments(minedCommitFilter(project.id)), evidences: await EvidenceModel.countDocuments({ projectId: project.id }) } : { found: false, snapshots: 0, evidences: 0 },
+    context: data ? { text: data.context.text, sha: fingerprint(data.context.text), version: data.context.version, withheld: data.context.withheld } : null,
+  });
+  const slots = answerSlots(a.repo, questionsOf(questionsFile, a.repo).map(q => q.id), a.runs, existing.map(e => e.answer));
+  console.log(`Preflight ${a.repo}: model ${"id" in model ? model.id : "none"} (credentials are not tested by a call); project data ${data ? `${data.context.text.length} chars, fingerprint ${fingerprint(data.context.text)}` : "none"}; answers ${slots.present} of ${slots.expected} present.`);
+  for (const p of problems) console.log(`  ${p.severity.toUpperCase()} [${p.check}] ${p.message}`);
+  const errors = problems.filter(p => p.severity === "error").length;
+  console.log(errors ? `${errors} error(s): the run must not start.` : "No error: the run may start.");
+  return { ok: errors === 0, project, data, resolved };
+}
+
+async function run(a: Args) {
+  const check = await preflight(a);
+  if (!check.ok || !check.project || !check.data || !check.resolved || !a.repo) throw new Error("Preflight failed; nothing was asked. Fix the errors above.");
+  const project = check.project;
   const questions = questionsFor(a.repo).filter(q => !a.questions || a.questions.includes(q.id));
   if (!questions.length) throw new Error("No question selected");
-  const { context } = await mentorProjectData(project);
-  const mined = await SnapshotModel.find({ projectId: project.id }).select("hash fullHash").lean<{ hash: string; fullHash?: string }[]>();
+  const { context, snapshots, evidences } = check.data;
+  const contextStats = contextStatsOf(context.text, snapshots.length, evidences.length);
+  // As the mentor in the app: vanished commits (missingSince set) are not valid citations.
+  const mined = await SnapshotModel.find(minedCommitFilter(project.id)).select("hash fullHash").lean<{ hash: string; fullHash?: string }[]>();
   const isMined = minedCommitMatcher(mined);
-  const model = await LlmModelRegistry.resolve(a.model ?? null);
+  const model = check.resolved;
   console.log(`Model: ${model.client.info.provider} ${model.client.info.model} (${model.client.info.external ? "external" : "local"}). ${questions.length} questions x ${a.conditions.length} conditions x ${a.runs} runs.`);
 
   // The project data C1 and C2 receive, saved once per distinct content: an answer names it by fingerprint, so what the
@@ -153,7 +202,7 @@ async function run(a: Args) {
       const { text, check } = postProcess(condition, raw, isMined);
       const answer: RecordedAnswer = {
         answerId, repo: a.repo, questionId: q.id, question: q.text, answerable: q.answerable, expected: q.expected, condition, run,
-        model: modelId, modelInfo: { ...model.client.info }, promptVersion, contextSha256: ctx, questionsVersion: qVersion, settings,
+        model: modelId, modelInfo: { ...model.client.info }, promptVersion, contextSha256: ctx, ...(ctx ? { contextStats, contextVersion: context.version, contextWithheld: context.withheld } : {}), questionsVersion: qVersion, settings,
         text, raw: raw.trim(), check, validCitations: citedHashes(text).filter(isMined), usage: seen ? usage : null,
         latencyMs: Math.round(performance.now() - started), askedAt, status: "ok",
       };
@@ -227,9 +276,13 @@ async function main() {
   const a = args(process.argv.slice(2));
   if (a.command === "sheet") return sheet(a);
   if (a.command === "score") return score(a);
-  if (a.command !== "list" && a.command !== "run") throw new Error("Commands: list, run, sheet, score. See the header of scripts/rq2.ts.");
+  if (a.command !== "list" && a.command !== "run" && a.command !== "preflight") throw new Error("Commands: list, preflight, run, sheet, score. See the header of scripts/rq2.ts.");
   await connectDb();
-  try { await (a.command === "list" ? list() : run(a)); } finally { await mongoose.disconnect(); }
+  try {
+    if (a.command === "list") await list();
+    else if (a.command === "run") await run(a);
+    else if (!(await preflight(a)).ok) process.exitCode = 1;
+  } finally { await mongoose.disconnect(); }
 }
 
 main().catch(error => { console.error(error instanceof Error ? error.message : error); process.exit(1); });

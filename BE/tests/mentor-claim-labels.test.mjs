@@ -4,6 +4,7 @@ import { citedHashes, enforceClaimLabels, minedCommitMatcher } from "../src/doma
 import { ProjectChatUseCase } from "../src/application/use-cases/llm/ProjectChatUseCase.ts";
 import { SnapshotModel } from "../src/infrastructure/database/models/SnapshotModel.ts";
 import { EvidenceModel } from "../src/infrastructure/database/models/EvidenceModel.ts";
+import { ArchitectureMappingModel } from "../src/infrastructure/database/models/ArchitectureMappingModel.ts";
 import { LlmModelRegistry } from "../src/infrastructure/llm/registry.ts";
 
 const MINED = [
@@ -92,6 +93,10 @@ test("Mentor labels: the chat answer, its evidence panel and the saved history a
   t.mock.method(SnapshotModel, "findOne", () => query(null));
   t.mock.method(EvidenceModel, "find", () => query(evidence));
   t.mock.method(EvidenceModel, "countDocuments", async () => 1);
+
+  // Mentor context 1.3 also reads the stored groupings; none here.
+
+  t.mock.method(ArchitectureMappingModel, "find", () => query([]));
   const reply = "[FACT] A cache was added in `a1b2c3d`.\n[FACT] It replaced Redis in `badc0de`.";
   t.mock.method(LlmModelRegistry, "resolve", async () => ({
     modelId: null, modelKey: "test", pricing: null,
@@ -121,6 +126,10 @@ test("F-06 (WF-02): the 16th question within a minute is refused (MSG10); the fi
   t.mock.method(SnapshotModel, "findOne", () => query(null));
   t.mock.method(EvidenceModel, "find", () => query([]));
   t.mock.method(EvidenceModel, "countDocuments", async () => 0);
+
+  // Mentor context 1.3 also reads the stored groupings; none here.
+
+  t.mock.method(ArchitectureMappingModel, "find", () => query([]));
   let calls = 0;
   t.mock.method(LlmModelRegistry, "resolve", async () => ({
     modelId: null, modelKey: "test", pricing: null,

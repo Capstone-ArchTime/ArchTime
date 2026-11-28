@@ -15,6 +15,14 @@ import {
 } from "./ProjectChatContext.js";
 import { ChatHistoryUseCases, parseConversationId } from "./ChatHistoryUseCases.js";
 import { citedHashes, enforceClaimLabels, minedCommitMatcher, type LabelCheck } from "../../../domain/mentor/claimLabels.js";
+import {
+  assembleMentorContext, buildArchitectureContext, DEFAULT_ARCHITECTURE_CONTEXT, pickMilestones,
+  type ArchitectureContext, type ContextComponent, type ContextMilestone, type TopChange,
+} from "../../../domain/mentor/architectureContext.js";
+import { isTestSetRepo, testSetLocked } from "../../../domain/evaluation/testSet.js";
+import { fileDependencies, type SnapshotGraph } from "../../../domain/architecture/buildView.js";
+import { ArchitectureMappingModel } from "../../../infrastructure/database/models/ArchitectureMappingModel.js";
+import { MENTOR_CONTEXT_VERSION, type MentorContextVersion } from "./ProjectChatContext.js";
 
 /** The mentor's instructions; exported so the RQ2 evaluation runs exactly the mentor people use (scripts/rq2.ts, C2). */
 export const SYSTEM_PROMPT = `You are ArchTime AI, an assistant that explains how a software project's architecture evolved.
@@ -30,7 +38,11 @@ Rules:
  * What the mentor knows about a project: its latest snapshots, change evidence and structure, as the plain-text
  * PROJECT DATA of the prompt. Shared by the mentor and the RQ2 evaluation (scripts/rq2.ts) so both see the same data.
  */
-export async function mentorProjectData(project: Pick<IProject, "id" | "name" | "description" | "repoUrl">) {
+export async function mentorProjectData(
+  project: Pick<IProject, "id" | "name" | "description" | "repoUrl">,
+  options: { version?: MentorContextVersion; env?: Record<string, string | undefined> } = {},
+) {
+  const version = options.version ?? MENTOR_CONTEXT_VERSION;
   const projectId = project.id;
   const [snapshots, snapshotTotal, evidences, evidenceTotal, latest] = await Promise.all([
     SnapshotModel.find({ projectId }).sort({ date: -1 }).limit(CHAT_LIMITS.snapshots).select("-nodes -edges").lean<ChatSnapshot[]>(),
@@ -42,11 +54,44 @@ export async function mentorProjectData(project: Pick<IProject, "id" | "name" | 
   const structure: ChatStructure | null = latest && latest.nodes?.length
     ? { hash: latest.hash, title: latest.title, nodeCount: latest.nodes.length, edgeCount: latest.edges?.length ?? 0, nodes: latest.nodes }
     : null;
-  const context = buildProjectContext({
+  const base = buildProjectContext({
     project: { name: project.name, description: project.description, repoUrl: project.repoUrl },
     snapshots, snapshotTotal, evidences, evidenceTotal, structure,
+  }, { version });
+  if (version === "1.2") return { context: assembleMentorContext({ version, base, architecture: null, withheld: false }), snapshots, evidences };
+  // A test-set workspace gets no architecture while the lock is on: its evolution events are what RQ1-B annotators judge.
+  const withheld = isTestSetRepo(project.repoUrl) && testSetLocked(options.env);
+  const architecture = withheld ? null : await architectureForMentor(projectId, latest);
+  return { context: assembleMentorContext({ version, base, architecture, withheld }), snapshots, evidences };
+}
+
+/**
+ * Protocol 1.3 ARCHITECTURE block of a project: the stored groupings (up to MAX_CONTEXT_MILESTONES, spread evenly, oldest
+ * first) with their snapshots' import edges, the folders of the latest snapshot, and the ten largest dependency changes of
+ * the whole mined history (commits still in the repository). Null when no grouping is stored.
+ */
+async function architectureForMentor(projectId: string, latest: { nodes?: { id?: string; name: string; type: string }[]; edges?: unknown[] } | null): Promise<ArchitectureContext | null> {
+  type Mapping = { snapshotId: string; generator?: string; components: ContextComponent[] };
+  const mappings = await ArchitectureMappingModel.find({ projectId }).select("snapshotId generator components").lean<Mapping[]>();
+  if (!mappings.length) return null;
+  const snaps = await SnapshotModel.find({ projectId, _id: { $in: mappings.map(m => m.snapshotId) } }).select("hash date version nodes edges").sort({ date: 1 })
+    .lean<{ _id: unknown; hash: string; date: Date; version?: string; nodes: SnapshotGraph["nodes"]; edges: SnapshotGraph["edges"] }[]>();
+  const bySnapshot = new Map(mappings.map(m => [m.snapshotId, m]));
+  const milestones: ContextMilestone[] = pickMilestones(snaps).map(s => {
+    const m = bySnapshot.get(String(s._id))!;
+    return { hash: s.hash, date: s.date, version: s.version, generator: m.generator, edges: fileDependencies({ nodes: s.nodes, edges: s.edges }).edges, components: m.components };
   });
-  return { context, snapshots, evidences };
+  if (!milestones.length) return null;
+  const topChanges = await SnapshotModel.aggregate<TopChange>([
+    { $match: { projectId, missingSince: null } },
+    { $addFields: { total: { $add: [{ $ifNull: ["$depAdded", 0] }, { $ifNull: ["$depRemoved", 0] }] } } },
+    { $match: { total: { $gt: 0 } } },
+    { $sort: { total: -1, date: -1 } },
+    { $limit: DEFAULT_ARCHITECTURE_CONTEXT.maxTopChanges },
+    { $project: { _id: 0, hash: 1, date: 1, author: 1, title: 1, depAdded: 1, depRemoved: 1, files: 1 } },
+  ]);
+  const latestFiles = latest?.nodes?.length ? fileDependencies({ nodes: latest.nodes as SnapshotGraph["nodes"], edges: (latest.edges ?? []) as SnapshotGraph["edges"] }).files : [];
+  return buildArchitectureContext(milestones, latestFiles, {}, topChanges);
 }
 
 const WINDOW_MS = 60_000;
