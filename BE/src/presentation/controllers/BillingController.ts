@@ -1,13 +1,13 @@
 import type { NextFunction, Request, Response } from "express";
 import type { BillingUseCases } from "../../application/use-cases/billing/BillingUseCases.js";
-import { momoResultValid, vnpayValid, type MomoKeys, type MomoResult, type VnpayKeys } from "../../domain/billing/signatures.js";
+import { momoResultValid, payosWebhookValid, vnpayValid, type MomoKeys, type MomoResult, type PayosKeys, type PayosWebhook, type VnpayKeys } from "../../domain/billing/signatures.js";
 import { sendSuccess } from "../../shared/utils/apiResponse.js";
 import { NotFoundError } from "../../shared/errors/AppError.js";
 
 type Handler = (req: Request, res: Response) => Promise<void>;
 const wrap = (fn: Handler) => (req: Request, res: Response, next: NextFunction) => { fn(req, res).catch(next); };
 
-export interface BillingKeys { momo?: MomoKeys; vnpay?: VnpayKeys; simulator: boolean }
+export interface BillingKeys { momo?: MomoKeys; vnpay?: VnpayKeys; payos?: PayosKeys; simulator: boolean }
 
 /** Plans, AI credit and payments (FE-17): buyers, gateway notifications and administrators. */
 export class BillingController {
@@ -92,6 +92,29 @@ export class BillingController {
   }
 
   // â”€â”€ administrators â”€â”€
+
+  /**
+   * payOS webhook: answered 200 whatever happens (payOS also sends a test notification when the URL is saved). Only a
+   * valid signature settles; the order is found from its payOS order code.
+   */
+  payosWebhook = wrap(async (req, res) => {
+    const w = req.body as PayosWebhook;
+    let outcome = "invalid-signature";
+    if (this.keys.payos && payosWebhookValid(this.keys.payos, w)) {
+      const orderId = `AT${w.data.orderCode}`;
+      const paid = w.code === "00" && (w.data.code ?? "00") === "00";
+      outcome = await this.billing.settle(orderId, paid
+        ? { status: "paid", amountVnd: Number(w.data.amount), gatewayTxnId: String(w.data.reference ?? "") }
+        : { status: "failed", reason: `payOS ${w.data.code ?? w.code} ${w.data.desc ?? w.desc ?? ""}`.trim() });
+    }
+    console.log(`[billing] payOS webhook received: order code ${String(w?.data?.orderCode ?? "-")} → ${outcome}`);
+    res.status(200).json({ success: true });
+  });
+
+  /** The buyer is back from payOS: its return address is not signed, so the server asks payOS about the order instead. */
+  payosReturn = wrap(async (req, res) => {
+    sendSuccess(res, await this.billing.checkWithGateway(req.user!.userId, String(req.body?.orderId ?? "")));
+  });
 
   getSettings = wrap(async (_req, res) => { sendSuccess(res, await this.billing.getSettings()); });
   updateSettings = wrap(async (req, res) => { sendSuccess(res, await this.billing.updateSettings(req.body ?? {}, req.user!.userId), { message: "Billing settings saved" }); });

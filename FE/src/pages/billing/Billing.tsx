@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Alert, Button, Result, Select, Spin } from 'antd';
 import FeaturePage, { featurePanel } from '@/components/FeaturePage';
 import { listOrganizations, type Organization } from '@/features/organizations-api';
-import { forwardGatewayReturn, getOrder, simulatePayment, formatVnd, type Order, type Space } from '@/features/billing-api';
+import { checkPayosReturn, forwardGatewayReturn, getOrder, simulatePayment, formatVnd, type Order, type Space } from '@/features/billing-api';
 import { useMessages } from '@/i18n/define';
 import BillingPanel from './BillingPanel';
 import { useItemLabel } from './useItemLabel';
@@ -51,7 +51,8 @@ export function BillingResult() {
     // The redirect carries the gateway's signed result: passing it on settles the order even where the gateway cannot
     // reach this server with its notification (a development machine).
     const forwarded = fields.vnp_SecureHash ? forwardGatewayReturn('vnpay', fields)
-      : fields.signature && fields.partnerCode ? forwardGatewayReturn('momo', fields) : Promise.resolve();
+      : fields.signature && fields.partnerCode ? forwardGatewayReturn('momo', fields)
+      : fields.orderCode ? checkPayosReturn(orderId) : Promise.resolve();
     let tries = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const poll = () => {

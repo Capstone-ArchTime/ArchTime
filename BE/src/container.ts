@@ -1,7 +1,7 @@
 import { ProjectModel } from "./infrastructure/database/models/ProjectModel.js";
 import { BillingUseCases, type PaymentGateway } from "./application/use-cases/billing/BillingUseCases.js";
 import type { Gateway } from "./domain/billing/billing.js";
-import { MomoGateway, SimulatorGateway, VnpayGateway } from "./infrastructure/billing/gateways.js";
+import { MomoGateway, PayosGateway, SimulatorGateway, VnpayGateway } from "./infrastructure/billing/gateways.js";
 import { MongoOrderStore, mongoAccountStore, mongoSettingsStore } from "./infrastructure/repositories/MongoBillingStores.js";
 import { AiCreditService, invitationTtlMs } from "./infrastructure/services/AiCreditService.js";
 import { BillingController } from "./presentation/controllers/BillingController.js";import { ViewerAccessUseCase } from "./application/use-cases/projects/ViewerAccessUseCase.js";
@@ -123,10 +123,12 @@ const emailService = new NodemailerEmailService(
 const billingGateways: Partial<Record<Gateway, PaymentGateway>> = {};
 const momoKeys = env.momo.partnerCode && env.momo.accessKey && env.momo.secretKey ? { partnerCode: env.momo.partnerCode, accessKey: env.momo.accessKey, secretKey: env.momo.secretKey } : undefined;
 const vnpayKeys = env.vnpay.tmnCode && env.vnpay.hashSecret ? { tmnCode: env.vnpay.tmnCode, hashSecret: env.vnpay.hashSecret } : undefined;
+const payosKeys = env.payos.clientId && env.payos.apiKey && env.payos.checksumKey ? { clientId: env.payos.clientId, apiKey: env.payos.apiKey, checksumKey: env.payos.checksumKey } : undefined;
 // The gateways need absolute addresses: MoMo posts its IPN to the API, and both send the buyer back to the web client.
 const webUrl = env.corsOrigin.split(",")[0].trim().replace(/\/+$/, "");
 if (momoKeys) billingGateways.momo = new MomoGateway(momoKeys, env.momo.endpoint, `${env.publicApiUrl.replace(/\/+$/, "")}/billing/momo/ipn`);
 if (vnpayKeys) billingGateways.vnpay = new VnpayGateway(vnpayKeys, env.vnpay.payUrl, env.vnpay.apiUrl);
+if (payosKeys) billingGateways.payos = new PayosGateway(payosKeys, env.payos.endpoint);
 if (env.billingSimulator) billingGateways.simulator = new SimulatorGateway(webUrl);
 export const billingUseCases = new BillingUseCases({
   orders: new MongoOrderStore(), accounts: mongoAccountStore, settings: mongoSettingsStore, gateways: billingGateways,
@@ -153,18 +155,19 @@ export function billingGatewayReport(): string[] {
   const lines: string[] = [];
   if (momoKeys) lines.push(`[billing] MoMo on, ${/test-payment\.momo\.vn/.test(env.momo.endpoint) ? "SANDBOX" : "LIVE"} (${env.momo.endpoint}); IPN ${env.publicApiUrl}/billing/momo/ipn`);
   if (vnpayKeys) lines.push(`[billing] VNPay on, ${/sandbox\.vnpay(ment|test)\.vn/.test(env.vnpay.payUrl) ? "SANDBOX" : "LIVE"} (${env.vnpay.payUrl}); set the IPN URL ${env.publicApiUrl}/billing/vnpay/ipn in the VNPay merchant portal`);
+  if (payosKeys) lines.push(`[billing] payOS on, LIVE: real bank transfers (${env.payos.endpoint}); set the webhook URL ${env.publicApiUrl}/billing/payos/webhook in the payOS payment channel`);
   if (env.billingSimulator) lines.push("[billing] Test gateway on (BILLING_SIMULATOR=true): nothing is charged");
-  if (!lines.length) lines.push("[billing] No payment method configured: set MOMO_* or VNPAY_* in .env");
-  if ((momoKeys || vnpayKeys) && local(env.publicApiUrl)) {
+  if (!lines.length) lines.push("[billing] No payment method configured: set MOMO_*, VNPAY_* or PAYOS_* in .env");
+  if ((momoKeys || vnpayKeys || payosKeys) && local(env.publicApiUrl)) {
     lines.push("[billing] PUBLIC_API_URL is a local address: gateways cannot send IPNs here; payments are settled from the return page and by reconciliation instead");
   }
-  if ((momoKeys || vnpayKeys) && local(webUrl) && process.env.NODE_ENV === "production") {
+  if ((momoKeys || vnpayKeys || payosKeys) && local(webUrl) && process.env.NODE_ENV === "production") {
     lines.push("[billing] WARNING: CORS_ORIGIN (the return address) is local in production");
   }
   return lines;
 }
 
-export const billingController = new BillingController(billingUseCases, { momo: momoKeys, vnpay: vnpayKeys, simulator: env.billingSimulator });
+export const billingController = new BillingController(billingUseCases, { momo: momoKeys, vnpay: vnpayKeys, payos: payosKeys, simulator: env.billingSimulator });
 
 // ─────────────────────────────────────────
 // Use Cases

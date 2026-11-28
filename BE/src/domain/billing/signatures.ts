@@ -96,3 +96,35 @@ export function vnpayQueryBody(keys: VnpayKeys, req: { requestId: string; orderI
   const data = [body.vnp_RequestId, body.vnp_Version, body.vnp_Command, body.vnp_TmnCode, body.vnp_TxnRef, body.vnp_TransactionDate, body.vnp_CreateDate, body.vnp_IpAddr, body.vnp_OrderInfo].join("|");
   return { ...body, vnp_SecureHash: hmacHex("sha512", keys.hashSecret, data) };
 }
+
+// ── payOS ──
+// HMAC-SHA256 with the checksum key over "key=value" pairs sorted by key. A payment request signs amount, cancelUrl,
+// description, orderCode and returnUrl; a webhook signs every field of its `data` (null and undefined as empty text).
+
+export interface PayosKeys { clientId: string; apiKey: string; checksumKey: string }
+
+export interface PayosCreate { orderCode: number; amount: number; description: string; returnUrl: string; cancelUrl: string; expiredAt: number }
+
+export function payosCreateBody(keys: PayosKeys, req: PayosCreate) {
+  const raw = `amount=${req.amount}&cancelUrl=${req.cancelUrl}&description=${req.description}&orderCode=${req.orderCode}&returnUrl=${req.returnUrl}`;
+  return { ...req, signature: hmacHex("sha256", keys.checksumKey, raw) };
+}
+
+export function payosDataSignature(keys: PayosKeys, data: Record<string, unknown>): string {
+  const raw = Object.keys(data).filter(k => data[k] !== undefined).sort().map(k => {
+    let value = data[k];
+    if (Array.isArray(value)) value = JSON.stringify(value);
+    if (value === null || value === undefined || value === "null" || value === "undefined") value = "";
+    return `${k}=${value}`;
+  }).join("&");
+  return hmacHex("sha256", keys.checksumKey, raw);
+}
+
+/** Fields payOS sends to the webhook URL. */
+export interface PayosWebhook {
+  code: string; desc: string; success?: boolean; signature: string;
+  data: { orderCode: number; amount: number; reference?: string; code?: string; desc?: string; [field: string]: unknown };
+}
+
+export const payosWebhookValid = (keys: PayosKeys, w: PayosWebhook): boolean =>
+  !!w && !!w.data && typeof w.data === "object" && sameHex(w.signature, payosDataSignature(keys, w.data));

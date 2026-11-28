@@ -131,7 +131,7 @@ function Payments() {
           <Select value={status} onChange={v => { setStatus(v); setPage(1); }} style={{ minWidth: 160 }}
             options={[{ value: '', label: m('allStatuses') }, ...(['pending', 'paid', 'failed', 'expired'] as const).map(v => ({ value: v, label: m(`st_${v}`) }))]} />
           <Select value={gateway} onChange={v => { setGateway(v); setPage(1); }} style={{ minWidth: 140 }}
-            options={[{ value: '', label: m('allMethods') }, ...(['momo', 'vnpay', 'simulator'] as const).map(v => ({ value: v, label: m(v) }))]} />
+            options={[{ value: '', label: m('allMethods') }, ...(['momo', 'vnpay', 'payos', 'simulator'] as const).map(v => ({ value: v, label: m(v) }))]} />
           <Button onClick={reconcile}>{m('reconcile')}</Button>
         </div>
       </div>

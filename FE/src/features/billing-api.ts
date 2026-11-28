@@ -4,7 +4,7 @@ import { apiRequest } from '../api/client.ts';
 // Server: BE/src/presentation/routes/billing.routes.ts and organization.routes.ts. Prices are always computed by the
 // server; the page only shows them.
 
-export type Gateway = 'momo' | 'vnpay' | 'simulator';
+export type Gateway = 'momo' | 'vnpay' | 'payos' | 'simulator';
 export type Period = 'month' | 'year';
 export type PlanId = 'free' | 'pro' | 'team';
 export type OrderKind = 'plan' | 'add-seats' | 'topup';
@@ -82,6 +82,11 @@ export async function getOrder(orderId: string, signal?: AbortSignal): Promise<O
 
 export async function simulatePayment(orderId: string, outcome: 'paid' | 'failed'): Promise<{ order: Order }> {
   return (await apiRequest<Envelope<{ order: Order }>>(`/billing/simulator/${encodeURIComponent(orderId)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ outcome }) })).data;
+}
+
+/** Back from payOS: its return address is not signed, so the server is asked to check the order with payOS itself. */
+export async function checkPayosReturn(orderId: string): Promise<void> {
+  await apiRequest('/billing/payos/return', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId }) });
 }
 
 /** The signed fields a gateway put on the return address, sent on so the server can settle without its notification. */

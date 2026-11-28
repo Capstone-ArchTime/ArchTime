@@ -59,6 +59,13 @@ export const env = {
     payUrl: process.env.VNPAY_PAY_URL || "https://sandbox.vnpaytest.vn/paymentv2/vpcpay.html",
     apiUrl: process.env.VNPAY_API_URL || "https://sandbox.vnpaytest.vn/merchant_webapi/api/transaction",
   },
+  /** payOS: bank transfer by VietQR into the account linked to the payment channel; open to individuals. */
+  payos: {
+    clientId: process.env.PAYOS_CLIENT_ID ?? "",
+    apiKey: process.env.PAYOS_API_KEY ?? "",
+    checksumKey: process.env.PAYOS_CHECKSUM_KEY ?? "",
+    endpoint: process.env.PAYOS_ENDPOINT || "https://api-merchant.payos.vn",
+  },
   /** A test gateway for demos without merchant accounts; never on in production. */
   billingSimulator: process.env.BILLING_SIMULATOR === "true" && process.env.NODE_ENV !== "production",
   /** Minutes between reconciliations of pending payments with the gateways (0 turns it off). */

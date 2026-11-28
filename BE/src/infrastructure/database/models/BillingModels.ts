@@ -16,7 +16,7 @@ const OrderSchema = new Schema<Omit<IOrder, "id">>(
     plan: { type: String, enum: ["free", "pro", "team"] }, period: { type: String, enum: ["month", "year"] },
     seats: Number, credits: Number,
     amountVnd: { type: Number, required: true },
-    gateway: { type: String, enum: ["momo", "vnpay", "simulator"], required: true },
+    gateway: { type: String, enum: ["momo", "vnpay", "payos", "simulator"], required: true },
     status: { type: String, enum: ["pending", "paid", "failed", "expired"], default: "pending", index: true },
     catalogVersion: Number,
     payUrl: String, gatewayTxnId: String, paidAt: Date, appliedAt: Date, failureReason: String, receiptSentAt: Date,
