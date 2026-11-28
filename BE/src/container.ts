@@ -483,14 +483,15 @@ export const repositoryWatcher = new RepositoryWatcher(
   (projectId, ownerId) => MiningService.startWatchJob(projectId, ownerId),
 );
 
-// ── Agent access (RF-09, UC-42 – UC-44) ──
+// ── Agent access (RF-09, UC-42 – UC-44 as in Report 3) ──
 // ── Moving a personal workspace into an organization (RF-11, UC-29) ──
 export const transferProjectUseCase = new TransferProjectUseCase(projectRepository, organizationRepository, memberRepository,
   entry => AuditService.log({ ...entry, targetType: "project" }));
 
 export const agentController = new AgentController(
   new AgentTokenUseCases(new MongoAgentTokenRepository(), projectRepository, entry => AuditService.log({ ...entry, targetType: "project" })),
-  new AgentContextUseCases(workspaceRepository, projectRepository, env.publicApiUrl, organizationRepository),
+  new AgentContextUseCases(workspaceRepository, projectRepository, env.publicApiUrl, organizationRepository,
+    { tasks: new MongoTaskRepository(), commits: mongoCommitArchitecture }),
 );
 export const adminLlmController = new AdminLlmController(new AdminLlmUseCases());
 

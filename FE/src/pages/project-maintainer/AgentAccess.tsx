@@ -4,7 +4,7 @@ import { Download, KeyRound, Plus } from 'lucide-react';
 import { WorkspacePage } from './workspace';
 import { panel } from './workspace-store';
 import {
-  DEFAULT_EXPIRY, EXPIRY_CHOICES, STATUS_LABEL, contextCommand, createToken, downloadAgentsMd, listTokens, revokeToken, sortTokens,
+  DEFAULT_EXPIRY, EXPIRY_CHOICES, STATUS_LABEL, contextCommand, createToken, taskContextCommand, downloadAgentsMd, listTokens, revokeToken, sortTokens,
 } from '@/features/agent-access';
 import type { AgentToken } from '@/features/agent-access';
 import { Details } from '@/components/PageHeader';
@@ -21,6 +21,7 @@ const MSG = defineMessages({
   noTokens: 'No tokens yet. Create one for each agent or machine, so you can revoke them one by one.', created: ' · created {date}', revokedOn: ' · revoked {date}', expires: ' · expires {date}', lastUsed: ' · last used {date}',
   revokeTitle: 'Revoke "{name}"?', revokeBody: 'Agents using it are refused from their next request.', revoke: 'Revoke', howAsks: 'How an agent asks',
   howDetails: 'Before changing a file, the agent asks which component it belongs to, which components it may and may not depend on, the design decisions about it and the commit convention.',
+  howTask: 'Before starting a task, the agent asks for its context pack: the components the commits of the task touched, and for each the components it may and may not depend on (with the rule and its reason) and its design decisions.',
   newTitle: 'New project token', createToken: 'Create token', name: 'Name', nameExtra: 'Who uses it, e.g. Claude Code on my laptop, or CI pipeline.', expiresAfter: 'Expires after', days: '{n} days',
   createdTitle: 'Token "{name}" created', copied: 'I have copied it', copyNow: 'Copy it now: it is not shown again. ArchTime keeps only a fingerprint of it.',
   envHint: 'Give it to the agent as the ARCHTIME_AGENT_TOKEN environment variable; do not commit it.', title: 'Agent Access', intro: "Let coding agents follow this workspace's architecture.",
@@ -34,6 +35,7 @@ const MSG = defineMessages({
   noTokens: 'Chưa có token nào. Hãy tạo cho mỗi agent hoặc máy một token để có thể thu hồi riêng từng cái.', created: ' · tạo {date}', revokedOn: ' · thu hồi {date}', expires: ' · hết hạn {date}', lastUsed: ' · dùng lần cuối {date}',
   revokeTitle: 'Thu hồi "{name}"?', revokeBody: 'Agent dùng token này sẽ bị từ chối từ yêu cầu tiếp theo.', revoke: 'Thu hồi', howAsks: 'Agent hỏi như thế nào',
   howDetails: 'Trước khi sửa một tệp, agent hỏi tệp thuộc thành phần nào, được và không được phụ thuộc vào thành phần nào, các quyết định thiết kế liên quan và quy ước commit.',
+  howTask: 'Trước khi bắt đầu một task, agent hỏi gói ngữ cảnh của task: các thành phần mà commit của task đã đụng tới, và với mỗi thành phần: được và không được phụ thuộc vào thành phần nào (kèm quy tắc và lý do) và các quyết định thiết kế liên quan.',
   newTitle: 'Token dự án mới', createToken: 'Tạo token', name: 'Tên', nameExtra: 'Ai dùng nó, vd. Claude Code trên laptop của tôi, hoặc pipeline CI.', expiresAfter: 'Hết hạn sau', days: '{n} ngày',
   createdTitle: 'Đã tạo token "{name}"', copied: 'Tôi đã sao chép', copyNow: 'Hãy sao chép ngay: token không hiển thị lại. ArchTime chỉ giữ dấu vân tay của nó.',
   envHint: 'Đưa token cho agent qua biến môi trường ARCHTIME_AGENT_TOKEN; đừng commit nó.', title: 'Quyền cho agent', intro: 'Cho các coding agent tuân theo kiến trúc của không gian làm việc này.',
@@ -142,6 +144,8 @@ function Access({ project }: { project: string }) {
       <h3 className="text-lg font-semibold">{m('howAsks')}</h3>
       <Details><p>{m('howDetails')}</p></Details>
       <Typography.Paragraph copyable={{ text: contextCommand() }} className="!mb-0"><code className="break-all text-xs">{contextCommand()}</code></Typography.Paragraph>
+      <p className="!mb-0 pt-2">{m('howTask')}</p>
+      <Typography.Paragraph copyable={{ text: taskContextCommand() }} className="!mb-0"><code className="break-all text-xs">{taskContextCommand()}</code></Typography.Paragraph>
     </section>
 
     <Modal title={m('newTitle')} open={creating} okText={m('createToken')} confirmLoading={saving} onOk={() => form.submit()} onCancel={() => setCreating(false)}>

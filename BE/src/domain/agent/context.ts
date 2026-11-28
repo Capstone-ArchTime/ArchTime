@@ -1,4 +1,4 @@
-// What a coding agent is told about the architecture (RF-09, UC-44, BR-31): for one file, the component it belongs to,
+// What a coding agent is told about the architecture (RF-09, UC-42 Get Architecture Context, UC-43 Generate Task Context Pack, BR-31): for one file, the component it belongs to,
 // which components it may and may not depend on, the design decisions about it and the commit convention, all taken
 // from the confirmed component diagram. Names, paths and decisions only: never any source code. Pure, so unit-testable.
 
@@ -53,7 +53,6 @@ export function agentContextFor(rawFile: unknown, workspace: Pick<IWorkspace, "d
   const file = normalizePathPrefix(rawFile);
   if (!file) return null;
   const components = workspace.diagram?.components ?? [];
-  const rules = (workspace.rules ?? []).filter(r => r.enabled);
   const id = componentOf(file, components);
   const own = id ? components.find(c => c.id === id) ?? null : null;
   const context: AgentContext = {
@@ -75,9 +74,28 @@ export function agentContextFor(rawFile: unknown, workspace: Pick<IWorkspace, "d
     context.guidance.push("No component of the confirmed diagram covers this file. Ask a maintainer which component it belongs to before adding dependencies from it.");
     return context;
   }
+  const rulesOf = componentRulesFor(own, workspace);
+  context.allowedDependencies = rulesOf.allowedDependencies;
+  context.forbiddenDependencies = rulesOf.forbiddenDependencies;
+  context.forbiddenCallers = rulesOf.forbiddenCallers;
+  context.decisions = rulesOf.decisions;
+  context.guidance.push(
+    `Keep changes to ${own.name} inside its responsibility${own.description ? `: ${own.description}` : "."}`,
+    "Only add imports to components listed in allowedDependencies. Any other dependency departs from the confirmed diagram and will be reported by the conformance check.",
+    "If the change needs a new dependency, say so in the commit (Arch-Change trailer) so a maintainer can raise an architecture change request.",
+  );
+  return context;
+}
 
+/** What the confirmed diagram, the enabled rules and the live ADRs say about one component. */
+export type ComponentRules = Pick<AgentContext, "allowedDependencies" | "forbiddenDependencies" | "forbiddenCallers" | "decisions">;
+
+export function componentRulesFor(own: IWorkspaceComponent, workspace: Pick<IWorkspace, "diagram" | "rules" | "decisions">): ComponentRules {
+  const components = workspace.diagram?.components ?? [];
+  const rules = (workspace.rules ?? []).filter(r => r.enabled);
+  const out: ComponentRules = { allowedDependencies: [], forbiddenDependencies: [], forbiddenCallers: [], decisions: [] };
   const allowed = new Map<string, AgentContext["allowedDependencies"][number]>();
-  for (const d of workspace.diagram.dependencies ?? []) {
+  for (const d of workspace.diagram?.dependencies ?? []) {
     const target = d.source === own.id ? components.find(c => c.id === d.target) : undefined;
     if (target && target.id !== own.id) allowed.set(target.id, { ...short(target), reason: "declared" });
   }
@@ -86,26 +104,67 @@ export function agentContextFor(rawFile: unknown, workspace: Pick<IWorkspace, "d
     if (!source || !target) continue;
     const why = { rule: r.name, severity: r.severity, rationale: r.rationale ?? "" };
     if (r.constraint === "required" && source.id === own.id && !allowed.has(target.id)) allowed.set(target.id, { ...short(target), reason: "required", rule: r.name });
-    if (r.constraint === "forbidden" && source.id === own.id) context.forbiddenDependencies.push({ ...short(target), ...why });
-    if (r.constraint === "forbidden" && target.id === own.id) context.forbiddenCallers.push({ ...short(source), ...why });
+    if (r.constraint === "forbidden" && source.id === own.id) out.forbiddenDependencies.push({ ...short(target), ...why });
+    if (r.constraint === "forbidden" && target.id === own.id) out.forbiddenCallers.push({ ...short(source), ...why });
   }
   // A forbidden rule wins over a declared dependency: the diagram and the rules disagree, and the rule is the stricter.
-  for (const f of context.forbiddenDependencies) allowed.delete(f.id);
-  context.allowedDependencies = [...allowed.values()].sort(byName);
-  context.forbiddenDependencies.sort(byName);
-  context.forbiddenCallers.sort(byName);
-
-  context.decisions = (workspace.decisions ?? [])
+  for (const f of out.forbiddenDependencies) allowed.delete(f.id);
+  out.allowedDependencies = [...allowed.values()].sort(byName);
+  out.forbiddenDependencies.sort(byName);
+  out.forbiddenCallers.sort(byName);
+  out.decisions = (workspace.decisions ?? [])
     .filter(d => d.status !== "Deprecated" && (d.componentIds ?? []).includes(own.id))
     .sort((a, b) => b.number - a.number)
     .map(d => ({ number: d.number, title: d.title, status: d.status, decision: d.decision ?? "", consequences: d.consequences ?? "" }));
+  return out;
+}
 
-  context.guidance.push(
-    `Keep changes to ${own.name} inside its responsibility${own.description ? `: ${own.description}` : "."}`,
-    "Only add imports to components listed in allowedDependencies. Any other dependency departs from the confirmed diagram and will be reported by the conformance check.",
-    "If the change needs a new dependency, say so in the commit (Arch-Change trailer) so a maintainer can raise an architecture change request.",
-  );
-  return context;
+// ── Task context pack (UC-43) ──────────────────────────────────────────────────────────────────────────────────────────
+
+export interface TaskContextPack {
+  task: { key: string; summary: string; status: string | null };
+  /** The task's linked commits: hash, title and date only, never a patch (BR-31). */
+  commits: { hash: string; title: string; date: string | null; mined: boolean }[];
+  /** Components the task's commits touched, each with what it may and may not depend on and its ADRs. */
+  components: (Omit<ComponentRef, "pathPrefixes"> & ComponentRules)[];
+  commitConvention: typeof COMMIT_CONVENTION;
+  diagram: AgentContext["diagram"];
+  guidance: string[];
+}
+
+/** The context pack for one task: `componentIds` are the components its commits touched (from commitComponentImpact). */
+export function taskContextFor(
+  task: { key: string; summary?: string | null; status?: string | null },
+  commits: { hash: string; title?: string | null; date?: Date | string | null; mined: boolean }[],
+  componentIds: Iterable<string>,
+  workspace: Pick<IWorkspace, "diagram" | "rules" | "decisions" | "revision">,
+): TaskContextPack {
+  const all = workspace.diagram?.components ?? [];
+  const wanted = new Set(componentIds);
+  const touched = all.filter(c => wanted.has(c.id)).sort(byName);
+  const pack: TaskContextPack = {
+    task: { key: task.key, summary: task.summary ?? "", status: task.status ?? null },
+    commits: commits.map(c => ({ hash: c.hash, title: c.title ?? "", date: c.date ? new Date(c.date).toISOString() : null, mined: c.mined })),
+    components: touched.map(c => ({ id: c.id, name: c.name, kind: c.kind, description: c.description ?? "", ...componentRulesFor(c, workspace) })),
+    commitConvention: COMMIT_CONVENTION,
+    diagram: {
+      confirmedAt: workspace.diagram?.confirmedAt ? new Date(workspace.diagram.confirmedAt).toISOString() : null,
+      baselineCommit: workspace.diagram?.baselineCommit ?? null,
+      revision: workspace.revision ?? null,
+    },
+    guidance: [],
+  };
+  if (!commits.length) {
+    pack.guidance.push(`No commit names ${task.key} yet, so no component is known for it. Ask about each file you change with /agent/context?file=.`);
+  } else if (!touched.length) {
+    pack.guidance.push(`The commits of ${task.key} touch no component of the confirmed diagram (not mined yet, or outside every mapped path). Ask about each file with /agent/context?file=.`);
+  } else {
+    pack.guidance.push(
+      "Only add imports between components that allowedDependencies lists. Any other dependency departs from the confirmed diagram and will be reported by the conformance check.",
+      `Name the task in every commit (Task: ${task.key}); if a new dependency is needed, say so in the Arch-Change trailer so a maintainer can raise an architecture change request.`,
+    );
+  }
+  return pack;
 }
 
 // ── AGENTS.md ──────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -176,6 +235,14 @@ export function buildAgentsMd(projectName: string, workspace: Pick<IWorkspace, "
     "```",
     "",
     "The answer names the file's component, the components it may and may not depend on, the design decisions about it and this commit convention.",
+    "",
+    "## Ask before you start a task",
+    "",
+    "```",
+    `curl -H "Authorization: Bearer $ARCHTIME_AGENT_TOKEN" "${apiBase.replace(/\/+$/, "")}/agent/task-context?task=<TASK-KEY>"`,
+    "```",
+    "",
+    "The answer names the task, the components its commits touched, and for each the components it may and may not depend on (with the rule and its reason) and its design decisions.",
     "",
   );
   return lines.join("\n");

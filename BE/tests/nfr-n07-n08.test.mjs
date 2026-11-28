@@ -134,6 +134,11 @@ test("N-08: a project token reads only its own project, opens no other API, and 
     assert.equal(JSON.parse(r.text).data.component, null, "Bravo's paths mean nothing in Alpha");
     assert.ok(!leaksBravo(r.text), r.text);
   }
+  // UC-43: a task key is looked up in the token's workspace only; Bravo's name is never echoed back.
+  const task = await get(`/agent/task-context?task=BRAVO-1&projectId=${b.projectId}`, tokenA);
+  assert.equal(task.status, 404);
+  assert.ok(!leaksBravo(task.text), task.text);
+  for (const bad of [revokedB, expiredB, ""]) assert.equal((await get("/agent/task-context?task=BRAVO-1", bad)).status, 401);
   const md = await get("/agent/agents-md", tokenA);
   assert.equal(md.status, 200);
   assert.ok(md.text.includes("# AGENTS.md — Alpha") && !leaksBravo(md.text));

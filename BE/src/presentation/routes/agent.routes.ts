@@ -8,7 +8,7 @@ import type { ProjectAction } from "../middlewares/projectRole.js";
  * @swagger
  * tags:
  *   name: Agent
- *   description: Ngữ cảnh kiến trúc cho coding agent bằng project token (RF-09, UC-42 – UC-44, BR-30, BR-31)
+ *   description: Ngữ cảnh kiến trúc cho coding agent bằng project token (RF-09, UC-42 Get Architecture Context, UC-43 Generate Task Context Pack, UC-44 Manage Agent Access Tokens, BR-30, BR-31)
  * components:
  *   securitySchemes:
  *     AgentToken:
@@ -25,7 +25,7 @@ export function createAgentRouter(controller: AgentController): Router {
    * /api/agent/context:
    *   get:
    *     tags: [Agent]
-   *     summary: Ngữ cảnh kiến trúc của một file (UC-44)
+   *     summary: Ngữ cảnh kiến trúc của một file (UC-42)
    *     description: >
    *       Component chứa file (prefix dài nhất), các component được phép / bị cấm phụ thuộc, ADR liên quan và quy ước
    *       commit, lấy từ sơ đồ đã xác nhận. Không có source code (BR-31).
@@ -38,6 +38,26 @@ export function createAgentRouter(controller: AgentController): Router {
    *       409: { description: Sơ đồ chưa được xác nhận }
    */
   router.get("/context", controller.agentAuth, controller.context);
+  /**
+   * @swagger
+   * /api/agent/task-context:
+   *   get:
+   *     tags: [Agent]
+   *     summary: Gói ngữ cảnh của một task (UC-43)
+   *     description: >
+   *       Task (key, summary, status), các component mà commit liên kết với task đã đụng tới, và với mỗi component: các
+   *       phụ thuộc được phép, các phụ thuộc bị cấm (kèm luật và lý do) và ADR liên quan, lấy từ sơ đồ đã xác nhận.
+   *       Commit chỉ có hash, tiêu đề và ngày; không bao giờ có source code hay patch (BR-31).
+   *     security: [{ AgentToken: [] }]
+   *     parameters: [{ in: query, name: task, required: true, schema: { type: string }, example: "SHOP-47" }]
+   *     responses:
+   *       200: { description: "{ task: { key, summary, status }, commits: [{ hash, title, date, mined }], components: [{ id, name, kind, description, allowedDependencies, forbiddenDependencies, forbiddenCallers, decisions }], commitConvention, diagram, guidance }" }
+   *       400: { description: Thiếu task }
+   *       401: { description: Token không hợp lệ, hết hạn hoặc đã thu hồi }
+   *       404: { description: Task không tồn tại trong workspace của token }
+   *       409: { description: Sơ đồ chưa được xác nhận }
+   */
+  router.get("/task-context", controller.agentAuth, controller.taskContext);
   /**
    * @swagger
    * /api/agent/agents-md:
@@ -66,7 +86,7 @@ export function createAgentTokenRouter(controller: AgentController, jwtTokenServ
    *     responses: { 200: { description: "{ tokens: [{ id, name, prefix, createdAt, expiresAt, revokedAt, lastUsedAt, status }] }" } }
    *   post:
    *     tags: [Agent]
-   *     summary: Tạo project token (UC-42) - token chỉ hiện một lần
+   *     summary: Tạo project token (UC-44) - token chỉ hiện một lần
    *     security: [{ BearerAuth: [] }]
    *     parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
    *     requestBody:
@@ -84,7 +104,7 @@ export function createAgentTokenRouter(controller: AgentController, jwtTokenServ
    * /api/projects/{id}/agent-tokens/{tokenId}:
    *   delete:
    *     tags: [Agent]
-   *     summary: Thu hồi project token (UC-43)
+   *     summary: Thu hồi project token (UC-44)
    *     security: [{ BearerAuth: [] }]
    *     parameters:
    *       - { in: path, name: id, required: true, schema: { type: string } }

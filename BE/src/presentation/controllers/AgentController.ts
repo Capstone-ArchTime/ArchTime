@@ -52,6 +52,10 @@ export class AgentController {
     try { sendSuccess(res, await this.contexts.context(req.agent!.projectId, req.query.file)); } catch (error) { next(error); }
   };
 
+  taskContext = async (req: Request, res: Response, next: NextFunction) => {
+    try { sendSuccess(res, await this.contexts.taskContext(req.agent!.projectId, req.query.task)); } catch (error) { next(error); }
+  };
+
   agentsMd = async (req: Request, res: Response, next: NextFunction) => {
     try { this.sendMarkdown(res, await this.contexts.agentsMd(req.agent!.projectId)); } catch (error) { next(error); }
   };
