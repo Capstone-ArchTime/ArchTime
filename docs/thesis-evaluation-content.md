@@ -2,7 +2,8 @@
 
 *Thesis content draft (task T11). Author: Đặng Nhật Trường. To be merged into the thesis by Nguyễn Duy Công. Requirement
 identifiers refer to BM04; file paths refer to the ArchTime repository. Every figure in this draft was measured in the
-repository on 16 November 2026, except the RQ1-B results of Section 6, which were measured on 27 November 2026. Sections
+repository on 16 November 2026, except the RQ1-B results of Section 6, which were measured on 27 November 2026, and the
+RQ2 results of Section 7, which were measured on 28 November 2026. Sections
 whose results depend on human labels that do not exist yet are marked **[PENDING]** and contain no numbers; they must not
 be filled in with estimates.*
 
@@ -10,7 +11,8 @@ be filled in with estimates.*
 
 ArchTime recovers the architecture of a software project from its commit history and tracks how that architecture
 changes. The evaluation answers two research questions about the recovered architecture (RQ1-A, recovery accuracy;
-RQ1-B, change detection) and one descriptive question about the input the recovery depends on (EX, the accuracy of the
+RQ1-B, change detection), one about the AI mentor that explains it (RQ2, whether grounding in the mined evidence reduces
+unsupported claims), and one descriptive question about the input the recovery depends on (EX, the accuracy of the
 dependency extractor). This chapter describes how the evaluation was designed so that its results can be trusted: the
 separation of a development set from a test set, the criteria for choosing test repositories, how reference
 architectures and labels are produced by people independently of the tool, and how agreement between those people is
@@ -148,7 +150,7 @@ correct changes per pair.
 
 On the development set, the first labeller was an AI assistant and the second a team member, who labelled a random sample
 of 10 of the 24 pairs with file changes (seed 2026). Before reconciliation 14 of 16 verdicts agreed (κ = −0.07, AC1 = 0.86)
-and `trueChanges` agreed exactly on 2 of 10 pairs. This is reported as a limitation (Section 10).
+and `trueChanges` agreed exactly on 2 of 10 pairs. This is reported as a limitation (Section 11).
 
 ### 6.1 Labelling of the test set
 
@@ -231,9 +233,92 @@ With precision at this level, detected changes should be presented as **suggesti
 review**, not as facts. This matches the design of the tool: the mentor separates FACT from INFERENCE and cites evidence,
 and a maintainer reviews changes before they are accepted.
 
-## 7. Extractor evaluation (EX)
+## 7. Grounding of the AI mentor (RQ2)
 
-### 7.1 Design
+RQ2 asks whether grounding the AI mentor in the mined evidence, with mandatory claim labels and citation filtering,
+reduces unsupported claims compared with an ungrounded assistant and with the same evidence without labels and
+filtering, without excessive refusal. The protocol is `docs/rq2-protocol.md` (version 1.3, approved on 28 November
+2026).
+
+### 7.1 Design and run
+
+The same model answers the same questions under three conditions. **C0** receives the question and the repository name
+only. **C1** also receives the project data the mentor would receive (snapshots, change evidence, the stored
+architecture of up to twelve milestones, the ten largest dependency changes of the whole history) and is told to answer
+from it, without labels or citation rules. **C2** is the mentor unchanged: the same data, the mentor prompt (FACT /
+INFERENCE / UNKNOWN labels, commit citations) and the post-generation check that removes citations of commits that are
+not mined and downgrades FACT claims left without a valid citation. C0 vs C1 isolates the effect of the evidence, C1 vs
+C2 the effect of labels and filtering.
+
+Three test repositories are used at their frozen commits: react-router, docusaurus and actual. Each has ten fixed
+questions, eight answerable from the mined data and two not (design rationale, number of production users). Each
+question is asked three times per condition, giving 270 answers. All answers were generated on 28 November 2026 with
+`gemini/gemini-3.1-flash-lite`, at most 2,000 output tokens and the provider's default temperature (1.45 million input
+and 58 thousand output tokens in total). Every answer records the model, the prompt version and a fingerprint of the
+context it received.
+
+Answers are split into 1,743 claims. Two annotators, Nguyễn Duy Công and Đặng Nhật Trường, judged every claim blind to
+the condition (labels removed, order shuffled) as Supported (S), Contradicted (C) or Not verifiable (N), checking it
+against the repository at the frozen commit with Git, not against ArchTime. They also marked each answer as a refusal or
+not and, for answerable questions, its coverage. A first annotation pass was discarded before any score was computed,
+because some verdicts had been checked against ArchTime's mined data instead of the repository; the claims concerned were
+annotated again. Disagreements were then settled against the repository.
+
+### 7.2 Results
+
+*Table 9. Agreement of the two annotators on RQ2 before adjudication.*
+
+| Item | Pairs | Agreement | Cohen's κ | Gwet's AC1 |
+|---|---:|---:|---:|---:|
+| Claim verdicts (S / C / N) | 1,743 | 87.3 % | 0.80 | 0.82 |
+| Refusal (yes / no) | 270 | 97.4 % | 0.90 | 0.96 |
+
+The 221 claims the annotators disagreed on (C vs N 88, C vs S 70, N vs S 63) were adjudicated, so every claim has a final
+verdict. **[TEAM]** Record who adjudicated.
+
+*Table 10. RQ2 results per condition (90 answers each; from `BE/rq2-results/report.md`).*
+
+| Metric | C0 | C1 | C2 |
+|---|---:|---:|---:|
+| Judged claims (per answer) | 658 (7.31) | 509 (5.66) | 576 (6.40) |
+| Unsupported (C + N) | 90.9 % | 27.3 % | 34.5 % |
+| 95 % interval (cluster bootstrap over questions) | 81.9–97.9 % | 20.3–36.7 % | 28.1–42.1 % |
+| Lowest–highest run | 89.5–92.3 % | 23.1–30.4 % | 31.8–36.9 % |
+| Contradicted | 29.3 % | 9.4 % | 11.8 % |
+| Citation precision (cited claims that are Supported) | 0.0 % of 38 | 81.2 % of 234 | 77.2 % of 307 |
+| Citation validity (cited hashes that are mined commits) | 0.0 % | 100.0 % | 100.0 % |
+| FACT precision | n/a | n/a | 81.4 % of 183 |
+| Refusal, unanswerable questions | 30.6 % | 100.0 % | 100.0 % |
+| Refusal, answerable questions | 0.0 % | 0.0 % | 0.0 % |
+| Coverage, answerable questions (0–1) | 0.16 | 0.97 | 0.93 |
+| Supported claims per answerable answer | 0.71 | 5.14 | 5.21 |
+| Answerable questions with at least one Supported claim | 20.8 % | 97.2 % | 95.8 % |
+
+Differences in unsupported rate, paired cluster bootstrap over questions with Holm adjustment over the two comparisons:
+C0 − C1 = +63.6 points (95 % interval +55.0 to +71.2, adjusted p = 0.0004); C1 − C2 = −7.2 points (−11.9 to −1.7,
+adjusted p = 0.012). Both differences are significant.
+
+**Interpretation.** The evidence is what grounds the mentor. Without project data, nine claims in ten could not be
+supported from the repository and almost a third were contradicted by it; C0 wrote 38 distinct commit hashes, none of
+which exists in the repositories, and answered most unanswerable questions anyway. With the data, the unsupported rate
+falls to about a quarter, every cited commit exists, and every unanswerable question is declined. The gain does not
+come from saying less: C1 answers contain more Supported claims per answerable question (5.14 vs 0.71) and almost every
+answerable question receives at least one.
+
+Labels and filtering do not reduce unsupported claims further. C2's unsupported rate is 7.2 points higher than C1's,
+with similar coverage and Supported claims per answer: answers written with labels contain more claims, and the extra
+ones are more often Not verifiable. The post-generation check downgraded 120 FACT labels and removed 36 citations (all in
+three answers). The labels remain useful to a reader, since four FACT claims in five are Supported and every remaining
+citation exists, but a FACT label is not proof: users should follow the cited commit rather than trust the label. This
+result is reported although it runs against the reason the labels were introduced.
+
+The answers, contexts, blind sheets, both annotators' verdicts, the adjudication and the computed results are published
+in the replication package, <https://doi.org/10.5281/zenodo.24625325>; the scores can be recomputed from those files
+without a database or an LLM.
+
+## 8. Extractor evaluation (EX)
+
+### 8.1 Design
 
 The recovered architecture can be no better than the dependency graph it is built from, so the extractor that mining
 actually uses (`BE/src/infrastructure/services/DependencyExtractor.ts` with `fileDependencies`) is evaluated against
@@ -253,7 +338,7 @@ dependencies labelled by people.
   averages of the per-repository values. A metric whose denominator is zero is reported as *n/a*, not as 0. Unlabelled
   files are excluded and counted as *pending*; results are final only when no file is pending.
 
-### 7.2 Results
+### 8.2 Results
 
 **[PENDING]** The five sheets were generated (`BE/eval/extractor/*.json`, 200 files in total), but no file had been
 labelled by 16 November 2026. The table of TP, FP, FN, precision, recall and F1 per repository, micro and macro, is to be
@@ -263,9 +348,9 @@ What is known before measurement comes from tests on a constructed repository: t
 `import type` declarations, correctly ignores npm packages, and does **not** follow `export … from`, `require()` or
 dynamic `import()`. Recall is therefore expected to be lower in repositories with many barrel files.
 
-## 8. Task tracking (F-13) and its evaluation
+## 9. Task tracking (F-13) and its evaluation
 
-### 8.1 Design
+### 9.1 Design
 
 F-13 connects project work to architecture changes (workflow WF-07). Tasks and sprints are imported from a Jira JSON
 export; mined commits are linked to the tasks their messages name.
@@ -291,7 +376,7 @@ The commit convention (RF-30) builds on the same trailers: `commitConvention.ts`
 dependencies the commit actually changed, computed from the commit's snapshot and its base. Mismatches become
 conformance findings of type `convention`, in the finding schema shared with the conformance check.
 
-### 8.2 Verification
+### 9.2 Verification
 
 Verification is by automated tests run against the real routers, authentication and access policy (Table 4); the Mongo
 repository is tested separately on a real MongoDB. All tests passed on 16 November 2026.
@@ -308,7 +393,7 @@ repository is tested separately on a real MongoDB. All tests passed on 16 Novemb
 | Parser unit tests (written before the parser) | 11 | Pass |
 | Concurrent imports and links on MongoDB keep one record per key | 2 | Pass |
 
-### 8.3 Comparison and performance (F-04, N-02)
+### 9.3 Comparison and performance (F-04, N-02)
 
 WF-02 was tested through the complete application on a MongoDB database seeded with **1,000 snapshots** (each a file
 dependency graph of about 120–139 files and 200–219 edges). N-02 requires listing to answer within one second. Latency was
@@ -327,7 +412,7 @@ revision pickers, which violates N-02 for a repository of this size. The pickers
 page now requests summaries, and a test prevents regression. With the fix the requirement is met with a wide margin. The
 measurement has not yet been repeated on the staging environment.
 
-## 9. Limitations
+## 10. Limitations
 
 1. **Pending human data.** RQ1-B now has results (Section 6, 27 November 2026). Reference B for RQ1-A and the dependency
    labels for EX did not exist at the time of writing; RQ1-A writer agreement and EX results on the test set are therefore
@@ -339,29 +424,40 @@ measurement has not yet been repeated on the staging environment.
    (0.53). The largest differences were in counting `trueChanges`, identical on only 27 % of the pairs in three of the
    five repositories. Reconciliation by written rules removes the disagreements from the scores but not the ambiguity of
    what counts as one architectural change.
-4. **RQ1-B data not yet archived.** The labelling sheets and results are in `BE/rq1-results/` on the machine that ran C11,
-   which is excluded from version control. **[TEAM]** Decide whether to publish the reconciled sheets, for example in
-   `docs/annotations/rq1b/labels/`.
+4. **Evaluation data outside version control.** The RQ1-B and RQ2 sheets and results are in `BE/rq1-results/` and
+   `BE/rq2-results/`, which are excluded from version control; they are archived in the replication package on Zenodo
+   (<https://doi.org/10.5281/zenodo.24625325>, 28 November 2026).
 5. **Scope of the extractor sample.** The sample follows what mining analyses, which includes example applications,
    playgrounds and integration tests in some repositories, and test files named `*-test.ts` that the current filter does
    not exclude (5 of 40 files in react-router).
 6. **AI labeller on the development set.** One of the two labellers of the development set was an AI assistant, and the
    second labelled a sample of 10 pairs.
 7. **Performance environment.** N-02 was measured on a development machine with a local database.
+8. **RQ2 scope.** One small, inexpensive model on three repositories, ten questions each and only two unanswerable per
+   repository. A stronger model may answer better without evidence, especially on the two well-known repositories
+   (react-router, docusaurus), and may follow the labelling instructions more precisely.
+9. **RQ2 annotation.** A first annotation pass was discarded (Section 7.1). **[TEAM]** State who adjudicated the 221
+   disagreements (the two annotators together or a third person); adjudication by the annotators themselves is less
+   independent than by a third person.
 
-## 10. Threats to validity
+## 11. Threats to validity
 
 - **Construct validity.** MoJoFM depends on the reference; a reference shaped by directories favours the directory
   baseline. Mitigation: references are written by function with file-level assignment, by two people, with their
   agreement reported. Component names in labelling sheets may still hint at the method that produced a change. For RQ1-B,
   what counts as one architectural change is open to interpretation: before reconciliation the two labellers' agreement
-  was only fair by κ (0.21) and moderate by AC1 (0.53), and lowest on `trueChanges` (Section 9, item 3), so recall depends on the counting
+  was only fair by κ (0.21) and moderate by AC1 (0.53), and lowest on `trueChanges` (Section 10, item 3), so recall depends on the counting
   rule of the guide.
 - **Internal validity.** Labellers could be biased toward the tool. Mitigation: hidden-method sheets, independent labelling,
   `trueChanges` recorded before verdicts, agreement reported before reconciliation, and rule-based reconciliation.
   Tuning on test data is prevented by the development/test separation and by freezing the algorithm before the run.
+  For RQ2, annotators judged claims against the repository at the frozen commit, not against ArchTime's data (which would
+  favour C1 and C2); a first pass that broke this rule was discarded, and labels written inside brackets were removed
+  from the sheets so that C2 claims could not be recognised.
 - **External validity.** All repositories are open-source JavaScript/TypeScript projects with architecture documentation;
   results may not transfer to other languages, to CommonJS code, or to projects without documentation.
 - **Reliability.** Clustering is deterministic, and samples use fixed seeds and fixed commits; every command needed to
   reproduce a figure is recorded with it. Names produced by the AI may vary between runs, which is why component matching
-  does not depend on names. The RQ1-B sheets and results are not yet archived in the repository (Section 9, item 4).
+  does not depend on names. LLM answers vary between runs, which is why each RQ2 question was asked three times and the
+  spread across runs is reported. The RQ1-B and RQ2 sheets and results are archived in the replication package
+  (Section 10, item 4).

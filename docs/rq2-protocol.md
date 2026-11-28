@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Phiên bản | **1.3 (2026-11-24): mentor context with architecture, see "Protocol 1.3" below (English). Implemented; approved for the test-set run on 2026-11-28 (model `gemini/gemini-3.1-flash-lite`), see 1.3.5 and 1.3.11.** 1.2 (2026-11-19: mỗi câu chạy 3 lần, khoảng tin cậy bootstrap theo câu hỏi, so sánh C0–C1 và C1–C2 có hiệu chỉnh Holm, xem §3 và §5), giữ nguyên bên dưới để tái lập. 1.1 (2026-11-18): đổi repo sang ba repo của tập kiểm tra RQ1, xem §0 |
+| Phiên bản | **1.3 (2026-11-24): mentor context with architecture, see "Protocol 1.3" below (English). Implemented; approved for the test-set run on 2026-11-28 (model `gemini/gemini-3.1-flash-lite`), see 1.3.5 and 1.3.11; run, annotated and scored on 2026-11-28, see 1.3.12.** 1.2 (2026-11-19: mỗi câu chạy 3 lần, khoảng tin cậy bootstrap theo câu hỏi, so sánh C0–C1 và C1–C2 có hiệu chỉnh Holm, xem §3 và §5), giữ nguyên bên dưới để tái lập. 1.1 (2026-11-18): đổi repo sang ba repo của tập kiểm tra RQ1, xem §0 |
 | Ngày | 2026-11-15 |
 | Câu hỏi nghiên cứu | Thiết kế của AI Mentor (nhãn FACT / INFERENCE / UNKNOWN và bước kiểm tra trích dẫn) có làm câu trả lời có căn cứ hơn không? |
 | Công cụ | `BE/scripts/rq2.ts` (`npm run rq2`), `BE/src/domain/evaluation/rq2.ts` (test: `BE/tests/rq2.test.mjs`) |
@@ -155,9 +155,27 @@ facts; they are not RQ2 metrics. Test-set answers may not be looked at before th
 | Development trial | done, see the trial report |
 | RQ1-B annotation finished (lock may be lifted) | **yes**: both annotators submitted, reconciled and scored on 2026-11-27 (test-set-annotation-report.md) |
 | Model confirmed | **yes**: `gemini/gemini-3.1-flash-lite` (registry `6ac63ccc9e2094ce0770c4bf`), 2026-11-28, after Claude Opus 5.5 could not be used (1.3.5) |
-| Temperature, provider model version, run date | temperature not sent (provider default, unknown); provider version and date **to record at the run** |
+| Temperature, provider model version, run date | temperature not sent (provider default, unknown); the provider reported no version beyond `gemini-3.1-flash-lite`; run on 2026-11-28 (1.3.12) |
 | Approval for the test-set run (`--approve-protocol 1.3`) | **given** on 2026-11-28 by Nguyễn Duy Công |
-| Test-set run | **not run yet** |
+| Test-set run | **done** on 2026-11-28, annotated, adjudicated and scored (1.3.12) |
+
+### 1.3.12 Run record (2026-11-28)
+
+| Item | Record |
+|---|---|
+| Answers | 270 (react-router, docusaurus, actual × 10 questions × C0/C1/C2 × 3 runs), all `gemini/gemini-3.1-flash-lite` (host `generativelanguage.googleapis.com`), protocol 1.3, questions 1.1 |
+| Time | 2026-11-28, 02:24–02:47 UTC (`askedAt` of the recorded answers) |
+| Settings | at most 2,000 output tokens; temperature not sent |
+| Tokens | input 1,454,793 (C0 7,461, C1 719,301, C2 728,031); output 58,448 |
+| Failed requests | quota errors were kept in `errors/` (never scored) and asked again until 270/270 succeeded |
+| C2 check | 120 FACT labels downgraded, 36 citations removed (in 3 answers); labels kept: FACT 183, INFERENCE 136, UNKNOWN 23 |
+| Sheets | 1,743 claims, 270 answers; regenerated after commit `babe444` removed labels written inside longer brackets from 11 C2 claims (keys unchanged) |
+| Annotators | Nguyễn Duy Công (`cong`), Đặng Nhật Trường (`truong`), independently, blind to the condition, against the repository at the frozen commits (§4) |
+| First pass | discarded before scoring (verdicts checked against ArchTime's data instead of the repository, or without the required notes); kept in `sheets/first-pass-2026-11-28/`, not used by any score |
+| Agreement before adjudication | claims 1,743 pairs, 87.3 %, κ 0.80, AC1 0.82; refusals 270 pairs, 97.4 %, κ 0.90, AC1 0.96 |
+| Adjudication | 221 claims (C/N 88, C/S 70, N/S 63), `claims.adjudicated.csv`; 0 left without a final verdict. **TEAM:** record who adjudicated |
+| Main results | unsupported rate C0 90.9 %, C1 27.3 %, C2 34.5 %; C0 − C1 +63.6 points (95 % interval 55.0–71.2, Holm p 0.0004), C1 − C2 −7.2 points (−11.9 to −1.7, Holm p 0.012); full table in research-completion-report.md §0d |
+| Archive | replication package <https://doi.org/10.5281/zenodo.24625325> (answers, contexts, keys, sheets, adjudication, results) |
 
 ## 0. Chọn repo (quyết định 18/11/2026)
 
