@@ -496,3 +496,77 @@ test("gateway order text: letters, digits and single spaces only (VNPay rejects 
   assert.match(text, /^ArchTime AT1 /);
   assert.deepEqual([ipv4("::1"), ipv4("::ffff:10.0.0.5"), ipv4("1.2.3.4")], ["127.0.0.1", "10.0.0.5", "1.2.3.4"]);
 });
+// ── payOS ──
+
+test("payOS: a payment request signs amount, cancelUrl, description, orderCode and returnUrl, sorted; webhook data is checked", async () => {
+  const { payosCreateBody, payosDataSignature, payosWebhookValid } = await import("../src/domain/billing/signatures.ts");
+  const KEYS = { clientId: "c", apiKey: "a", checksumKey: "k" };
+  const body = payosCreateBody(KEYS, { orderCode: 123, amount: 2000, description: "ArchTime", returnUrl: "http://web/r", cancelUrl: "http://web/c", expiredAt: 1 });
+  assert.equal(body.signature, hmacHex("sha256", "k", "amount=2000&cancelUrl=http://web/c&description=ArchTime&orderCode=123&returnUrl=http://web/r"));
+  // Webhook data: keys sorted, null as empty text.
+  const data = { orderCode: 123, amount: 2000, reference: "FT1", counterAccountName: null, code: "00" };
+  assert.equal(payosDataSignature(KEYS, data), hmacHex("sha256", "k", "amount=2000&code=00&counterAccountName=&orderCode=123&reference=FT1"));
+  const signed = { code: "00", desc: "success", data, signature: payosDataSignature(KEYS, data) };
+  assert.ok(payosWebhookValid(KEYS, signed));
+  assert.ok(!payosWebhookValid(KEYS, { ...signed, data: { ...data, amount: 1 } }));
+  assert.ok(!payosWebhookValid({ ...KEYS, checksumKey: "other" }, signed));
+});
+
+test("payOS: order ids carry a 15-digit numeric order code that fits payOS's integer limit", async () => {
+  const { payosOrderId, payosOrderCode } = await import("../src/infrastructure/billing/gateways.ts");
+  const id = payosOrderId(new Date("2026-11-28T12:00:00Z"), () => 0.123456);
+  assert.equal(id, "AT179586720012345");
+  assert.equal(payosOrderCode(id), 179586720012345);
+  assert.ok(payosOrderCode(payosOrderId(new Date("2099-12-31T23:59:59Z"), () => 0.99999)) <= Number.MAX_SAFE_INTEGER);
+});
+
+function payosDeps(query = { status: "pending" }) {
+  const env = fakeDeps();
+  env.deps.gateways.payos = {
+    newOrderId: (now) => `AT${Math.floor(now.getTime() / 1000)}00042`,
+    async create(order) { return { payUrl: `https://pay.payos.vn/web/${order.orderId}` }; },
+    async query() { return query; },
+  };
+  return env;
+}
+
+test("payOS webhook: only a valid signature settles, once, and every notification is answered 200", async () => {
+  const { payosDataSignature } = await import("../src/domain/billing/signatures.ts");
+  const KEYS = { clientId: "c", apiKey: "a", checksumKey: "k" };
+  const { deps, mails } = payosDeps();
+  const billing = new BillingUseCases(deps);
+  const controller = new BillingController(billing, { payos: KEYS, simulator: false });
+  const { order } = await billing.createOrder("u1", personal, { kind: "topup", gateway: "payos" }, "1.1.1.1");
+  assert.match(order.orderId, /^AT\d{15}$/);
+  const code = Number(order.orderId.slice(2));
+  const webhook = (data, key = KEYS) => ({ body: { code: "00", desc: "success", success: true, data, signature: payosDataSignature(key, data) } });
+  const paid = { orderCode: code, amount: 49_000, reference: "FT26332", code: "00", desc: "success" };
+
+  const forged = await call(controller.payosWebhook, webhook(paid, { ...KEYS, checksumKey: "wrong" }));
+  assert.equal(forged.statusCode, 200);
+  assert.equal((await deps.orders.find(order.orderId)).status, "pending");
+  await call(controller.payosWebhook, webhook({ ...paid, amount: 1_000 }));
+  assert.equal((await deps.orders.find(order.orderId)).status, "pending", "a different amount is not a payment");
+  // payOS's own test notification when the webhook URL is saved: an order code we never made.
+  assert.equal((await call(controller.payosWebhook, webhook({ ...paid, orderCode: 123 }))).statusCode, 200);
+
+  await call(controller.payosWebhook, webhook(paid));
+  await call(controller.payosWebhook, webhook(paid));
+  const settled = await deps.orders.find(order.orderId);
+  assert.equal(settled.status, "paid");
+  assert.equal(settled.gatewayTxnId, "FT26332");
+  assert.equal(mails.length, 1, "one receipt, however many notifications");
+  assert.match(mails[0].text, /Paid with: payOS/);
+});
+
+test("payOS return: the server asks payOS about the order; only the buyer may ask", async () => {
+  const { deps } = payosDeps({ status: "paid", amountVnd: 49_000, gatewayTxnId: "FT1" });
+  const billing = new BillingUseCases(deps);
+  const controller = new BillingController(billing, { payos: { clientId: "c", apiKey: "a", checksumKey: "k" }, simulator: false });
+  const { order } = await billing.createOrder("u1", personal, { kind: "topup", gateway: "payos" }, "1.1.1.1");
+  await assert.rejects(billing.checkWithGateway("someone-else", order.orderId), /Order not found/);
+  const res = await call(controller.payosReturn, { body: { orderId: order.orderId }, user: { userId: "u1" } });
+  assert.equal(res.body.data.outcome, "paid");
+  assert.equal((await deps.orders.find(order.orderId)).status, "paid");
+  assert.equal((await billing.checkWithGateway("u1", order.orderId)).outcome, "ignored", "asking again changes nothing");
+});

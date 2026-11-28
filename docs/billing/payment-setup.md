@@ -1,8 +1,10 @@
-# Setting up real payments (MoMo, VNPay)
+# Setting up real payments (MoMo, VNPay, payOS)
 
-The server already contains both gateways:
+The server contains three gateways:
 - **MoMo:** Payment Gateway v2, wallet payment, HMAC-SHA256.
 - **VNPay:** version 2.1.0, HMAC-SHA512.
+- **payOS:** VietQR bank transfer, HMAC-SHA256. Individuals can register (no business licence), so it is the way to take
+  real payments without a merchant contract.
 
 A gateway turns on as soon as its keys are in `BE/.env`. Nothing else needs to change in code.
 
@@ -16,6 +18,8 @@ Keys are secrets:
 |---|---|---|
 | MoMo | Business test account at developers.momo.vn. You receive partner code, access key and secret key. | Merchant contract with MoMo. Live keys come from the MoMo Business portal. |
 | VNPay | Register at pay.vnpaytest.vn/dev-registration (sandbox.vnpayment.vn/devreg redirects there). VNPay e-mails the TMN code, hash secret and test cards. | Merchant contract with VNPay. |
+
+| payOS | No sandbox. | Register at my.payos.vn as an individual (ID card), link your bank account, create a payment channel. It shows the Client ID, API Key and Checksum Key. |
 
 ## 2. Fill `BE/.env`
 
@@ -32,6 +36,11 @@ VNPAY_HASH_SECRET=...
 VNPAY_PAY_URL=https://sandbox.vnpaytest.vn/paymentv2/vpcpay.html                  # live: https://pay.vnpay.vn/vpcpay.html
 VNPAY_API_URL=https://sandbox.vnpaytest.vn/merchant_webapi/api/transaction        # live: https://merchant.vnpay.vn/merchant_webapi/api/transaction
 
+# payOS (real money: there is no sandbox)
+PAYOS_CLIENT_ID=...
+PAYOS_API_KEY=...
+PAYOS_CHECKSUM_KEY=...
+
 # Addresses
 PUBLIC_API_URL=https://api.example.com/api   # public address of the API (HTTPS in live mode)
 CORS_ORIGIN=https://app.example.com          # first entry = where the gateway sends the buyer back
@@ -44,8 +53,11 @@ At startup the server prints one line per gateway: SANDBOX or LIVE, and the IPN 
 ## 3. Payment confirmations (IPN)
 - **MoMo:** the server sends the IPN address itself with each order: `PUBLIC_API_URL/billing/momo/ipn`.
 - **VNPay:** enter `PUBLIC_API_URL/billing/vnpay/ipn` in the VNPay merchant portal (IPN URL, GET method).
+- **payOS:** enter `PUBLIC_API_URL/billing/payos/webhook` as the webhook URL of the payment channel. payOS sends a test
+  notification when it is saved, so the API must be reachable then. payOS order codes are numbers, so payOS orders get
+  ids of the form `AT` + 15 digits.
 - On a local machine the gateways cannot reach the API. Payments still complete in two ways:
-  - The return page forwards the signed result the gateway attaches to the redirect. The server checks the signature before it accepts anything.
+  - The return page forwards the signed result the gateway attaches to the redirect. The server checks the signature before it accepts anything. payOS signs nothing on its redirect: the return page only asks the server to query payOS about the order.
   - Reconciliation asks the gateway every `BILLING_RECONCILE_MINUTES`.
 - To test real IPNs locally, expose the API with a tunnel (for example ngrok) and set `PUBLIC_API_URL` to the tunnel address.
 

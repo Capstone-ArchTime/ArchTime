@@ -10,7 +10,7 @@
  * Everything is prepaid; nothing is charged automatically. A plan that runs out returns to Free and keeps its data.
  */
 
-export type Gateway = "momo" | "vnpay" | "simulator";
+export type Gateway = "momo" | "vnpay" | "payos" | "simulator";
 export type Period = "month" | "year";
 export type PlanId = "free" | "pro" | "team";
 export type OrderKind = "plan" | "add-seats" | "topup";

@@ -53,6 +53,8 @@ export interface PaymentGateway {
   query(order: IOrder): Promise<GatewayResult>;
   /** Amounts (VND) the gateway accepts for one payment; orders outside them are refused before they are created. */
   readonly limits?: { minVnd: number; maxVnd: number };
+  /** An order id in the form the gateway needs (payOS: a number); others use the default. */
+  newOrderId?(now: Date): string;
 }
 
 export interface Contact { email: string; name: string }
@@ -160,7 +162,7 @@ export class BillingUseCases {
     const catalogVersion = (await this.d.settings.get()).version;
     const now = this.d.now();
     const order = await this.d.orders.create({
-      orderId: newOrderId(now), space, buyerId: userId, kind: q.kind, plan: q.plan, period: q.period, seats: q.seats, credits: q.credits,
+      orderId: client.newOrderId?.(now) ?? newOrderId(now), space, buyerId: userId, kind: q.kind, plan: q.plan, period: q.period, seats: q.seats, credits: q.credits,
       amountVnd: q.amountVnd, catalogVersion, gateway, status: "pending", expiresAt: new Date(now.getTime() + ORDER_TTL_MS), createdAt: now,
     });
     let payUrl: string;
@@ -228,7 +230,7 @@ export class BillingUseCases {
     if (!buyer?.email) return;
     const rows: [string, string][] = [
       ["Order", order.orderId], ["Item", describeOrder(order)], ["Space", await this.spaceName(order.space)], ["Amount", vnd(order.amountVnd)],
-      ["Paid with", order.gateway === "momo" ? "MoMo" : order.gateway === "vnpay" ? "VNPay" : "Test gateway"],
+      ["Paid with", order.gateway === "momo" ? "MoMo" : order.gateway === "vnpay" ? "VNPay" : order.gateway === "payos" ? "payOS" : "Test gateway"],
       ["Transaction", order.gatewayTxnId || "—"], ["Paid at", (order.paidAt ?? this.d.now()).toISOString()],
     ];
     await this.d.sendMail(buyer.email, {
@@ -237,6 +239,20 @@ export class BillingUseCases {
       html: `<p>Hello ${escapeHtml(buyer.name)},</p><p>Thank you for your payment.</p><table>${rows.map(([k, v]) => `<tr><td><b>${escapeHtml(k)}</b></td><td>${escapeHtml(v)}</td></tr>`).join("")}</table><p>ArchTime</p>`,
     });
     await this.d.orders.markReceipt(order.orderId, this.d.now());
+  }
+
+  /**
+   * Asks the order's gateway about it now and settles what it reports. For gateways whose return address carries no
+   * signature (payOS): the buyer's return only triggers this question, it is never trusted itself.
+   */
+  async checkWithGateway(userId: string, orderId: string) {
+    const order = await this.d.orders.find(orderId);
+    if (!order || !(await this.mayFollow(order, userId))) throw new NotFoundError("Order not found.");
+    const client = this.d.gateways[order.gateway];
+    if (!client || order.status === "paid") return { outcome: "ignored" as const };
+    let result: GatewayResult = { status: "pending" };
+    try { result = await client.query(order); } catch { /* the gateway is unreachable: reconciliation asks again later */ }
+    return { outcome: await this.settle(order.orderId, result) };
   }
 
   /** E-mails the people of a space whose paid plan ends within a week; once per end date. */

@@ -23,6 +23,7 @@ export function createBillingRouter(controller: BillingController, jwtTokenServi
   router.get("/vnpay/ipn", controller.vnpayIpn);
   router.post("/momo/return", controller.momoReturn);
   router.post("/vnpay/return", controller.vnpayReturn);
+  router.post("/payos/webhook", express.json(), controller.payosWebhook);
 
   const auth = createAuthenticateMiddleware(jwtTokenService);
   router.get("/pricing", auth, controller.pricing);
@@ -33,6 +34,7 @@ export function createBillingRouter(controller: BillingController, jwtTokenServi
   router.get("/orders", auth, controller.listSpaceOrders);
   router.get("/orders/:orderId", auth, controller.getOrder);
   router.post("/simulator/:orderId", auth, controller.simulate);
+  router.post("/payos/return", auth, controller.payosReturn);
   return router;
 }
 

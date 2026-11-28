@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import type { IOrder } from "../../domain/billing/billing.js";
 import { describeOrder } from "../../domain/billing/billing.js";
 import {
-  momoCreateBody, momoQueryBody, vnpayPayUrl, vnpayQueryBody,
-  type MomoKeys, type VnpayKeys,
+  momoCreateBody, momoQueryBody, payosCreateBody, vnpayPayUrl, vnpayQueryBody,
+  type MomoKeys, type PayosKeys, type VnpayKeys,
 } from "../../domain/billing/signatures.js";
 import type { GatewayResult, PaymentGateway } from "../../application/use-cases/billing/BillingUseCases.js";
 
@@ -71,6 +71,48 @@ export class VnpayGateway implements PaymentGateway {
     if (r.vnp_TransactionStatus === "00") return { status: "paid", gatewayTxnId: String(r.vnp_TransactionNo ?? ""), amountVnd: Number(r.vnp_Amount) / 100 };
     if (r.vnp_TransactionStatus === "01") return { status: "pending" };
     return { status: "failed", reason: `VNPay status ${r.vnp_TransactionStatus}` };
+  }
+}
+
+/**
+ * payOS order codes are integers (at most 2^53 - 1), so a payOS order id is "AT" + a 15-digit code: the second it was
+ * made and five random digits. The webhook names the order by that code alone.
+ */
+export const payosOrderId = (now: Date, random: () => number = Math.random) =>
+  `AT${Math.floor(now.getTime() / 1000)}${Math.floor(random() * 1e5).toString().padStart(5, "0")}`;
+export const payosOrderCode = (orderId: string) => Number(orderId.replace(/^AT/, ""));
+
+/** payOS (VietQR bank transfer). The buyer pays on payOS's checkout page; the account linked to the channel is credited. */
+export class PayosGateway implements PaymentGateway {
+  constructor(private readonly keys: PayosKeys, private readonly endpoint: string) {}
+
+  newOrderId(now: Date) { return payosOrderId(now); }
+
+  private headers() { return { "Content-Type": "application/json", "x-client-id": this.keys.clientId, "x-api-key": this.keys.apiKey }; }
+
+  async create(order: IOrder, ctx: { returnUrl: string }) {
+    // The transfer note is limited (9 characters on banks payOS is not linked with): the order code identifies the payment.
+    const body = payosCreateBody(this.keys, {
+      orderCode: payosOrderCode(order.orderId), amount: order.amountVnd, description: "ArchTime",
+      returnUrl: ctx.returnUrl, cancelUrl: ctx.returnUrl, expiredAt: Math.floor(order.expiresAt.getTime() / 1000),
+    });
+    const res = await fetch(`${this.endpoint}/v2/payment-requests`, { method: "POST", headers: this.headers(), body: JSON.stringify(body), signal: AbortSignal.timeout(15_000) });
+    const r: any = await res.json().catch(() => null);
+    if (r?.code !== "00" || !r?.data?.checkoutUrl) throw new Error(`payOS refused the order: ${r?.code ?? res.status} ${r?.desc ?? ""}`);
+    return { payUrl: String(r.data.checkoutUrl) };
+  }
+
+  async query(order: IOrder): Promise<GatewayResult> {
+    const res = await fetch(`${this.endpoint}/v2/payment-requests/${payosOrderCode(order.orderId)}`, { headers: this.headers(), signal: AbortSignal.timeout(15_000) });
+    const r: any = await res.json().catch(() => null);
+    if (r?.code !== "00" || !r?.data) return { status: "pending" };
+    const status = String(r.data.status ?? "").toUpperCase();
+    if (status === "PAID") {
+      const txn = Array.isArray(r.data.transactions) && r.data.transactions[0]?.reference;
+      return { status: "paid", amountVnd: Number(r.data.amountPaid ?? r.data.amount), gatewayTxnId: String(txn || r.data.id || "") };
+    }
+    if (status === "CANCELLED" || status === "EXPIRED") return { status: "failed", reason: `payOS ${status}` };
+    return { status: "pending" };
   }
 }
 
