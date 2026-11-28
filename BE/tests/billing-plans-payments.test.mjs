@@ -570,3 +570,20 @@ test("payOS return: the server asks payOS about the order; only the buyer may as
   assert.equal((await deps.orders.find(order.orderId)).status, "paid");
   assert.equal((await billing.checkWithGateway("u1", order.orderId)).outcome, "ignored", "asking again changes nothing");
 });
+
+test("payOS transfer note names what is bought, in at most 25 plain characters", async () => {
+  const { payosDescription } = await import("../src/infrastructure/billing/gateways.ts");
+  const notes = [
+    payosDescription({ kind: "topup", credits: 1000 }),
+    payosDescription({ kind: "plan", plan: "pro", period: "month" }),
+    payosDescription({ kind: "plan", plan: "pro", period: "year" }),
+    payosDescription({ kind: "plan", plan: "team", period: "month", seats: 5 }),
+    payosDescription({ kind: "plan", plan: "team", period: "year", seats: 120 }),
+    payosDescription({ kind: "add-seats", plan: "team", seats: 3 }),
+  ];
+  assert.deepEqual(notes, ["ArchTime Nap 1000 credit", "ArchTime Pro 1 thang", "ArchTime Pro 1 nam", "ArchTime Team x5 thang", "ArchTime Team x120 nam", "ArchTime Them 3 nguoi"]);
+  for (const note of [...notes, payosDescription({ kind: "topup", credits: 1_000_000 })]) {
+    assert.ok(note.length <= 25, note);
+    assert.match(note, /^[A-Za-z0-9 ]+$/);
+  }
+});

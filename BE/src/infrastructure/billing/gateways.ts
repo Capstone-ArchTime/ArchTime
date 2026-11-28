@@ -82,6 +82,19 @@ export const payosOrderId = (now: Date, random: () => number = Math.random) =>
   `AT${Math.floor(now.getTime() / 1000)}${Math.floor(random() * 1e5).toString().padStart(5, "0")}`;
 export const payosOrderCode = (orderId: string) => Number(orderId.replace(/^AT/, ""));
 
+/**
+ * The transfer note the buyer's bank shows, naming what is bought: payOS allows 25 characters, letters, digits and spaces
+ * (the order code, not this text, identifies the payment).
+ */
+export function payosDescription(order: Pick<IOrder, "kind" | "plan" | "period" | "seats" | "credits">): string {
+  const length = order.period === "year" ? "nam" : "thang";
+  const text = order.kind === "topup" ? `ArchTime Nap ${order.credits ?? ""} credit`
+    : order.kind === "add-seats" ? `ArchTime Them ${order.seats ?? ""} nguoi`
+    : order.plan === "team" ? `ArchTime Team x${order.seats ?? ""} ${length}`
+    : `ArchTime Pro 1 ${length}`;
+  return text.replace(/[^A-Za-z0-9 ]/g, "").replace(/\s+/g, " ").trim().slice(0, 25).trim();
+}
+
 /** payOS (VietQR bank transfer). The buyer pays on payOS's checkout page; the account linked to the channel is credited. */
 export class PayosGateway implements PaymentGateway {
   constructor(private readonly keys: PayosKeys, private readonly endpoint: string) {}
@@ -91,9 +104,8 @@ export class PayosGateway implements PaymentGateway {
   private headers() { return { "Content-Type": "application/json", "x-client-id": this.keys.clientId, "x-api-key": this.keys.apiKey }; }
 
   async create(order: IOrder, ctx: { returnUrl: string }) {
-    // The transfer note is limited (9 characters on banks payOS is not linked with): the order code identifies the payment.
     const body = payosCreateBody(this.keys, {
-      orderCode: payosOrderCode(order.orderId), amount: order.amountVnd, description: "ArchTime",
+      orderCode: payosOrderCode(order.orderId), amount: order.amountVnd, description: payosDescription(order),
       returnUrl: ctx.returnUrl, cancelUrl: ctx.returnUrl, expiredAt: Math.floor(order.expiresAt.getTime() / 1000),
     });
     const res = await fetch(`${this.endpoint}/v2/payment-requests`, { method: "POST", headers: this.headers(), body: JSON.stringify(body), signal: AbortSignal.timeout(15_000) });
