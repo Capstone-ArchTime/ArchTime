@@ -45,6 +45,12 @@ test('claims: each labelled segment, else each sentence; headings, list markers 
     ['UNKNOWN', 'The data does not say why.', []],
   ]);
   assert.equal(blindText('[FACT] a  b [INFERENCE] c'), 'a b c');
+  // Labels written into a longer bracket would also give away C2; the reason in the bracket is kept.
+  assert.equal(blindText('x [INFERENCE: based on `abc1234`] y'), 'x [based on `abc1234`] y');
+  assert.equal(blindText('x [INFERENCE based on milestones]'), 'x [based on milestones]');
+  assert.equal(blindText('x [INFERENCE - derived from counts]'), 'x [derived from counts]');
+  assert.equal(blindText('x [UNKNOWN: not in the data]'), 'x [not in the data]');
+  assert.equal(blindText('see [FACTS] and [FACTORY]'), 'see [FACTS] and [FACTORY]');
   // A markdown table: the header and rule rows are layout; each data row is a claim.
   const table = splitClaims('| Commit | Date | Added |\n|---|---|---:|\n| `484aa4f` | 2022-10-04 | 217 |\n| `8e4314b` | 2024-04-28 | 36 |');
   assert.deepEqual(table.map(c => c.citations), [['484aa4f'], ['8e4314b']]);

@@ -129,8 +129,14 @@ export function splitClaims(answer: string): ClaimPart[] {
   return out;
 }
 
-/** The answer as annotators see it: no labels (they would give away C2), citations kept (they are needed to judge). */
-export const blindText = (text: string) => text.replace(LABEL, "").replace(/[ \t]{2,}/g, " ").trim();
+/** A label written into a longer bracket, as models sometimes do: "[INFERENCE: based on `x`]", "[FACT - ...]". */
+const INLINE_LABEL = /\[(?:FACT|INFERENCE|UNKNOWN)\b\s*[:\-–—]?\s*(?=[^\]\s])/g;
+
+/**
+ * The answer as annotators see it: no labels (they would give away C2), citations kept (they are needed to judge). A
+ * label inside a longer bracket is removed and the rest of the bracket (what the claim rests on) is kept.
+ */
+export const blindText = (text: string) => text.replace(LABEL, "").replace(INLINE_LABEL, "[").replace(/[ \t]{2,}/g, " ").trim();
 
 // ── Recorded answers, sheets and keys ───────────────────────────────────────────────────────────────────────────────
 
