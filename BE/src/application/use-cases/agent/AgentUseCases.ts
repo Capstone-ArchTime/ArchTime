@@ -1,5 +1,7 @@
-import { agentContextFor, buildAgentsMd, hashAgentToken, newAgentToken, tokenDays, AGENT_TOKEN_PREFIX, MAX_TOKEN_DAYS } from "../../../domain/agent/context.js";
-import type { AgentContext } from "../../../domain/agent/context.js";
+import { agentContextFor, buildAgentsMd, taskContextFor, hashAgentToken, newAgentToken, tokenDays, AGENT_TOKEN_PREFIX, MAX_TOKEN_DAYS } from "../../../domain/agent/context.js";
+import type { AgentContext, TaskContextPack } from "../../../domain/agent/context.js";
+import type { ICommitArchitectureSource, ITaskRepository } from "../../../domain/interfaces/ITaskRepository.js";
+import { commitComponentImpact } from "../../../domain/tasks/impact.js";
 import { viewOf } from "../../../domain/entities/AgentToken.js";
 import type { AgentTokenView } from "../../../domain/entities/AgentToken.js";
 import type { IAgentTokenRepository } from "../../../domain/interfaces/IAgentTokenRepository.js";
@@ -9,7 +11,8 @@ import type { IOrganizationRepository } from "../../../domain/interfaces/IOrgani
 import { isSuspended } from "../../../domain/entities/Organization.js";
 import { BadRequestError, ConflictError, ForbiddenError, NotFoundError, UnauthorizedError } from "../../../shared/errors/AppError.js";
 
-// Agent access (RF-09, UC-42 create a project token, UC-43 revoke it, UC-44 read the architecture context).
+// Agent access (RF-09), numbered as in Report 3: UC-42 Get Architecture Context, UC-43 Generate Task Context Pack,
+// UC-44 Manage Agent Access Tokens (create and revoke).
 
 /** At most this many usable tokens per project, so forgotten ones do not pile up. */
 export const MAX_ACTIVE_TOKENS = 10;
@@ -24,7 +27,7 @@ export class AgentTokenUseCases {
     private readonly now: () => Date = () => new Date(),
   ) {}
 
-  /** UC-42. The token is in the answer this once; afterwards only its prefix is shown. */
+  /** UC-44 (create). The token is in the answer this once; afterwards only its prefix is shown. */
   async create(input: { projectId: string; userId: string; name: unknown; expiresInDays?: unknown }): Promise<{ token: string; record: AgentTokenView }> {
     const name = typeof input.name === "string" ? input.name.trim() : "";
     if (!name || name.length > 80) throw new BadRequestError("Give the token a name of 1 to 80 characters, for example the agent or machine that uses it.");
@@ -49,7 +52,7 @@ export class AgentTokenUseCases {
     return (await this.tokens.listByProject(projectId)).map(t => viewOf(t, now));
   }
 
-  /** UC-43. Takes effect on the agent's next request. */
+  /** UC-44 (revoke). Takes effect on the agent's next request. */
   async revoke(projectId: string, tokenId: string, userId: string): Promise<AgentTokenView> {
     const revoked = await this.tokens.revoke(projectId, tokenId, userId, this.now());
     if (!revoked) throw new NotFoundError("No active token with this id in this workspace.");
@@ -80,6 +83,8 @@ export class AgentContextUseCases {
     private readonly projects: Pick<IProjectRepository, "findById">,
     private readonly apiBase: string,
     private readonly organizations?: Pick<IOrganizationRepository, "findById">,
+    /** For UC-43: the workspace's tasks, their commit links and what each mined commit changed. */
+    private readonly taskSources?: { tasks: Pick<ITaskRepository, "listTasks" | "listLinks">; commits: ICommitArchitectureSource },
   ) {}
 
   /** Only a confirmed diagram is a reference an agent may follow. */
@@ -96,13 +101,37 @@ export class AgentContextUseCases {
     return workspace;
   }
 
-  /** UC-44. */
+  /** UC-42. */
   async context(projectId: string, file: unknown): Promise<AgentContext> {
     if (typeof file !== "string" || !file.trim()) throw new BadRequestError("Ask about one file: ?file=path/in/the/repository");
     const workspace = await this.confirmedWorkspace(projectId);
     const context = agentContextFor(file, workspace);
     if (!context) throw new BadRequestError(`"${file}" is not a path inside the repository.`);
     return context;
+  }
+
+  /**
+   * UC-43 (BR-30, BR-31): for one task key, the task, the components its linked commits touched and, for each, its
+   * allowed and forbidden dependencies and ADRs. Commit hashes and titles only: never source code or a patch.
+   */
+  async taskContext(projectId: string, rawKey: unknown): Promise<TaskContextPack> {
+    const key = typeof rawKey === "string" ? rawKey.trim().toUpperCase() : "";
+    if (!key) throw new BadRequestError("Ask about one task: ?task=TASK-KEY");
+    const workspace = await this.confirmedWorkspace(projectId);
+    const task = this.taskSources ? (await this.taskSources.tasks.listTasks(projectId)).find(t => t.key === key) : undefined;
+    if (!this.taskSources || !task) throw new NotFoundError(`Task ${key} not found in this workspace. Check the key, or ask a maintainer to import the tasks from Jira.`);
+    const { tasks, commits } = this.taskSources;
+    const links = (await tasks.listLinks(projectId)).filter(l => l.taskKey === key);
+    const mapped = (workspace.diagram?.components ?? []).filter(c => (c.pathPrefixes ?? []).length);
+    const touched = new Set<string>();
+    const seen: { hash: string; title: string; date: Date; mined: boolean }[] = [];
+    for (const link of links) {
+      const arch = await commits.ofCommit(projectId, link.hash);
+      seen.push({ hash: link.hash, title: link.title, date: link.date, mined: !!arch });
+      if (!arch || !mapped.length) continue;
+      for (const id of commitComponentImpact({ before: arch.baseGraph, after: arch.graph, components: mapped }).components) touched.add(id);
+    }
+    return taskContextFor(task, seen, touched, workspace);
   }
 
   async agentsMd(projectId: string): Promise<{ filename: string; content: string }> {

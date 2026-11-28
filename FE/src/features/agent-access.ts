@@ -2,7 +2,7 @@ import { apiDownload, apiRequest } from '../api/client.ts';
 import { hx } from './helper-messages.ts';
 import { API_BASE_URL } from '../auth/session.ts';
 
-// Agent access (RF-09, UC-42 – UC-44): project tokens a coding agent uses to ask ArchTime about the architecture, and
+// Agent access (RF-09, UC-42 Get Architecture Context, UC-43 Generate Task Context Pack, UC-44 Manage Agent Access Tokens): project tokens a coding agent uses to ask ArchTime about the architecture, and
 // the AGENTS.md generated from the confirmed diagram. The server keeps only a hash of each token.
 
 export interface AgentToken {
@@ -28,6 +28,11 @@ export const STATUS_LABEL: Record<AgentToken['status'], { label: string; color: 
 /** How an agent asks about one file, with the token in an environment variable rather than on the command line. */
 export function contextCommand(apiBase: string = API_BASE_URL, file = 'path/in/repo.ts'): string {
   return `curl -H "Authorization: Bearer $ARCHTIME_AGENT_TOKEN" "${apiBase.replace(/\/+$/, '')}/agent/context?file=${encodeURIComponent(file).replace(/%2F/gi, '/')}"`;
+}
+
+/** How an agent asks for the context pack of one task (UC-43): the components its commits touched and their rules. */
+export function taskContextCommand(apiBase: string = API_BASE_URL, task = 'TASK-KEY'): string {
+  return `curl -H "Authorization: Bearer $ARCHTIME_AGENT_TOKEN" "${apiBase.replace(/\/+$/, '')}/agent/task-context?task=${encodeURIComponent(task)}"`;
 }
 
 /** Active tokens first, then newest first: what a maintainer looks for when revoking. */
