@@ -12,7 +12,10 @@ import { OpenAiCompatibleClient } from './OpenAiCompatibleClient.js';
  *                    (default: anthropic when ANTHROPIC_API_KEY is set, else gemini when GEMINI_API_KEY is set, else none)
  * LLM_MODEL         anthropic: defaults to claude-opus-5-5; gemini: defaults to gemini-3.6-flash; openai-compatible: required
  * GEMINI_API_KEY    gemini (LLM_API_KEY also works)
- * LLM_BASE_URL      openai-compatible: required (for example http://localhost:11434/v1); anthropic: optional override
+ * LLM_BASE_URL      openai-compatible only: required (for example http://localhost:11434/v1). Never used for anthropic or
+ *                    gemini, so their keys cannot reach the host of another provider left in the file
+ * ANTHROPIC_BASE_URL anthropic: optional override (for example a proxy)
+ * GEMINI_BASE_URL   gemini: optional override
  * LLM_API_KEY       openai-compatible only, optional; anthropic reads ANTHROPIC_API_KEY
  * LLM_TIMEOUT_MS    default 180000
  * LLM_EFFORT        anthropic: low | medium | high (default medium); lower is faster and cheaper
@@ -85,12 +88,12 @@ export function envClientConfig(env: NodeJS.ProcessEnv = process.env): LlmClient
   if (provider === 'none' || provider === '') return { error: 'No AI provider is configured on this server.' };
   if (provider === 'anthropic') {
     if (!env.ANTHROPIC_API_KEY) return { error: 'LLM_PROVIDER is anthropic but ANTHROPIC_API_KEY is not set.' };
-    return { provider, model: env.LLM_MODEL || 'claude-opus-5-5', apiKey: env.ANTHROPIC_API_KEY, baseUrl: env.LLM_BASE_URL || undefined, timeoutMs, effort: (['low', 'medium', 'high'] as const).find(e => e === env.LLM_EFFORT) };
+    return { provider, model: env.LLM_MODEL || 'claude-opus-5-5', apiKey: env.ANTHROPIC_API_KEY, baseUrl: env.ANTHROPIC_BASE_URL || undefined, timeoutMs, effort: (['low', 'medium', 'high'] as const).find(e => e === env.LLM_EFFORT) };
   }
   if (provider === 'gemini') {
     const apiKey = env.GEMINI_API_KEY || env.LLM_API_KEY;
     if (!apiKey) return { error: 'LLM_PROVIDER is gemini but GEMINI_API_KEY is not set.' };
-    return { provider, model: env.LLM_MODEL || 'gemini-3.6-flash', apiKey, baseUrl: env.LLM_BASE_URL || undefined, timeoutMs, jsonMode: env.LLM_JSON_MODE !== 'false' };
+    return { provider, model: env.LLM_MODEL || 'gemini-3.6-flash', apiKey, baseUrl: env.GEMINI_BASE_URL || undefined, timeoutMs, jsonMode: env.LLM_JSON_MODE !== 'false' };
   }
   if (provider === 'openai-compatible') {
     if (!env.LLM_BASE_URL || !env.LLM_MODEL) return { error: 'LLM_BASE_URL and LLM_MODEL are required for an openai-compatible provider.' };

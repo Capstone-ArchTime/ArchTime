@@ -23,5 +23,5 @@ Object.assign(process.env, {
 // No AI model is configured: a test must say so itself if it needs one, never pick up a developer's real key.
 for (const name of [
   "LLM_PROVIDER", "LLM_BASE_URL", "LLM_MODEL", "LLM_API_KEY", "LLM_SECRET_KEY", "LLM_TIMEOUT_MS", "LLM_EFFORT", "LLM_JSON_MODE",
-  "LLM_MAX_REFINE_FILES", "LLM_MAX_MOVE_RATIO", "ANTHROPIC_API_KEY", "GEMINI_API_KEY",
+  "LLM_MAX_REFINE_FILES", "LLM_MAX_MOVE_RATIO", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "ANTHROPIC_BASE_URL", "GEMINI_BASE_URL",
 ]) delete process.env[name];

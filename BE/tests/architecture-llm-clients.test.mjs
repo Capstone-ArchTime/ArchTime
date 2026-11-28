@@ -190,7 +190,7 @@ test('JSON mode that the server rejects is switched off once, then stays off', a
 test('Gemini goes through the OpenAI-compatible endpoint with its key, no temperature and room to think', async () => {
   const srv = await server((req, res) => json(res, 200, { choices: [{ message: { content: '{"components":[]}' }, finish_reason: 'stop' }] }));
   try {
-    const runtime = loadLlmRuntime({ GEMINI_API_KEY: 'g-secret', LLM_BASE_URL: `${srv.url}/v1beta/openai/` });
+    const runtime = loadLlmRuntime({ GEMINI_API_KEY: 'g-secret', GEMINI_BASE_URL: `${srv.url}/v1beta/openai/` });
     assert.equal(runtime.capability.provider, 'gemini');
     assert.equal(runtime.capability.model, 'gemini-3.6-flash');
     await runtime.client.complete(MESSAGES, { schema: { type: 'object' } });
@@ -239,6 +239,17 @@ test('configuration: off by default, explicit about why, and secrets never reach
   assert.equal(loadLlmRuntime({ LLM_MAX_MOVE_RATIO: '7' }).options.maxMoveRatio, 1);
   assert.equal(loadLlmRuntime({ LLM_MAX_REFINE_FILES: '10' }).options.maxRefineFiles, 10);
   assert.equal(loadLlmRuntime({ LLM_MAX_REFINE_FILES: 'abc' }).options.maxRefineFiles, 400);
+});
+
+test('a base URL left for another provider never receives the Anthropic or Gemini key', () => {
+  // LLM_BASE_URL belongs to openai-compatible; switching LLM_PROVIDER must not send another provider's key there.
+  const leftover = { LLM_BASE_URL: 'https://other-provider.example/v1' };
+  const claude = loadLlmRuntime({ ...leftover, LLM_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'sk-ant-secret' });
+  assert.equal(claude.capability.host, 'api.anthropic.com');
+  const gemini = loadLlmRuntime({ ...leftover, LLM_PROVIDER: 'gemini', GEMINI_API_KEY: 'g-secret' });
+  assert.equal(gemini.capability.host, 'generativelanguage.googleapis.com');
+  assert.equal(loadLlmRuntime({ LLM_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'k', ANTHROPIC_BASE_URL: 'http://localhost:9000' }).capability.host, 'localhost:9000');
+  assert.equal(loadLlmRuntime({ LLM_PROVIDER: 'gemini', GEMINI_API_KEY: 'k', GEMINI_BASE_URL: 'http://localhost:9001/v1beta/openai/' }).capability.host, 'localhost:9001');
 });
 
 test('Claude client reports token usage, counting cached input with the rest, even for an answer it then rejects', async () => {
